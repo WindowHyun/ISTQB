@@ -227,13 +227,29 @@ select {
 
 .question-stem {
   white-space: pre-wrap;
-  font-size: 20px;
-  line-height: 1.7;
+  font-size: 19px;
+  line-height: 1.75;
   word-break: keep-all;
+  overflow-wrap: anywhere;
   overflow-x: auto;
 }
 
-.question-stem .table-block {
+.question-figure {
+  margin: 4px 0 8px;
+  overflow-x: auto;
+}
+
+.question-figure img {
+  display: block;
+  max-width: min(100%, 760px);
+  height: auto;
+  margin: 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+}
+
+.table-block {
   display: block;
   margin: 12px 0;
   padding: 14px;
@@ -246,6 +262,17 @@ select {
   font-size: 15px;
   line-height: 1.65;
   white-space: pre;
+}
+
+.question-stem .text-line,
+.feedback .text-line {
+  display: block;
+  margin: 0 0 8px;
+}
+
+.question-stem .text-line:last-child,
+.feedback .text-line:last-child {
+  margin-bottom: 0;
 }
 
 .choice-token {
@@ -283,8 +310,15 @@ select {
   -webkit-touch-callout: none;
 }
 
+.option:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
 .option-text {
   line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .option-key {
@@ -320,11 +354,70 @@ select {
   border-radius: 8px;
   background: #f7faf6;
   line-height: 1.65;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .feedback strong {
   display: block;
   margin-bottom: 6px;
+}
+
+.feedback-body {
+  display: block;
+  white-space: normal;
+}
+
+.structured-list {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.structured-line {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  line-height: 1.55;
+}
+
+.structured-marker {
+  min-width: 26px;
+  padding: 1px 6px;
+  border-radius: 7px;
+  background: #eef7f4;
+  color: var(--accent-strong);
+  font-weight: 800;
+  text-align: center;
+}
+
+.data-table {
+  width: 100%;
+  margin: 12px 0;
+  border-collapse: collapse;
+  overflow: hidden;
+  border: 1px solid #c8d7d2;
+  border-radius: 8px;
+  background: #fbfdfc;
+  font-size: 16px;
+}
+
+.data-table th,
+.data-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #dce7e3;
+  text-align: left;
+}
+
+.data-table th {
+  background: #eef7f4;
+  color: var(--accent-strong);
+  font-weight: 800;
+}
+
+.data-table tr:last-child td {
+  border-bottom: 0;
 }
 
 .question-nav {
@@ -399,6 +492,23 @@ select {
 }
 
 @media (max-width: 640px) {
+  .sidebar {
+    padding: 18px;
+  }
+
+  .workspace {
+    padding: 14px;
+    gap: 14px;
+  }
+
+  .topbar {
+    align-items: flex-start;
+  }
+
+  .topbar h2 {
+    font-size: 18px;
+  }
+
   .actions {
     grid-template-columns: 1fr 1fr;
   }
@@ -409,6 +519,48 @@ select {
 
   .primary {
     grid-column: 1 / -1;
+  }
+
+  #resetAllBtn {
+    grid-column: 1 / -1;
+  }
+
+  .question-card {
+    min-height: 360px;
+    padding: 16px;
+  }
+
+  .question-stem {
+    font-size: 16px;
+    line-height: 1.72;
+  }
+
+  .question-figure img {
+    max-width: 100%;
+  }
+
+  .question-stem .table-block {
+    font-size: 13px;
+    padding: 10px;
+  }
+
+  .data-table {
+    font-size: 13px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 8px;
+  }
+
+  .option {
+    grid-template-columns: 30px minmax(0, 1fr);
+    padding: 12px;
+  }
+
+  .option-key {
+    width: 28px;
+    height: 28px;
   }
 }
 
@@ -446,10 +598,6 @@ select {
             <strong id="progressText">0 / 40</strong>
           </div>
           <div>
-            <span>정답률</span>
-            <strong id="scoreText">0%</strong>
-          </div>
-          <div>
             <span>시간</span>
             <strong id="timerText">00:00</strong>
           </div>
@@ -459,8 +607,8 @@ select {
           <button id="gradeBtn" class="primary" type="button">채점하기</button>
           <button id="retryWrongBtn" type="button">오답 다시 풀기</button>
           <button id="toggleNavBtn" type="button" aria-expanded="true">문제 번호 접기</button>
-          <button id="resetBtn" type="button">초기화</button>
-          <button id="resetAllBtn" type="button">현재 세트 전체 초기화</button>
+          <button id="resetBtn" type="button">현재 모드 풀이 초기화</button>
+          <button id="resetAllBtn" type="button">현재 세트 기록 전체 삭제</button>
         </div>
       </aside>
 
@@ -478,6 +626,7 @@ select {
 
         <article class="question-card">
           <div id="questionStem" class="question-stem"></div>
+          <div id="questionFigure" class="question-figure" hidden></div>
           <div id="options" class="options"></div>
           <div id="feedback" class="feedback" hidden></div>
         </article>
@@ -4716,6 +4865,700 @@ window.ISTQB_DATA = {
           "explanation": "a) 정답이 아닙니다. 추가적인 심각도가 높은 결함의 식별은 테스트 자동화의 리스크라 기보다는 이점일 것입니다. b) 정답이 아닙니다. 사람이 직접 도출하기에는 너무 복잡한 측정치를 제공하는 것은 일 반적으로 테스트 자동화의 이점으로 간주됩니다. c) 정답입니다. 테스트 자동화가 개발 플랫폼과 호환되지 않는 경우, 테스트 자동화는 이 들을 통합할 수 없게 되며, 예를 들어 테스트 입력을 테스트 대상에 전달하고 테스트 대상으로부터 테스트 결과를 받는 것이 불가능하게 됩니다. d) 정답이 아닙니다. 테스트 실행 시간이 상당히 단축되는 것은 일반적으로 테스트 자동 화가 제공하는 이점으로 간주됩니다."
         }
       ]
+    },
+    {
+      "id": "EXTRA",
+      "title": "추가 샘플문제",
+      "questionPdf": "ISTQB_FL_v4.0_샘플문제_A_v1.7_한글_v1.0.pdf",
+      "answerPdf": "ISTQB_FL_v4.0_샘플문제_A_v1.7_정답과_해설_한글_v1.0.pdf",
+      "questions": [
+        {
+          "number": 1,
+          "stem": "출시할 새로운 시스템의 장애 원인을 분석하고 수정하는 작업이 주어졌다. 다음 중 어떤\n활동을 하고 있는 것인가?",
+          "options": [
+            {
+              "key": "a",
+              "text": "디버깅"
+            },
+            {
+              "key": "b",
+              "text": "소프트웨어 테스팅"
+            },
+            {
+              "key": "c",
+              "text": "요구사항 도출"
+            },
+            {
+              "key": "d",
+              "text": "결함 관리"
+            }
+          ],
+          "answer": [
+            "a"
+          ],
+          "explanation": "a) 정답입니다. 디버깅은 컴포넌트나 시스템에 있는 장애의 원인을 찾고, 분석하고, 제거하는\n과정입니다.\nb) 정답이 아닙니다. 테스팅은 컴포넌트나 시스템과 관련 작업 산출물이 명시된 요구사항을\n충족하고 목적에 적합한지 판단하고, 결함을 감지하기 위해 계획, 준비, 평가하는 과정\n입니다. 장애 원인을 수정하는 것과는 무관합니다.\nc) 정답이 아닙니다. 요구사항 도출은 가용한 출처에서 요구사항을 수집, 포착, 통합하는\n과정입니다. 장애 원인을 수정하는 것과는 무관합니다.\nd) 정답이 아닙니다. 결함 관리는 결함을 인지, 기록, 분류, 조사, 해결, 처리하는 과정입니다.\n장애 원인을 수정하는 것과는 무관합니다."
+        },
+        {
+          "number": 2,
+          "stem": "많은 소프트웨어 조직에서 테스트 부서를 품질 보증(QA) 부서라고 한다.\n위 문장이 맞는지 틀리는지, 그리고 이유는 무엇인지를 바르게 설명한 것은?",
+          "options": [
+            {
+              "key": "a",
+              "text": "맞다. 테스팅과 QA는 정확히 같은 의미이다"
+            },
+            {
+              "key": "b",
+              "text": "맞다. 테스팅과 QA 모두 동일한 품질 문제를 대처하는 활동에 집중하기 때문에 서로\n바꿔서 사용할 수 있다"
+            },
+            {
+              "key": "c",
+              "text": "틀리다. 테스팅은 품질과 관련된 모든 활동을 포함하지만, QA는 품질 관련 프로세스에\n중점을 두기 때문에 테스팅이 더 큰 개념이다"
+            },
+            {
+              "key": "d",
+              "text": "틀리다. QA는 품질 관련 프로세스에 중점을 두는 반면, 테스팅은 컴포넌트나 시스템이\n목적에 적합한지 확인하고 결함을 식별하는 데 중점을 둔다"
+            }
+          ],
+          "answer": [
+            "d"
+          ],
+          "explanation": "다음을 근거로:\n테스팅과 품질 보증은 같지 않습니다. 테스팅은 컴포넌트나 시스템과 관련 작업 산출물이\n명시된 요구사항을 충족하고 목적에 적합한지 확인하고, 결함을 감지하기 위해 계획,\n준비, 평가하는 모든 정적 및 동적 SDLC 활동으로 구성된 프로세스입니다.\n품질 보증은 품질 관련 프로세스의 수립, 도입, 모니터링, 개선, 준수에 중점을 둡니다.\n\n따라서:\na) 정답이 아닙니다.\nb) 정답이 아닙니다.\nc) 정답이 아닙니다.\nd) 정답입니다.\nFL-1.2.2 K1 1\n부록: 추가 샘플 문제의 정답\n\n문제 번호\n(#) 정답 해설/근거 학습목표\n(LO) K-레벨 배점"
+        },
+        {
+          "number": 3,
+          "stem": "옆자리에서 울린 전화가 프로그래머의 주의를 분산시켜 입력 변수의 상한을 확인하는\n논리를 잘못 프로그래밍하게 했다. 나중에 시스템 테스팅에서 테스터가 이 입력 필드가\n유효하지 않은 입력 값을 허용한다는 것을 알아냈다.\n다음 중 잘못 코딩 된 상한선을 올바르게 설명한 것은?",
+          "options": [
+            {
+              "key": "a",
+              "text": "근본 원인(The root cause)"
+            },
+            {
+              "key": "b",
+              "text": "장애(A failure)"
+            },
+            {
+              "key": "c",
+              "text": "오류(An error)"
+            },
+            {
+              "key": "d",
+              "text": "결함(A defect)"
+            }
+          ],
+          "answer": [
+            "d"
+          ],
+          "explanation": "a) 정답이 아닙니다. 근본 원인은 프로그래밍 중 프로그래머의 주의가 분산됐다는 점입니다.\nb) 정답이 아닙니다. 유효하지 않은 입력값을 허용하는 것은 장애입니다.\nc) 정답이 아닙니다. 코드에 결함을 유발하게 만든 사고의 오류입니다.\nd) 정답입니다. 코드의 문제는 결함입니다."
+        },
+        {
+          "number": 4,
+          "stem": "다음 테스트웨어를 작성하는 테스트 활동은?\n테스트 차터 #04.018 세션 시간: 1시간\n대상(Explore): 등록 페이지\n도구(With): 잘못된 값을 가진 여러 입력 데이터 세트\n목적(To discover): 등록 과정에서 잘못된 입력값을 허용하는 것과 관련된 결함 식별",
+          "options": [
+            {
+              "key": "a",
+              "text": "테스트 계획"
+            },
+            {
+              "key": "b",
+              "text": "테스트 모니터링과 테스트 제어"
+            },
+            {
+              "key": "c",
+              "text": "테스트 분석"
+            },
+            {
+              "key": "d",
+              "text": "테스트 설계"
+            }
+          ],
+          "answer": [
+            "d"
+          ],
+          "explanation": "고려 중인 테스트웨어는 테스트 차터입니다.\n테스트 차터는 테스트 설계의 결과물입니다.\n\n따라서:\na) 정답이 아닙니다.\nb) 정답이 아닙니다.\nc) 정답이 아닙니다.\nd) 정답입니다."
+        },
+        {
+          "number": 5,
+          "stem": "다음 중 추적성이 테스팅을 어떻게 지원하는지 보여주는 가장 좋은 예제는?",
+          "options": [
+            {
+              "key": "a",
+              "text": "변경의 영향도를 분석함으로써 테스트 완료에 대한 정보를 얻을 수 있다"
+            },
+            {
+              "key": "b",
+              "text": "테스트 케이스와 테스트 결과 간의 추적성을 분석함으로써 잔존 리스크 수준을 추정\n하는 데 필요한 정보를 얻을 수 있다"
+            },
+            {
+              "key": "c",
+              "text": "변경의 영향도 분석을 실행하는 것은 리그레션 테스팅에 적절한 테스트 케이스 선택에\n도움이 된다"
+            },
+            {
+              "key": "d",
+              "text": "테스트 베이시스, 테스트 대상 및 테스트 케이스 간의 추적성을 분석하는 것은 테스트\n대상의 가정된 커버리지를 달성하기 위한 테스트 데이터 선택에 도움이 된다"
+            }
+          ],
+          "answer": [
+            "c"
+          ],
+          "explanation": "a) 정답이 아닙니다. 영향도 분석을 해도 테스트 완료 정도에 대한 정보는 얻지 못합니다.\n변경의 영향도 분석 결과는 실행할 적합한 테스트 케이스를 선택하는 데 도움이 됩니다.\nb) 정답이 아닙니다. 추적성으로 예상 잔존 리스크 수준을 알고 싶다면 테스트 케이스에서\n리스크까지 거슬러 올라가야 합니다.\nc) 정답입니다. 변경에 대한 영향도 분석은 리그레션 테스트를 위한 테스트 케이스를 고르는 데\n도움이 됩니다.\nd) 정답이 아닙니다. 테스트 베이시스, 테스트 대상, 테스트 케이스 간의 추적성을 분석하는\n것은 테스트 대상에 대해 정해진 커버리지를 달성하기 위한 테스트 데이터 선택에 도움이\n되지 않습니다. 테스트 데이터를 선택하는 것은 추적성보다 테스트 분석이나 테스트\n구현과 더 관련이 있습니다.\nFL-1.4.4 K2 1\n\n문제 번호\n(#) 정답 해설/근거 학습목표\n(LO) K-레벨 배점"
+        },
+        {
+          "number": 6,
+          "stem": "다음 중 테스팅 독립성의 이점을 가장 잘 설명한 것은?",
+          "options": [
+            {
+              "key": "a",
+              "text": "독립적인 테스트팀이 있으면, 결과물의 품질에 대한 책임을 테스트팀이 지도록 할 수\n있다"
+            },
+            {
+              "key": "b",
+              "text": "조직 외부의 테스트팀을 활용할 수 있다면, 이 외부 팀이 프로젝트 관리의 납품이나\n납품 마감 준수 압박에 쉽게 휘둘리지 않는다는 면에서 뚜렷한 이점이 생긴다"
+            },
+            {
+              "key": "c",
+              "text": "독립적인 테스트팀은 개발자와 독립적으로 일할 수 있고, 프로젝트 요구사항 변경으로\n인해 주의가 산만해지지 않으며, 개발자와의 소통을 결함 관리 시스템을 통한 결함\n보고로 제한할 수 있다"
+            },
+            {
+              "key": "d",
+              "text": "명세가 모호하거나 불일치하는 부분이 있으면, 그것을 해석할 때 일부 사항을 가정하게\n되며, 독립적인 테스터는 개발자가 만든 이런 가정과 해석에 의문을 제기하는 데 유용\n할 수 있다"
+            }
+          ],
+          "answer": [
+            "d"
+          ],
+          "explanation": "a) 정답이 아닙니다. 품질은 테스트팀만의 책임이 아닌 프로젝트에 일하는 모두의 책임이\n어야 합니다.\nb) 정답이 아닙니다. 우선 외부 테스트팀이 납품기한을 지키지 못한 것은 이점이 아닙니다.\n그리고 외부 테스트팀이 납품기한을 엄수할 필요가 없다고 느낄 것이라 생각할 이유도\n없습니다.\nc) 정답이 아닙니다. 테스트팀이 완전히 고립된 상태에서 일하게 하는 것은 나쁜 관행이며,\n외부 테스트팀이 바뀌는 프로젝트 요구사항, 또 개발자와 원활한 의사소통에 관심을\n가질 것을 기대할 것입니다.\nd) 정답입니다. 명세가 완벽한 경우는 없기 때문에 개발자는 일부 사항에 대해 가정을 해야\n합니다. 독립적인 테스터는 개발자가 한 이런 가정과 그에 따른 해석에 의문을 제기하고\n검증할 수 있다는 점에서 유용합니다.\nFL-1.5.3 K2 1\n\n문제 번호\n(#) 정답 해설/근거 학습목표\n(LO) K-레벨 배점"
+        },
+        {
+          "number": 7,
+          "stem": "당신은 V 모델을 따르는 팀에서 테스터로 일하고 있다. 다음 중 어떤 활동을 소프트웨어\n개발 수명주기 초기 단계에서 수행할 수 있는가? (2개 선택)",
+          "options": [
+            {
+              "key": "a",
+              "text": "동적 테스트 수행"
+            },
+            {
+              "key": "b",
+              "text": "정적 테스팅"
+            },
+            {
+              "key": "c",
+              "text": "테스트 계획"
+            },
+            {
+              "key": "d",
+              "text": "인수 테스트 수행"
+            },
+            {
+              "key": "e",
+              "text": "유지보수 테스팅"
+            }
+          ],
+          "answer": [
+            "b",
+            "c"
+          ],
+          "explanation": "a) 정답이 아닙니다. 실행 가능한 코드는 일반적으로 후반 단계에서 생성되므로 소프트웨\n어 개발 수명주기 초기에 동적 테스트를 수행할 수 없습니다.\nb) 정답입니다. 순차적 개발 모델에서 테스터는 초기 단계에서 정적 테스팅의 한 형태인 요\n구사항 리뷰에 참여합니다.\nc) 정답입니다. 테스트 분석 및 테스트 설계와 함께 테스트 프로젝트가 시작되기 전에 소프\n트웨어 개발 수명주기 초기에 태스트 계획을 수행할 수 있습니다.\nd) 정답이 아닙니다. 인수 테스트 수행은 동작하는 제품이 있을 때 수행할 수 있습니다. 순\n차적 개발 수명주기 모델에서 동작하는 제품은 일반적으로 후반에 제공됩니다.\ne) 정답이 아닙니다. 유지보수 테스팅은 동작하고 배포된 제품이 있을 때 수행되고, 어떤\n소프트웨어 개발 수명주기 모델이든 초기 단계에서 수행되지 않습니다.\nFL-2.1.1 K2 1\n\n문제 번호\n(#) 정답 해설/근거 학습목표\n(LO) K-레벨 배점"
+        },
+        {
+          "number": 8,
+          "stem": "다음 중 데브옵스(DevOps)의 장점은?\ni. 빠른 제품 출시 및 짧은 출시 기간\nii. 반복적인 수동 테스팅의 필요성 증가\niii. 실행 가능한 소프트웨어의 지속적인 가용성\niv. 코드 리팩토링과 관련된 리그레션 테스트 수 감소\nv. 모든 것이 자동화되어 있으므로 테스트 자동화 프레임워크를 설정하는 비용이\n저렴하다",
+          "options": [
+            {
+              "key": "a",
+              "text": "i, ii, iv"
+            },
+            {
+              "key": "b",
+              "text": "iii, v"
+            },
+            {
+              "key": "c",
+              "text": "i, iii"
+            },
+            {
+              "key": "d",
+              "text": "ii, iv, v"
+            }
+          ],
+          "answer": [
+            "c"
+          ],
+          "explanation": "다음을 근거로:\ni. 참입니다. 빠른 제품 출시와 시장 진입은 데브옵스의 장점입니다.\nii. 거짓입니다. 보통 테스트 자동화의 사용으로 수동 테스트에 필요한 노력이 줄어듭니다.\niii. 참입니다. 실행 가능한 소프트웨어의 지속적인 가용성은 장점입니다.\niv. 거짓입니다. 더 많은 리그레션 테스트가 필요합니다.\nv. 거짓입니다. 모든 것을 자동화하지 않으며 테스트 자동화 프레임워크를 구축하는 비용은\n비쌉니다.\n\n따라서:\na) 정답이 아닙니다.\nb) 정답이 아닙니다.\nc) 정답입니다.\nd) 정답이 아닙니다.\nFL-2.1.4 K2 1\n\n문제 번호\n(#) 정답 해설/근거 학습목표\n(LO) K-레벨 배점"
+        },
+        {
+          "number": 9,
+          "stem": "당신은 사용자가 음식을 주문하는 모바일 애플리케이션 프로젝트에서 테스터로 일하고\n있다. 고객이 요구사항 목록을 보냈고, 그 중 우선순위가 높은 하나가 다음과 같다.\n“전체 주문의 95% 이상은 10초 이내에 처리되어야 한다.”\n\n당신은 무작위로 주문이 이루어지고, 처리 시간이 측정되며, 테스트 결과가 요구사항과\n비교되도록 일련의 테스트 케이스를 만들었다.\n다음 중 수행한 테스트 유형은 무엇인가?",
+          "options": [
+            {
+              "key": "a",
+              "text": "테스트 케이스가 시스템에 대한 사용자의 비즈니스 요구사항을 다루기 때문에 기능\n테스트이다"
+            },
+            {
+              "key": "b",
+              "text": "시스템 성능을 측정하기 때문에 비기능 테스트이다"
+            },
+            {
+              "key": "c",
+              "text": "테스트 케이스가 사용자 인터페이스와 상호작용하기 때문에 기능 테스트이다"
+            },
+            {
+              "key": "d",
+              "text": "주문 처리 시간을 측정하기 위해서는 프로그램의 내부 구조를 알아야 하기 때문에 화\n이트박스 테스트이다"
+            }
+          ],
+          "answer": [
+            "b"
+          ],
+          "explanation": "a) 정답이 아닙니다. 시스템 성능 요구사항이 고객으로부터 직접 왔고 비즈니스 관점에서\n성능이 중요하다는(즉, 우선순위가 높다는) 사실이 이 테스트를 기능 테스트로 만들진\n않습니다. 테스트는 시스템이 “무엇을” 하는지 확인하는 것이 아니라, “어떻게” 하는지\n(즉, 얼마나 빨리 주문을 처리하는지) 확인하기 때문입니다.\nb) 정답입니다. 이것은 비기능 테스팅의 한 유형인 성능 유효성 테스팅의 예시입니다.\nc) 정답이 아닙니다. 시나리오에서 사용자 인터페이스와의 상호작용이 테스트 컨디션의\n일부인지 알 수 없습니다. 알 수 있었다 하더라도 이 테스트의 주된 목적은 성능을 확인하는\n것이지, 유용성을 확인하는 것이 아닙니다.\nd) 정답이 아닙니다. 성능 유효성 테스팅을 수행하기 위해 코드의 내부 구조를 알 필요는 없\n습니다. 구조에 대한 지식 없이도 수행 효율성 테스트를 할 수 있습니다."
+        },
+        {
+          "number": 10,
+          "stem": "조직의 테스트 전략은 시스템을 단종하려면 데이터 마이그레이션 테스트를 수행해야\n한다고 명시하고 있다. 이런 테스팅은 어떤 테스트 유형에 포함해서 수행할 가능성이 가장\n높은가?",
+          "options": [
+            {
+              "key": "a",
+              "text": "유지보수 테스팅"
+            },
+            {
+              "key": "b",
+              "text": "리그레션 테스팅"
+            },
+            {
+              "key": "c",
+              "text": "신뢰성 테스팅"
+            },
+            {
+              "key": "d",
+              "text": "통합 테스팅"
+            }
+          ],
+          "answer": [
+            "a"
+          ],
+          "explanation": "a) 정답입니다. 시스템이 단종되면 유지보수 테스팅의 유형인 데이터 마이그레이션 테스팅이\n필요할 수 있습니다.\nb) 정답이 아닙니다. 리그레션 테스팅은 수정 작업으로 우연히 코드 다른 부분의 행동에\n영향을 끼쳤는지 검증하는 것입니다. 지금은 새로운 시스템으로 데이터를 마이그레이션하는\n것에 대해 이야기하고 있습니다.\nc) 정답이 아닙니다. 단위 테스팅은 데이터 마이그레이션이 아닌 개별 하드웨어나 소프트웨어\n컴포넌트에 초점을 둡니다.\nd) 정답이 아닙니다. 통합 테스팅은 데이터 마이그레이션이 아닌 컴포넌트 간, 시스템 간,\n또는 컴포넌트와 시스템 간의 상호작용에 초점을 둡니다.\nFL-2.3.1 K2 1\n\n문제 번호\n(#) 정답 해설/근거 학습목표\n(LO) K-레벨 배점"
+        },
+        {
+          "number": 11,
+          "stem": "다음은 개발 수명주기(SDLC) 중 작성한 작업 산출물 목록이다.\ni. 비즈니스 요구사항\nii. 일정 계획\niii. 테스트 예산\niv. 타사 실행 코드\nv. 사용자 스토리 및 인수 조건\n\n다음 중 리뷰가 가능한 작업 산출물은?",
+          "options": [
+            {
+              "key": "a",
+              "text": "i, iv"
+            },
+            {
+              "key": "b",
+              "text": "i, ii, iii, iv"
+            },
+            {
+              "key": "c",
+              "text": "i, ii, iii, v"
+            },
+            {
+              "key": "d",
+              "text": "ii, iv, v"
+            }
+          ],
+          "answer": [
+            "c"
+          ],
+          "explanation": "제3자 공급사의 실행 가능한 코드만 리뷰할 수 없습니다.\n\n따라서:\na) 정답이 아닙니다.\nb) 정답이 아닙니다.\nc) 정답입니다.\nd) 정답이 아닙니다."
+        },
+        {
+          "number": 12,
+          "stem": "다음 중 정적 테스팅에 대한 올바른 설명은?\ni. 비정상 외부 행동을 이 테스팅으로 더 쉽게 식별할 수 있다\nii. 코딩 표준과의 불일치를 이 테스팅으로 더 쉽게 식별할 수 있다\niii. 소프트웨어 실행 시 결함으로 인한 장애를 이 테스팅으로 식별할 수 있다\niv. 이 테스팅의 테스트 목표는 가능한 빨리 결함을 식별하는 것이다\nv. 중요 보안 요구사항 중 커버되지 않은 사항을 식별 및 수정하기가 더 쉽다",
+          "options": [
+            {
+              "key": "a",
+              "text": "i, iv, v"
+            },
+            {
+              "key": "b",
+              "text": "i, iii, iv"
+            },
+            {
+              "key": "c",
+              "text": "ii, iii"
+            },
+            {
+              "key": "d",
+              "text": "ii, iv, v"
+            }
+          ],
+          "answer": [
+            "d"
+          ],
+          "explanation": "다음을 근거로:\ni. 이러한 행동은 소프트웨어가 실행되고 있을 때 쉽게 감지할 수 있습니다. 따라서,\n식별하기 위해 동적 테스팅을 사용해야 합니다.\nii. 이것은 일반적으로 정적 테스팅으로 더 쉽게 발견할 수 있는 결함 유형인 표준과의\n불일치에 대한 예시입니다.\niii. 만약 테스트 도중 소프트웨어가 실행된다면 그것은 동적 테스팅입니다.\niv. 가능한 한 조기에 결함을 식별하는 것은 정적/동적 테스팅 모두의 목적입니다.\nv. 이것은 일반적으로 정적 테스팅으로 더 쉽게 발견할 수 있는 결함 유형인 테스트\n베이시스 추적성 혹은 커버리지의 누락에 대한 예시입니다.\n\n따라서:\na) 정답이 아닙니다.\nb) 정답이 아닙니다.\nc) 정답이 아닙니다.\nd) 정답입니다.\nFL-3.1.3 K2 1\n\n문제 번호\n(#) 정답 해설/근거 학습목표\n(LO) K-레벨 배점"
+        },
+        {
+          "number": 13,
+          "stem": "다음 중 공식 리뷰에 대한 다음 설명으로 올바른 것은?",
+          "options": [
+            {
+              "key": "a",
+              "text": "일부 리뷰는 하나 이상의 역할이 필요하지 않다"
+            },
+            {
+              "key": "b",
+              "text": "리뷰 과정에 여러 활동이 포함된다"
+            },
+            {
+              "key": "c",
+              "text": "일부 특정 리뷰 유형의 작업 산출물을 제외하고는, 리뷰 회의 전에 리뷰할 문서를\n배포하지 않는다"
+            },
+            {
+              "key": "d",
+              "text": "동적 테스팅으로 식별한 사항이 아니기 때문에 리뷰 중 발견한 결함은 보고하지\n않는다"
+            }
+          ],
+          "answer": [
+            "b"
+          ],
+          "explanation": "a) 정답이 아닙니다. 비공식 리뷰까지 포함한 모든 유형의 리뷰에 둘 이상의 역할이 있습니다.\nb) 정답입니다. 공식 리뷰 프로세스 중 여러 활동이 있습니다.\nc) 정답이 아닙니다. 리뷰할 문서는 가능한 한 빨리 배포해야 합니다.\nd) 정답이 아닙니다. 리뷰 중 발견한 결함은 보고해야 합니다."
+        },
+        {
+          "number": 14,
+          "stem": "다음 중 공식 리뷰에서 관리자가 수행할 수 있는 작업은?",
+          "options": [
+            {
+              "key": "a",
+              "text": "리뷰에 대한 전반적인 책임을 진다"
+            },
+            {
+              "key": "b",
+              "text": "리뷰 대상을 결정한다"
+            },
+            {
+              "key": "c",
+              "text": "리뷰 회의의 효과적인 진행을 보장하고, 필요한 경우 중재한다"
+            },
+            {
+              "key": "d",
+              "text": "리뷰에서 나온 결정 사항과 같은 리뷰 정보를 기록한다"
+            }
+          ],
+          "answer": [
+            "b"
+          ],
+          "explanation": "a) 정답이 아닙니다. 이것은 리뷰 리더의 일입니다.\nb) 정답입니다. 이것은 공식 리뷰에서 관리자가 할 일입니다.\nc) 정답이 아닙니다. 이것은 중재자의 일입니다.\nd) 정답이 아닙니다. 이것은 서기의 일입니다."
+        },
+        {
+          "number": 15,
+          "stem": "와인 저장 시스템은 와인 보관소의 온도 T(°C 단위로 측정, 가장 가까운 정수로 반올림)\n를 측정하고, 최적 온도인 12에서 벗어난 경우 다음 규칙에 따라 사용자에게 알림을 주는\n제어 장치를 사용하고 있다.\n- T = 12면, “최적 온도”라고 표시한다\n- T <12면, “온도가 너무 낮습니다!”라고 표시한다\n- T> 12면, “온도가 너무 높습니다!”라고 표시한다\n\n3개 선택(3-value) 경계값 분석(BVA)으로 제어 장치의 동작을 확인하려고 한다. 테스트\n입력값은 장치에서 제공하는 온도(°C)이다.\n100% 커버리지를 달성하는 최소 테스트 입력값 세트는?",
+          "options": [
+            {
+              "key": "a",
+              "text": "11, 12, 13"
+            },
+            {
+              "key": "b",
+              "text": "10, 12, 14"
+            },
+            {
+              "key": "c",
+              "text": "10, 11, 12, 13, 14"
+            },
+            {
+              "key": "d",
+              "text": "10, 11, 13, 14"
+            }
+          ],
+          "answer": [
+            "c"
+          ],
+          "explanation": "여기에는 3개의 동등 분할이 있습니다: {..., 10, 11}, {12}, {13, 14, ...}.\n경계값은 11, 12, 13입니다. 각 경계마다 3가지 값(3-value) 경계값 분석을 적용하면 경계와\n양쪽으로 이웃한 값을 테스트해야 합니다. 따라서:\n- 11에 대해선 10, 11, 12를 테스트하고\n- 12에 대해선 11, 12, 13을 테스트하고\n- 13에 대해선 12, 13, 14를 테스트합니다.\n결국 10, 11, 12 ,13, 14를 테스트해야 합니다.\n\n따라서:\na) 정답이 아닙니다.\nb) 정답이 아닙니다.\nc) 정답입니다.\nd) 정답이 아닙니다.\nFL-4.2.2 K3 1\n\n문제 번호\n(#) 정답 해설/근거 학습목표\n(LO) K-레벨 배점"
+        },
+        {
+          "number": 16,
+          "stem": "다음 중 분기 테스팅에 대한 설명으로 올바른 것은?",
+          "options": [
+            {
+              "key": "a",
+              "text": "프로그램이 무조건 분기만 포함하는 경우, 테스트 케이스를 실행하지 않고도 100%\n분기 커버리지를 달성할 수 있다"
+            },
+            {
+              "key": "b",
+              "text": "테스트 케이스가 코드의 모든 무조건 분기를 실행하면, 100% 분기 커버리지가 달성\n된다"
+            },
+            {
+              "key": "c",
+              "text": "100% 구문 커버리지를 달성하면, 분기 커버리지도 100%이다"
+            },
+            {
+              "key": "d",
+              "text": "100% 분기 커버리지를 달성하면, 코드 모든 결정문의 모든 결정 결과가 실행된다"
+            }
+          ],
+          "answer": [
+            "d"
+          ],
+          "explanation": "a) 정답이 아닙니다. 이 경우에 아직 커버해야 하는(무조건) 분기가 적어도 하나는 있기\n때문에 최소 하나의 테스트 케이스가 추가로 필요합니다.\nb) 정답이 아닙니다. 무조건 분기를 다 커버했다고 모든 조건 분기까지 커버됐다는 의미는\n아닙니다.\nc) 정답이 아닙니다. 100% 분기 커버리지는 100% 구문 커버리지를 의미하지만, 그 반대는\n아닙니다. 예를 들어서, ELSE가 없는 IF 결정문에서 하나의 테스트로 100% 구문 커버\n리지를 달성할 수 있지만, 분기 커버리지는 50%만 달성됩니다.\nd) 정답입니다. 각 결정 결과는 하나의 조건 분기에 상응하기 때문에 100% 분기 커버리지는\n결정 결과에 대해서도 100% 커버리지를 달성한 것이 됩니다."
+        },
+        {
+          "number": 17,
+          "stem": "당신은 고객이 은행 계좌에 접근하고 관리할 수 있는 모바일 애플리케이션을 테스트하고\n있다. 이 앱의 사용성을 최대로 높이기 위한 사용자 인터페이스(UI) 모범 사례를 담은 유명한\n책을 참고해, 각 화면과 이들 화면의 모든 입력 항목을 평가하는 테스트 스위트를 실행하고\n있다. 다음 중 이와 같은 테스트 기법에 대한 분류로 가장 적합한 것은?",
+          "options": [
+            {
+              "key": "a",
+              "text": "블랙박스(Black-box)"
+            },
+            {
+              "key": "b",
+              "text": "탐색적(Exploratory)"
+            },
+            {
+              "key": "c",
+              "text": "체크리스트 기반(Checklist-based)"
+            },
+            {
+              "key": "d",
+              "text": "오류 추정(Error guessing)"
+            }
+          ],
+          "answer": [
+            "c"
+          ],
+          "explanation": "a) 정답이 아닙니다. 책은 일반적인 지침을 제공하지 공식적인 요구사항 문서이거나 명세,\n유스케이스 목록, 사용자 스토리, 비즈니스 프로세스를 제공하진 않습니다.\nb) 정답이 아닙니다. 이 목록을 일련의 테스트 차터라고 볼 수도 있지만, 실제로는 확인해야\n할 테스트 컨디션 목록에 더 가깝습니다.\nc) 정답입니다. 사용자 인터페이스 모범 사례 목록은 체계적으로 확인해야 하는 테스트 컨디션\n목록입니다.\nd) 정답이 아닙니다. 테스트는 일어날 수 있는 장애에 초점을 맞추지 않고 되려 유용성 측면\n에서 사용자에게 중요한 것에 대한 지식에 초점을 두고 있습니다.\nFL-4.4.3 K2 1\n\n문제 번호\n(#) 정답 해설/근거 학습목표\n(LO) K-레벨 배점"
+        },
+        {
+          "number": 18,
+          "stem": "다음 중 사용자 스토리 작성을 위한 협업 접근법을 가장 잘 설명한 것은?",
+          "options": [
+            {
+              "key": "a",
+              "text": "사용자 스토리는 테스터와 개발자가 작성한 후 비즈니스 담당자가 승인한다"
+            },
+            {
+              "key": "b",
+              "text": "사용자 스토리는 비즈니스 담당자, 개발자, 테스터가 함께 작성한다"
+            },
+            {
+              "key": "c",
+              "text": "사용자 스토리는 비즈니스 담당자가 작성하고 개발자와 테스터가 검증한다"
+            },
+            {
+              "key": "d",
+              "text": "사용자 스토리는 독립적이고 협의 가능하며, 가치 있고, 추정 가능하며, 작고, 테스트\n가능한 방식으로 작성한다"
+            }
+          ],
+          "answer": [
+            "b"
+          ],
+          "explanation": "a) 정답이 아닙니다. 협업 기반 사용자 스토리 작성은 공통된 비전을 얻기 위해 모든 이해\n관계자가 협력하여 사용자 스토리를 생성하는 것을 의미합니다.\nb) 정답입니다. 협업 기반 사용자 스토리 작성은 공통된 비전을 얻기 위해 모든 이해관계자가\n협력하여 사용자 스토리를 생성하는 것을 의미합니다.\nc) 정답이 아닙니다. 협업 기반 사용자 스토리 작성은 공통된 비전을 얻기 위해 모든 이해\n관계자가 협력하여 사용자 스토리를 생성하는 것을 의미합니다.\nd) 정답이 아닙니다. 이것은 협력 기반 접근법에 대한 설명이 아닌 각 사용자 스토리가 가져\n야 하는 속성을 나열한 것입니다."
+        },
+        {
+          "number": 19,
+          "stem": "다음은 테스트 계획서의 어느 부분에 속하는가?\n테스팅은 단위 테스팅과 단위 통합 테스팅을 사용해 수행한다. 규정에 따라 치명적인\n(critical) 등급에 속한 모든 컴포넌트는 100% 분기 커버리지가 달성되었음을 입증해\n야 한다.",
+          "options": [
+            {
+              "key": "a",
+              "text": "의사소통"
+            },
+            {
+              "key": "b",
+              "text": "리스크 목록"
+            },
+            {
+              "key": "c",
+              "text": "테스팅 정황"
+            },
+            {
+              "key": "d",
+              "text": "테스트 접근법"
+            }
+          ],
+          "answer": [
+            "d"
+          ],
+          "explanation": "a) 정답이 아닙니다. 문단은 테스트 접근법에 포함되는 테스트 레벨과 완료 조건에 대한\n정보를 담고 있습니다.\nb) 정답이 아닙니다. 문단은 테스트 접근법에 포함되는 테스트 레벨과 완료 조건에 대한\n정보를 담고 있습니다.\nc) 정답이 아닙니다. 문단은 테스트 접근법에 포함되는 테스트 레벨과 완료 조건에 대한\n정보를 담고 있습니다.\nd) 정답입니다. 문단은 테스트 접근법에 포함되는 테스트 레벨과 완료 조건에 대한 정보를\n담고 있습니다.\nFL-5.1.1 K2 1\n\n문제 번호\n(#) 정답 해설/근거 학습목표\n(LO) K-레벨 배점"
+        },
+        {
+          "number": 20,
+          "stem": "팀에서 플래닝 포커로 새로운 기능에 대한 테스트 노력을 추정하고 있다. 팀 내에는 규\n칙들이 있는데,가령, 전체적인 합의에 도달할 시간이 없고 결과의 편차가 작을 경우, ‘가장\n많은 표를 얻은 숫자를 채택한다’와 같은 규칙을 적용할 수 있다.\n두 번째 라운드 후에도 합의에 도달하지 못해 세 번째 라운드를 수행했다. 테스트 추정 결\n과는 아래 표와 같다.\n팀원들의 추정\n1 라운드 21 2 5 34 13 8 2\n2 라운드 13 8 8 34 13 8 5\n3 라운드 13 8 13 13 13 13 8\n\n다음 중 다음 단계로 가장 적합한 예제는?",
+          "options": [
+            {
+              "key": "a",
+              "text": "제품 소유자가 개입해 최종 결정을 내려야 한다"
+            },
+            {
+              "key": "b",
+              "text": "13이 가장 많은 표를 얻었으므로 최종 테스트 추정치로 13을 수용한다"
+            },
+            {
+              "key": "c",
+              "text": "합의에 도달했기 때문에 추가 조치는 없어도 된다"
+            },
+            {
+              "key": "d",
+              "text": "합의가 이루어지지 않았기 때문에 현재 릴리스에서 새로운 기능을 제외한다"
+            }
+          ],
+          "answer": [
+            "b"
+          ],
+          "explanation": "a) 정답이 아닙니다. 하나의 팀원이 결정하는 것이 아니라 팀 활동이 되어야 합니다.\nb) 정답입니다. 만약 테스트 추정치가 같지 않지만, 결과의 차이가 작다면 “가장 많은 표를\n얻은 숫자를 수용한다”와 같은 규칙을 적용할 수 있습니다.\nc) 정답이 아닙니다. 몇몇은 13을 얘기하고 몇몇은 8을 이야기했기 때문에 합의에 도달하지\n못했습니다.\nd) 정답이 아닙니다. 팀이 테스트 추정치를 합의하지 못했다고 해서 기능을 제외해서는 안\n됩니다."
+        },
+        {
+          "number": 21,
+          "stem": "다음 중 테스트 피라미드에 대한 설명으로 올바른 것은?",
+          "options": [
+            {
+              "key": "a",
+              "text": "하위 테스트 레벨에서 훨씬 더 많은 테스트를 수행해야 한다는 것을 강조한다"
+            },
+            {
+              "key": "b",
+              "text": "각각의 하위 테스트 레벨에서 커다란 기능을 확인해야 한다고 제안한다"
+            },
+            {
+              "key": "c",
+              "text": "전체 소프트웨어 개발 수명주기에서 테스트 유형의 배치를 설명한다"
+            },
+            {
+              "key": "d",
+              "text": "자동화 테스트 구성에 영향을 미치지 않는다"
+            }
+          ],
+          "answer": [
+            "a"
+          ],
+          "explanation": "a) 정답입니다. 테스트 피라미드는 하위 테스트 레벨에서 더 많은 수의 테스트를 수행해야\n한다는 것을 강조한다.\nb) 정답이 아닙니다. 하위 테스트 레벨에서 커다란 기능을 테스트해야 한다는 것은 사실이\n아닙니다. 테스트는 더 작은 단위로 나뉘며 특정 로직에 초점을 맞추므로, 오히려 그 반\n대입니다.\nc) 정답이 아닙니다. 테스트 피라미드는 테스트 레벨에 따라 테스트의 분량이 어떻게 분포\n되는지를 보여줍니다.\nd) 정답이 아닙니다. 테스트 피라미드 모델은 테스트 자동화에서 팀을 지원합니다."
+        },
+        {
+          "number": 22,
+          "stem": "리스크 분석 중에 팀은 다음과 같은 리스크를 고려했다: “시스템이 고객에게 너무 높은 할\n인을 허용할 수 있다.” 팀은 리스크 영향도가 매우 높을 것으로 추정했다.\n이 경우, 리스크 발생 가능성에 대해서는 어떻게 말할 수 있는가?",
+          "options": [
+            {
+              "key": "a",
+              "text": "리스크 가능성도 매우 높다. 리스크 영향도가 높다는 건 리스크 발생 가능성도 항상\n높다는 걸 의미한다"
+            },
+            {
+              "key": "b",
+              "text": "매우 낮다. 리스크 영향도가 높다는 건 리스크 발생 가능성은 항상 낮다는 걸 뜻한다"
+            },
+            {
+              "key": "c",
+              "text": "리스크 영향도와 리스크 발생 가능성은 독립적이기 때문에 리스크 발생 가능성에 대해\n말할 수 없다"
+            },
+            {
+              "key": "d",
+              "text": "이렇게 리스크 영향도가 높은 경우 리스크 발생 가능성은 중요하지 않기 때문에 정의\n할 필요가 없다"
+            }
+          ],
+          "answer": [
+            "c"
+          ],
+          "explanation": "a) 정답이 아닙니다. 리스크 영향도와 리스크 발생 가능성은 독립적입니다.\nb) 정답이 아닙니다. 리스크 영향도와 리스크 발생 가능성은 독립적입니다.\nc) 정답입니다. 리스크 영향도와 리스크 발생 가능성은 독립적입니다.\nd) 정답이 아닙니다. 리스크 수준을 계산하기 위해 두 요소 모두 필요합니다.\nFL-5.2.1 K1 1\n\n문제 번호\n(#) 정답 해설/근거 학습목표\n(LO) K-레벨 배점"
+        },
+        {
+          "number": 23,
+          "stem": "다음은 개발할 새로운 소프트웨어 제품과 관련해 식별한 리스크이다:\ni. 관리자가 숙련된 테스터 두 명을 다른 프로젝트로 이동시킨다\nii. 시스템이 기능 안전 표준을 준수하지 않는다\niii. 시스템 응답 시간이 사용자 요구사항보다 느리다\niv. 이해관계자의 기대치가 부정확하다\nv. 장애인이 시스템을 사용할 때 문제가 발생한다\n\n다음 중 프로젝트 리스크는?",
+          "options": [
+            {
+              "key": "a",
+              "text": "i, iv"
+            },
+            {
+              "key": "b",
+              "text": "iv, v"
+            },
+            {
+              "key": "c",
+              "text": "i, iii"
+            },
+            {
+              "key": "d",
+              "text": "ii, v"
+            }
+          ],
+          "answer": [
+            "a"
+          ],
+          "explanation": "다음을 근거로:\ni. 이것은 프로젝트 리스크입니다.\nii. 이것은 제품 리스크입니다.\niii. 이것은 제품 리스크입니다.\niv. 이것은 프로젝트 리스크입니다.\nv. 이것은 제품 리스크입니다.\n\n따라서:\na) 정답입니다.\nb) 정답이 아닙니다.\nc) 정답이 아닙니다.\nd) 정답이 아닙니다."
+        },
+        {
+          "number": 24,
+          "stem": "다음 중 제품 리스크 분석이 테스팅의 강도와 범위에 어떻게 영향을 미치는지 보여주\n는 예제는?",
+          "options": [
+            {
+              "key": "a",
+              "text": "테스트 관리자는 식별된 모든 리스크의 수준을 매일 모니터링하고 보고해서 이해관\n계자가 사실을 바탕으로 출시일을 결정할 수 있도록 한다"
+            },
+            {
+              "key": "b",
+              "text": "식별된 리스크 중 하나인 “오픈소스 데이터베이스 지원 부족”으로, 팀은 시스템에 오\n픈소스 데이터베이스를 통합하기로 결정했다"
+            },
+            {
+              "key": "c",
+              "text": "정량적 리스크 분석 과정에서 팀은 식별된 리스크를 모두 합친 수준을 추정해서, 테스\n팅을 시작하기 전 총 잔여 리스크로 보고했다"
+            },
+            {
+              "key": "d",
+              "text": "리스크 평가 결과 성능 리스크 수준이 매우 높은 것으로 나타나서, 소프트웨어 개발\n수명주기(SDLC) 초기에 구체적인 수행 효율성 테스팅을 수행하기로 결정했다"
+            }
+          ],
+          "answer": [
+            "d"
+          ],
+          "explanation": "a) 정답이 아닙니다. 이것은 리스크 분석이 아닌 리스크 모니터링 활동의 예시입니다.\nb) 정답이 아닙니다. 이것은 테스팅과 관련 없는 아키텍처 결정의 예시입니다.\nc) 정답이 아닙니다. 이것은 테스팅의 강도나 범위와 관련 없는 정량적 리스크 분석을\n실행하는 예시입니다.\nd) 정답입니다. 이것은 리스크 분석이 테스팅의 강도에(즉, 상세화 수준에) 어떻게 영향을\n미치는지 보여줍니다.\nFL-5.2.3 K2 1\n\n문제 번호\n(#) 정답 해설/근거 학습목표\n(LO) K-레벨 배점"
+        },
+        {
+          "number": 25,
+          "stem": "다음 중 테스트 대상의 품질 수준을 보고하는 데 많이 사용하는 지표 두 가지는?",
+          "options": [
+            {
+              "key": "a",
+              "text": "시스템 테스팅 중 식별한 결함 수"
+            },
+            {
+              "key": "b",
+              "text": "테스트 설계에 들어간 전체 노력을 설계된 테스트 케이스 수로 나눈 값"
+            },
+            {
+              "key": "c",
+              "text": "실행된 테스트 절차의 수"
+            },
+            {
+              "key": "d",
+              "text": "식별한 결함 수를 작업 산출물의 크기로 나눈 값"
+            },
+            {
+              "key": "e",
+              "text": "결함을 수정하는 데 필요한 시간"
+            }
+          ],
+          "answer": [
+            "a",
+            "d"
+          ],
+          "explanation": "a) 정답입니다. 발견한 결함의 수는 테스트 대상의 품질과 관련이 있습니다.\nb) 정답이 아닙니다. 이것은 테스트 대상의 품질이 아닌 테스트 효율성에 대한 지표입니다.\nc) 정답이 아닙니다. 실행된 테스트 케이스의 수는 품질에 대해 어떤 것도 알려주지\n않습니다; 테스트 결과는 알려줄 수도 있습니다.\nd) 정답입니다. 결함 밀도는 테스트 대상의 품질과 관련이 있습니다.\ne) 정답이 아닙니다. 결함 수정 시간은 프로세스에 대한 지표입니다. 제품의 품질에 대해\n아무것도 알려주지 않습니다."
+        },
+        {
+          "number": 26,
+          "stem": "테스트 진행 상황 보고서에 들어가는 다음 정보 중 비즈니스 담당자에게 가장 유용하지\n않은 것은?",
+          "options": [
+            {
+              "key": "a",
+              "text": "테스팅 진행을 방해하는 장애물"
+            },
+            {
+              "key": "b",
+              "text": "달성한 분기 커버리지"
+            },
+            {
+              "key": "c",
+              "text": "테스트 진행 상황"
+            },
+            {
+              "key": "d",
+              "text": "테스트 진행 중 나타나 새로운 리스크"
+            }
+          ],
+          "answer": [
+            "b"
+          ],
+          "explanation": "a) 정답이 아닙니다. 테스트 진행의 장애 요인은 상위 수준의 것이거나 비즈니스와 관계된\n것일 수 있습니다. 따라서 이것은 비즈니스 이해관계자에게 중요한 정보입니다.\nb) 정답입니다. 분기 테스팅은 개발자와 기술 테스트 분석가 사용하는 기술 지표입니다.\n비즈니스 담당자는 이 정보에 아무런 관심이 없습니다.\nc) 정답이 아닙니다. 테스트 진행 상황은 프로젝트와 관련된 것이기 때문에 비즈니스\n담당자에게 유용할 수 있습니다.\nd) 정답이 아닙니다. 리스크는 제품 품질에 영향을 끼치므로 비즈니스 담당자에게 유용할\n수 있습니다."
+        }
+      ]
     }
   ]
 };
@@ -4723,6 +5566,7 @@ window.ISTQB_DATA = {
     </script>
     <script>
 const data = window.ISTQB_DATA;
+const persistenceKey = "istqb-fl-v4-sample-persistence";
 
 const savedUiState = loadUiState();
 const state = {
@@ -4740,14 +5584,15 @@ const state = {
 };
 
 let backgroundedAt = 0;
+let dbPromise = null;
 
 const examSelect = document.querySelector("#examSelect");
 const progressText = document.querySelector("#progressText");
-const scoreText = document.querySelector("#scoreText");
 const timerText = document.querySelector("#timerText");
 const setMeta = document.querySelector("#setMeta");
 const questionTitle = document.querySelector("#questionTitle");
 const questionStem = document.querySelector("#questionStem");
+const questionFigure = document.querySelector("#questionFigure");
 const options = document.querySelector("#options");
 const feedback = document.querySelector("#feedback");
 const questionNav = document.querySelector("#questionNav");
@@ -4827,6 +5672,25 @@ function uiStorageKey() {
   return "istqb-fl-v4-sample-ui-state";
 }
 
+function buildSnapshot() {
+  return {
+    updatedAt: Date.now(),
+    answers: state.answers,
+    uiState: {
+      setId: state.setId,
+      mode: state.mode,
+      index: state.index,
+      examGraded: state.examGraded,
+      randomGraded: state.randomGraded,
+      randomRefs: state.randomRefs,
+      reviewRetake: state.reviewRetake,
+      reviewIds: state.reviewIds,
+      navCollapsed: state.navCollapsed,
+      startedAt: state.startedAt,
+    },
+  };
+}
+
 function loadUiState() {
   try {
     return JSON.parse(localStorage.getItem(uiStorageKey())) || {};
@@ -4849,28 +5713,83 @@ function saveAnswers() {
   } catch {
     // Some tablet browsers block localStorage for file:// pages. Keep the in-memory answers usable.
   }
+  savePersistentSnapshot();
 }
 
 function saveUiState() {
+  const uiState = buildSnapshot().uiState;
   try {
-    localStorage.setItem(
-      uiStorageKey(),
-      JSON.stringify({
-        setId: state.setId,
-        mode: state.mode,
-        index: state.index,
-        examGraded: state.examGraded,
-        randomGraded: state.randomGraded,
-        randomRefs: state.randomRefs,
-        reviewRetake: state.reviewRetake,
-        reviewIds: state.reviewIds,
-        navCollapsed: state.navCollapsed,
-        startedAt: state.startedAt,
-      })
-    );
+    localStorage.setItem(uiStorageKey(), JSON.stringify(uiState));
   } catch {
     // Returning from background still works while the page remains alive.
   }
+  savePersistentSnapshot();
+}
+
+function openPersistenceDb() {
+  if (!("indexedDB" in window)) return Promise.resolve(null);
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve) => {
+    const request = indexedDB.open("istqb-fl-v4-sample-db", 1);
+    request.onupgradeneeded = () => request.result.createObjectStore("snapshots");
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => resolve(null);
+    request.onblocked = () => resolve(null);
+  });
+  return dbPromise;
+}
+
+async function savePersistentSnapshot() {
+  const snapshot = buildSnapshot();
+  try {
+    localStorage.setItem(persistenceKey, JSON.stringify(snapshot));
+  } catch {
+    // IndexedDB below is the fallback for browsers with small or blocked localStorage.
+  }
+  const db = await openPersistenceDb();
+  if (!db) return;
+  try {
+    const transaction = db.transaction("snapshots", "readwrite");
+    transaction.objectStore("snapshots").put(snapshot, "latest");
+  } catch {
+    // Losing persistence should not interrupt answering a question.
+  }
+}
+
+async function restorePersistentSnapshot() {
+  let snapshot = null;
+  let hasUiState = false;
+  try {
+    snapshot = JSON.parse(localStorage.getItem(persistenceKey));
+    hasUiState = Boolean(localStorage.getItem(uiStorageKey()));
+  } catch {
+    snapshot = null;
+  }
+  const db = await openPersistenceDb();
+  if (db) {
+    try {
+      snapshot = await new Promise((resolve) => {
+        const transaction = db.transaction("snapshots", "readonly");
+        const request = transaction.objectStore("snapshots").get("latest");
+        request.onsuccess = () => resolve(request.result || snapshot);
+        request.onerror = () => resolve(snapshot);
+      });
+    } catch {
+      // Keep whatever localStorage already restored.
+    }
+  }
+  if (!snapshot || typeof snapshot !== "object") return;
+  if (snapshot.answers && Object.keys(state.answers).length === 0) {
+    state.answers = snapshot.answers;
+  }
+  if (snapshot.uiState && !hasUiState) {
+    Object.assign(state, snapshot.uiState);
+    state.setId = validSetId(state.setId);
+    state.mode = validMode(state.mode);
+  }
+  renderExamSelect();
+  renderMode();
+  render();
 }
 
 function answerKey(question, mode = answerMode()) {
@@ -4940,6 +5859,42 @@ function formatChoice(choices) {
   return choices.map((choice) => choice.toUpperCase()).join(", ");
 }
 
+function figureFor(question) {
+  const setId = question.setId || state.setId;
+  const key = `${setId}${question.number}`;
+  const figures = {
+    A23: "figures/A23.png",
+    B23: "figures/B23.png",
+    C23: "figures/C23.png",
+    C24: "figures/C24.png",
+    C31: "figures/C31.png",
+    C32: "figures/C32.png",
+  };
+  return figures[key] || "";
+}
+
+function renderFigure(question) {
+  const src = figureFor(question);
+  questionFigure.replaceChildren();
+  questionFigure.hidden = !src;
+  if (!src) return;
+  const image = document.createElement("img");
+  image.src = src;
+  image.alt = `문제 ${question.number} 그림`;
+  image.loading = "lazy";
+  image.draggable = false;
+  questionFigure.appendChild(image);
+}
+
+function modeLabel(mode = state.mode) {
+  return {
+    practice: "연습",
+    exam: "시험",
+    random: "랜덤",
+    review: "오답",
+  }[mode] || "현재";
+}
+
 function renderExamSelect() {
   examSelect.innerHTML = data.sets
     .map((set) => `<option value="${set.id}">${set.title}</option>`)
@@ -4954,57 +5909,449 @@ function renderMode() {
   examSelect.disabled = state.mode === "random";
 }
 
-function renderRichText(target, text) {
+function renderRichText(target, text, options = {}) {
   target.replaceChildren();
-  const lines = String(text || "").split("\n");
-  lines.forEach((line, index) => {
-    if (index > 0) target.appendChild(document.createElement("br"));
-    if (isTableLikeLine(line)) {
-      const block = document.createElement("span");
-      block.className = "table-block";
-      block.textContent = line;
-      target.appendChild(block);
+  const blocks = buildRichBlocks(text);
+  blocks.forEach((block) => {
+    if (options.plainContent) {
+      renderPlainBlock(target, block);
       return;
     }
-    appendHighlightedTokens(target, line);
+    if (block.type === "table") {
+      target.appendChild(renderDataTable(block));
+      return;
+    }
+    if (block.type === "list") {
+      target.appendChild(renderStructuredList(block.items));
+      return;
+    }
+    const line = block.text;
+    if (isTableLikeLine(line)) {
+      const tableBlock = document.createElement("span");
+      tableBlock.className = "table-block";
+      tableBlock.textContent = line;
+      target.appendChild(tableBlock);
+      return;
+    }
+    const lineNode = document.createElement("span");
+    lineNode.className = "text-line";
+    lineNode.textContent = line;
+    target.appendChild(lineNode);
   });
+}
+
+function renderPlainBlock(target, block) {
+  if (block.type === "table") {
+    target.appendChild(renderDataTable(block));
+    return;
+  }
+  if (block.type === "list") {
+    block.items.forEach((item) => appendPlainLine(target, `${plainMarker(item.marker)} ${item.text}`));
+    return;
+  }
+  appendPlainLine(target, block.text);
+}
+
+function appendPlainLine(target, text) {
+  if (!String(text || "").trim()) return;
+  const lineNode = document.createElement("span");
+  lineNode.className = "text-line";
+  lineNode.textContent = text;
+  target.appendChild(lineNode);
+}
+
+function plainMarker(marker) {
+  return isBulletMarker(marker) ? "•" : marker;
 }
 
 function isTableLikeLine(line) {
   return /\|/.test(line) || / {3,}/.test(line) || /\t/.test(line);
 }
 
-function appendHighlightedTokens(target, text) {
-  const pattern = /\b(i|ii|iii|iv|v|[A-E])(?=[\s,.)/:])/g;
-  let cursor = 0;
-  String(text).replace(pattern, (match, _token, offset) => {
-    if (offset > cursor) target.appendChild(document.createTextNode(text.slice(cursor, offset)));
-    const token = document.createElement("span");
-    token.className = "choice-token";
-    token.textContent = match;
-    target.appendChild(token);
-    cursor = offset + match.length;
-    return match;
+function formatReadableText(text) {
+  return splitStructuralMarkers(splitKnownSectionHeadings(stripPdfNoise(text)));
+}
+
+function splitStructuralMarkers(text) {
+  return String(text || "")
+    .replace(/\s*(?=(?:\d+\.|[A-E]\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s)/g, "\n")
+    .replace(/\s*(?=\(\d+\)\s)/g, "\n")
+    .replace(/(^|\s)([a-e]\))\s+/g, "$1\n$2 ")
+    .replace(/\s*(?=(?:당신은 다음과 같이 테스트 케이스 세트를 도출했다:|테스트 케이스로 달성한))/g, "\n")
+    .replace(/\s*(?=(?:리뷰 활동은 다음과 같다:|그리고 다음과 같은 완화 활동이 있다\.|다음 중 위|다음 중 분석한))/g, "\n")
+    .replace(/\s*(?=(?:환경 구성:|테스트 케이스 세트:|TC\d+\s+실행))/g, "\n")
+    .replace(/\s*(따라서:)/g, "\n$1")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function splitKnownSectionHeadings(text) {
+  const headings = [
+    "당신은 다음과 같이 테스트 케이스 세트를 도출했다:",
+    "테스트 케이스로 달성한",
+    "다음과 같은 테스트 활동이 있다:",
+    "그리고 다음과 같은 테스트 활동이 있다:",
+    "다음과 같은 완화 활동이 있다.",
+    "그리고 다음과 같은 완화 활동이 있다.",
+    "다음 중 위",
+    "다음 중 이",
+    "다음 중 업무와",
+    "다음 중 테스트",
+    "어떤 테스트 케이스가",
+  ];
+  return headings.reduce((value, heading) => value.replaceAll(heading, `\n${heading}`), text);
+}
+
+function stripPdfNoise(text) {
+  return String(text || "")
+    .replace(/Korean Software Testing Qualifications Board[^\n]*/gi, "")
+    .replace(/www\.kstqb\.org\s+I\s+info@kstqb\.org(?:\s+\d+\s+of\s+\d+)?/gi, "")
+    .replace(/www\.kstqb\.org\s*/gi, "")
+    .replace(/info@kstqb\.org\s*/gi, "")
+    .replace(/\b\d+\s+of\s+\d+\b/gi, "")
+    .replace(/\s{2,}/g, " ");
+}
+
+function buildRichBlocks(text) {
+  const cleaned = splitKnownSectionHeadings(stripPdfNoise(text));
+  const formatted = normalizeKnownTables(cleaned);
+  const lines = formatted
+    .split("\n")
+    .flatMap((line) => line.startsWith("__TABLE__:") ? [line] : splitStructuralMarkers(line).split("\n"))
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const blocks = [];
+  let pendingList = [];
+
+  const flushList = () => {
+    if (pendingList.length > 0) {
+      blocks.push({ type: "list", items: pendingList });
+      pendingList = [];
+    }
+  };
+
+  lines.forEach((line) => {
+    if (line.startsWith("__TABLE__:")) {
+      flushList();
+      blocks.push({ type: "table", rows: JSON.parse(line.slice(10)) });
+      return;
+    }
+    const listItem = parseStructuredItem(line);
+    if (listItem) {
+      pendingList.push(listItem);
+      return;
+    }
+    flushList();
+    blocks.push({ type: "text", text: line });
   });
-  if (cursor < text.length) target.appendChild(document.createTextNode(text.slice(cursor)));
+  flushList();
+  return blocks;
+}
+
+function parseStructuredItem(line) {
+  const match = line.match(/^(\d+\.|\(\d+\)|[A-E]\.|[a-e]\)|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s*(.+)$/i);
+  if (!match) return null;
+  return { marker: match[1], text: match[2].trim() };
+}
+
+function renderStructuredList(items) {
+  const list = document.createElement("span");
+  list.className = "structured-list";
+  items.forEach((item) => {
+    const row = document.createElement("span");
+    row.className = "structured-line";
+    const marker = document.createElement("span");
+    marker.className = "structured-marker";
+    marker.textContent = isBulletMarker(item.marker) ? "•" : item.marker;
+    const body = document.createElement("span");
+    body.textContent = item.text;
+    row.append(marker, body);
+    list.appendChild(row);
+  });
+  return list;
+}
+
+function isBulletMarker(marker) {
+  return /^[\u2022\uF06C\uF0A1\uF0A7\uF0B7]$/.test(marker);
+}
+
+function renderDataTable(block) {
+  const table = document.createElement("table");
+  table.className = "data-table";
+  const thead = document.createElement("thead");
+  const tbody = document.createElement("tbody");
+  block.rows.forEach((row, rowIndex) => {
+    const tr = document.createElement("tr");
+    row.forEach((cell) => {
+      const node = document.createElement(rowIndex === 0 ? "th" : "td");
+      node.textContent = cell;
+      tr.appendChild(node);
+    });
+    (rowIndex === 0 ? thead : tbody).appendChild(tr);
+  });
+  table.append(thead, tbody);
+  return table;
+}
+
+function normalizeKnownTables(text) {
+  return normalizePlanningPokerTable(
+    normalizeSortLogTable(
+      normalizeDecisionTable(
+        normalizeTraceabilityMatrix(
+          normalizeHotelTransitionTable(
+            normalizeDrivingDecisionTable(
+              normalizeClassificationDecisionTable(
+                normalizeArteryDecisionTable(
+                  normalizeRestaurantPriorityTable(
+                    normalizeExecutionHistoryTable(
+                      normalizeTestPriorityTable(normalizeFinalGradeTable(normalizeProjectEffortTable(text)))
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
+function normalizePlanningPokerTable(text) {
+  const pattern = /(?:\ud300\uc6d0\ub4e4\uc758 \ucd94\uc815\s+)?1\s+\ub77c\uc6b4\ub4dc\s+((?:\d+\s+){6}\d+)\s+2\s+\ub77c\uc6b4\ub4dc\s+((?:\d+\s+){6}\d+)\s+3\s+\ub77c\uc6b4\ub4dc\s+((?:\d+\s+){6}\d+)/;
+  const match = text.match(pattern);
+  if (!match) return text;
+  const rows = [["\ub77c\uc6b4\ub4dc", "\ucd94\uc815 1", "\ucd94\uc815 2", "\ucd94\uc815 3", "\ucd94\uc815 4", "\ucd94\uc815 5", "\ucd94\uc815 6", "\ucd94\uc815 7"]];
+  [1, 2, 3].forEach((round) => {
+    rows.push([String(round), ...match[round].trim().split(/\s+/)]);
+  });
+  return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
+}
+
+function normalizeExecutionHistoryTable(text) {
+  const pattern = /첫 번째 실행\s+두 번째 실행\s+세 번째 실행\s+TC1\s+\((\d+)\)\s+(합격|실패)\s+\((\d+)\)\s+(합격|실패)\s+\((\d+)\)\s+(합격|실패)\s+TC2\s+\((\d+)\)\s+(합격|실패)\s+\((\d+)\)\s+(합격|실패)\s+\((\d+)\)\s+(합격|실패)\s+TC3\s+\((\d+)\)\s+(합격|실패)\s+\((\d+)\)\s+(합격|실패)\s+\((\d+)\)\s+(합격|실패)/;
+  const match = text.match(pattern);
+  if (!match) return text;
+  const rows = [["TC", "첫 번째 실행", "두 번째 실행", "세 번째 실행"]];
+  for (let row = 0; row < 3; row += 1) {
+    const offset = row * 6 + 1;
+    rows.push([`TC${row + 1}`, `(${match[offset]}) ${match[offset + 1]}`, `(${match[offset + 2]}) ${match[offset + 3]}`, `(${match[offset + 4]}) ${match[offset + 5]}`]);
+  }
+  return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
+}
+
+function normalizeRestaurantPriorityTable(text) {
+  const header = "번호 커버되는 테스트 컨디션 우선순위 논리적 종속성";
+  const start = text.indexOf(header);
+  if (start < 0) return text;
+  const tail = text.slice(start + header.length);
+  const pattern = /(TC\d{3})\s+(.+?)\s+(\d+)\s+(.+?)(?=\s+TC\d{3}\s+|다음 중|$)/g;
+  const rows = [["번호", "커버되는 테스트 컨디션", "우선순위", "논리적 종속성"]];
+  let match;
+  let consumed = 0;
+  while ((match = pattern.exec(tail))) {
+    rows.push([match[1], match[2].trim(), match[3], match[4].trim()]);
+    consumed = pattern.lastIndex;
+  }
+  if (rows.length < 3) return text;
+  return `${text.slice(0, start).trim()}\n${header}\n__TABLE__:${JSON.stringify(rows)}\n${tail.slice(consumed).trim()}`;
+}
+
+function normalizeArteryDecisionTable(text) {
+  const pattern = /규칙 1\s+규칙 2\s+규칙 3\s+규칙 4\s+규칙 5\s+조건\s+콜레스테롤\(mg\/dl\)\s+≤ 124\s+≤ 124\s+125 - 200\s+125-200\s+≥ 201\s+혈압\(mmHg\)\s+≤ 140\s+> 140\s+≤ 140\s+> 140\s+-\s+결과\s+위험 수준\s+매우 낮음\s+낮음\s+중간\s+높음\s+매우 높음/;
+  const match = text.match(pattern);
+  if (!match) return text;
+  const rows = [
+    ["항목", "규칙 1", "규칙 2", "규칙 3", "규칙 4", "규칙 5"],
+    ["콜레스테롤(mg/dl)", "≤ 124", "≤ 124", "125 - 200", "125-200", "≥ 201"],
+    ["혈압(mmHg)", "≤ 140", "> 140", "≤ 140", "> 140", "-"],
+    ["위험 수준", "매우 낮음", "낮음", "중간", "높음", "매우 높음"],
+  ];
+  return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
+}
+
+function normalizeClassificationDecisionTable(text) {
+  const pattern = /R1\s+R2\s+R3\s+R4\s+R5\s+R6\s+R7\s+C1:\s+나이\s+0-18\s+19-65\s+19-65\s+>65\s+0-18\s+19-65\s+>65\s+C2:\s+경험\s+-\s+0-4\s+>4\s+-\s+-\s+-\s+-\s+C3:\s+등록유무\s+NO\s+NO\s+NO\s+NO\s+YES\s+YES\s+YES\s+분류\s+A\s+A\s+B\s+B\s+B\s+D\s+C/;
+  const match = text.match(pattern);
+  if (!match) return text;
+  const rows = [
+    ["항목", "R1", "R2", "R3", "R4", "R5", "R6", "R7"],
+    ["C1: 나이", "0-18", "19-65", "19-65", ">65", "0-18", "19-65", ">65"],
+    ["C2: 경험", "-", "0-4", ">4", "-", "-", "-", "-"],
+    ["C3: 등록유무", "NO", "NO", "NO", "NO", "YES", "YES", "YES"],
+    ["분류", "A", "A", "B", "B", "B", "D", "C"],
+  ];
+  return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
+}
+
+function normalizeDrivingDecisionTable(text) {
+  const pattern = /R1\s+R2\s+R3\s+C1:\s+첫 시험 도전\?\s+-\s+-\s+F\s+C2:\s+이론 시험 합격\?\s+T\s+F\s+-\s+C3:\s+실기 시험 합격\?\s+T\s+-\s+F\s+운전 면허 발급\?\s+X\s+운전 강습 추가 요청\?\s+X\s+시험 재-응시 요청\?\s+X/;
+  const match = text.match(pattern);
+  if (!match) return text;
+  const rows = [
+    ["항목", "R1", "R2", "R3"],
+    ["C1: 첫 시험 도전?", "-", "-", "F"],
+    ["C2: 이론 시험 합격?", "T", "F", "-"],
+    ["C3: 실기 시험 합격?", "T", "-", "F"],
+    ["운전 면허 발급?", "X", "", ""],
+    ["운전 강습 추가 요청?", "", "X", ""],
+    ["시험 재-응시 요청?", "", "", "X"],
+  ];
+  return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
+}
+
+function normalizeHotelTransitionTable(text) {
+  const pattern = /이벤트\s+상태\s+예약 가능\s+예약 불가\s+객실 변경\s+취소\s+결제\s+S1:\s+요청 중\s+S2\s+S3\s+S2:\s+확인됨\s+S1\s+S4\s+S4\s+S3:\s+대기자 명단\s+S2\s+S4\s+S4:\s+종료/;
+  const match = text.match(pattern);
+  if (!match) return text;
+  const rows = [
+    ["상태", "예약 가능", "예약 불가", "객실 변경", "취소", "결제"],
+    ["S1: 요청 중", "S2", "S3", "", "", ""],
+    ["S2: 확인됨", "", "", "S1", "S4", "S4"],
+    ["S3: 대기자 명단", "S2", "", "", "S4", ""],
+    ["S4: 종료", "", "", "", "", ""],
+  ];
+  return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
+}
+
+function normalizeTraceabilityMatrix(text) {
+  const pattern = /Req 1\s+Req 2\s+Req 3\s+Req 4\s+Req 5\s+Req 6\s+Req 7\s+TC1\s+X\s+X\s+X\s+X\s+TC2\s+X\s+X\s+X\s+TC3\s+X\s+X\s+TC4\s+X/;
+  const match = text.match(pattern);
+  if (!match) return text;
+  const rows = [
+    ["TC", "Req 1", "Req 2", "Req 3", "Req 4", "Req 5", "Req 6", "Req 7"],
+    ["TC1", "X", "", "X", "X", "", "", "X"],
+    ["TC2", "X", "", "", "", "X", "", "X"],
+    ["TC3", "", "", "", "X", "X", "", ""],
+    ["TC4", "", "X", "", "", "", "", ""],
+  ];
+  return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
+}
+
+function normalizeDecisionTable(text) {
+  if (!/조건\s+R1\s+R2\s+R3\s+R4\s+R5\s+R6\s+R7\s+R8/.test(text)) return text;
+  const pattern = /조건\s+R1\s+R2\s+R3\s+R4\s+R5\s+R6\s+R7\s+R8\s+회원\s+([TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF])\s+반납기한 경과\s+([TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF])\s+15회 대여\s+([TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF])\s+결과\s+20% 할인\s+([\sX]*?)\s+티셔츠 선물\s+([\sX]*?)(?=\s+고객 관리|\s+다음 중|$)/;
+  const match = text.match(pattern);
+  if (!match) return text;
+  const rules = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8"];
+  const rows = [
+    ["항목", ...rules],
+    ["회원", ...match[1].split(/\s+/)],
+    ["반납기한 경과", ...match[2].split(/\s+/)],
+    ["15회 대여", ...match[3].split(/\s+/)],
+    ["20% 할인", "", "X", "", "X", "", "", "", ""],
+    ["티셔츠 선물", "", "", "X", "X", "", "", "", "X"],
+  ];
+  return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
+}
+
+function normalizeTestPriorityTable(text) {
+  const header = "테스트 우선순위(1 = 가장 높은 우선순위)";
+  const headerIndex = text.indexOf(header);
+  if (headerIndex < 0) return text;
+
+  const tail = text.slice(headerIndex + header.length);
+  const rows = [["테스트 케이스", "설명", "우선순위"]];
+  const pattern = /TC(\d+)\s+(.+?)\s+(\d+)(?=\s+TC\d+\s+|또한|$)/g;
+  let match;
+  let consumed = 0;
+  while ((match = pattern.exec(tail))) {
+    rows.push([`TC${match[1]}`, match[2].trim(), match[3]]);
+    consumed = pattern.lastIndex;
+  }
+  if (rows.length < 3) return text;
+
+  const before = text.slice(0, headerIndex);
+  const after = tail.slice(consumed).trim();
+  return `${before.trim()}\n${header}\n__TABLE__:${JSON.stringify(rows)}\n${after}`;
+}
+
+function normalizeFinalGradeTable(text) {
+  const header = "최종 점수 최종 성적";
+  const headerIndex = text.indexOf(header);
+  if (headerIndex < 0) return text;
+
+  const tail = text.slice(headerIndex + header.length);
+  const rows = [["테스트 케이스", "최종 점수", "최종 성적"]];
+  const pattern = /TC(\d+)\s+(\d+)\s+(.+?)(?=\s+TC\d+\s+\d+|\s+테스트 케이스로|\s+다음 중|$)/g;
+  let match;
+  let consumed = 0;
+  while ((match = pattern.exec(tail))) {
+    rows.push([`TC${match[1]}`, match[2], match[3].trim()]);
+    consumed = pattern.lastIndex;
+  }
+  if (rows.length < 3) return text;
+
+  const before = text.slice(0, headerIndex);
+  const after = tail.slice(consumed).trim();
+  return `${before.trim()}\n__TABLE__:${JSON.stringify(rows)}\n${after}`;
+}
+
+function normalizeProjectEffortTable(text) {
+  const pattern = /프로젝트 개발 노력\(\$\) 테스트 노력\(\$\)\s+P1\s+([\d,]+)\s+([\d,]+)\s+P2\s+([\d,]+)\s+([\d,]+)\s+P3\s+([\d,]+)\s+([\d,]+)\s+P4\s+([\d,]+)\s+([\d,]+)/;
+  const match = text.match(pattern);
+  if (!match) return text;
+  const rows = [
+    ["프로젝트", "개발 노력($)", "테스트 노력($)"],
+    ["P1", match[1], match[2]],
+    ["P2", match[3], match[4]],
+    ["P3", match[5], match[6]],
+    ["P4", match[7], match[8]],
+  ];
+  return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
+}
+
+function normalizeSortLogTable(text) {
+  if (!/테스트 실행 로그/.test(text) || !/TC1\s+실행/.test(text)) return text;
+  const questionSplit = text.match(/([\s\S]*?)(다음 중[\s\S]*)$/);
+  const mainText = questionSplit ? questionSplit[1] : text;
+  const questionText = questionSplit ? questionSplit[2] : "";
+  const introSplit = mainText.split(/환경 구성:/);
+  if (introSplit.length < 2) return text;
+
+  const rows = [["TC", "입력", "출력", "결과"]];
+  const logText = `환경 구성:${introSplit.slice(1).join("환경 구성:")}`;
+  const tcPattern = /TC(\d+)\s+실행\.\s+입력:\s*([\s\S]*?)\s+출력:\s*([\s\S]*?)\s+결과:\s*(통과|실패)/g;
+  let match;
+  while ((match = tcPattern.exec(logText))) {
+    rows.push([`TC${match[1]}`, compactCell(match[2]), compactCell(match[3]), match[4]]);
+  }
+  if (rows.length === 1) return text;
+  const meta = logText
+    .replace(/TC1\s+실행[\s\S]*/, "")
+    .replace(/^환경 구성:\s*/, "")
+    .replace(/\s*,\s*/g, "\n")
+    .trim();
+  return `${introSplit[0].trim()}\n환경 구성:\n${meta}\n__TABLE__:${JSON.stringify(rows)}\n${questionText.trim()}`;
+}
+
+function compactCell(text) {
+  return String(text || "")
+    .replace(/\d{1,2}:\d{2}:\d{2}\.\d{3}/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function render() {
   const set = currentSet();
   const questions = currentQuestions();
   const canGrade = state.mode === "exam" || state.mode === "random" || (state.mode === "review" && isReviewRetake());
+  gradeBtn.hidden = state.mode === "practice";
   gradeBtn.disabled = !canGrade;
   gradeBtn.textContent = state.mode === "review" && isReviewRetake() ? "오답 재채점" : "채점하기";
   retryWrongBtn.hidden = state.mode !== "review" || !isExamGraded() || isReviewRetake() || missedExamQuestions().length === 0;
   toggleNavBtn.textContent = state.navCollapsed ? "문제 번호 펼치기" : "문제 번호 접기";
   toggleNavBtn.setAttribute("aria-expanded", String(!state.navCollapsed));
+  resetBtn.textContent = `${modeLabel()} 풀이 초기화`;
   questionNav.classList.toggle("collapsed", state.navCollapsed);
   if (questions.length === 0) {
-    setMeta.textContent = state.mode === "random" ? "A-D 랜덤 40문항" : `${set.title} · ${set.questions.length}문항`;
+    setMeta.textContent = state.mode === "random" ? "전체 랜덤 40문항" : `${set.title} · ${set.questions.length}문항`;
     questionTitle.textContent = "오답 없음";
     questionStem.textContent = isExamGraded()
       ? "채점한 시험에서 틀린 문제가 없습니다."
       : "시험 모드에서 채점하면 오답만 표시됩니다.";
+    questionFigure.replaceChildren();
+    questionFigure.hidden = true;
     options.replaceChildren();
     feedback.hidden = true;
     renderNav(questions);
@@ -5021,13 +6368,15 @@ function render() {
 
   setMeta.textContent = state.mode === "random" ? `${question.setTitle} · 랜덤 ${state.index + 1} / ${questions.length}` : `${set.title} · ${set.questions.length}문항`;
   questionTitle.textContent = `문제 ${question.number}${multi ? " · 복수정답" : ""}`;
-  renderRichText(questionStem, question.stem);
+  renderRichText(questionStem, question.stem, { plainContent: true });
+  renderFigure(question);
 
   options.innerHTML = "";
   question.options.forEach((option) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "option";
+    button.disabled = isAnswerLocked();
     const isSelected = selected.includes(option.key);
     button.classList.toggle("selected", isSelected);
     if (shouldShowResults()) {
@@ -5039,7 +6388,7 @@ function render() {
     key.textContent = option.key;
     const text = document.createElement("span");
     text.className = "option-text";
-    renderRichText(text, option.text);
+    renderRichText(text, option.text, { plainContent: true });
     button.draggable = false;
     button.append(key, text);
     button.addEventListener("click", () => chooseOption(question, option.key));
@@ -5053,7 +6402,8 @@ function render() {
     const title = document.createElement("strong");
     title.textContent = `${result} · 정답 ${formatChoice(question.answer)}`;
     const explanation = document.createElement("span");
-    explanation.textContent = question.explanation;
+    explanation.className = "feedback-body";
+    renderRichText(explanation, question.explanation);
     feedback.append(title, explanation);
   }
 
@@ -5082,15 +6432,8 @@ function renderNav(questions) {
 
 function renderStats() {
   const questions = state.mode === "review" || state.mode === "random" ? currentQuestions() : currentSet().questions;
-  const mode = answerMode();
   const answered = questions.filter((question) => selectedFor(question).length).length;
   progressText.textContent = `${answered} / ${questions.length}`;
-  if ((state.mode === "exam" && !isExamGraded()) || (state.mode === "random" && !isRandomGraded())) {
-    scoreText.textContent = "0%";
-    return;
-  }
-  const correct = questions.filter((question) => isCorrect(question, mode)).length;
-  scoreText.textContent = questions.length ? `${Math.round((correct / questions.length) * 100)}%` : "0%";
 }
 
 function shouldShowResults() {
@@ -5106,7 +6449,16 @@ function shouldShowFeedback(selected) {
   );
 }
 
+function isAnswerLocked() {
+  return (
+    (state.mode === "review" && !isReviewRetake()) ||
+    (state.mode === "exam" && isExamGraded()) ||
+    (state.mode === "random" && isRandomGraded())
+  );
+}
+
 function chooseOption(question, key) {
+  if (isAnswerLocked()) return;
   const current = new Set(selectedFor(question));
   if (question.answer.length > 1) {
     current.has(key) ? current.delete(key) : current.add(key);
@@ -5126,7 +6478,8 @@ function move(delta) {
   render();
 }
 
-function resetCurrentSet() {
+function resetCurrentSet(skipConfirm = false) {
+  if (!skipConfirm && !window.confirm(`${modeLabel()} 모드의 현재 풀이와 채점 상태를 초기화할까요?`)) return;
   resetAnswersFor(answerMode());
   if (state.mode === "random") {
     generateRandomRefs();
@@ -5175,6 +6528,16 @@ function updateTimer() {
 }
 
 examSelect.addEventListener("change", () => {
+  const nextSetId = examSelect.value;
+  if (nextSetId === state.setId) return;
+  if (
+    hasModeProgress() &&
+    !window.confirm("문제 풀이가 진행 중입니다. 문제 세트를 변경하면 현재 모드의 진행 상태가 초기화됩니다. 변경할까요?")
+  ) {
+    examSelect.value = state.setId;
+    return;
+  }
+  resetModeStart(state.mode);
   state.setId = examSelect.value;
   state.index = 0;
   state.startedAt = Date.now();
@@ -5186,7 +6549,7 @@ document.querySelectorAll("[data-mode]").forEach((button) => {
   button.addEventListener("click", () => {
     const nextMode = button.dataset.mode;
     if (nextMode === state.mode) return;
-    if (hasModeProgress() && !window.confirm("진행 중인 모드를 변경하면 현재 진행 상태가 초기화될 수 있습니다. 모드 변경하시겠습니까?")) return;
+    if (hasModeProgress() && !window.confirm("문제 풀이가 진행 중입니다. 모드를 변경하면 현재 모드의 진행 상태가 초기화됩니다. 변경할까요?")) return;
     resetModeStart(nextMode);
     state.mode = nextMode;
     state.index = 0;
@@ -5240,7 +6603,7 @@ toggleNavBtn.addEventListener("click", () => {
 });
 
 resetAllBtn.addEventListener("click", () => {
-  if (!window.confirm("현재 세트의 연습, 시험, 오답 기록을 모두 초기화할까요?")) return;
+  if (!window.confirm("현재 문제 세트의 연습, 시험, 오답 기록을 모두 삭제할까요?")) return;
   resetAnswersFor("practice");
   resetAnswersFor("exam");
   resetAnswersFor("random");
@@ -5276,7 +6639,7 @@ document.addEventListener("visibilitychange", () => {
     const shouldReset = window.confirm("앱을 잠시 벗어났습니다. 진행 중인 모드를 초기화할까요?\n\n확인: 초기화\n취소: 이어하기");
     backgroundedAt = 0;
     if (shouldReset) {
-      resetCurrentSet();
+      resetCurrentSet(true);
       return;
     }
     render();
@@ -5291,6 +6654,7 @@ window.addEventListener("pagehide", () => {
 renderExamSelect();
 renderMode();
 render();
+restorePersistentSnapshot();
 updateTimer();
 setInterval(updateTimer, 1000);
 
