@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Local build caches
+.gradle/
+android/.gradle/
+
+# Local Android/JDK toolchains
+tools/
+
+# Android build outputs
+android/**/build/
+android/**/.cxx/
+android/local.properties
+
+# Generated packages
+*.apk
+*.aab
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+*.log
