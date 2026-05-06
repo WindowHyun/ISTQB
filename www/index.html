@@ -208,6 +208,18 @@ select {
   border-top: 1px solid var(--line);
 }
 
+.quick-grade-section {
+  margin: 0 0 18px;
+}
+
+.quick-grade-section[hidden] {
+  display: none;
+}
+
+.quick-grade-section .actions {
+  grid-template-columns: 1fr;
+}
+
 .action-section h3 {
   margin: 0 0 10px;
   color: var(--muted);
@@ -215,11 +227,26 @@ select {
 }
 
 .action-hint,
+.backup-status,
 .nav-summary {
   margin: 8px 0 0;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.45;
+}
+
+.backup-status {
+  min-height: 18px;
+}
+
+.backup-status.success {
+  color: var(--good);
+  font-weight: 800;
+}
+
+.backup-status.error {
+  color: var(--bad);
+  font-weight: 800;
 }
 
 .danger {
@@ -854,6 +881,13 @@ select {
           <button id="sidebarToggleBtn" type="button" aria-expanded="false">설정 펼치기</button>
         </div>
 
+        <section id="gradeActionSection" class="action-section quick-grade-section">
+          <div class="actions">
+            <button id="gradeBtn" class="primary" type="button">채점하기</button>
+          </div>
+          <p id="actionHint" class="action-hint" aria-live="polite"></p>
+        </section>
+
         <div id="sidebarControls" class="sidebar-controls">
           <section class="panel">
             <label for="examSelect">문제 세트</label>
@@ -885,13 +919,11 @@ select {
           </section>
 
           <section class="action-section">
-            <h3>풀이</h3>
+            <h3>오답 관리</h3>
             <div class="actions">
-              <button id="gradeBtn" class="primary" type="button">채점하기</button>
               <button id="retryWrongBtn" type="button">오답 다시 풀기</button>
               <button id="wrongNoteBtn" class="subtle" type="button">오답 노트</button>
             </div>
-            <p id="actionHint" class="action-hint" aria-live="polite"></p>
           </section>
 
           <section class="action-section record-section">
@@ -900,6 +932,7 @@ select {
               <button id="exportBackupBtn" type="button">기록 내보내기</button>
               <button id="importBackupBtn" type="button">기록 가져오기</button>
             </div>
+            <p id="backupStatus" class="backup-status" aria-live="polite"></p>
             <input id="backupFileInput" type="file" accept="application/json,.json" hidden />
           </section>
 
@@ -1010,6 +1043,7 @@ const questionFigure = document.querySelector("#questionFigure");
 const options = document.querySelector("#options");
 const feedback = document.querySelector("#feedback");
 const questionNav = document.querySelector("#questionNav");
+const gradeActionSection = document.querySelector("#gradeActionSection");
 const gradeBtn = document.querySelector("#gradeBtn");
 const retryWrongBtn = document.querySelector("#retryWrongBtn");
 const wrongNoteBtn = document.querySelector("#wrongNoteBtn");
@@ -1017,6 +1051,7 @@ const exportBackupBtn = document.querySelector("#exportBackupBtn");
 const importBackupBtn = document.querySelector("#importBackupBtn");
 const backupFileInput = document.querySelector("#backupFileInput");
 const actionHint = document.querySelector("#actionHint");
+const backupStatus = document.querySelector("#backupStatus");
 const toggleNavBtn = document.querySelector("#toggleNavBtn");
 const resetBtn = document.querySelector("#resetBtn");
 const resetAllBtn = document.querySelector("#resetAllBtn");
@@ -1232,6 +1267,13 @@ function backupFileName() {
   return `istqb-fl-backup-${stamp}.json`;
 }
 
+function setBackupStatus(message, type = "") {
+  if (!backupStatus) return;
+  backupStatus.textContent = message;
+  backupStatus.classList.toggle("success", type === "success");
+  backupStatus.classList.toggle("error", type === "error");
+}
+
 function buildBackupPayload() {
   return {
     app: "ISTQB FL",
@@ -1243,6 +1285,7 @@ function buildBackupPayload() {
 }
 
 async function exportBackup() {
+  setBackupStatus("기록 내보내기를 준비하고 있습니다.");
   const payload = JSON.stringify(buildBackupPayload(), null, 2);
   const fileName = backupFileName();
   const blob = new Blob([payload], { type: "application/json" });
@@ -1252,21 +1295,35 @@ async function exportBackup() {
       const file = new File([blob], fileName, { type: "application/json" });
       if (navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: "ISTQB FL 풀이 기록 백업" });
+        setBackupStatus(`${fileName} 내보내기를 완료했습니다.`, "success");
         return;
       }
     }
   } catch (error) {
-    if (error.name === "AbortError") return;
+    if (error.name === "AbortError") {
+      setBackupStatus("기록 내보내기를 취소했습니다.");
+      return;
+    }
   }
 
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  try {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setBackupStatus(`${fileName} 저장을 요청했습니다. 다운로드 알림이나 파일 앱을 확인하세요.`, "success");
+  } catch {
+    try {
+      await navigator.clipboard.writeText(payload);
+      setBackupStatus("파일 저장을 열 수 없어 백업 JSON을 클립보드에 복사했습니다.", "success");
+    } catch {
+      setBackupStatus("기록 내보내기에 실패했습니다. 앱 권한 또는 브라우저 다운로드 설정을 확인하세요.", "error");
+    }
+  }
 }
 
 function readBackupFile(file) {
@@ -1363,12 +1420,15 @@ function applyBackupSnapshot(snapshot) {
 
 async function importBackup(file) {
   if (!file) return;
+  setBackupStatus(`${file.name} 내용을 확인하고 있습니다.`);
   try {
     const text = await readBackupFile(file);
     const payload = JSON.parse(text);
     const snapshot = extractBackupSnapshot(payload);
     openBackupImportSummary(snapshot, payload);
+    setBackupStatus("가져올 기록을 확인했습니다. 요약 모달에서 적용 여부를 선택하세요.", "success");
   } catch (error) {
+    setBackupStatus("기록 가져오기에 실패했습니다. JSON 백업 파일인지 확인하세요.", "error");
     window.alert(error.message || "백업 파일을 불러오지 못했습니다.");
   }
 }
@@ -1433,6 +1493,7 @@ function confirmBackupImport() {
   renderMode();
   render();
   closeBackupImport();
+  setBackupStatus("기록 가져오기를 완료했습니다.", "success");
   window.alert("풀이 기록을 불러왔습니다.");
 }
 
@@ -2017,6 +2078,7 @@ function render() {
   const set = currentSet();
   const questions = currentQuestions();
   const canGrade = state.mode === "exam" || state.mode === "random" || (state.mode === "review" && isReviewRetake());
+  gradeActionSection.hidden = state.mode === "practice";
   gradeBtn.hidden = state.mode === "practice";
   gradeBtn.disabled = !canGrade;
   gradeBtn.textContent = state.mode === "review" && isReviewRetake() ? "오답 재채점" : "채점하기";
