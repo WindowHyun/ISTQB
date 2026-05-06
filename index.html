@@ -25,6 +25,7 @@
   --shadow: 0 18px 45px rgba(23, 32, 28, 0.1);
   --safe-bottom: max(24px, env(safe-area-inset-bottom));
   --safe-top: env(safe-area-inset-top);
+  --question-font-size: 19px;
 }
 
 * {
@@ -78,6 +79,22 @@ button:disabled {
   min-height: 100vh;
   min-height: 100dvh;
   padding-bottom: var(--safe-bottom);
+}
+
+body.focus-mode .app-shell {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body.focus-mode .sidebar,
+body.focus-mode .question-nav,
+body.focus-mode .question-nav-toggle,
+body.focus-mode .nav-summary {
+  display: none;
+}
+
+body.focus-mode .workspace {
+  width: min(100%, 1040px);
+  margin: 0 auto;
 }
 
 .sidebar {
@@ -164,6 +181,10 @@ select {
   background: var(--panel);
   color: var(--accent-strong);
   box-shadow: 0 6px 16px rgba(23, 32, 28, 0.08);
+}
+
+.segmented.compact {
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .stats {
@@ -296,6 +317,7 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  scroll-margin-top: calc(18px + var(--safe-top));
 }
 
 .topbar-actions {
@@ -307,6 +329,14 @@ select {
   width: 44px;
   font-size: 26px;
   line-height: 1;
+}
+
+#focusModeBtn {
+  width: auto;
+  min-width: 58px;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 800;
 }
 
 .question-card {
@@ -326,7 +356,7 @@ select {
 
 .question-stem {
   white-space: pre-wrap;
-  font-size: 19px;
+  font-size: var(--question-font-size);
   line-height: 1.75;
   word-break: keep-all;
   overflow-wrap: anywhere;
@@ -729,20 +759,21 @@ select {
     position: sticky;
     top: 0;
     z-index: 5;
+    padding: calc(12px + var(--safe-top)) 18px 12px;
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
 
   .brand {
-    margin-bottom: 14px;
+    display: none;
   }
 
   .mobile-sidebar-summary {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: 12px;
+    gap: 10px;
     align-items: center;
-    padding: 12px;
+    padding: 10px 12px;
     border: 1px solid var(--line);
     border-radius: 8px;
     background: var(--panel);
@@ -757,7 +788,7 @@ select {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .mobile-summary-stats span {
@@ -794,7 +825,31 @@ select {
   }
 
   .sidebar-controls {
-    margin-top: 14px;
+    display: grid;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .sidebar-controls .panel,
+  .sidebar-controls .action-section,
+  .sidebar-controls .stats {
+    margin: 0;
+  }
+
+  .sidebar-controls .stats {
+    display: none;
+  }
+
+  .action-section {
+    margin-top: 0;
+  }
+
+  .record-section {
+    padding-top: 12px;
+  }
+
+  .backup-status {
+    margin-top: 6px;
   }
 
   .workspace {
@@ -806,7 +861,7 @@ select {
   }
 
   .question-stem {
-    font-size: 17px;
+    font-size: calc(var(--question-font-size) - 2px);
   }
 
   .question-nav {
@@ -816,7 +871,7 @@ select {
 
 @media (max-width: 640px) {
   .sidebar {
-    padding: calc(18px + var(--safe-top)) 18px 18px;
+    padding: calc(10px + var(--safe-top)) 14px 10px;
   }
 
   .workspace {
@@ -863,7 +918,7 @@ select {
   }
 
   .question-stem {
-    font-size: 16px;
+    font-size: calc(var(--question-font-size) - 2px);
     line-height: 1.72;
   }
 
@@ -944,6 +999,15 @@ select {
             </div>
           </section>
 
+          <section class="panel">
+            <label>글자 크기</label>
+            <div class="segmented compact" role="group" aria-label="문제 글자 크기">
+              <button type="button" data-font-size="small">작게</button>
+              <button class="active" type="button" data-font-size="normal">기본</button>
+              <button type="button" data-font-size="large">크게</button>
+            </div>
+          </section>
+
           <section class="stats" aria-live="polite">
             <div>
               <span>진행</span>
@@ -994,6 +1058,7 @@ select {
             <h2 id="questionTitle">문제 1</h2>
           </div>
           <div class="topbar-actions">
+            <button id="focusModeBtn" type="button" aria-pressed="false">집중</button>
             <button id="prevBtn" type="button" aria-label="이전 문제">‹</button>
             <button id="nextBtn" type="button" aria-label="다음 문제">›</button>
           </div>
@@ -1059,6 +1124,8 @@ const state = {
   reviewIds: savedUiState.reviewIds || {},
   navCollapsed: Boolean(savedUiState.navCollapsed),
   sidebarCollapsed: savedUiState.sidebarCollapsed !== false,
+  fontSize: validFontSize(savedUiState.fontSize),
+  focusMode: Boolean(savedUiState.focusMode),
   startedAt: Number.isFinite(savedUiState.startedAt) ? savedUiState.startedAt : Date.now(),
   answers: loadAnswers(),
 };
@@ -1097,6 +1164,7 @@ const resetBtn = document.querySelector("#resetBtn");
 const resetAllBtn = document.querySelector("#resetAllBtn");
 const prevBtn = document.querySelector("#prevBtn");
 const nextBtn = document.querySelector("#nextBtn");
+const focusModeBtn = document.querySelector("#focusModeBtn");
 const navSummary = document.querySelector("#navSummary");
 const figureModal = document.querySelector("#figureModal");
 const figureModalBody = document.querySelector("#figureModalBody");
@@ -1123,6 +1191,10 @@ function validSetId(setId) {
 
 function validMode(mode) {
   return ["practice", "exam", "random", "review"].includes(mode) ? mode : "practice";
+}
+
+function validFontSize(size) {
+  return ["small", "normal", "large"].includes(size) ? size : "normal";
 }
 
 function currentQuestions() {
@@ -1196,6 +1268,8 @@ function buildSnapshot() {
       reviewIds: state.reviewIds,
       navCollapsed: state.navCollapsed,
       sidebarCollapsed: state.sidebarCollapsed,
+      fontSize: state.fontSize,
+      focusMode: state.focusMode,
       startedAt: state.startedAt,
     },
   };
@@ -1507,6 +1581,9 @@ function applyBackupSnapshot(snapshot) {
   state.reviewRetake = sanitizeBooleanRecord(uiState.reviewRetake);
   state.reviewIds = sanitizeReviewIds(uiState.reviewIds);
   state.navCollapsed = Boolean(uiState.navCollapsed);
+  state.sidebarCollapsed = uiState.sidebarCollapsed !== false;
+  state.fontSize = validFontSize(uiState.fontSize);
+  state.focusMode = Boolean(uiState.focusMode);
   state.startedAt = Number.isFinite(uiState.startedAt) ? uiState.startedAt : Date.now();
 }
 
@@ -1724,6 +1801,17 @@ function renderMode() {
     button.classList.toggle("active", button.dataset.mode === state.mode);
   });
   examSelect.disabled = state.mode === "random";
+}
+
+function renderVisualControls() {
+  const sizes = { small: "17px", normal: "19px", large: "21px" };
+  document.documentElement.style.setProperty("--question-font-size", sizes[state.fontSize] || sizes.normal);
+  document.body.classList.toggle("focus-mode", state.focusMode);
+  focusModeBtn.textContent = state.focusMode ? "기본" : "집중";
+  focusModeBtn.setAttribute("aria-pressed", String(state.focusMode));
+  document.querySelectorAll("[data-font-size]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.fontSize === state.fontSize);
+  });
 }
 
 function renderSidebarSummary() {
@@ -2228,6 +2316,7 @@ function compactCell(text) {
 }
 
 function render() {
+  renderVisualControls();
   const set = currentSet();
   const questions = currentQuestions();
   const canGrade = state.mode === "exam" || state.mode === "random" || (state.mode === "review" && isReviewRetake());
@@ -2340,6 +2429,7 @@ function renderNav(questions) {
       feedbackExpanded = false;
       state.index = index;
       render();
+      scrollQuestionIntoView();
     });
     questionNav.appendChild(button);
   });
@@ -2564,6 +2654,13 @@ function move(delta) {
   state.index += delta;
   saveUiState();
   render();
+  scrollQuestionIntoView();
+}
+
+function scrollQuestionIntoView() {
+  requestAnimationFrame(() => {
+    document.querySelector(".topbar")?.scrollIntoView({ block: "start", behavior: "smooth" });
+  });
 }
 
 function resetCurrentSet(skipConfirm = false) {
@@ -2632,6 +2729,7 @@ examSelect.addEventListener("change", () => {
   state.startedAt = Date.now();
   saveUiState();
   render();
+  scrollQuestionIntoView();
 });
 
 document.querySelectorAll("[data-mode]").forEach((button) => {
@@ -2646,6 +2744,15 @@ document.querySelectorAll("[data-mode]").forEach((button) => {
     saveUiState();
     renderMode();
     render();
+    scrollQuestionIntoView();
+  });
+});
+
+document.querySelectorAll("[data-font-size]").forEach((button) => {
+  button.addEventListener("click", () => {
+    state.fontSize = validFontSize(button.dataset.fontSize);
+    saveUiState();
+    renderVisualControls();
   });
 });
 
@@ -2724,6 +2831,12 @@ resetAllBtn.addEventListener("click", () => {
 resetBtn.addEventListener("click", resetCurrentSet);
 prevBtn.addEventListener("click", () => move(-1));
 nextBtn.addEventListener("click", () => move(1));
+focusModeBtn.addEventListener("click", () => {
+  state.focusMode = !state.focusMode;
+  saveUiState();
+  renderVisualControls();
+  scrollQuestionIntoView();
+});
 wrongNoteBtn.addEventListener("click", openWrongNote);
 sidebarToggleBtn.addEventListener("click", () => {
   state.sidebarCollapsed = !state.sidebarCollapsed;

@@ -1,4 +1,4 @@
-const CACHE_NAME = "istqb-fl-v4-tablet-pwa-v6";
+const CACHE_NAME = "istqb-fl-v4-tablet-pwa-v7";
 const APP_SHELL = [
   "./",
   "./index.html",
