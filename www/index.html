@@ -237,6 +237,7 @@ select {
 
 .backup-status {
   min-height: 18px;
+  white-space: pre-line;
 }
 
 .backup-status.success {
@@ -932,7 +933,7 @@ select {
               <button id="exportBackupBtn" type="button">기록 내보내기</button>
               <button id="importBackupBtn" type="button">기록 가져오기</button>
             </div>
-            <p id="backupStatus" class="backup-status" aria-live="polite"></p>
+            <p id="backupStatus" class="backup-status" aria-live="polite">내보내기 후 파일명과 확인 위치가 여기에 표시됩니다.</p>
             <input id="backupFileInput" type="file" accept="application/json,.json" hidden />
           </section>
 
@@ -1274,6 +1275,28 @@ function setBackupStatus(message, type = "") {
   backupStatus.classList.toggle("error", type === "error");
 }
 
+function backupExportMessage(fileName, method) {
+  if (method === "share") {
+    return [
+      "기록 내보내기를 완료했습니다.",
+      `파일명: ${fileName}`,
+      "확인 위치: 공유 화면에서 선택한 앱 또는 폴더",
+    ].join("\n");
+  }
+  if (method === "clipboard") {
+    return [
+      "파일 저장을 열 수 없어 백업 JSON을 클립보드에 복사했습니다.",
+      `파일명: ${fileName}`,
+      "확인 위치: 클립보드",
+    ].join("\n");
+  }
+  return [
+    "기록 저장을 요청했습니다.",
+    `파일명: ${fileName}`,
+    "확인 위치: Android 파일 앱 > 다운로드(Download) 폴더",
+  ].join("\n");
+}
+
 function buildBackupPayload() {
   return {
     app: "ISTQB FL",
@@ -1285,7 +1308,7 @@ function buildBackupPayload() {
 }
 
 async function exportBackup() {
-  setBackupStatus("기록 내보내기를 준비하고 있습니다.");
+  setBackupStatus("기록 내보내기를 준비하고 있습니다. 완료 후 파일명과 확인 위치를 표시합니다.");
   const payload = JSON.stringify(buildBackupPayload(), null, 2);
   const fileName = backupFileName();
   const blob = new Blob([payload], { type: "application/json" });
@@ -1295,7 +1318,7 @@ async function exportBackup() {
       const file = new File([blob], fileName, { type: "application/json" });
       if (navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: "ISTQB FL 풀이 기록 백업" });
-        setBackupStatus(`${fileName} 내보내기를 완료했습니다.`, "success");
+        setBackupStatus(backupExportMessage(fileName, "share"), "success");
         return;
       }
     }
@@ -1315,11 +1338,11 @@ async function exportBackup() {
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setBackupStatus(`${fileName} 저장을 요청했습니다. 다운로드 알림이나 파일 앱을 확인하세요.`, "success");
+    setBackupStatus(backupExportMessage(fileName, "download"), "success");
   } catch {
     try {
       await navigator.clipboard.writeText(payload);
-      setBackupStatus("파일 저장을 열 수 없어 백업 JSON을 클립보드에 복사했습니다.", "success");
+      setBackupStatus(backupExportMessage(fileName, "clipboard"), "success");
     } catch {
       setBackupStatus("기록 내보내기에 실패했습니다. 앱 권한 또는 브라우저 다운로드 설정을 확인하세요.", "error");
     }
