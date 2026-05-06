@@ -20,6 +20,7 @@ ISTQB Foundation Level v4.0 한국어 샘플 문제를 태블릿과 Android APK�
 - 오답 모드에서 `오답 다시풀기`를 누르기 전까지 기존 오답 기록 보호
 - 문제 풀이 중 문제 세트나 모드 변경 시 확인 알림 표시
 - 앱을 껐다 켜도 풀이 상태를 복원할 수 있도록 localStorage와 IndexedDB에 저장
+- 풀이 기록을 JSON 파일로 내보내기/가져오기 지원
 - PDF에서 추출한 표, 줄바꿈, 목록, 그림 표시 보정
 - 정답률 영역 제거
 - 반응형 레이아웃 및 태블릿 사용성 개선
@@ -28,6 +29,8 @@ ISTQB Foundation Level v4.0 한국어 샘플 문제를 태블릿과 Android APK�
 
 - `index.html`: 루트 미리보기용 앱 HTML
 - `www/index.html`: Capacitor APK에 포함되는 앱 HTML
+- `questions.json`, `www/questions.json`: 문제 데이터 원본
+- `questions.js`, `www/questions.js`: `file://` 미리보기 호환용 데이터 래퍼
 - `service-worker.js`, `www/service-worker.js`: 오프라인 캐시 설정
 - `figures/`, `www/figures/`: 문제에 필요한 그림 이미지
 - `server.js`: 로컬 미리보기 서버
@@ -78,6 +81,25 @@ android/app/build/outputs/apk/debug/app-debug.apk
 ISTQB-FL-debug.apk
 ```
 
+### Release APK 서명
+
+정식 배포용 APK는 debug APK가 아니라 release 서명 APK를 사용합니다. 키스토어 파일과 비밀번호는 저장소에 커밋하지 말고 환경변수로만 전달합니다.
+
+```powershell
+$env:ISTQB_RELEASE_STORE_FILE="C:\path\to\istqb-release.jks"
+$env:ISTQB_RELEASE_STORE_PASSWORD="키스토어 비밀번호"
+$env:ISTQB_RELEASE_KEY_ALIAS="키 별칭"
+$env:ISTQB_RELEASE_KEY_PASSWORD="키 비밀번호"
+npm run cap:sync
+npm run android:release
+```
+
+결과 파일:
+
+```text
+android/app/build/outputs/apk/release/app-release.apk
+```
+
 ## Android SDK 경로
 
 Gradle이 Android SDK를 찾지 못하면 `android/local.properties` 파일에 SDK 경로를 지정합니다.
@@ -111,6 +133,8 @@ android/**/build/
 android/local.properties
 *.apk
 *.aab
+*.jks
+*.keystore
 ```
 
 앱 변경 후 APK를 다시 만들 때는 `www/`와 루트 파일이 동기화되어 있는지 확인한 뒤 `npm run cap:sync`를 실행하세요.

@@ -1,7 +1,9 @@
-const CACHE_NAME = "istqb-fl-v4-tablet-pwa-v4";
+const CACHE_NAME = "istqb-fl-v4-tablet-pwa-v5";
 const APP_SHELL = [
   "./",
   "./index.html",
+  "./questions.json",
+  "./questions.js",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
@@ -58,6 +60,6 @@ self.addEventListener("fetch", (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         return response;
       })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html")))
+      .catch(() => caches.match(event.request).then((cached) => cached || Response.error()))
   );
 });
