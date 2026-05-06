@@ -81,22 +81,6 @@ button:disabled {
   padding-bottom: var(--safe-bottom);
 }
 
-body.focus-mode .app-shell {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-body.focus-mode .sidebar,
-body.focus-mode .question-nav,
-body.focus-mode .question-nav-toggle,
-body.focus-mode .nav-summary {
-  display: none;
-}
-
-body.focus-mode .workspace {
-  width: min(100%, 1040px);
-  margin: 0 auto;
-}
-
 .sidebar {
   padding: calc(24px + var(--safe-top)) 24px 24px;
   border-right: 1px solid var(--line);
@@ -329,14 +313,6 @@ select {
   width: 44px;
   font-size: 26px;
   line-height: 1;
-}
-
-#focusModeBtn {
-  width: auto;
-  min-width: 58px;
-  padding: 0 12px;
-  font-size: 14px;
-  font-weight: 800;
 }
 
 .question-card {
@@ -1058,7 +1034,6 @@ select {
             <h2 id="questionTitle">문제 1</h2>
           </div>
           <div class="topbar-actions">
-            <button id="focusModeBtn" type="button" aria-pressed="false">집중</button>
             <button id="prevBtn" type="button" aria-label="이전 문제">‹</button>
             <button id="nextBtn" type="button" aria-label="다음 문제">›</button>
           </div>
@@ -1125,7 +1100,6 @@ const state = {
   navCollapsed: Boolean(savedUiState.navCollapsed),
   sidebarCollapsed: savedUiState.sidebarCollapsed !== false,
   fontSize: validFontSize(savedUiState.fontSize),
-  focusMode: Boolean(savedUiState.focusMode),
   startedAt: Number.isFinite(savedUiState.startedAt) ? savedUiState.startedAt : Date.now(),
   answers: loadAnswers(),
 };
@@ -1164,7 +1138,6 @@ const resetBtn = document.querySelector("#resetBtn");
 const resetAllBtn = document.querySelector("#resetAllBtn");
 const prevBtn = document.querySelector("#prevBtn");
 const nextBtn = document.querySelector("#nextBtn");
-const focusModeBtn = document.querySelector("#focusModeBtn");
 const navSummary = document.querySelector("#navSummary");
 const figureModal = document.querySelector("#figureModal");
 const figureModalBody = document.querySelector("#figureModalBody");
@@ -1269,7 +1242,6 @@ function buildSnapshot() {
       navCollapsed: state.navCollapsed,
       sidebarCollapsed: state.sidebarCollapsed,
       fontSize: state.fontSize,
-      focusMode: state.focusMode,
       startedAt: state.startedAt,
     },
   };
@@ -1583,7 +1555,6 @@ function applyBackupSnapshot(snapshot) {
   state.navCollapsed = Boolean(uiState.navCollapsed);
   state.sidebarCollapsed = uiState.sidebarCollapsed !== false;
   state.fontSize = validFontSize(uiState.fontSize);
-  state.focusMode = Boolean(uiState.focusMode);
   state.startedAt = Number.isFinite(uiState.startedAt) ? uiState.startedAt : Date.now();
 }
 
@@ -1806,9 +1777,6 @@ function renderMode() {
 function renderVisualControls() {
   const sizes = { small: "17px", normal: "19px", large: "21px" };
   document.documentElement.style.setProperty("--question-font-size", sizes[state.fontSize] || sizes.normal);
-  document.body.classList.toggle("focus-mode", state.focusMode);
-  focusModeBtn.textContent = state.focusMode ? "기본" : "집중";
-  focusModeBtn.setAttribute("aria-pressed", String(state.focusMode));
   document.querySelectorAll("[data-font-size]").forEach((button) => {
     button.classList.toggle("active", button.dataset.fontSize === state.fontSize);
   });
@@ -2831,12 +2799,6 @@ resetAllBtn.addEventListener("click", () => {
 resetBtn.addEventListener("click", resetCurrentSet);
 prevBtn.addEventListener("click", () => move(-1));
 nextBtn.addEventListener("click", () => move(1));
-focusModeBtn.addEventListener("click", () => {
-  state.focusMode = !state.focusMode;
-  saveUiState();
-  renderVisualControls();
-  scrollQuestionIntoView();
-});
 wrongNoteBtn.addEventListener("click", openWrongNote);
 sidebarToggleBtn.addEventListener("click", () => {
   state.sidebarCollapsed = !state.sidebarCollapsed;
