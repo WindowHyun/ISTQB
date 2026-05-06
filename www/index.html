@@ -1297,6 +1297,22 @@ function backupExportMessage(fileName, method) {
   ].join("\n");
 }
 
+function androidBackupBridge() {
+  return window.AndroidBackup && typeof window.AndroidBackup.saveBackup === "function" ? window.AndroidBackup : null;
+}
+
+function saveBackupWithAndroid(fileName, payload) {
+  const bridge = androidBackupBridge();
+  if (!bridge) return null;
+  try {
+    const result = JSON.parse(bridge.saveBackup(fileName, payload));
+    if (!result.ok) throw new Error(result.error || "Android 저장에 실패했습니다.");
+    return result;
+  } catch (error) {
+    throw new Error(error.message || "Android 다운로드 폴더에 백업을 저장하지 못했습니다.");
+  }
+}
+
 function buildBackupPayload() {
   return {
     app: "ISTQB FL",
@@ -1312,6 +1328,20 @@ async function exportBackup() {
   const payload = JSON.stringify(buildBackupPayload(), null, 2);
   const fileName = backupFileName();
   const blob = new Blob([payload], { type: "application/json" });
+
+  try {
+    const androidResult = saveBackupWithAndroid(fileName, payload);
+    if (androidResult) {
+      setBackupStatus([
+        "기록 저장을 완료했습니다.",
+        `파일명: ${androidResult.fileName || fileName}`,
+        `확인 위치: ${androidResult.location || "Android 파일 앱 > 다운로드(Download) 폴더"}`,
+      ].join("\n"), "success");
+      return;
+    }
+  } catch (error) {
+    setBackupStatus(`${error.message}\n공유 또는 브라우저 다운로드 방식으로 다시 시도합니다.`, "error");
+  }
 
   try {
     if (typeof File !== "undefined" && navigator.canShare && navigator.share) {
