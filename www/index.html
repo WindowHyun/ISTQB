@@ -364,10 +364,49 @@ select {
   white-space: pre;
 }
 
+.code-block {
+  display: block;
+  margin: 12px 0;
+  padding: 14px;
+  overflow-x: auto;
+  border: 1px solid #c8d7d2;
+  border-radius: 8px;
+  background: #f8fbfa;
+  color: #102b2d;
+  font-family: "Cascadia Mono", "Consolas", monospace;
+  font-size: 15px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
 .question-stem .text-line,
 .feedback .text-line {
   display: block;
   margin: 0 0 8px;
+}
+
+.question-stem .plain-list {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 14px;
+  padding: 12px 14px;
+  border-left: 3px solid #b8cbc5;
+  border-radius: 8px;
+  background: #fbfdfc;
+}
+
+.question-stem .plain-list .text-line {
+  margin: 0;
+}
+
+.question-stem .prompt-line {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+  font-weight: 800;
 }
 
 .question-stem .text-line:last-child,
@@ -1710,6 +1749,10 @@ function renderRichText(target, text, options = {}) {
       target.appendChild(renderDataTable(block));
       return;
     }
+    if (block.type === "code") {
+      target.appendChild(renderCodeBlock(block.lines));
+      return;
+    }
     if (block.type === "list") {
       target.appendChild(renderStructuredList(block.items));
       return;
@@ -1734,23 +1777,43 @@ function renderPlainBlock(target, block) {
     target.appendChild(renderDataTable(block));
     return;
   }
-  if (block.type === "list") {
-    block.items.forEach((item) => appendPlainLine(target, `${plainMarker(item.marker)} ${item.text}`));
+  if (block.type === "code") {
+    target.appendChild(renderCodeBlock(block.lines));
     return;
   }
-  appendPlainLine(target, block.text);
+  if (block.type === "list") {
+    target.appendChild(renderPlainList(block.items));
+    return;
+  }
+  appendPlainLine(target, block.text, { markPrompt: target.id === "questionStem" });
 }
 
-function appendPlainLine(target, text) {
+function renderPlainList(items) {
+  const list = document.createElement("span");
+  list.className = "plain-list";
+  items.forEach((item) => appendPlainLine(list, `${plainMarker(item.marker)} ${item.text}`));
+  return list;
+}
+
+function appendPlainLine(target, text, options = {}) {
   if (!String(text || "").trim()) return;
   const lineNode = document.createElement("span");
   lineNode.className = "text-line";
+  if (options.markPrompt && isQuestionPromptLine(text)) {
+    lineNode.classList.add("prompt-line");
+  }
   lineNode.textContent = text;
   target.appendChild(lineNode);
 }
 
 function plainMarker(marker) {
-  return isBulletMarker(marker) ? "•" : marker;
+  if (isBulletMarker(marker)) return "•";
+  return /^(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.$/i.test(marker) ? marker.toLowerCase() : marker;
+}
+
+function isQuestionPromptLine(text) {
+  const value = String(text || "").trim();
+  return /[?？]$/.test(value) || /^(다음 중|어느|어떤|가장|최소|최대)/.test(value);
 }
 
 function isTableLikeLine(line) {
@@ -1758,12 +1821,16 @@ function isTableLikeLine(line) {
 }
 
 function formatReadableText(text) {
-  return splitStructuralMarkers(splitKnownSectionHeadings(stripPdfNoise(text)));
+  return splitStructuralMarkers(splitKnownSectionHeadings(normalizeReadableCharacters(stripPdfNoise(text))));
 }
 
 function splitStructuralMarkers(text) {
   return String(text || "")
     .replace(/\s*(?=(?:\d+\.|[A-E]\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s)/g, "\n")
+    .replace(/\s*(?=\b(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.\s)/gi, "\n")
+    .replace(/\s*(?=(?:Given:|When:|Then:|And:)\s)/g, "\n")
+    .replace(/\s+(?=다음 중\s)/g, "\n")
+    .replace(/\s+(?=다음 테스트\s)/g, "\n")
     .replace(/\s*(?=\(\d+\)\s)/g, "\n")
     .replace(/(^|\s)([a-e]\))\s+/g, "$1\n$2 ")
     .replace(/\s*(?=(?:당신은 다음과 같이 테스트 케이스 세트를 도출했다:|테스트 케이스로 달성한))/g, "\n")
@@ -1772,6 +1839,14 @@ function splitStructuralMarkers(text) {
     .replace(/\s*(따라서:)/g, "\n$1")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function normalizeReadableCharacters(text) {
+  const roman = {
+    "Ⅰ": "I", "Ⅱ": "II", "Ⅲ": "III", "Ⅳ": "IV", "Ⅴ": "V", "Ⅵ": "VI", "Ⅶ": "VII", "Ⅷ": "VIII", "Ⅸ": "IX", "Ⅹ": "X",
+    "ⅰ": "i", "ⅱ": "ii", "ⅲ": "iii", "ⅳ": "iv", "ⅴ": "v", "ⅵ": "vi", "ⅶ": "vii", "ⅷ": "viii", "ⅸ": "ix", "ⅹ": "x",
+  };
+  return String(text || "").replace(/[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹ]/g, (value) => roman[value] || value);
 }
 
 function splitKnownSectionHeadings(text) {
@@ -1802,11 +1877,11 @@ function stripPdfNoise(text) {
 }
 
 function buildRichBlocks(text) {
-  const cleaned = splitKnownSectionHeadings(stripPdfNoise(text));
-  const formatted = normalizeKnownTables(cleaned);
+  const cleaned = splitKnownSectionHeadings(normalizeReadableCharacters(stripPdfNoise(text)));
+  const formatted = normalizePseudoCodeBlocks(normalizeKnownTables(cleaned));
   const lines = formatted
     .split("\n")
-    .flatMap((line) => line.startsWith("__TABLE__:") ? [line] : splitStructuralMarkers(line).split("\n"))
+    .flatMap((line) => line.startsWith("__TABLE__:") || line.startsWith("__CODE__:") ? [line] : splitStructuralMarkers(line).split("\n"))
     .map((line) => line.trim())
     .filter(Boolean);
   const blocks = [];
@@ -1825,6 +1900,11 @@ function buildRichBlocks(text) {
       blocks.push({ type: "table", rows: JSON.parse(line.slice(10)) });
       return;
     }
+    if (line.startsWith("__CODE__:")) {
+      flushList();
+      blocks.push({ type: "code", lines: JSON.parse(line.slice(9)) });
+      return;
+    }
     const listItem = parseStructuredItem(line);
     if (listItem) {
       pendingList.push(listItem);
@@ -1838,7 +1918,7 @@ function buildRichBlocks(text) {
 }
 
 function parseStructuredItem(line) {
-  const match = line.match(/^(\d+\.|\(\d+\)|[A-E]\.|[a-e]\)|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s*(.+)$/i);
+  const match = line.match(/^(\d+\.|\(\d+\)|[A-E]\.|[a-e]\)|(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s*(.+)$/i);
   if (!match) return null;
   return { marker: match[1], text: match[2].trim() };
 }
@@ -1858,6 +1938,13 @@ function renderStructuredList(items) {
     list.appendChild(row);
   });
   return list;
+}
+
+function renderCodeBlock(lines) {
+  const block = document.createElement("span");
+  block.className = "code-block";
+  block.textContent = lines.join("\n");
+  return block;
 }
 
 function isBulletMarker(marker) {
@@ -1910,6 +1997,19 @@ function normalizeKnownTables(text) {
       )
     )
   );
+}
+
+function normalizePseudoCodeBlocks(text) {
+  const pattern = /INPUT:\s*(.*?)\s+IF\s*\((.*?)\)\s+THEN\s+write\s+([“"][^”"]+[”"])\s+ELSE\s+write\s+([“"][^”"]+[”"])/i;
+  return String(text || "").replace(pattern, (_, input, condition, thenValue, elseValue) => {
+    const lines = [
+      `INPUT: ${input.trim()}`,
+      `IF (${condition.trim()})`,
+      `THEN write ${thenValue.trim()}`,
+      `ELSE write ${elseValue.trim()}`,
+    ];
+    return `\n__CODE__:${JSON.stringify(lines)}\n`;
+  });
 }
 
 function normalizePlanningPokerTable(text) {
