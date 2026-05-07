@@ -1887,7 +1887,9 @@ function splitStructuralMarkers(text) {
     .replace(/\s*(?=(?:Given:|When:|Then:|And:)\s)/g, "\n")
     .replace(/\s+(?=다음 중\s)/g, "\n")
     .replace(/\s+(?=다음 테스트\s)/g, "\n")
-    .replace(/\s*(?=\(\d+\)\s)/g, "\n")
+    .replace(/\s+(?=그래프는\s)/g, "\n")
+    .replace(/\s+(?=(?:인수 조건:|AC\d+:)\s*)/g, "\n")
+    .replace(/\s+(?=(?:애플리케이션:|결함:|재현 절차:|기대 결과:|실제 결과:|심각도:|우선순위:)\s*)/g, "\n")
     .replace(/(^|\s)([a-e]\))\s+/g, "$1\n$2 ")
     .replace(/\s*(?=(?:당신은 다음과 같이 테스트 케이스 세트를 도출했다:|테스트 케이스로 달성한))/g, "\n")
     .replace(/\s*(?=(?:리뷰 활동은 다음과 같다:|그리고 다음과 같은 완화 활동이 있다\.|다음 중 위|다음 중 분석한))/g, "\n")
@@ -1929,6 +1931,16 @@ function stripPdfNoise(text) {
     .replace(/www\.kstqb\.org\s*/gi, "")
     .replace(/info@kstqb\.org\s*/gi, "")
     .replace(/\b\d+\s+of\s+\d+\b/gi, "")
+    .replace(/실\s+무/g, "실무")
+    .replace(/테스트 케이\s+스/g, "테스트 케이스")
+    .replace(/테스\s+트/g, "테스트")
+    .replace(/나타\s+낸/g, "나타낸")
+    .replace(/같\s+은/g, "같은")
+    .replace(/요구사\s+항/g, "요구사항")
+    .replace(/비\s+즈니스/g, "비즈니스")
+    .replace(/컴포\s+넌트/g, "컴포넌트")
+    .replace(/사\s+용자/g, "사용자")
+    .replace(/두\((\d+)\)\s+개/g, "두($1)개")
     .replace(/\s{2,}/g, " ");
 }
 
