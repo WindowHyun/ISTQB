@@ -147,6 +147,16 @@
                 />
               </section>
 
+              <section class="action-section log-section">
+                <h3>진단</h3>
+                <div class="record-actions">
+                  <button id="consoleLogBtn" type="button">Console 확인</button>
+                </div>
+                <p class="backup-status">
+                  에러 발생 시 최근 로그를 확인하거나 복사/저장할 수 있습니다.
+                </p>
+              </section>
+
               <section class="action-section">
                 <h3>초기화</h3>
                 <div class="danger-actions">
@@ -237,6 +247,34 @@
           <button id="backupImportCloseBtn" type="button">닫기</button>
         </header>
         <div id="backupImportBody" class="modal-body"></div>
+      </section>
+    </div>
+
+    <div id="consoleLogModal" class="modal-backdrop" hidden>
+      <section
+        class="modal-panel console-log-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="consoleLogTitle"
+      >
+        <header class="modal-header">
+          <h3 id="consoleLogTitle">Console 로그</h3>
+          <button id="consoleLogCloseBtn" type="button">닫기</button>
+        </header>
+        <div class="modal-body console-log-body">
+          <p id="consoleLogMeta" class="console-log-meta"></p>
+          <pre id="consoleLogText" class="console-log-output"></pre>
+          <div class="console-log-actions">
+            <button id="copyConsoleLogBtn" type="button">로그 복사</button>
+            <button id="exportConsoleLogBtn" type="button">
+              파일로 저장/공유
+            </button>
+            <button id="clearConsoleLogBtn" class="danger" type="button">
+              로그 비우기
+            </button>
+          </div>
+          <p id="consoleLogStatus" class="backup-status" aria-live="polite"></p>
+        </div>
       </section>
     </div>
 

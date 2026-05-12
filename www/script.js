@@ -1,4 +1,81 @@
-const data = window.ISTQB_DATA;
+      const appLogStore = (() => {
+        const maxEntries = 200;
+        const entries = [];
+        const levels = ["log", "info", "warn", "error"];
+
+        function normalizeLogValue(value) {
+          if (value instanceof Error) {
+            return [value.name, value.message, value.stack]
+              .filter(Boolean)
+              .join(": ");
+          }
+          if (typeof value === "string") return value;
+          try {
+            return JSON.stringify(value);
+          } catch {
+            return String(value);
+          }
+        }
+
+        function add(level, values) {
+          entries.push({
+            level,
+            time: new Date().toISOString(),
+            message: values.map(normalizeLogValue).join(" "),
+          });
+          if (entries.length > maxEntries) {
+            entries.splice(0, entries.length - maxEntries);
+          }
+        }
+
+        levels.forEach((level) => {
+          const original =
+            typeof console[level] === "function"
+              ? console[level].bind(console)
+              : console.log.bind(console);
+          console[level] = (...values) => {
+            add(level, values);
+            original(...values);
+          };
+        });
+
+        window.addEventListener("error", (event) => {
+          add("error", [
+            event.message || "window error",
+            event.filename
+              ? `${event.filename}:${event.lineno || 0}:${event.colno || 0}`
+              : "",
+            event.error || "",
+          ]);
+        });
+
+        window.addEventListener("unhandledrejection", (event) => {
+          add("error", ["unhandled promise rejection", event.reason || ""]);
+        });
+
+        add("info", ["app started"]);
+
+        return {
+          entries,
+          add,
+          clear() {
+            entries.splice(0, entries.length);
+            add("info", ["console log cleared"]);
+          },
+          text() {
+            if (entries.length === 0) return "수집된 로그가 없습니다.";
+            return entries
+              .map(
+                (entry) =>
+                  `[${entry.time}] ${entry.level.toUpperCase()} ${entry.message}`,
+              )
+              .join("\n");
+          },
+        };
+      })();
+      window.ISTQB_LOGGER = appLogStore;
+
+      const data = window.ISTQB_DATA;
       const persistenceKey = "istqb-fl-v4-sample-persistence";
 
       const savedUiState = loadUiState();
@@ -53,6 +130,7 @@ const data = window.ISTQB_DATA;
       const exportBackupBtn = document.querySelector("#exportBackupBtn");
       const importBackupBtn = document.querySelector("#importBackupBtn");
       const backupFileInput = document.querySelector("#backupFileInput");
+      const consoleLogBtn = document.querySelector("#consoleLogBtn");
       const actionHint = document.querySelector("#actionHint");
       const backupStatus = document.querySelector("#backupStatus");
       const toggleNavBtn = document.querySelector("#toggleNavBtn");
@@ -74,6 +152,14 @@ const data = window.ISTQB_DATA;
       const backupImportCloseBtn = document.querySelector(
         "#backupImportCloseBtn",
       );
+      const consoleLogModal = document.querySelector("#consoleLogModal");
+      const consoleLogMeta = document.querySelector("#consoleLogMeta");
+      const consoleLogText = document.querySelector("#consoleLogText");
+      const consoleLogStatus = document.querySelector("#consoleLogStatus");
+      const consoleLogCloseBtn = document.querySelector("#consoleLogCloseBtn");
+      const copyConsoleLogBtn = document.querySelector("#copyConsoleLogBtn");
+      const exportConsoleLogBtn = document.querySelector("#exportConsoleLogBtn");
+      const clearConsoleLogBtn = document.querySelector("#clearConsoleLogBtn");
       const settingsPanelToggleBtn = document.querySelector(
         "#settingsPanelToggleBtn",
       );
@@ -355,6 +441,22 @@ const data = window.ISTQB_DATA;
         }
       }
 
+      function saveTextWithAndroid(fileName, payload) {
+        const bridge = androidBackupBridge();
+        if (!bridge) return null;
+        try {
+          const result = JSON.parse(bridge.saveBackup(fileName, payload));
+          if (!result.ok)
+            throw new Error(result.error || "Android 저장에 실패했습니다.");
+          return result;
+        } catch (error) {
+          throw new Error(
+            error.message ||
+              "Android 다운로드 폴더에 파일을 저장하지 못했습니다.",
+          );
+        }
+      }
+
       function buildBackupPayload() {
         return {
           app: "ISTQB FL",
@@ -445,6 +547,157 @@ const data = window.ISTQB_DATA;
             );
           }
         }
+      }
+
+      function consoleLogFileName() {
+        const stamp = new Date()
+          .toISOString()
+          .slice(0, 19)
+          .replace(/[-:T]/g, "");
+        return `istqb-fl-console-${stamp}.txt`;
+      }
+
+      function setConsoleLogStatus(message, type = "") {
+        if (!consoleLogStatus) return;
+        consoleLogStatus.textContent = message;
+        consoleLogStatus.classList.toggle("success", type === "success");
+        consoleLogStatus.classList.toggle("error", type === "error");
+      }
+
+      function buildConsoleLogText() {
+        const questions = currentQuestions();
+        const question = questions[state.index];
+        const context = [
+          "ISTQB FL Console Log",
+          `generatedAt: ${new Date().toISOString()}`,
+          `url: ${window.location.href}`,
+          `userAgent: ${navigator.userAgent}`,
+          `set: ${currentSet().title} (${state.setId})`,
+          `mode: ${modeLabel()}`,
+          `questionIndex: ${state.index + 1} / ${questions.length}`,
+          question ? `question: ${question.number}` : "question: none",
+          "",
+          "Logs:",
+        ];
+        return [...context, appLogStore.text()].join("\n");
+      }
+
+      function renderConsoleLog() {
+        const errorCount = appLogStore.entries.filter(
+          (entry) => entry.level === "error",
+        ).length;
+        const warnCount = appLogStore.entries.filter(
+          (entry) => entry.level === "warn",
+        ).length;
+        consoleLogMeta.textContent = [
+          `수집 로그 ${appLogStore.entries.length}개`,
+          `에러 ${errorCount}개`,
+          `경고 ${warnCount}개`,
+        ].join(" · ");
+        consoleLogText.textContent = buildConsoleLogText();
+      }
+
+      function openConsoleLog() {
+        renderConsoleLog();
+        setConsoleLogStatus("");
+        consoleLogModal.hidden = false;
+      }
+
+      function closeConsoleLog() {
+        consoleLogModal.hidden = true;
+      }
+
+      async function copyConsoleLog() {
+        try {
+          await navigator.clipboard.writeText(buildConsoleLogText());
+          setConsoleLogStatus("콘솔 로그를 클립보드에 복사했습니다.", "success");
+        } catch {
+          setConsoleLogStatus(
+            "클립보드 복사에 실패했습니다. 파일 저장/공유를 사용해 주세요.",
+            "error",
+          );
+        }
+      }
+
+      async function exportConsoleLog() {
+        const payload = buildConsoleLogText();
+        const fileName = consoleLogFileName();
+        const blob = new Blob([payload], { type: "text/plain;charset=utf-8" });
+
+        try {
+          const androidResult = saveTextWithAndroid(fileName, payload);
+          if (androidResult) {
+            setConsoleLogStatus(
+              [
+                "콘솔 로그 저장을 완료했습니다.",
+                `파일명: ${androidResult.fileName || fileName}`,
+                `확인 위치: ${
+                  androidResult.location ||
+                  "Android 파일 앱 > 다운로드(Download) 폴더"
+                }`,
+              ].join("\n"),
+              "success",
+            );
+            return;
+          }
+        } catch (error) {
+          setConsoleLogStatus(
+            `${error.message}\n공유 또는 브라우저 다운로드 방식으로 다시 시도합니다.`,
+            "error",
+          );
+        }
+
+        try {
+          if (
+            typeof File !== "undefined" &&
+            navigator.canShare &&
+            navigator.share
+          ) {
+            const file = new File([blob], fileName, {
+              type: "text/plain",
+            });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: "ISTQB FL 콘솔 로그",
+              });
+              setConsoleLogStatus(
+                `콘솔 로그 공유를 요청했습니다.\n파일명: ${fileName}`,
+                "success",
+              );
+              return;
+            }
+          }
+        } catch (error) {
+          if (error.name === "AbortError") {
+            setConsoleLogStatus("콘솔 로그 공유를 취소했습니다.");
+            return;
+          }
+        }
+
+        try {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          setConsoleLogStatus(
+            `콘솔 로그 저장을 요청했습니다.\n파일명: ${fileName}`,
+            "success",
+          );
+        } catch {
+          await copyConsoleLog();
+        }
+      }
+
+      function clearConsoleLog() {
+        if (!window.confirm("수집된 콘솔 로그를 비울까요?")) return;
+        appLogStore.clear();
+        renderConsoleLog();
+        setConsoleLogStatus("콘솔 로그를 비웠습니다.", "success");
       }
 
       function readBackupFile(file) {
@@ -2264,6 +2517,11 @@ const data = window.ISTQB_DATA;
 
       exportBackupBtn.addEventListener("click", exportBackup);
 
+      consoleLogBtn.addEventListener("click", openConsoleLog);
+      copyConsoleLogBtn.addEventListener("click", copyConsoleLog);
+      exportConsoleLogBtn.addEventListener("click", exportConsoleLog);
+      clearConsoleLogBtn.addEventListener("click", clearConsoleLog);
+
       importBackupBtn.addEventListener("click", () => {
         backupFileInput.click();
       });
@@ -2348,11 +2606,16 @@ const data = window.ISTQB_DATA;
       wrongNoteModal.addEventListener("click", (event) => {
         if (event.target === wrongNoteModal) closeWrongNote();
       });
+      consoleLogCloseBtn.addEventListener("click", closeConsoleLog);
+      consoleLogModal.addEventListener("click", (event) => {
+        if (event.target === consoleLogModal) closeConsoleLog();
+      });
 
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
           closeFigureModal();
           closeWrongNote();
+          closeConsoleLog();
           return;
         }
         if (event.key === "ArrowLeft") move(-1);

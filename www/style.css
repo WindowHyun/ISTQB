@@ -190,7 +190,8 @@
 
       .actions,
       .record-actions,
-      .danger-actions {
+      .danger-actions,
+      .console-log-actions {
         display: grid;
         gap: 10px;
       }
@@ -236,6 +237,11 @@
       }
 
       .record-section {
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+      }
+
+      .log-section {
         padding-top: 18px;
         border-top: 1px solid var(--line);
       }
@@ -926,6 +932,37 @@
         padding: 18px 20px;
       }
 
+      .console-log-body {
+        display: grid;
+        gap: 14px;
+      }
+
+      .console-log-meta {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .console-log-output {
+        min-height: 260px;
+        max-height: 48vh;
+        margin: 0;
+        overflow: auto;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #101917;
+        color: #e9f4ef;
+        font: 13px/1.55 Consolas, "SFMono-Regular", monospace;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .console-log-actions {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
       .figure-modal img {
         display: block;
         width: 100%;
@@ -1303,13 +1340,15 @@
         /* 사이드바 내 버튼 그리드: 2열 */
         .actions,
         .record-actions,
-        .danger-actions {
+        .danger-actions,
+        .console-log-actions {
           grid-template-columns: 1fr 1fr;
         }
 
         .actions button,
         .record-actions button,
-        .danger-actions button {
+        .danger-actions button,
+        .console-log-actions button {
           min-height: 44px;
         }
 
@@ -1318,7 +1357,8 @@
         }
 
         #resetAllBtn,
-        #wrongNoteBtn {
+        #wrongNoteBtn,
+        #exportConsoleLogBtn {
           grid-column: 1 / -1;
         }
 
