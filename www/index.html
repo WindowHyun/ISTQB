@@ -19,7 +19,51 @@
   </head>
   <body>
     <div id="sidebarBackdrop" aria-hidden="true"></div>
-    <main class="app-shell">
+    <section
+      id="productGate"
+      class="product-gate"
+      aria-labelledby="productGateTitle"
+    >
+      <div class="product-gate-inner">
+        <p class="product-eyebrow">Practice App</p>
+        <h1 id="productGateTitle">학습할 자격증을 선택하세요</h1>
+        <div class="product-actions">
+          <button id="openIstqbBtn" class="product-button primary" type="button">
+            ISTQB
+          </button>
+          <button id="openCstsBtn" class="product-button" type="button">
+            CSTS
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section
+      id="cstsPage"
+      class="csts-page is-product-hidden"
+      aria-labelledby="cstsTitle"
+      hidden
+    >
+      <div class="csts-shell">
+        <header class="csts-header">
+          <div>
+            <p class="product-eyebrow">CSTS</p>
+            <h1 id="cstsTitle">CSTS 문제풀이</h1>
+          </div>
+          <button id="cstsBackBtn" class="subtle" type="button">
+            처음으로
+          </button>
+        </header>
+        <section class="empty-state">
+          <h3>CSTS 콘텐츠를 준비 중입니다.</h3>
+          <p>
+            CSTS 문제 데이터와 풀이 화면을 추가하면 이 영역에서 바로 실행됩니다.
+          </p>
+        </section>
+      </div>
+    </section>
+
+    <main class="app-shell is-product-hidden" aria-label="ISTQB 문제풀이 앱">
       <aside class="sidebar" aria-label="시험 설정">
         <div class="brand">
           <img
@@ -184,6 +228,14 @@
             <h2 id="questionTitle">문제 1</h2>
           </div>
           <div class="topbar-actions">
+            <button
+              id="productHomeBtn"
+              class="subtle text-action"
+              type="button"
+              aria-label="처음 화면으로 이동"
+            >
+              처음
+            </button>
             <button id="prevBtn" type="button" aria-label="이전 문제">‹</button>
             <button id="nextBtn" type="button" aria-label="다음 문제">›</button>
           </div>

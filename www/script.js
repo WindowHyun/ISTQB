@@ -110,6 +110,13 @@
       let backgroundedAt = 0;
       let dbPromise = null;
 
+      const productGate = document.querySelector("#productGate");
+      const cstsPage = document.querySelector("#cstsPage");
+      const appShell = document.querySelector(".app-shell");
+      const openIstqbBtn = document.querySelector("#openIstqbBtn");
+      const openCstsBtn = document.querySelector("#openCstsBtn");
+      const cstsBackBtn = document.querySelector("#cstsBackBtn");
+      const productHomeBtn = document.querySelector("#productHomeBtn");
       const sidebar = document.querySelector(".sidebar");
       const sidebarToggleBtn = document.querySelector("#sidebarToggleBtn");
       const mobileSetText = document.querySelector("#mobileSetText");
@@ -477,6 +484,35 @@
         return [figureModal, wrongNoteModal, backupImportModal, consoleLogModal].find(
           (modal) => modal && !modal.hidden,
         );
+      }
+
+      function showProductGate() {
+        productGate?.classList.remove("is-product-hidden");
+        productGate?.removeAttribute("hidden");
+        cstsPage?.classList.add("is-product-hidden");
+        cstsPage?.setAttribute("hidden", "");
+        appShell?.classList.add("is-product-hidden");
+        sidebarBackdrop?.classList.remove("visible");
+        document.body.style.overflow = "";
+        openIstqbBtn?.focus();
+      }
+
+      function openIstqbApp() {
+        productGate?.classList.add("is-product-hidden");
+        productGate?.setAttribute("hidden", "");
+        cstsPage?.classList.add("is-product-hidden");
+        cstsPage?.setAttribute("hidden", "");
+        appShell?.classList.remove("is-product-hidden");
+        questionTitle?.focus?.();
+      }
+
+      function openCstsPage() {
+        productGate?.classList.add("is-product-hidden");
+        productGate?.setAttribute("hidden", "");
+        appShell?.classList.add("is-product-hidden");
+        cstsPage?.classList.remove("is-product-hidden");
+        cstsPage?.removeAttribute("hidden");
+        cstsBackBtn?.focus();
       }
 
       function backupExportMessage(fileName, method) {
@@ -2754,6 +2790,11 @@
       wrongNoteBtn.addEventListener("click", openWrongNote);
 
       const sidebarBackdrop = document.querySelector("#sidebarBackdrop");
+
+      openIstqbBtn?.addEventListener("click", openIstqbApp);
+      openCstsBtn?.addEventListener("click", openCstsPage);
+      cstsBackBtn?.addEventListener("click", showProductGate);
+      productHomeBtn?.addEventListener("click", showProductGate);
 
       function isMobileLayout() {
         return window.innerWidth <= 900;
