@@ -8,6 +8,9 @@
     />
     <meta name="theme-color" content="#166064" />
     <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="ISTQB FL" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="application-name" content="ISTQB FL" />
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" href="./icons/icon-192.svg" type="image/svg+xml" />
@@ -42,6 +45,7 @@
             id="sidebarToggleBtn"
             type="button"
             aria-label="설정 펼치기"
+            aria-controls="sidebarControls"
             title="설정 펼치기"
             aria-expanded="false"
           >
@@ -186,6 +190,15 @@
         </header>
 
         <article class="question-card">
+          <div
+            id="appStatus"
+            class="app-status skeleton-card"
+            role="status"
+            aria-live="polite"
+          >
+            <span class="skeleton-line"></span>
+            <span class="skeleton-line short"></span>
+          </div>
           <div id="questionStem" class="question-stem"></div>
           <div id="questionFigure" class="question-figure" hidden></div>
           <div id="options" class="options"></div>

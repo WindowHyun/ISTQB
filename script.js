@@ -75,7 +75,14 @@
       })();
       window.ISTQB_LOGGER = appLogStore;
 
-      const data = window.ISTQB_DATA;
+      const rawData = window.ISTQB_DATA;
+      const startupDataError =
+        !rawData ||
+        !Array.isArray(rawData.sets) ||
+        rawData.sets.length === 0
+          ? "Question data is missing or empty."
+          : "";
+      const data = startupDataError ? { source: "", sets: [] } : rawData;
       const persistenceKey = "istqb-fl-v4-sample-persistence";
 
       const savedUiState = loadUiState();
@@ -118,6 +125,7 @@
       const setMeta = document.querySelector("#setMeta");
       const questionTitle = document.querySelector("#questionTitle");
       const workspace = document.querySelector(".workspace");
+      const appStatus = document.querySelector("#appStatus");
       const questionStem = document.querySelector("#questionStem");
       const questionFigure = document.querySelector("#questionFigure");
       const options = document.querySelector("#options");
@@ -170,12 +178,20 @@
       let pendingBackupPayload = null;
       let wrongNoteFilter = "all";
       let lastRenderedQuestionKey = "";
+      let lastModalTrigger = null;
+
+      const emptySet = {
+        id: "",
+        title: "ISTQB FL",
+        questions: [],
+      };
 
       function currentSet() {
-        return data.sets.find((set) => set.id === state.setId);
+        return data.sets.find((set) => set.id === state.setId) || data.sets[0] || emptySet;
       }
 
       function validSetId(setId) {
+        if (!data.sets.length) return "";
         return data.sets.some((set) => set.id === setId)
           ? setId
           : data.sets[0].id;
@@ -396,6 +412,73 @@
         backupStatus.classList.toggle("error", type === "error");
       }
 
+      function hideAppStatus() {
+        if (!appStatus) return;
+        appStatus.hidden = true;
+        appStatus.replaceChildren();
+      }
+
+      function showAppStatus(type, titleText, descriptionText, actionText, action) {
+        if (!appStatus) return;
+        appStatus.hidden = false;
+        appStatus.className = `app-status ${type === "error" ? "error-state" : "empty-state"}`;
+        appStatus.setAttribute("role", type === "error" ? "alert" : "status");
+        appStatus.replaceChildren();
+
+        const title = document.createElement("h3");
+        title.textContent = titleText;
+        const description = document.createElement("p");
+        description.textContent = descriptionText;
+        appStatus.append(title, description);
+
+        if (actionText && typeof action === "function") {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = type === "error" ? "danger" : "primary";
+          button.textContent = actionText;
+          button.addEventListener("click", action);
+          appStatus.appendChild(button);
+        }
+      }
+
+      function getFocusableElements(container) {
+        return Array.from(
+          container.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+          ),
+        ).filter((element) => !element.disabled && !element.hidden);
+      }
+
+      function openModal(modal, fallbackFocus) {
+        if (!modal) return;
+        lastModalTrigger = document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+        modal.hidden = false;
+        document.body.classList.add("modal-open");
+        const [firstFocus] = getFocusableElements(modal);
+        (fallbackFocus || firstFocus || modal).focus?.();
+      }
+
+      function closeModal(modal, onClose) {
+        if (!modal || modal.hidden) return;
+        modal.hidden = true;
+        if (typeof onClose === "function") onClose();
+        if (![figureModal, wrongNoteModal, backupImportModal, consoleLogModal].some((item) => item && !item.hidden)) {
+          document.body.classList.remove("modal-open");
+        }
+        if (lastModalTrigger && typeof lastModalTrigger.focus === "function") {
+          lastModalTrigger.focus();
+        }
+        lastModalTrigger = null;
+      }
+
+      function activeModal() {
+        return [figureModal, wrongNoteModal, backupImportModal, consoleLogModal].find(
+          (modal) => modal && !modal.hidden,
+        );
+      }
+
       function backupExportMessage(fileName, method) {
         if (method === "share") {
           return [
@@ -600,11 +683,11 @@
       function openConsoleLog() {
         renderConsoleLog();
         setConsoleLogStatus("");
-        consoleLogModal.hidden = false;
+        openModal(consoleLogModal, consoleLogCloseBtn);
       }
 
       function closeConsoleLog() {
-        consoleLogModal.hidden = true;
+        closeModal(consoleLogModal);
       }
 
       async function copyConsoleLog() {
@@ -914,14 +997,15 @@
         cancel.addEventListener("click", closeBackupImport);
         actions.append(apply, cancel);
         backupImportBody.append(info, actions);
-        backupImportModal.hidden = false;
+        openModal(backupImportModal, apply);
       }
 
       function closeBackupImport() {
-        backupImportModal.hidden = true;
-        backupImportBody.replaceChildren();
-        pendingBackupSnapshot = null;
-        pendingBackupPayload = null;
+        closeModal(backupImportModal, () => {
+          backupImportBody.replaceChildren();
+          pendingBackupSnapshot = null;
+          pendingBackupPayload = null;
+        });
       }
 
       function confirmBackupImport() {
@@ -1061,12 +1145,13 @@
         image.alt = alt;
         image.draggable = false;
         figureModalBody.appendChild(image);
-        figureModal.hidden = false;
+        openModal(figureModal, figureModalCloseBtn);
       }
 
       function closeFigureModal() {
-        figureModal.hidden = true;
-        figureModalBody.replaceChildren();
+        closeModal(figureModal, () => {
+          figureModalBody.replaceChildren();
+        });
       }
 
       function modeLabel(mode = state.mode) {
@@ -1081,6 +1166,11 @@
       }
 
       function renderExamSelect() {
+        if (!data.sets.length) {
+          examSelect.replaceChildren();
+          examSelect.disabled = true;
+          return;
+        }
         const setOptions = data.sets.map((set) => {
           const option = document.createElement("option");
           option.value = set.id;
@@ -1093,9 +1183,11 @@
 
       function renderMode() {
         document.querySelectorAll("[data-mode]").forEach((button) => {
-          button.classList.toggle("active", button.dataset.mode === state.mode);
+          const isActive = button.dataset.mode === state.mode;
+          button.classList.toggle("active", isActive);
+          button.setAttribute("aria-pressed", String(isActive));
         });
-        examSelect.disabled = state.mode === "random";
+        examSelect.disabled = state.mode === "random" || !data.sets.length;
       }
 
       function renderVisualControls() {
@@ -1105,10 +1197,9 @@
           sizes[state.fontSize] || sizes.normal,
         );
         document.querySelectorAll("[data-font-size]").forEach((button) => {
-          button.classList.toggle(
-            "active",
-            button.dataset.fontSize === state.fontSize,
-          );
+          const isActive = button.dataset.fontSize === state.fontSize;
+          button.classList.toggle("active", isActive);
+          button.setAttribute("aria-pressed", String(isActive));
         });
       }
 
@@ -1860,6 +1951,27 @@
         renderVisualControls();
         const set = currentSet();
         const questions = currentQuestions();
+        if (startupDataError) {
+          lastRenderedQuestionKey = "";
+          setMeta.textContent = "ISTQB FL";
+          questionTitle.textContent = "데이터 로딩 오류";
+          showAppStatus(
+            "error",
+            "문제 데이터를 불러오지 못했습니다.",
+            "questions.js가 로드되지 않았거나 window.ISTQB_DATA 구조가 비어 있습니다. 정적 배포 경로와 파일 포함 여부를 확인하세요.",
+            "다시 확인",
+            () => window.location.reload(),
+          );
+          questionStem.replaceChildren();
+          questionFigure.replaceChildren();
+          questionFigure.hidden = true;
+          options.replaceChildren();
+          feedback.hidden = true;
+          renderNav([]);
+          renderStats();
+          renderActionHint([]);
+          return;
+        }
         const canGrade =
           (state.mode === "exam" && !isExamGraded()) ||
           (state.mode === "random" && !isRandomGraded()) ||
@@ -1888,6 +2000,20 @@
         navSummary.hidden = !state.navCollapsed;
         if (questions.length === 0) {
           lastRenderedQuestionKey = "";
+          showAppStatus(
+            "empty",
+            state.mode === "review" ? "아직 오답이 없습니다." : "표시할 문제가 없습니다.",
+            isExamGraded()
+              ? "채점한 시험에서 틀린 문제가 없습니다. 다른 모드로 계속 풀 수 있습니다."
+              : "시험 모드에서 채점하면 틀린 문제만 오답 모드에 표시됩니다.",
+            "연습 모드로 이동",
+            () => {
+              state.mode = "practice";
+              state.index = 0;
+              renderMode();
+              render();
+            },
+          );
           setMeta.textContent =
             state.mode === "random"
               ? "전체 랜덤 40문항"
@@ -1923,6 +2049,7 @@
             ? `${question.setTitle} · 랜덤 ${state.index + 1} / ${questions.length}`
             : `${set.title} · ${set.questions.length}문항`;
         questionTitle.textContent = `문제 ${state.index + 1} / ${questions.length}${multi ? " · 복수정답" : ""}`;
+        hideAppStatus();
         renderRichText(questionStem, question.stem, { plainContent: true });
         renderFigure(question);
         navSummary.textContent = `현재 ${state.index + 1} / ${questions.length}`;
@@ -1947,6 +2074,11 @@
           button.className = "option";
           button.disabled = isAnswerLocked();
           const isSelected = selected.includes(option.key);
+          button.setAttribute("aria-pressed", String(isSelected));
+          button.setAttribute(
+            "aria-label",
+            `선택지 ${option.key}${isSelected ? ", 선택됨" : ""}`,
+          );
           button.classList.toggle("selected", isSelected);
           if (shouldShowResults()) {
             button.classList.toggle(
@@ -2005,11 +2137,17 @@
 
       function renderNav(questions) {
         questionNav.replaceChildren();
+        const fragment = document.createDocumentFragment();
         questions.forEach((question, index) => {
           const button = document.createElement("button");
           button.type = "button";
           button.textContent =
             state.mode === "random" ? index + 1 : question.number;
+          button.setAttribute(
+            "aria-label",
+            `문제 ${index + 1}${index === state.index ? ", 현재 문제" : ""}`,
+          );
+          if (index === state.index) button.setAttribute("aria-current", "true");
           button.classList.toggle("current", index === state.index);
           button.classList.toggle("answered", selectedFor(question).length > 0);
           button.classList.toggle(
@@ -2029,8 +2167,9 @@
             state.index = index;
             render();
           });
-          questionNav.appendChild(button);
+          fragment.appendChild(button);
         });
+        questionNav.appendChild(fragment);
       }
 
       function renderStats() {
@@ -2137,7 +2276,7 @@
            }
         }
         renderWrongNote();
-        wrongNoteModal.hidden = false;
+        openModal(wrongNoteModal, wrongNoteCloseBtn);
       }
 
       function renderWrongNote() {
@@ -2250,8 +2389,9 @@
       }
 
       function closeWrongNote() {
-        wrongNoteModal.hidden = true;
-        wrongNoteBody.replaceChildren();
+        closeModal(wrongNoteModal, () => {
+          wrongNoteBody.replaceChildren();
+        });
       }
 
       function shouldShowResults() {
@@ -2606,18 +2746,44 @@
       wrongNoteModal.addEventListener("click", (event) => {
         if (event.target === wrongNoteModal) closeWrongNote();
       });
+      backupImportCloseBtn.addEventListener("click", closeBackupImport);
+      backupImportModal.addEventListener("click", (event) => {
+        if (event.target === backupImportModal) closeBackupImport();
+      });
       consoleLogCloseBtn.addEventListener("click", closeConsoleLog);
       consoleLogModal.addEventListener("click", (event) => {
         if (event.target === consoleLogModal) closeConsoleLog();
       });
 
       document.addEventListener("keydown", (event) => {
+        const modal = activeModal();
+        if (event.key === "Tab" && modal) {
+          const focusable = getFocusableElements(modal);
+          if (focusable.length === 0) {
+            event.preventDefault();
+            return;
+          }
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+            return;
+          }
+          if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+            return;
+          }
+        }
         if (event.key === "Escape") {
           closeFigureModal();
           closeWrongNote();
+          closeBackupImport();
           closeConsoleLog();
           return;
         }
+        if (modal) return;
         if (event.key === "ArrowLeft") move(-1);
         if (event.key === "ArrowRight") move(1);
       });
@@ -2664,6 +2830,10 @@
           navigator.serviceWorker
             .register("./service-worker.js")
             .catch((error) => {
+              appLogStore.add("warn", [
+                "Service worker registration failed. The app can still run online.",
+                error,
+              ]);
               console.warn("Service worker registration failed:", error);
             });
         });

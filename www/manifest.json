@@ -2,6 +2,8 @@
   "name": "ISTQB FL v4.0 Sample Questions",
   "short_name": "ISTQB FL",
   "description": "Offline ISTQB Foundation Level v4.0 sample question practice app.",
+  "id": "./index.html",
+  "lang": "ko",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
