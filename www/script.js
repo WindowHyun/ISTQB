@@ -75,15 +75,32 @@
       })();
       window.ISTQB_LOGGER = appLogStore;
 
-      const rawData = window.ISTQB_DATA;
-      const startupDataError =
-        !rawData ||
-        !Array.isArray(rawData.sets) ||
-        rawData.sets.length === 0
+      const istqbData = window.ISTQB_DATA;
+      const cstsData =
+        window.CSTS_DATA && Array.isArray(window.CSTS_DATA.sets)
+          ? window.CSTS_DATA
+          : { source: "", sets: [] };
+      const istqbDataError =
+        !istqbData ||
+        !Array.isArray(istqbData.sets) ||
+        istqbData.sets.length === 0
           ? "Question data is missing or empty."
           : "";
-      const data = startupDataError ? { source: "", sets: [] } : rawData;
-      const persistenceKey = "istqb-fl-v4-sample-persistence";
+      const productData = {
+        istqb: istqbDataError ? { source: "", sets: [] } : istqbData,
+        csts: cstsData,
+      };
+      const productLabels = {
+        istqb: "ISTQB FL",
+        csts: "CSTS FL",
+      };
+      let activeProduct = "istqb";
+      let data = productData[activeProduct];
+      function persistenceKey() {
+        return activeProduct === "csts"
+          ? "csts-fl-v1-sample-persistence"
+          : "istqb-fl-v4-sample-persistence";
+      }
 
       const savedUiState = loadUiState();
       const state = {
@@ -196,10 +213,6 @@
       let wrongNoteFilter = "all";
       let lastRenderedQuestionKey = "";
       let lastModalTrigger = null;
-      const cstsData =
-        window.CSTS_DATA && Array.isArray(window.CSTS_DATA.sets)
-          ? window.CSTS_DATA
-          : { source: "", sets: [] };
       const cstsState = {
         setId: cstsData.sets[0]?.id || "",
         index: 0,
@@ -207,12 +220,16 @@
 
       const emptySet = {
         id: "",
-        title: "ISTQB FL",
+        title: productLabels[activeProduct],
         questions: [],
       };
 
       function currentSet() {
-        return data.sets.find((set) => set.id === state.setId) || data.sets[0] || emptySet;
+        return (
+          data.sets.find((set) => set.id === state.setId) ||
+          data.sets[0] ||
+          { ...emptySet, title: productLabels[activeProduct] }
+        );
       }
 
       function validSetId(setId) {
@@ -288,11 +305,15 @@
       }
 
       function storageKey() {
-        return "istqb-fl-v4-sample-answers";
+        return activeProduct === "csts"
+          ? "csts-fl-v1-sample-answers"
+          : "istqb-fl-v4-sample-answers";
       }
 
       function uiStorageKey() {
-        return "istqb-fl-v4-sample-ui-state";
+        return activeProduct === "csts"
+          ? "csts-fl-v1-sample-ui-state"
+          : "istqb-fl-v4-sample-ui-state";
       }
 
       function buildSnapshot() {
@@ -333,6 +354,46 @@
         }
       }
 
+      function applyUiState(uiState = {}) {
+        state.setId = validSetId(uiState.setId);
+        state.mode = validMode(uiState.mode);
+        state.index = Number.isInteger(uiState.index) ? uiState.index : 0;
+        state.examGraded = uiState.examGraded || {};
+        state.randomGraded = Boolean(uiState.randomGraded);
+        state.randomRefs = Array.isArray(uiState.randomRefs)
+          ? uiState.randomRefs
+          : [];
+        state.reviewRetake = uiState.reviewRetake || {};
+        state.reviewIds = uiState.reviewIds || {};
+        state.navCollapsed = Boolean(uiState.navCollapsed);
+        state.sidebarCollapsed = uiState.sidebarCollapsed !== false;
+        state.fontSize = validFontSize(uiState.fontSize);
+        state.startedAt = Number.isFinite(uiState.startedAt)
+          ? uiState.startedAt
+          : Date.now();
+        state.answers = loadAnswers();
+        state.histories = sanitizeHistories(uiState.histories);
+      }
+
+      function switchProduct(product) {
+        if (!productData[product]) return;
+        saveAnswers();
+        saveUiState();
+        activeProduct = product;
+        data = productData[activeProduct];
+        applyUiState(loadUiState());
+        lastRenderedQuestionKey = "";
+        feedbackExpanded = false;
+        renderExamSelect();
+        renderMode();
+        render();
+      }
+
+      function currentDataError() {
+        if (activeProduct === "istqb") return istqbDataError;
+        return data.sets.length === 0 ? "CSTS data is missing or empty." : "";
+      }
+
       function saveAnswers() {
         try {
           localStorage.setItem(storageKey(), JSON.stringify(state.answers));
@@ -369,7 +430,7 @@
       async function savePersistentSnapshot() {
         const snapshot = buildSnapshot();
         try {
-          localStorage.setItem(persistenceKey, JSON.stringify(snapshot));
+          localStorage.setItem(persistenceKey(), JSON.stringify(snapshot));
         } catch {
           // IndexedDB below is the fallback for browsers with small or blocked localStorage.
         }
@@ -387,7 +448,7 @@
         let snapshot = null;
         let hasUiState = false;
         try {
-          snapshot = JSON.parse(localStorage.getItem(persistenceKey));
+          snapshot = JSON.parse(localStorage.getItem(persistenceKey()));
           hasUiState = Boolean(localStorage.getItem(uiStorageKey()));
         } catch {
           snapshot = null;
@@ -427,7 +488,7 @@
           .toISOString()
           .slice(0, 19)
           .replace(/[-:T]/g, "");
-        return `istqb-fl-backup-${stamp}.json`;
+        return `${activeProduct}-fl-backup-${stamp}.json`;
       }
 
       function setBackupStatus(message, type = "") {
@@ -547,6 +608,10 @@
 
       function renderCstsOptions(question) {
         cstsOptions.replaceChildren();
+        if (!question.options.length) {
+          renderShortAnswerControl(question, selected[0] || "");
+        }
+
         question.options.forEach((option) => {
           const row = document.createElement("div");
           row.className = question.answer.includes(option.key)
@@ -615,6 +680,7 @@
       }
 
       function openIstqbApp() {
+        switchProduct("istqb");
         productGate?.classList.add("is-product-hidden");
         productGate?.setAttribute("hidden", "");
         cstsPage?.classList.add("is-product-hidden");
@@ -624,14 +690,13 @@
       }
 
       function openCstsPage() {
+        switchProduct("csts");
         productGate?.classList.add("is-product-hidden");
         productGate?.setAttribute("hidden", "");
-        appShell?.classList.add("is-product-hidden");
-        cstsPage?.classList.remove("is-product-hidden");
-        cstsPage?.removeAttribute("hidden");
-        renderCstsSelect();
-        renderCstsPage();
-        cstsBackBtn?.focus();
+        cstsPage?.classList.add("is-product-hidden");
+        cstsPage?.setAttribute("hidden", "");
+        appShell?.classList.remove("is-product-hidden");
+        questionTitle?.focus?.();
       }
 
       function backupExportMessage(fileName, method) {
@@ -697,7 +762,7 @@
 
       function buildBackupPayload() {
         return {
-          app: "ISTQB FL",
+          app: productLabels[activeProduct],
           schemaVersion: 1,
           exportedAt: new Date().toISOString(),
           questionTotal: allQuestions().length,
@@ -745,7 +810,7 @@
             if (navigator.canShare({ files: [file] })) {
               await navigator.share({
                 files: [file],
-                title: "ISTQB FL 풀이 기록 백업",
+                title: `${productLabels[activeProduct]} 풀이 기록 백업`,
               });
               setBackupStatus(
                 backupExportMessage(fileName, "share"),
@@ -792,7 +857,7 @@
           .toISOString()
           .slice(0, 19)
           .replace(/[-:T]/g, "");
-        return `istqb-fl-console-${stamp}.txt`;
+        return `${activeProduct}-fl-console-${stamp}.txt`;
       }
 
       function setConsoleLogStatus(message, type = "") {
@@ -806,7 +871,7 @@
         const questions = currentQuestions();
         const question = questions[state.index];
         const context = [
-          "ISTQB FL Console Log",
+          `${productLabels[activeProduct]} Console Log`,
           `generatedAt: ${new Date().toISOString()}`,
           `url: ${window.location.href}`,
           `userAgent: ${navigator.userAgent}`,
@@ -897,7 +962,7 @@
             if (navigator.canShare({ files: [file] })) {
               await navigator.share({
                 files: [file],
-                title: "ISTQB FL 콘솔 로그",
+                title: `${productLabels[activeProduct]} 콘솔 로그`,
               });
               setConsoleLogStatus(
                 `콘솔 로그 공유를 요청했습니다.\n파일명: ${fileName}`,
@@ -1193,7 +1258,20 @@
         return [...left].sort().join(",") === [...right].sort().join(",");
       }
 
+      function normalizeTextAnswer(value) {
+        return String(value || "")
+          .trim()
+          .replace(/\s+/g, " ")
+          .toLowerCase();
+      }
+
       function isCorrect(question, mode = answerMode()) {
+        if (question.type === "short_answer") {
+          return (
+            normalizeTextAnswer(selectedFor(question, mode)[0]) ===
+            normalizeTextAnswer(question.answer[0])
+          );
+        }
         return sameChoices(selectedFor(question, mode), question.answer);
       }
 
@@ -1250,10 +1328,12 @@
       }
 
       function formatChoice(choices) {
+        if (!Array.isArray(choices)) return String(choices || "");
         return choices.map((choice) => choice.toUpperCase()).join(", ");
       }
 
       function figureFor(question) {
+        if (question.figure) return question.figure;
         const setId = question.setId || state.setId;
         const key = `${setId}${question.number}`;
         const figures = {
@@ -2153,9 +2233,9 @@
         renderVisualControls();
         const set = currentSet();
         const questions = currentQuestions();
-        if (startupDataError) {
+        if (currentDataError()) {
           lastRenderedQuestionKey = "";
-          setMeta.textContent = "ISTQB FL";
+          setMeta.textContent = productLabels[activeProduct];
           questionTitle.textContent = "데이터 로딩 오류";
           showAppStatus(
             "error",
@@ -2619,6 +2699,40 @@
           (state.mode === "exam" && isExamGraded()) ||
           (state.mode === "random" && isRandomGraded())
         );
+      }
+
+      function renderShortAnswerControl(question, value) {
+        const wrapper = document.createElement("label");
+        wrapper.className = "short-answer";
+        const label = document.createElement("span");
+        label.textContent = "답안 입력";
+        const input = document.createElement("input");
+        input.type = "text";
+        input.value = value;
+        input.disabled = isAnswerLocked();
+        input.placeholder = "정답을 입력하세요";
+        input.autocomplete = "off";
+        input.addEventListener("input", () => {
+          const nextValue = input.value.trim();
+          if (nextValue) {
+            state.answers[answerKey(question)] = [nextValue];
+          } else {
+            delete state.answers[answerKey(question)];
+          }
+          saveAnswers();
+          saveUiState();
+          renderNav(currentQuestions());
+          renderStats();
+          renderActionHint(currentQuestions());
+        });
+        input.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            render();
+          }
+        });
+        wrapper.append(label, input);
+        options.appendChild(wrapper);
       }
 
       function chooseOption(question, key) {
