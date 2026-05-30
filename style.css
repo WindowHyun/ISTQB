@@ -378,15 +378,16 @@
       }
 
       .topbar {
-        position: sticky;
-        top: calc(0px + var(--safe-top));
+        position: static;
         z-index: 2;
         background: var(--panel);
-        border-bottom: 1px solid var(--line);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 16px;
+        padding: 14px 16px;
         scroll-margin-top: calc(18px + var(--safe-top));
       }
 
@@ -416,12 +417,13 @@
         user-select: none;
         -webkit-user-select: none;
         -webkit-touch-callout: none;
+        scroll-margin-top: 18px;
       }
 
       .question-stem {
         white-space: pre-wrap;
         font-size: var(--question-font-size);
-        line-height: 1.75;
+        line-height: 1.82;
         word-break: keep-all;
         overflow-wrap: anywhere;
         overflow-x: auto;
@@ -553,16 +555,30 @@
       .question-stem .text-line,
       .feedback .text-line {
         display: block;
-        margin: 0 0 8px;
+        margin: 0 0 10px;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+      }
+
+      .question-stem .dense-line,
+      .question-stem .formula-line {
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        background: var(--secondary);
+        font-size: calc(var(--question-font-size) - 1px);
+        line-height: 1.7;
+        word-break: normal;
       }
 
       .question-stem .plain-list {
         display: grid;
-        gap: 8px;
-        margin: 12px 0 14px;
-        padding: 12px 14px;
-        border-left: 3px solid #b8cbc5;
-        border-radius: 8px;
+        gap: 10px;
+        margin: 14px 0 16px;
+        padding: 14px 16px;
+        border: 1px solid var(--line);
+        border-left: 4px solid #b8cbc5;
+        border-radius: var(--radius-md);
         background: #fbfdfc;
       }
 
@@ -571,9 +587,12 @@
       }
 
       .question-stem .prompt-line {
-        margin-top: 14px;
-        padding-top: 12px;
-        border-top: 1px solid var(--line);
+        margin-top: 18px;
+        padding: 14px 16px;
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--accent);
+        border-radius: var(--radius-md);
+        background: var(--secondary);
         color: var(--ink);
         font-weight: 800;
       }

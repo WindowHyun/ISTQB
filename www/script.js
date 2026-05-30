@@ -1300,13 +1300,60 @@
 
       function appendPlainLine(target, text, options = {}) {
         if (!String(text || "").trim()) return;
-        const lineNode = document.createElement("span");
-        lineNode.className = "text-line";
-        if (options.markPrompt && isQuestionPromptLine(text)) {
-          lineNode.classList.add("prompt-line");
-        }
-        lineNode.textContent = text;
-        target.appendChild(lineNode);
+        splitDenseQuestionText(text).flatMap(splitFormulaIntro).forEach((part) => {
+          const lineNode = document.createElement("span");
+          lineNode.className = "text-line";
+          if (options.markPrompt && isQuestionPromptLine(part)) {
+            lineNode.classList.add("prompt-line");
+          }
+          if (isDenseDataLine(part)) lineNode.classList.add("dense-line");
+          if (isFormulaLine(part)) lineNode.classList.add("formula-line");
+          lineNode.textContent = normalizeFormulaDisplay(part);
+          target.appendChild(lineNode);
+        });
+      }
+
+      function splitDenseQuestionText(text) {
+        return String(text || "")
+          .replace(/\s+(?=TC\d+\s*:)/g, "\n")
+          .replace(/\s+(?=AC\d+\s*:)/g, "\n")
+          .replace(/(사용한다\.)\s+(?=(?:\b(?:E|A|AA|EE)|[𝐸𝐴]{1,2})\s*\()/g, "$1\n")
+          .replace(/\s+(?=\b(?:E|A|AA|EE)\s*\([^)]*\)\s*=)/g, "\n")
+          .replace(/\s+(?=[𝐸𝐴]{1,2}\s*\([^)]*\)\s*=)/g, "\n")
+          .replace(/\s+([0-9]+)\s+(?=그래프는)/g, " / $1\n")
+          .replace(/\s+(?=다음\s+중\b)/g, "\n")
+          .replace(/\s+(?=다음과\s+같은\b)/g, "\n")
+          .replace(/\s+(?=테스트\s+케이스로\b)/g, "\n")
+          .replace(/\s+(?=그래프는\b)/g, "\n")
+          .split("\n")
+          .map((part) => part.trim())
+          .filter(Boolean);
+      }
+
+      function splitFormulaIntro(text) {
+        const value = String(text || "").trim();
+        const index = value.search(/(?:\b(?:E|A|AA|EE)|[𝐸𝐴]{1,2})\s*\([^)]*\)\s*[=＝]/);
+        if (index <= 24 || !/[=＝]/.test(value.slice(index))) return [value];
+        return [value.slice(0, index).trim(), value.slice(index).trim()].filter(Boolean);
+      }
+
+      function isDenseDataLine(text) {
+        const value = String(text || "");
+        return /TC\d+\s*:/.test(value) || /AC\d+\s*:/.test(value);
+      }
+
+      function isFormulaLine(text) {
+        const value = String(text || "");
+        return (
+          /\b(?:E|A|AA|EE)\s*\([^)]*\)\s*=/.test(value) ||
+          /[𝐸𝐴]{1,2}\s*\([^)]*\)\s*=/.test(value)
+        );
+      }
+
+      function normalizeFormulaDisplay(text) {
+        const value = String(text || "");
+        if (!isFormulaLine(value)) return value;
+        return value.replace(/\s+([0-9]+)$/, " / $1");
       }
 
       function plainMarker(marker) {
