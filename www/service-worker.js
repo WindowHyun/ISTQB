@@ -1,4 +1,4 @@
-const CACHE_NAME = "istqb-fl-v4-tablet-pwa-v23";
+const CACHE_NAME = "istqb-fl-v4-tablet-pwa-v24";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -6,6 +6,8 @@ const APP_SHELL = [
   "./script.js",
   "./questions.json",
   "./questions.js",
+  "./csts-questions.json",
+  "./csts-questions.js",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

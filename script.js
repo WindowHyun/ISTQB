@@ -116,6 +116,16 @@
       const openIstqbBtn = document.querySelector("#openIstqbBtn");
       const openCstsBtn = document.querySelector("#openCstsBtn");
       const cstsBackBtn = document.querySelector("#cstsBackBtn");
+      const cstsSetSelect = document.querySelector("#cstsSetSelect");
+      const cstsSummary = document.querySelector("#cstsSummary");
+      const cstsQuestionMeta = document.querySelector("#cstsQuestionMeta");
+      const cstsQuestionTitle = document.querySelector("#cstsQuestionTitle");
+      const cstsQuestionStem = document.querySelector("#cstsQuestionStem");
+      const cstsQuestionFigure = document.querySelector("#cstsQuestionFigure");
+      const cstsOptions = document.querySelector("#cstsOptions");
+      const cstsAnswer = document.querySelector("#cstsAnswer");
+      const cstsPrevBtn = document.querySelector("#cstsPrevBtn");
+      const cstsNextBtn = document.querySelector("#cstsNextBtn");
       const productHomeBtn = document.querySelector("#productHomeBtn");
       const sidebar = document.querySelector(".sidebar");
       const sidebarToggleBtn = document.querySelector("#sidebarToggleBtn");
@@ -186,6 +196,14 @@
       let wrongNoteFilter = "all";
       let lastRenderedQuestionKey = "";
       let lastModalTrigger = null;
+      const cstsData =
+        window.CSTS_DATA && Array.isArray(window.CSTS_DATA.sets)
+          ? window.CSTS_DATA
+          : { source: "", sets: [] };
+      const cstsState = {
+        setId: cstsData.sets[0]?.id || "",
+        index: 0,
+      };
 
       const emptySet = {
         id: "",
@@ -486,6 +504,105 @@
         );
       }
 
+      function currentCstsSet() {
+        return (
+          cstsData.sets.find((set) => set.id === cstsState.setId) ||
+          cstsData.sets[0] || { id: "", title: "", questions: [] }
+        );
+      }
+
+      function summaryPill(text) {
+        const pill = document.createElement("span");
+        pill.textContent = text;
+        return pill;
+      }
+
+      function renderCstsSelect() {
+        if (!cstsSetSelect) return;
+        const fragment = document.createDocumentFragment();
+        cstsData.sets.forEach((set) => {
+          const option = document.createElement("option");
+          option.value = set.id;
+          option.textContent = `${set.title} (${set.questions.length}문항)`;
+          fragment.appendChild(option);
+        });
+        cstsSetSelect.replaceChildren(fragment);
+        cstsSetSelect.value = currentCstsSet().id;
+      }
+
+      function renderCstsFigure(question) {
+        cstsQuestionFigure.replaceChildren();
+        if (!question.figure) return;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "figure-button";
+        button.setAttribute("aria-label", `CSTS 문제 ${question.number} 그림 확대`);
+        const image = document.createElement("img");
+        image.src = question.figure;
+        image.alt = `CSTS 문제 ${question.number} 참고 그림`;
+        button.appendChild(image);
+        button.addEventListener("click", () => openFigureModal(question, button));
+        cstsQuestionFigure.appendChild(button);
+      }
+
+      function renderCstsOptions(question) {
+        cstsOptions.replaceChildren();
+        question.options.forEach((option) => {
+          const row = document.createElement("div");
+          row.className = question.answer.includes(option.key)
+            ? "option correct"
+            : "option";
+          const key = document.createElement("span");
+          key.className = "option-key";
+          key.textContent = option.key.toUpperCase();
+          const text = document.createElement("span");
+          text.className = "option-text";
+          renderRichText(text, option.text, { plainContent: true });
+          row.append(key, text);
+          cstsOptions.appendChild(row);
+        });
+      }
+
+      function renderCstsPage() {
+        const set = currentCstsSet();
+        const questions = set.questions || [];
+        if (!questions.length) {
+          cstsSummary.replaceChildren();
+          cstsQuestionMeta.textContent = "CSTS";
+          cstsQuestionTitle.textContent = "추출된 문제가 없습니다";
+          cstsQuestionStem.textContent =
+            "CSTS PDF 추출 결과를 찾지 못했습니다. csts-questions.js 로드 여부를 확인하세요.";
+          cstsQuestionFigure.replaceChildren();
+          cstsOptions.replaceChildren();
+          cstsAnswer.textContent = "";
+          cstsPrevBtn.disabled = true;
+          cstsNextBtn.disabled = true;
+          return;
+        }
+
+        cstsState.index = Math.max(0, Math.min(cstsState.index, questions.length - 1));
+        const question = questions[cstsState.index];
+        const typeLabel = {
+          multiple_choice: "4지선다",
+          true_false: "O/X",
+          short_answer: "단답형",
+        }[question.type] || question.type;
+        const figureCount = questions.filter((item) => item.figure).length;
+        cstsSummary.replaceChildren(
+          summaryPill(`${questions.length}문항`),
+          summaryPill(`${figureCount}개 이미지 추출`),
+          summaryPill(typeLabel),
+        );
+        cstsQuestionMeta.textContent = set.title;
+        cstsQuestionTitle.textContent = `문제 ${cstsState.index + 1} / ${questions.length}`;
+        renderRichText(cstsQuestionStem, question.stem, { plainContent: true });
+        renderCstsFigure(question);
+        renderCstsOptions(question);
+        cstsAnswer.textContent = `정답: ${question.answerText || question.answer.join(", ")}`;
+        cstsPrevBtn.disabled = cstsState.index === 0;
+        cstsNextBtn.disabled = cstsState.index >= questions.length - 1;
+      }
+
       function showProductGate() {
         productGate?.classList.remove("is-product-hidden");
         productGate?.removeAttribute("hidden");
@@ -512,6 +629,8 @@
         appShell?.classList.add("is-product-hidden");
         cstsPage?.classList.remove("is-product-hidden");
         cstsPage?.removeAttribute("hidden");
+        renderCstsSelect();
+        renderCstsPage();
         cstsBackBtn?.focus();
       }
 
@@ -2795,6 +2914,19 @@
       openCstsBtn?.addEventListener("click", openCstsPage);
       cstsBackBtn?.addEventListener("click", showProductGate);
       productHomeBtn?.addEventListener("click", showProductGate);
+      cstsSetSelect?.addEventListener("change", () => {
+        cstsState.setId = cstsSetSelect.value;
+        cstsState.index = 0;
+        renderCstsPage();
+      });
+      cstsPrevBtn?.addEventListener("click", () => {
+        cstsState.index -= 1;
+        renderCstsPage();
+      });
+      cstsNextBtn?.addEventListener("click", () => {
+        cstsState.index += 1;
+        renderCstsPage();
+      });
 
       function isMobileLayout() {
         return window.innerWidth <= 900;

@@ -54,11 +54,24 @@
             처음으로
           </button>
         </header>
-        <section class="empty-state">
-          <h3>CSTS 콘텐츠를 준비 중입니다.</h3>
-          <p>
-            CSTS 문제 데이터와 풀이 화면을 추가하면 이 영역에서 바로 실행됩니다.
-          </p>
+        <section class="csts-browser" aria-label="CSTS 추출 문제 미리보기">
+          <div class="csts-controls">
+            <label for="cstsSetSelect">문제 세트</label>
+            <select id="cstsSetSelect"></select>
+          </div>
+          <div id="cstsSummary" class="csts-summary" aria-live="polite"></div>
+          <article class="question-card csts-question-card">
+            <div class="question-meta" id="cstsQuestionMeta"></div>
+            <h2 id="cstsQuestionTitle">CSTS 문제</h2>
+            <div id="cstsQuestionStem" class="stem"></div>
+            <div id="cstsQuestionFigure" class="figure-wrap"></div>
+            <div id="cstsOptions" class="options"></div>
+            <div id="cstsAnswer" class="feedback" aria-live="polite"></div>
+          </article>
+          <div class="csts-actions">
+            <button id="cstsPrevBtn" class="secondary" type="button">이전</button>
+            <button id="cstsNextBtn" class="primary" type="button">다음</button>
+          </div>
         </section>
       </div>
     </section>
@@ -344,6 +357,7 @@
     </div>
 
     <script src="./questions.js"></script>
+    <script src="./csts-questions.js"></script>
     <script src="./script.js"></script>
   </body>
 </html>
