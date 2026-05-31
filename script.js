@@ -3133,7 +3133,28 @@
 
       exportBackupBtn.addEventListener("click", exportBackup);
 
-      consoleLogBtn.addEventListener("click", openConsoleLog);
+      consoleLogBtn.addEventListener("click", () => {
+        if (window.VConsole) return;
+        
+        consoleLogBtn.textContent = "vConsole 로딩 중...";
+        consoleLogBtn.disabled = true;
+        
+        const script = document.createElement("script");
+        script.src = "https://unpkg.com/vconsole@latest/dist/vconsole.min.js";
+        script.onload = () => {
+          window.vConsole = new window.VConsole();
+          consoleLogBtn.textContent = "vConsole 활성화됨";
+          
+          if (settingsPanelToggleBtn.getAttribute("aria-expanded") === "true") {
+            settingsPanelToggleBtn.click();
+          }
+        };
+        script.onerror = () => {
+          consoleLogBtn.textContent = "로딩 실패";
+          consoleLogBtn.disabled = false;
+        };
+        document.body.appendChild(script);
+      });
       copyConsoleLogBtn.addEventListener("click", copyConsoleLog);
       exportConsoleLogBtn.addEventListener("click", exportConsoleLog);
       clearConsoleLogBtn.addEventListener("click", clearConsoleLog);
