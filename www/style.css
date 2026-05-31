@@ -1006,7 +1006,8 @@
       }
 
       .table-image-frame {
-        margin: 12px 0;
+        max-width: min(100%, 720px);
+        margin: 12px auto;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         border: 1px solid #c8d7d2;
@@ -1027,15 +1028,18 @@
 
       .table-image {
         display: block;
-        width: max-content;
-        max-width: none;
-        min-width: 100%;
+        width: auto;
+        max-width: 100%;
+        max-height: min(52vh, 460px);
         height: auto;
+        margin: 0 auto;
+        object-fit: contain;
         cursor: zoom-in;
       }
 
       .reference-image-frame {
-        margin: 12px 0;
+        max-width: min(100%, 680px);
+        margin: 12px auto;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         border: 1px solid #c8d7d2;
@@ -1058,7 +1062,7 @@
         display: block;
         width: auto;
         max-width: 100%;
-        max-height: min(60vh, 520px);
+        max-height: min(48vh, 420px);
         height: auto;
         margin: 0 auto;
         object-fit: contain;
