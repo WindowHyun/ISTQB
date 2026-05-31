@@ -1,4 +1,5 @@
 {
+  "name": "istqb-fl-web",
   "cleanUrls": true,
   "trailingSlash": false,
   "headers": [
