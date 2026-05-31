@@ -5,6 +5,7 @@ const root = path.resolve(__dirname, "..");
 const files = [
   path.join(root, "questions.json"),
   path.join(root, "www", "questions.json"),
+  path.join(root, "csts-questions.json"),
 ];
 
 const replacements = new Map([
@@ -164,6 +165,11 @@ const replacements = new Map([
 function repair(value) {
   if (typeof value !== "string") return value;
   let result = value;
+  
+  // Remove arbitrary mid-sentence newlines (PDF extraction artifacts)
+  // Keeps newlines that follow punctuation (. ? : ! >) or precede lists/tables
+  result = result.replace(/([^.?:!\n>])\n(?!\s*(?:[•*\-]|\d+\.|[A-E]\.|[a-e]\)|(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.|__IMAGE__|__TABLE__|__CODE__|TC\d+|AC\d+|라운드|기대\s*결과|실제\s*결과|1|2|3|4|5|6|7|8|9|0|A|B|C|D|E|F|단,|참고:))/gi, "$1 ");
+
   replacements.forEach((to, from) => {
     result = result.replaceAll(from, to);
   });
@@ -187,5 +193,9 @@ files.forEach((file) => {
 const dataScript = `window.ISTQB_DATA = ${fs.readFileSync(files[0], "utf8").trim()};\n`;
 fs.writeFileSync(path.join(root, "questions.js"), dataScript, "utf8");
 fs.writeFileSync(path.join(root, "www", "questions.js"), dataScript, "utf8");
+
+const cstsDataScript = `window.CSTS_DATA = ${fs.readFileSync(files[2], "utf8").trim()};\n`;
+fs.writeFileSync(path.join(root, "csts-questions.js"), cstsDataScript, "utf8");
+fs.writeFileSync(path.join(root, "www", "csts-questions.js"), cstsDataScript, "utf8");
 
 console.log("spacing repaired");

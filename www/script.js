@@ -1634,6 +1634,7 @@
 
       function isQuestionPromptLine(text) {
         const value = String(text || "").trim();
+        return /[?？]$/.test(value);
         return (
           /[?？]$/.test(value) ||
           /^(다음 중|어느|어떤|가장|최소|최대)/.test(value)

@@ -717,12 +717,10 @@
       .question-stem .plain-list {
         display: grid;
         gap: 10px;
-        margin: 14px 0 16px;
-        padding: 14px 16px;
-        border: 1px solid var(--line);
-        border-left: 4px solid #b8cbc5;
-        border-radius: var(--radius-md);
-        background: #fbfdfc;
+        margin: 12px 0 16px 8px;
+        padding: 0;
+        border: none;
+        background: transparent;
       }
 
       .question-stem .plain-list .text-line {
