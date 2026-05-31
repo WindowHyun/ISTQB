@@ -1974,7 +1974,11 @@
                               normalizeFinalGradeTable(
                                 normalizeProjectEffortTable(
                                   normalizeCstsIpoTable(
-                                    normalizeTrainingDecisionTable(text),
+                                    normalizeTruthTable(
+                                      normalizeChoiceClassTable(
+                                        normalizeTrainingDecisionTable(text),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -2033,10 +2037,39 @@
         return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
       }
 
+      function normalizeChoiceClassTable(text) {
+        const pattern =
+          /목적지\s+등급\s+좌석\s+파리\s+퍼스트\s+창가\s+런던\s+비즈니스\s+통로\s+(?:(시드니)\s+)?이코노미/;
+        const match = text.match(pattern);
+        if (!match) return text;
+        const rows = [
+          ["입력 인자", "클래스 1", "클래스 2", "클래스 3"],
+          ["목적지", "파리", "런던", match[1] || ""],
+          ["등급", "퍼스트", "비즈니스", "이코노미"],
+          ["좌석", "창가", "통로", ""],
+        ];
+        return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
+      }
+
+      function normalizeTruthTable(text) {
+        const pattern =
+          /테스트 케이스 ID\s+A\s+B\s+A or B\s+\(가\)\s+T\s+T\s+T\s+\(나\)\s+T\s+F\s+T\s+\(다\)\s+F\s+T\s+T\s+\(라\)\s+F\s+F\s+F/;
+        const match = text.match(pattern);
+        if (!match) return text;
+        const rows = [
+          ["테스트 케이스 ID", "A", "B", "A or B"],
+          ["(가)", "T", "T", "T"],
+          ["(나)", "T", "F", "T"],
+          ["(다)", "F", "T", "T"],
+          ["(라)", "F", "F", "F"],
+        ];
+        return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
+      }
+
       function normalizePseudoCodeBlocks(text) {
         const pattern =
           /INPUT:\s*(.*?)\s+IF\s*\((.*?)\)\s+THEN\s+write\s+([“"][^”"]+[”"])\s+ELSE\s+write\s+([“"][^”"]+[”"])/i;
-        return String(text || "").replace(
+        const normalized = String(text || "").replace(
           pattern,
           (_, input, condition, thenValue, elseValue) => {
             const lines = [
@@ -2048,6 +2081,44 @@
             return `\n__CODE__:${JSON.stringify(lines)}\n`;
           },
         );
+        return normalizeGenericCodeBlocks(normalized);
+      }
+
+      function normalizeGenericCodeBlocks(text) {
+        const lines = String(text || "").split("\n");
+        const blocks = [];
+        let codeLines = [];
+        const isCodeLine = (line) => {
+          const value = String(line || "").trim();
+          return (
+            /^[{}]$/.test(value) ||
+            /[;{}]/.test(value) ||
+            /^(?:int|void|float|double|char|boolean|String|if|else|return|for|while|switch|IF|ELSE|THEN|END|ENDIF|READ|PRINT)\b/.test(value) ||
+            /^[A-Za-z_]\w*\s*=/.test(value)
+          );
+        };
+        const flushCode = () => {
+          blocks.push(
+            ...(codeLines.length >= 3
+              ? [`__CODE__:${JSON.stringify(codeLines)}`]
+              : codeLines),
+          );
+          codeLines = [];
+        };
+        lines.forEach((line, index) => {
+          const value = line.trim();
+          const next = lines[index + 1]?.trim() || "";
+          const numberedCodeLine =
+            /^\d+$/.test(value) && (isCodeLine(next) || codeLines.length > 0);
+          if (isCodeLine(value) || numberedCodeLine) {
+            codeLines.push(value);
+            return;
+          }
+          flushCode();
+          blocks.push(line);
+        });
+        flushCode();
+        return blocks.join("\n");
       }
 
       function normalizePlanningPokerTable(text) {
