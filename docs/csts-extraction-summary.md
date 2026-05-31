@@ -32,7 +32,9 @@
 
 ## App Integration
 - `www/index.html` now loads `csts-questions.js`.
-- The CSTS entry page shows extracted sets, question text, options, answers, and extracted figures.
+- The CSTS entry button now opens the same solving flow as ISTQB.
+- CSTS supports set selection, practice, exam, random, review, grading, wrong-note flow, and figure zoom.
+- Short-answer CSTS questions render a text answer input instead of option buttons.
 - ISTQB data and `questions.js` structure were not changed.
 
 ## Verification
@@ -42,8 +44,18 @@
 | Extracted question count | 440 total |
 | Missing question numbers | None |
 | Multiple-choice option count check | Success |
+| True/false option check | Success |
+| Short-answer structure check | Success |
+| Figure file existence and PNG size check | Success, 43 PNG files |
+| Long-line visibility audit | Success, no line over 180 chars |
 | JSON parse check | Success |
 | Browser JS load check | Success |
+| ISTQB verify script | Success |
+
+## QA Notes
+- Fixed `2402FL` question 28, where circled numbers inside option D were incorrectly parsed as additional options.
+- Root static files and `www/` files are kept in sync so local `node server.js`, Capacitor, and static web deployment use the same CSTS solving flow.
+- `npm run build` and `npm run lint` are not available in `package.json`; this project uses `npm run verify`.
 
 ## Notes
 - The extractor uses PyMuPDF (`fitz`).

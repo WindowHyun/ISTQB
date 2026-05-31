@@ -609,7 +609,8 @@
       function renderCstsOptions(question) {
         cstsOptions.replaceChildren();
         if (!question.options.length) {
-          renderShortAnswerControl(question, selected[0] || "");
+          cstsOptions.textContent = "단답형 문제입니다.";
+          return;
         }
 
         question.options.forEach((option) => {

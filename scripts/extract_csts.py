@@ -138,7 +138,12 @@ def parse_options(body_lines):
     options = []
     current = None
     for line in body_lines:
-        matches = list(re.finditer(r"[\u2460-\u2464]", line))
+        raw_matches = list(re.finditer(r"[\u2460-\u2464](?![,，])", line))
+        matches = []
+        for match in raw_matches:
+            if matches and re.fullmatch(r"[\u2460-\u2464,\s，]+", line[matches[-1].end():match.start()]):
+                continue
+            matches.append(match)
         if matches and matches[0].start() == 0:
             for index, match in enumerate(matches):
                 if current:
