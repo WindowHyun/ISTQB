@@ -764,23 +764,23 @@ window.CSTS_DATA = {
         {
           "number": 27,
           "type": "multiple_choice",
-          "stem": "커버리지 간의 포용 관계를 도식화한 것 중 올바른 것은?",
+          "stem": "커버리지 간의 포용 관계를 도식화한 것 중 올바른 것은?\n__IMAGE__:csts-figures/2402FL-27.png\n__IMAGE__:csts-figures/2402FL-27-2.png\n__IMAGE__:csts-figures/2402FL-27-3.png\n__IMAGE__:csts-figures/2402FL-27-4.png",
           "options": [
             {
               "key": "a",
-              "text": ""
+              "text": "그림 1"
             },
             {
               "key": "b",
-              "text": ""
+              "text": "그림 2"
             },
             {
               "key": "c",
-              "text": ""
+              "text": "그림 3"
             },
             {
               "key": "d",
-              "text": ""
+              "text": "그림 4"
             }
           ],
           "answer": [
@@ -788,13 +788,7 @@ window.CSTS_DATA = {
           ],
           "answerText": "4",
           "explanation": "",
-          "figure": "csts-figures/2402FL-27.png",
-          "figures": [
-            "csts-figures/2402FL-27.png",
-            "csts-figures/2402FL-27-2.png",
-            "csts-figures/2402FL-27-3.png",
-            "csts-figures/2402FL-27-4.png"
-          ]
+          "figure": null
         },
         {
           "number": 28,
@@ -2094,23 +2088,23 @@ window.CSTS_DATA = {
         {
           "number": 11,
           "type": "multiple_choice",
-          "stem": "다음 그림에서 스파이크 테스팅에 해당하는 것은?",
+          "stem": "다음 그림에서 스파이크 테스팅에 해당하는 것은?\n__IMAGE__:csts-figures/2403FL-11.png\n__IMAGE__:csts-figures/2403FL-11-2.png\n__IMAGE__:csts-figures/2403FL-11-3.png\n__IMAGE__:csts-figures/2403FL-11-4.png",
           "options": [
             {
               "key": "a",
-              "text": ""
+              "text": "그림 1"
             },
             {
               "key": "b",
-              "text": ""
+              "text": "그림 2"
             },
             {
               "key": "c",
-              "text": ""
+              "text": "그림 3"
             },
             {
               "key": "d",
-              "text": ""
+              "text": "그림 4"
             }
           ],
           "answer": [
@@ -2118,13 +2112,7 @@ window.CSTS_DATA = {
           ],
           "answerText": "3",
           "explanation": "",
-          "figure": "csts-figures/2403FL-11.png",
-          "figures": [
-            "csts-figures/2403FL-11.png",
-            "csts-figures/2403FL-11-2.png",
-            "csts-figures/2403FL-11-3.png",
-            "csts-figures/2403FL-11-4.png"
-          ]
+          "figure": null
         },
         {
           "number": 12,
@@ -6227,23 +6215,23 @@ window.CSTS_DATA = {
         {
           "number": 30,
           "type": "multiple_choice",
-          "stem": "커버리지 간의 포용 관계를 도식화한 것 중 올바른 것은?",
+          "stem": "커버리지 간의 포용 관계를 도식화한 것 중 올바른 것은?\n__IMAGE__:csts-figures/2405FL-30.png\n__IMAGE__:csts-figures/2405FL-30-2.png\n__IMAGE__:csts-figures/2405FL-30-3.png\n__IMAGE__:csts-figures/2405FL-30-4.png",
           "options": [
             {
               "key": "a",
-              "text": ""
+              "text": "그림 1"
             },
             {
               "key": "b",
-              "text": ""
+              "text": "그림 2"
             },
             {
               "key": "c",
-              "text": "TTA"
+              "text": "그림 3"
             },
             {
               "key": "d",
-              "text": ""
+              "text": "그림 4"
             }
           ],
           "answer": [
@@ -6251,13 +6239,7 @@ window.CSTS_DATA = {
           ],
           "answerText": "4",
           "explanation": "",
-          "figure": "csts-figures/2405FL-30.png",
-          "figures": [
-            "csts-figures/2405FL-30.png",
-            "csts-figures/2405FL-30-2.png",
-            "csts-figures/2405FL-30-3.png",
-            "csts-figures/2405FL-30-4.png"
-          ]
+          "figure": null
         },
         {
           "number": 31,

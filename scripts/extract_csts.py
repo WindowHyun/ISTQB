@@ -337,9 +337,23 @@ def extract_pdf(path):
         end_line = lines[end_position] if end_position < len(lines) else None
         figures = save_question_figures(doc, set_id_for(path), number, lines[start_position], end_line)
         if figures:
-            parsed["figure"] = figures[0]
-            if len(figures) > 1:
-                parsed["figures"] = figures
+            empty_option_count = sum(1 for option in parsed["options"] if not option["text"].strip())
+            is_figure_option_question = (
+                parsed["type"] == "multiple_choice"
+                and len(figures) >= len(parsed["options"])
+                and empty_option_count >= max(1, len(parsed["options"]) - 1)
+            )
+            if is_figure_option_question:
+                parsed["stem"] = "\n".join([
+                    parsed["stem"],
+                    *[f"__IMAGE__:{figure}" for figure in figures],
+                ]).strip()
+                for option_index, option in enumerate(parsed["options"], start=1):
+                    option["text"] = f"그림 {option_index}"
+            else:
+                parsed["figure"] = figures[0]
+                if len(figures) > 1:
+                    parsed["figures"] = figures
         questions.append(parsed)
         seen.add(number)
     questions.sort(key=lambda item: item["number"])

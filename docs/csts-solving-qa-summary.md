@@ -19,7 +19,7 @@
 | Multiple-choice option count errors | None |
 | True/false option errors | None |
 | Figure files | 43 PNG files in root and `www` |
-| Question figure references | 34 |
+| Question figure references | 43 |
 | Long extracted lines over 180 chars | None |
 
 ## Verification
@@ -37,3 +37,4 @@
 - Hydration mismatch is not applicable because this is not a React/Next.js SSR app.
 - No external UI library was added; shadcn/ui principles are reflected through existing CSS tokens and component classes.
 - Existing `questions.js` data shape and ISTQB business flow were preserved.
+- Figure-only option questions render all answer figures in the question body and label the selectable options as `그림 1` through `그림 4`.

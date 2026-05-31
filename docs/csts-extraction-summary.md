@@ -54,6 +54,7 @@
 
 ## QA Notes
 - Fixed `2402FL` question 28, where circled numbers inside option D were incorrectly parsed as additional options.
+- Figure-only option questions are normalized so all option figures render in the stem and selectable options are labeled `그림 1` through `그림 4`.
 - Root static files and `www/` files are kept in sync so local `node server.js`, Capacitor, and static web deployment use the same CSTS solving flow.
 - `npm run build` and `npm run lint` are not available in `package.json`; this project uses `npm run verify`.
 
