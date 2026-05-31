@@ -178,6 +178,39 @@ def remove_number_prefix(number, text):
     return re.sub(rf"^{number}\.\s*", "", text).strip()
 
 
+def should_merge_question_suffix(previous, current):
+    if not previous or not current:
+        return False
+    if not current.endswith("?"):
+        return False
+    return len(current) <= 18
+
+
+def question_suffix_joiner(previous, current):
+    if current.startswith(("은?", "는?", "가?", "까?", "인가?", "수?", "지?")):
+        return ""
+    if previous.endswith(("무엇인", "몇", "조", "테스트 케이", "생명")):
+        return ""
+    return " "
+
+
+def normalize_stem_lines(lines):
+    normalized = []
+    for line in lines:
+        text = clean_line(line)
+        if not text:
+            continue
+        if re.fullmatch(r"20\d{2}-\d{2}-\d{2}", text):
+            continue
+        if normalized and should_merge_question_suffix(normalized[-1], text):
+            normalized[-1] = clean_line(
+                f"{normalized[-1]}{question_suffix_joiner(normalized[-1], text)}{text}"
+            )
+            continue
+        normalized.append(text)
+    return normalized
+
+
 def parse_question(number, raw_lines):
     body_lines, answer_text = split_answer(raw_lines)
     if not answer_text:
@@ -195,7 +228,7 @@ def parse_question(number, raw_lines):
     return {
         "number": number,
         "type": question_type,
-        "stem": "\n".join(line for line in stem_lines if line).strip(),
+        "stem": "\n".join(normalize_stem_lines(stem_lines)).strip(),
         "options": options,
         "answer": answer,
         "answerText": raw_answer,

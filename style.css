@@ -896,6 +896,18 @@
         margin: 10px 0;
       }
 
+      .stem .plain-list {
+        gap: 2px;
+        margin: 6px 0 10px;
+      }
+
+      .stem .plain-list .text-line {
+        min-height: 0;
+        padding: 2px 0;
+        border: 0;
+        background: transparent;
+      }
+
       .structured-line {
         display: grid;
         grid-template-columns: auto minmax(0, 1fr);
@@ -1044,9 +1056,12 @@
 
       .reference-image {
         display: block;
-        width: 100%;
+        width: auto;
         max-width: 100%;
+        max-height: min(60vh, 520px);
         height: auto;
+        margin: 0 auto;
+        object-fit: contain;
         cursor: zoom-in;
       }
 
