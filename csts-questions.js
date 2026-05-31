@@ -474,7 +474,7 @@ window.CSTS_DATA = {
         {
           "number": 17,
           "type": "multiple_choice",
-          "stem": "다음은 테스트 케이스를 먼저 작성하고, 이 테스트 케이스로 테스트 되는 실제 프로그램의 코\n드를 나중에 작성하는 TDD 프로세스이다. TDD 방식을 사용하는 가장 대표적인 소프트웨어 개발 모델은 무엇인가?",
+          "stem": "다음은 테스트 케이스를 먼저 작성하고, 이 테스트 케이스로 테스트 되는 실제 프로그램의 코드를 나중에 작성하는 TDD 프로세스이다. TDD 방식을 사용하는 가장 대표적인 소프트웨어 개발 모델은 무엇인가?",
           "options": [
             {
               "key": "a",
@@ -648,7 +648,7 @@ window.CSTS_DATA = {
         {
           "number": 23,
           "type": "multiple_choice",
-          "stem": "다음 제어 흐름 그래프(Control Flow Graph)를 이용한 순환 복잡도(Cyclomatic Complexity) 계\n산에 대한 내용 중 올바르지 않은 것은?\n<제어 흐름 그래프>\n※ McCabe Cyclomatic Complexity 계산법은 아래와 같다. (단, Program 값은 1)\n계산법 : Edge - Node + (2 x Program)",
+          "stem": "다음 제어 흐름 그래프(Control Flow Graph)를 이용한 순환 복잡도(Cyclomatic Complexity) 계산에 대한 내용 중 올바르지 않은 것은?\n<제어 흐름 그래프>\n※ McCabe Cyclomatic Complexity 계산법은 아래와 같다. (단, Program 값은 1)\n계산법 : Edge - Node + (2 x Program)",
           "options": [
             {
               "key": "a",
@@ -880,7 +880,7 @@ window.CSTS_DATA = {
         {
           "number": 31,
           "type": "multiple_choice",
-          "stem": "아래의 입력 인자 기반으로 IPO 알고리즘을 사용하여 테스트 케이스를 도출하였다. 빈칸에 들\n어갈 수 있는 테스트 데이터는 무엇인가?\n입력 인자\nA\nB\nC\n값\nA1\nB1\nC1\nA2\nB2\nC2\nA3\n-\nC3\n테스트 케이스\nA\nB\nC\nA1\nB1\nC1\nA1\nB2\nC2\nA2\nB1\nC3\nA2\nB2\nC1\nA3\nB1\nC2\nA3\nB2\nC3\nA1\n-\nC3\nA2\n-\nC2\n( )\n-\n( )",
+          "stem": "아래의 입력 인자 기반으로 IPO 알고리즘을 사용하여 테스트 케이스를 도출하였다. 빈칸에 들어갈 수 있는 테스트 데이터는 무엇인가?\n입력 인자\nA\nB\nC\n값\nA1\nB1\nC1\nA2\nB2\nC2\nA3\n-\nC3\n테스트 케이스\nA\nB\nC\nA1\nB1\nC1\nA1\nB2\nC2\nA2\nB1\nC3\nA2\nB2\nC1\nA3\nB1\nC2\nA3\nB2\nC3\nA1\n-\nC3\nA2\n-\nC2\n( )\n-\n( )",
           "options": [
             {
               "key": "a",
@@ -4398,7 +4398,7 @@ window.CSTS_DATA = {
         {
           "number": 29,
           "type": "multiple_choice",
-          "stem": "한국기업이 운영하는 웹사이트에서 비밀번호는 알파벳, 숫자를 제외한 특수 부호가 최소한 1\n개 이상 5개 이하로 들어가야 한다. 3-value 경곗값 분석 방법을 사용하여 비밀번호 기능을 테\n스트하려고 할 때 테스트 입력으로서 적절한 것은?\n(가) ab#$cde\n(나) #$%@**\n(다) ab%%@k\n(라) abcde",
+          "stem": "한국기업이 운영하는 웹사이트에서 비밀번호는 알파벳, 숫자를 제외한 특수 부호가 최소한 1\n개 이상 5개 이하로 들어가야 한다. 3-value 경곗값 분석 방법을 사용하여 비밀번호 기능을 테스트하려고 할 때 테스트 입력으로서 적절한 것은?\n(가) ab#$cde\n(나) #$%@**\n(다) ab%%@k\n(라) abcde",
           "options": [
             {
               "key": "a",
@@ -7663,7 +7663,7 @@ window.CSTS_DATA = {
         {
           "number": 20,
           "type": "short_answer",
-          "stem": "아래와 같은 제어 흐름도를 갖는 프로그램이 있다. A, C, F, H와 같은 경로로 테\n스트를 수행했을 때, 문장 커버리지는 얼마인가? (소수점 첫째 자리에서 반올림)\n- 10 -\nCSTS 시험 예제 (일반)",
+          "stem": "아래와 같은 제어 흐름도를 갖는 프로그램이 있다. A, C, F, H와 같은 경로로 테스트를 수행했을 때, 문장 커버리지는 얼마인가? (소수점 첫째 자리에서 반올림)\n- 10 -\nCSTS 시험 예제 (일반)",
           "options": [],
           "answer": [
             "및 해설 [선택형 문항 예제]"
@@ -10341,7 +10341,7 @@ window.CSTS_DATA = {
         {
           "number": 31,
           "type": "multiple_choice",
-          "stem": "한국기업이 운영하는 웹사이트에서 비밀번호는 알파벳, 숫자를 제외한 특수 부호가 최소한 1\n개 이상 5개 이하로 들어가야 한다. 3-value 경곗값 분석 방법을 사용하여 비밀번호 기능을 테\n스트하려고 할 때 테스트 입력으로서 적절한 것은?\n(가) ab#$cde\n(나) ab#$%@**\n(다) ab%%@k\n(라) abcde",
+          "stem": "한국기업이 운영하는 웹사이트에서 비밀번호는 알파벳, 숫자를 제외한 특수 부호가 최소한 1\n개 이상 5개 이하로 들어가야 한다. 3-value 경곗값 분석 방법을 사용하여 비밀번호 기능을 테스트하려고 할 때 테스트 입력으로서 적절한 것은?\n(가) ab#$cde\n(나) ab#$%@**\n(다) ab%%@k\n(라) abcde",
           "options": [
             {
               "key": "a",
@@ -10399,7 +10399,7 @@ window.CSTS_DATA = {
         {
           "number": 33,
           "type": "multiple_choice",
-          "stem": "다음 보기의 내용으로 결정표를 작성한 결과는 아래와 같다. 작성한 결정표를 바탕으로 최소\n테스트 케이스를 설계한 결과로 올바른 것은?\n< 보 기 >\n무한상사에서는 직원들을 대상으로 해외 연수 프로그램을 운영하고 있다. 인사 평점이 C등\n급 이하인 직원은 해외 연수 프로그램 지원 대상이 아니다. 인사 평점이 B등급 이상인 직\n원 중에 근속연수 10년 차 이상은 프랑스, 10년 차 미만은 싱가포르 연수를 지원하고 있다.\n또한, 공로상을 받은 직원들은 스페인 연수를 지원하고 있다.\n규칙\n1\n2\n3\n4\n5\n6\n7\n8\n조\n건\nB등급 이상\nY\nY\nY\nY\nN\nN\nN\nN\n10년차 이상\nY\nY\nN\nN\nY\nY\nN\nN\n공로상 수상\nY\nN\nY\nN\nY\nN\nY\nN\n행\n위\n프랑스\nY\nY\nF\nF\nF\nF\nF\nF\n싱가포르\nF\nF\nY\nY\nF\nF\nF\nF\n스페인\nY\nF\nY\nF\nF\nF\nF\nF",
+          "stem": "다음 보기의 내용으로 결정표를 작성한 결과는 아래와 같다. 작성한 결정표를 바탕으로 최소 테스트 케이스를 설계한 결과로 올바른 것은?\n< 보 기 >\n무한상사에서는 직원들을 대상으로 해외 연수 프로그램을 운영하고 있다. 인사 평점이 C등\n급 이하인 직원은 해외 연수 프로그램 지원 대상이 아니다. 인사 평점이 B등급 이상인 직\n원 중에 근속연수 10년 차 이상은 프랑스, 10년 차 미만은 싱가포르 연수를 지원하고 있다.\n또한, 공로상을 받은 직원들은 스페인 연수를 지원하고 있다.\n규칙\n1\n2\n3\n4\n5\n6\n7\n8\n조건\nB등급 이상\nY\nY\nY\nY\nN\nN\nN\nN\n10년차 이상\nY\nY\nN\nN\nY\nY\nN\nN\n공로상 수상\nY\nN\nY\nN\nY\nN\nY\nN\n행\n위\n프랑스\nY\nY\nF\nF\nF\nF\nF\nF\n싱가포르\nF\nF\nY\nY\nF\nF\nF\nF\n스페인\nY\nF\nY\nF\nF\nF\nF\nF",
           "options": [
             {
               "key": "a",

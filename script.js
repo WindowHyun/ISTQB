@@ -1972,7 +1972,11 @@
                           normalizeExecutionHistoryTable(
                             normalizeTestPriorityTable(
                               normalizeFinalGradeTable(
-                                normalizeProjectEffortTable(text),
+                                normalizeProjectEffortTable(
+                                  normalizeCstsIpoTable(
+                                    normalizeTrainingDecisionTable(text),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1985,6 +1989,48 @@
             ),
           ),
         );
+      }
+
+      function normalizeCstsIpoTable(text) {
+        const pattern =
+          /입력 인자\s+A\s+B\s+C\s+값\s+A1\s+B1\s+C1\s+A2\s+B2\s+C2\s+A3\s+-\s+C3\s+테스트 케이스\s+A\s+B\s+C\s+A1\s+B1\s+C1\s+A1\s+B2\s+C2\s+A2\s+B1\s+C3\s+A2\s+B2\s+C1\s+A3\s+B1\s+C2\s+A3\s+B2\s+C3\s+A1\s+-\s+C3\s+A2\s+-\s+C2\s+\(\s*\)\s+-\s+\(\s*\)/;
+        const match = text.match(pattern);
+        if (!match) return text;
+        const rows = [
+          ["입력 인자", "A", "B", "C"],
+          ["값", "A1", "B1", "C1"],
+          ["", "A2", "B2", "C2"],
+          ["", "A3", "-", "C3"],
+          ["", "", "", ""],
+          ["테스트 케이스", "A", "B", "C"],
+          ["", "A1", "B1", "C1"],
+          ["", "A1", "B2", "C2"],
+          ["", "A2", "B1", "C3"],
+          ["", "A2", "B2", "C1"],
+          ["", "A3", "B1", "C2"],
+          ["", "A3", "B2", "C3"],
+          ["", "A1", "-", "C3"],
+          ["", "A2", "-", "C2"],
+          ["", "( )", "-", "( )"],
+        ];
+        return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
+      }
+
+      function normalizeTrainingDecisionTable(text) {
+        const pattern =
+          /규칙\s+1\s+2\s+3\s+4\s+5\s+6\s+7\s+8\s+(?:조건|조\s+건)\s+B등급 이상\s+Y\s+Y\s+Y\s+Y\s+N\s+N\s+N\s+N\s+10년차 이상\s+Y\s+Y\s+N\s+N\s+Y\s+Y\s+N\s+N\s+공로상 수상\s+Y\s+N\s+Y\s+N\s+Y\s+N\s+Y\s+N\s+(?:행위|행\s+위)\s+프랑스\s+Y\s+Y\s+F\s+F\s+F\s+F\s+F\s+F\s+싱가포르\s+F\s+F\s+Y\s+Y\s+F\s+F\s+F\s+F\s+스페인\s+Y\s+F\s+Y\s+F\s+F\s+F\s+F\s+F/;
+        const match = text.match(pattern);
+        if (!match) return text;
+        const rows = [
+          ["", "규칙 1", "규칙 2", "규칙 3", "규칙 4", "규칙 5", "규칙 6", "규칙 7", "규칙 8"],
+          ["조건: B등급 이상", "Y", "Y", "Y", "Y", "N", "N", "N", "N"],
+          ["조건: 10년차 이상", "Y", "Y", "N", "N", "Y", "Y", "N", "N"],
+          ["조건: 공로상 수상", "Y", "N", "Y", "N", "Y", "N", "Y", "N"],
+          ["행위: 프랑스", "Y", "Y", "F", "F", "F", "F", "F", "F"],
+          ["행위: 싱가포르", "F", "F", "Y", "Y", "F", "F", "F", "F"],
+          ["행위: 스페인", "Y", "F", "Y", "F", "F", "F", "F", "F"],
+        ];
+        return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
       }
 
       function normalizePseudoCodeBlocks(text) {
