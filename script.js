@@ -336,7 +336,8 @@
             navCollapsed: state.navCollapsed,
             sidebarCollapsed: state.sidebarCollapsed,
             fontSize: state.fontSize,
-            startedAt: state.startedAt,
+            elapsedSeconds: state.elapsedSeconds,
+            lastTick: state.lastTick,
           },
         };
       }
@@ -371,9 +372,8 @@
         state.navCollapsed = Boolean(uiState.navCollapsed);
         state.sidebarCollapsed = uiState.sidebarCollapsed !== false;
         state.fontSize = validFontSize(uiState.fontSize);
-        state.startedAt = Number.isFinite(uiState.startedAt)
-          ? uiState.startedAt
-          : Date.now();
+        state.elapsedSeconds = Number.isFinite(uiState.elapsedSeconds) ? uiState.elapsedSeconds : 0;
+        state.lastTick = Number.isFinite(uiState.lastTick) ? uiState.lastTick : Date.now();
         state.answers = loadAnswers();
         state.histories = sanitizeHistories(uiState.histories);
       }
@@ -1185,9 +1185,8 @@
         state.navCollapsed = Boolean(uiState.navCollapsed);
         state.sidebarCollapsed = uiState.sidebarCollapsed !== false;
         state.fontSize = validFontSize(uiState.fontSize);
-        state.startedAt = Number.isFinite(uiState.startedAt)
-          ? uiState.startedAt
-          : Date.now();
+        state.elapsedSeconds = Number.isFinite(uiState.elapsedSeconds) ? uiState.elapsedSeconds : 0;
+        state.lastTick = Number.isFinite(uiState.lastTick) ? uiState.lastTick : Date.now();
       }
 
       async function importBackup(file) {
@@ -2979,7 +2978,7 @@
           generateRandomRefs();
           setRandomGraded(false);
         }
-        state.startedAt = Date.now();
+        state.elapsedSeconds = 0; state.lastTick = Date.now();
       }
 
       function updateTimer() {
@@ -3010,7 +3009,7 @@
         resetModeStart(state.mode);
         state.setId = examSelect.value;
         state.index = 0;
-        state.startedAt = Date.now();
+        state.elapsedSeconds = 0; state.lastTick = Date.now();
         saveUiState();
         render();
       });
@@ -3132,7 +3131,7 @@
         );
         setReviewRetake(true);
         state.index = 0;
-        state.startedAt = Date.now();
+        state.elapsedSeconds = 0; state.lastTick = Date.now();
         saveAnswers();
         saveUiState();
         render();
@@ -3199,7 +3198,7 @@
         setReviewRetake(false);
         state.reviewIds[state.setId] = [];
         state.index = 0;
-        state.startedAt = Date.now();
+        state.elapsedSeconds = 0; state.lastTick = Date.now();
         saveAnswers();
         saveUiState();
         render();
