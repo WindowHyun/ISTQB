@@ -384,11 +384,28 @@
         activeProduct = product;
         data = productData[activeProduct];
         applyUiState(loadUiState());
+        state.setId = validSetId(state.setId);
         lastRenderedQuestionKey = "";
         feedbackExpanded = false;
         renderExamSelect();
         renderMode();
         render();
+      }
+
+      function startProduct(product) {
+        switchProduct(product);
+        if (isAnswerLocked() || currentQuestions().length === 0) {
+          state.mode = "practice";
+          state.index = 0;
+          setExamGraded(false);
+          setRandomGraded(false);
+          setReviewRetake(false);
+          state.setId = validSetId(state.setId);
+          lastRenderedQuestionKey = "";
+          renderExamSelect();
+          renderMode();
+          render();
+        }
       }
 
       function updateProductChrome() {
@@ -697,7 +714,7 @@
       }
 
       function openIstqbApp() {
-        switchProduct("istqb");
+        startProduct("istqb");
         productGate?.classList.add("is-product-hidden");
         productGate?.setAttribute("hidden", "");
         cstsPage?.classList.add("is-product-hidden");
@@ -707,7 +724,7 @@
       }
 
       function openCstsApp() {
-        switchProduct("csts");
+        startProduct("csts");
         productGate?.classList.add("is-product-hidden");
         productGate?.setAttribute("hidden", "");
         cstsPage?.classList.add("is-product-hidden");
