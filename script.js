@@ -144,6 +144,8 @@
       const cstsPrevBtn = document.querySelector("#cstsPrevBtn");
       const cstsNextBtn = document.querySelector("#cstsNextBtn");
       const productHomeBtn = document.querySelector("#productHomeBtn");
+      const productSubtitle = document.querySelector("#productSubtitle");
+      const productTitle = document.querySelector("#productTitle");
       const sidebar = document.querySelector(".sidebar");
       const sidebarToggleBtn = document.querySelector("#sidebarToggleBtn");
       const mobileSetText = document.querySelector("#mobileSetText");
@@ -387,6 +389,20 @@
         renderExamSelect();
         renderMode();
         render();
+      }
+
+      function updateProductChrome() {
+        if (productSubtitle) productSubtitle.textContent = productLabels[activeProduct];
+        if (productTitle) {
+          productTitle.textContent =
+            activeProduct === "csts" ? "CSTS 문제풀이" : "샘플문제 풀이";
+        }
+        if (appShell) {
+          appShell.setAttribute(
+            "aria-label",
+            `${productLabels[activeProduct]} 문제풀이 앱`,
+          );
+        }
       }
 
       function currentDataError() {
@@ -690,7 +706,7 @@
         questionTitle?.focus?.();
       }
 
-      function openCstsPage() {
+      function openCstsApp() {
         switchProduct("csts");
         productGate?.classList.add("is-product-hidden");
         productGate?.setAttribute("hidden", "");
@@ -2232,6 +2248,7 @@
 
       function render() {
         renderVisualControls();
+        updateProductChrome();
         const set = currentSet();
         const questions = currentQuestions();
         if (currentDataError()) {
@@ -2349,6 +2366,10 @@
           badge.className = "multi-answer-badge";
           badge.innerHTML = `<span class="badge-icon">⚠️</span> ${question.answer.length}개 선택 문제 — 정답을 <strong>${question.answer.length}개</strong> 모두 고르세요.`;
           options.appendChild(badge);
+        }
+
+        if (question.type === "short_answer" || question.options.length === 0) {
+          renderShortAnswerControl(question, selected[0] || "");
         }
 
         question.options.forEach((option) => {
@@ -2528,7 +2549,10 @@
         questions.forEach((question) => {
            const ansKey = `${question.setId || history.setId}-${history.mode}-${question.number}`;
            const selected = history.answers[ansKey] || [];
-           const isCor = sameChoices(selected, question.answer);
+           const isCor =
+             question.type === "short_answer"
+               ? normalizeTextAnswer(selected[0]) === normalizeTextAnswer(question.answer[0])
+               : sameChoices(selected, question.answer);
            
            if (!isCor) {
              items.push({
@@ -3026,7 +3050,7 @@
       const sidebarBackdrop = document.querySelector("#sidebarBackdrop");
 
       openIstqbBtn?.addEventListener("click", openIstqbApp);
-      openCstsBtn?.addEventListener("click", openCstsPage);
+      openCstsBtn?.addEventListener("click", openCstsApp);
       cstsBackBtn?.addEventListener("click", showProductGate);
       productHomeBtn?.addEventListener("click", showProductGate);
       cstsSetSelect?.addEventListener("change", () => {
