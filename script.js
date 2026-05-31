@@ -191,6 +191,7 @@
       const wrongNoteModal = document.querySelector("#wrongNoteModal");
       const wrongNoteBody = document.querySelector("#wrongNoteBody");
       const wrongNoteCloseBtn = document.querySelector("#wrongNoteCloseBtn");
+      const clearWrongNoteBtn = document.querySelector("#clearWrongNoteBtn");
       const backupImportModal = document.querySelector("#backupImportModal");
       const backupImportBody = document.querySelector("#backupImportBody");
       const backupImportCloseBtn = document.querySelector(
@@ -1662,7 +1663,7 @@
           .replace(/\s*(?=\b(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.\s)/gi, "\n")
           .replace(/\s*(?=(?:Given:|When:|Then:|And:)\s)/g, "\n")
           .replace(
-            /\s*\|\s*(?=(?:제목:|심각도:|우선순위:|환경:|설명:|재현 절차:|기대 결과:|실제 결과:|첨부파일:)\s*)/g,
+            /\s*\|\s*(?=(?:제목:|심각도:|우선순위:|환경:|설명:|재현 절차:|첨부파일:)\s*)/g,
             "\n",
           )
           .replace(/\s+(?=(?:다음 중\s|다음 중이\s|다음 중에서\s|다음 예시 중\s))/g, "\n")
@@ -1672,7 +1673,7 @@
           .replace(/\s+(?=3점 추정 기법을\s)/g, "\n")
           .replace(/\s+(?=(?:인수 조건:|AC\d+:)\s*)/g, "\n")
           .replace(
-            /\s+(?=(?:결함 ID:|제목:|애플리케이션:|결함:|재현 절차:|기대 결과:|실제 결과:|심각도:|우선순위:|환경:|설명:|첨부파일:)\s*)/g,
+            /\s+(?=(?:결함 ID:|제목:|애플리케이션:|결함:|재현 절차:|심각도:|우선순위:|환경:|설명:|첨부파일:)\s*)/g,
             "\n",
           )
           .replace(/(^|\s)([a-e]\))\s+/g, "$1\n$2 ")
@@ -2943,7 +2944,8 @@
           setReviewRetake(false);
           state.reviewIds[state.setId] = [];
         }
-        state.startedAt = Date.now();
+        state.elapsedSeconds = 0;
+        state.lastTick = Date.now();
         saveAnswers();
         saveUiState();
         render();
@@ -2981,7 +2983,12 @@
       }
 
       function updateTimer() {
-        const seconds = Math.floor((Date.now() - state.startedAt) / 1000);
+        const now = Date.now();
+        if (state.lastTick) {
+          state.elapsedSeconds = (state.elapsedSeconds || 0) + (now - state.lastTick) / 1000;
+        }
+        state.lastTick = now;
+        const seconds = Math.floor(state.elapsedSeconds || 0);
         const minutes = String(Math.floor(seconds / 60)).padStart(2, "0");
         const remainder = String(seconds % 60).padStart(2, "0");
         timerText.textContent = `${minutes}:${remainder}`;
@@ -3258,6 +3265,15 @@
         if (event.target === figureModal) closeFigureModal();
       });
       wrongNoteCloseBtn.addEventListener("click", closeWrongNote);
+      if (clearWrongNoteBtn) {
+        clearWrongNoteBtn.addEventListener("click", () => {
+          if (confirm("정말로 모든 오답 기록을 비우시겠습니까?")) {
+            state.wrongAnswers = {};
+            saveState();
+            renderWrongNotes();
+          }
+        });
+      }
       wrongNoteModal.addEventListener("click", (event) => {
         if (event.target === wrongNoteModal) closeWrongNote();
       });
