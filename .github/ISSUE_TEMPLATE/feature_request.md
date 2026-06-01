@@ -5,7 +5,7 @@ about: 기능 추가 또는 개선 요청
 title: "[Feature] "
 labels: enhancement
 assignees: ""
--------------
+---
 
 ## 기능 요청 개요
 
