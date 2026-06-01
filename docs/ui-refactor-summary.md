@@ -71,3 +71,12 @@
 - Android release 빌드 전 `ANDROID_HOME` 또는 `android/local.properties`의 `sdk.dir` 설정
 - Vercel 프로젝트 설정에서 output/root를 `www`로 지정할지, repository root 정적 파일을 사용할지 배포 환경에서 최종 확정
 - 실제 iOS Safari/홈 화면 PWA에서 파일 저장/공유 제한 동작 수동 확인
+
+## 2026-06-01 Urgent Bugfix
+- 마지막 문제에서 다음 버튼이 index를 초과하지 않도록 `move()`와 CSTS 보조 화면 이동 버튼에 경계값 방어를 추가했다.
+- 첫 문제/마지막 문제에서 이전/다음 버튼 disabled 상태가 실제 index와 일치하도록 렌더링 시점에 갱신했다.
+- 마지막으로 선택한 제품(ISTQB/CSTS)을 저장해 새로고침 후에도 제품 선택 화면으로 되돌아가지 않고 현재 풀이 화면을 복원하도록 했다.
+- 기존 `startedAt` 기반 타이머 저장값은 `elapsedSeconds`로 마이그레이션하고, 세트/모드/초기화/오답 재풀이 시작 시에만 타이머를 0으로 초기화하도록 정리했다.
+- `[처음]` 버튼은 환경설정 패널 내부 위치를 유지하고, 환경설정 패널은 absolute overlay로 열리게 해 문제 카드 레이아웃을 밀지 않도록 수정했다.
+- `service-worker.js` 캐시 버전을 `v31`로 갱신해 변경된 정적 파일 반영을 유도했다.
+- 검증: `node -c script.js`, `node -c www/script.js`, `npm.cmd run verify` 성공. 브라우저에서 마지막 문제 다음 버튼, 새로고침 복원, 환경설정 패널 레이아웃 밀림 없음 확인.

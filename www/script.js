@@ -94,7 +94,35 @@
         istqb: "ISTQB FL",
         csts: "CSTS FL",
       };
-      let activeProduct = "istqb";
+      const lastProductStorageKey = "istqb-csts-last-product";
+
+      function loadLastProduct() {
+        try {
+          const product = localStorage.getItem(lastProductStorageKey);
+          return productData[product] ? product : "";
+        } catch {
+          return "";
+        }
+      }
+
+      function saveLastProduct() {
+        try {
+          localStorage.setItem(lastProductStorageKey, activeProduct);
+        } catch {
+          // Product restore is optional; the selected app still works in-memory.
+        }
+      }
+
+      function clearLastProduct() {
+        try {
+          localStorage.removeItem(lastProductStorageKey);
+        } catch {
+          // Ignore storage failures.
+        }
+      }
+
+      const lastProduct = loadLastProduct();
+      let activeProduct = lastProduct || "istqb";
       let data = productData[activeProduct];
       function persistenceKey() {
         return activeProduct === "csts"
@@ -117,9 +145,12 @@
         navCollapsed: Boolean(savedUiState.navCollapsed),
         sidebarCollapsed: savedUiState.sidebarCollapsed !== false,
         fontSize: validFontSize(savedUiState.fontSize),
-        startedAt: Number.isFinite(savedUiState.startedAt)
-          ? savedUiState.startedAt
-          : Date.now(),
+        elapsedSeconds: Number.isFinite(savedUiState.elapsedSeconds)
+          ? savedUiState.elapsedSeconds
+          : Number.isFinite(savedUiState.startedAt)
+            ? Math.max(0, (Date.now() - savedUiState.startedAt) / 1000)
+            : 0,
+        lastTick: Date.now(),
         answers: loadAnswers(),
         histories: sanitizeHistories(savedUiState.histories),
       };
@@ -335,7 +366,8 @@
             navCollapsed: state.navCollapsed,
             sidebarCollapsed: state.sidebarCollapsed,
             fontSize: state.fontSize,
-            startedAt: state.startedAt,
+            elapsedSeconds: state.elapsedSeconds,
+            lastTick: state.lastTick,
           },
         };
       }
@@ -370,9 +402,12 @@
         state.navCollapsed = Boolean(uiState.navCollapsed);
         state.sidebarCollapsed = uiState.sidebarCollapsed !== false;
         state.fontSize = validFontSize(uiState.fontSize);
-        state.startedAt = Number.isFinite(uiState.startedAt)
-          ? uiState.startedAt
-          : Date.now();
+        state.elapsedSeconds = Number.isFinite(uiState.elapsedSeconds)
+          ? uiState.elapsedSeconds
+          : Number.isFinite(uiState.startedAt)
+            ? Math.max(0, (Date.now() - uiState.startedAt) / 1000)
+            : 0;
+        state.lastTick = Date.now();
         state.answers = loadAnswers();
         state.histories = sanitizeHistories(uiState.histories);
       }
@@ -383,6 +418,7 @@
         saveUiState();
         activeProduct = product;
         data = productData[activeProduct];
+        saveLastProduct();
         applyUiState(loadUiState());
         state.setId = validSetId(state.setId);
         lastRenderedQuestionKey = "";
@@ -703,6 +739,9 @@
       }
 
       function showProductGate() {
+        saveAnswers();
+        saveUiState();
+        clearLastProduct();
         productGate?.classList.remove("is-product-hidden");
         productGate?.removeAttribute("hidden");
         cstsPage?.classList.add("is-product-hidden");
@@ -713,23 +752,23 @@
         openIstqbBtn?.focus();
       }
 
-      function openIstqbApp() {
-        startProduct("istqb");
+      function showActiveProductApp() {
         productGate?.classList.add("is-product-hidden");
         productGate?.setAttribute("hidden", "");
         cstsPage?.classList.add("is-product-hidden");
         cstsPage?.setAttribute("hidden", "");
         appShell?.classList.remove("is-product-hidden");
+      }
+
+      function openIstqbApp() {
+        startProduct("istqb");
+        showActiveProductApp();
         questionTitle?.focus?.();
       }
 
       function openCstsApp() {
         startProduct("csts");
-        productGate?.classList.add("is-product-hidden");
-        productGate?.setAttribute("hidden", "");
-        cstsPage?.classList.add("is-product-hidden");
-        cstsPage?.setAttribute("hidden", "");
-        appShell?.classList.remove("is-product-hidden");
+        showActiveProductApp();
         questionTitle?.focus?.();
       }
 
@@ -1184,9 +1223,12 @@
         state.navCollapsed = Boolean(uiState.navCollapsed);
         state.sidebarCollapsed = uiState.sidebarCollapsed !== false;
         state.fontSize = validFontSize(uiState.fontSize);
-        state.startedAt = Number.isFinite(uiState.startedAt)
-          ? uiState.startedAt
-          : Date.now();
+        state.elapsedSeconds = Number.isFinite(uiState.elapsedSeconds)
+          ? uiState.elapsedSeconds
+          : Number.isFinite(uiState.startedAt)
+            ? Math.max(0, (Date.now() - uiState.startedAt) / 1000)
+            : 0;
+        state.lastTick = Date.now();
       }
 
       async function importBackup(file) {
@@ -2402,6 +2444,8 @@
           questionFigure.hidden = true;
           options.replaceChildren();
           feedback.hidden = true;
+          prevBtn.disabled = true;
+          nextBtn.disabled = true;
           renderNav([]);
           renderStats();
           renderActionHint([]);
@@ -2470,6 +2514,8 @@
         }
         if (state.index >= questions.length) state.index = questions.length - 1;
         if (state.index < 0) state.index = 0;
+        prevBtn.disabled = state.index === 0;
+        nextBtn.disabled = state.index >= questions.length - 1;
         saveUiState();
         const question = questions[state.index];
         const questionKey = `${state.mode}:${question.setId || state.setId}:${question.number}:${state.index}`;
@@ -2912,8 +2958,15 @@
       }
 
       function move(delta) {
+        const questions = currentQuestions();
+        if (!questions.length) return;
+        const nextIndex = Math.max(
+          0,
+          Math.min(state.index + delta, questions.length - 1),
+        );
+        if (nextIndex === state.index) return;
         feedbackExpanded = false;
-        state.index += delta;
+        state.index = nextIndex;
         saveUiState();
         render();
       }
@@ -2943,7 +2996,8 @@
           setReviewRetake(false);
           state.reviewIds[state.setId] = [];
         }
-        state.startedAt = Date.now();
+        state.elapsedSeconds = 0;
+        state.lastTick = Date.now();
         saveAnswers();
         saveUiState();
         render();
@@ -2977,11 +3031,18 @@
           generateRandomRefs();
           setRandomGraded(false);
         }
-        state.startedAt = Date.now();
+        state.elapsedSeconds = 0;
+        state.lastTick = Date.now();
       }
 
       function updateTimer() {
-        const seconds = Math.floor((Date.now() - state.startedAt) / 1000);
+        const now = Date.now();
+        if (state.lastTick) {
+          state.elapsedSeconds =
+            (state.elapsedSeconds || 0) + (now - state.lastTick) / 1000;
+        }
+        state.lastTick = now;
+        const seconds = Math.floor(state.elapsedSeconds || 0);
         const minutes = String(Math.floor(seconds / 60)).padStart(2, "0");
         const remainder = String(seconds % 60).padStart(2, "0");
         timerText.textContent = `${minutes}:${remainder}`;
@@ -3003,7 +3064,8 @@
         resetModeStart(state.mode);
         state.setId = examSelect.value;
         state.index = 0;
-        state.startedAt = Date.now();
+        state.elapsedSeconds = 0;
+        state.lastTick = Date.now();
         saveUiState();
         render();
       });
@@ -3125,7 +3187,8 @@
         );
         setReviewRetake(true);
         state.index = 0;
-        state.startedAt = Date.now();
+        state.elapsedSeconds = 0;
+        state.lastTick = Date.now();
         saveAnswers();
         saveUiState();
         render();
@@ -3171,7 +3234,8 @@
         setReviewRetake(false);
         state.reviewIds[state.setId] = [];
         state.index = 0;
-        state.startedAt = Date.now();
+        state.elapsedSeconds = 0;
+        state.lastTick = Date.now();
         saveAnswers();
         saveUiState();
         render();
@@ -3194,11 +3258,15 @@
         renderCstsPage();
       });
       cstsPrevBtn?.addEventListener("click", () => {
-        cstsState.index -= 1;
+        const questions = (window.CSTS_DATA && window.CSTS_DATA.questions) || [];
+        cstsState.index = Math.max(0, cstsState.index - 1);
+        if (questions.length) cstsState.index = Math.min(cstsState.index, questions.length - 1);
         renderCstsPage();
       });
       cstsNextBtn?.addEventListener("click", () => {
-        cstsState.index += 1;
+        const questions = (window.CSTS_DATA && window.CSTS_DATA.questions) || [];
+        if (!questions.length) return;
+        cstsState.index = Math.min(cstsState.index + 1, questions.length - 1);
         renderCstsPage();
       });
 
@@ -3311,6 +3379,10 @@
         saveAnswers();
         saveUiState();
       });
+
+      if (lastProduct) {
+        showActiveProductApp();
+      }
 
       renderExamSelect();
       renderMode();
