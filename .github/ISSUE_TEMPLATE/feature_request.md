@@ -3,7 +3,7 @@
 name: Feature request
 about: 기능 추가 또는 개선 요청
 title: "[Feature] "
-labels: bug, document
+labels: bug, documentation
 assignees: ""
 ---
 
