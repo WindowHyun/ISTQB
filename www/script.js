@@ -1,3 +1,4 @@
+      (async () => {
       const appLogStore = (() => {
         const maxEntries = 200;
         const entries = [];
@@ -75,25 +76,96 @@
       })();
       window.ISTQB_LOGGER = appLogStore;
 
-      const istqbData = window.ISTQB_DATA;
-      const cstsData =
-        window.CSTS_DATA && Array.isArray(window.CSTS_DATA.sets)
-          ? window.CSTS_DATA
-          : { source: "", sets: [] };
-      const istqbDataError =
-        !istqbData ||
-        !Array.isArray(istqbData.sets) ||
-        istqbData.sets.length === 0
-          ? "Question data is missing or empty."
-          : "";
+      const questionDataErrors = {};
       const productData = {
-        istqb: istqbDataError ? { source: "", sets: [] } : istqbData,
-        csts: cstsData,
+        istqb: { source: "", sets: [] },
+        csts: { source: "", sets: [] },
       };
       const productLabels = {
         istqb: "ISTQB FL",
         csts: "CSTS FL",
       };
+
+      function normalizeSetPayload(payload, catalogItem) {
+        const meta = payload?.meta || {};
+        const certification = String(
+          meta.certification || catalogItem.certification || "",
+        ).toLowerCase();
+        return {
+          id: meta.id || catalogItem.id,
+          legacySetId: meta.legacySetId || catalogItem.legacySetId || meta.setId,
+          title: meta.title || catalogItem.title || catalogItem.id,
+          questionPdf: meta.questionPdf || "",
+          answerPdf: meta.answerPdf || "",
+          questions: Array.isArray(payload?.questions)
+            ? payload.questions.map((question) => ({
+                ...question,
+                setId: meta.id || catalogItem.id,
+                legacySetId: meta.legacySetId || catalogItem.legacySetId || meta.setId,
+                setTitle: meta.title || catalogItem.title || catalogItem.id,
+                certification,
+              }))
+            : [],
+        };
+      }
+
+      async function fetchQuestionJson(path) {
+        const response = await fetch(path, { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`Failed to load ${path}: ${response.status}`);
+        }
+        return response.json();
+      }
+
+      async function loadQuestionCatalog() {
+        const candidates = ["./data/index.json", "./public/data/index.json"];
+        let lastError = null;
+        for (const indexPath of candidates) {
+          try {
+            const catalog = await fetchQuestionJson(indexPath);
+            return {
+              basePath: indexPath.replace(/index\.json$/, ""),
+              catalog,
+            };
+          } catch (error) {
+            lastError = error;
+          }
+        }
+        throw lastError || new Error("Question catalog is missing.");
+      }
+
+      async function loadQuestionProductData() {
+        try {
+          const { basePath, catalog } = await loadQuestionCatalog();
+          const items = Array.isArray(catalog.sets) ? catalog.sets : [];
+          const loadedSets = await Promise.all(
+            items.map(async (item) => ({
+              item,
+              payload: await fetchQuestionJson(`${basePath}${item.path.replace(/^\.\//, "")}`),
+            })),
+          );
+          loadedSets.forEach(({ item, payload }) => {
+            const product = String(item.certification || "").toLowerCase();
+            if (!productData[product]) return;
+            const set = normalizeSetPayload(payload, item);
+            productData[product].sets.push(set);
+            productData[product].source ||= payload?.meta?.source || "";
+          });
+          Object.entries(productData).forEach(([product, value]) => {
+            if (value.sets.length === 0) {
+              questionDataErrors[product] = `${productLabels[product]} question data is empty.`;
+            }
+          });
+        } catch (error) {
+          questionDataErrors.istqb = "Question data is missing or empty.";
+          questionDataErrors.csts = "CSTS data is missing or empty.";
+          appLogStore.add("error", ["question data load failed", error]);
+        }
+      }
+
+      await loadQuestionProductData();
+      const cstsData = productData.csts;
+      const istqbDataError = questionDataErrors.istqb || "";
       const lastProductStorageKey = "istqb-csts-last-product";
 
       function loadLastProduct() {
@@ -459,8 +531,7 @@
       }
 
       function currentDataError() {
-        if (activeProduct === "istqb") return istqbDataError;
-        return data.sets.length === 0 ? "CSTS data is missing or empty." : "";
+        return questionDataErrors[activeProduct] || "";
       }
 
       function saveAnswers() {
@@ -706,7 +777,7 @@
           cstsQuestionMeta.textContent = "CSTS";
           cstsQuestionTitle.textContent = "추출된 문제가 없습니다";
           cstsQuestionStem.textContent =
-            "CSTS PDF 추출 결과를 찾지 못했습니다. csts-questions.js 로드 여부를 확인하세요.";
+            "CSTS 문제 JSON을 찾지 못했습니다. data/index.json과 세트별 JSON 경로를 확인하세요.";
           cstsQuestionFigure.replaceChildren();
           cstsOptions.replaceChildren();
           cstsAnswer.textContent = "";
@@ -1318,7 +1389,12 @@
       }
 
       function answerKey(question, mode = answerMode()) {
-        const setId = question.setId || state.setId;
+        if (question.id) return `${question.id}-${mode}`;
+        return legacyAnswerKey(question, mode);
+      }
+
+      function legacyAnswerKey(question, mode = answerMode()) {
+        const setId = question.legacySetId || question.setId || state.setId;
         return `${setId}-${mode}-${question.number}`;
       }
 
@@ -1327,7 +1403,9 @@
       }
 
       function selectedFor(question, mode = answerMode()) {
-        return state.answers[answerKey(question, mode)] || [];
+        const current = answerKey(question, mode);
+        const legacy = legacyAnswerKey(question, mode);
+        return state.answers[current] || state.answers[legacy] || [];
       }
 
       function sameChoices(left, right) {
@@ -1379,7 +1457,10 @@
         const questions =
           mode === "random" ? randomQuestions() : currentSet().questions;
         questions.forEach(
-          (question) => delete state.answers[answerKey(question, mode)],
+          (question) => {
+            delete state.answers[answerKey(question, mode)];
+            delete state.answers[legacyAnswerKey(question, mode)];
+          },
         );
       }
 
@@ -1596,7 +1677,7 @@
           return;
         }
         appendPlainLine(target, block.text, {
-          markPrompt: target.id === "questionStem",
+          markPrompt: target.id === "questionStem" || block.type === "prompt",
         });
       }
 
@@ -1822,7 +1903,27 @@
           .replace(/\s{2,}/g, " ");
       }
 
+      function plainQuestionText(value) {
+        if (!Array.isArray(value)) return String(value || "");
+        return value
+          .map((block) => {
+            if (!block || typeof block !== "object") return "";
+            if (Array.isArray(block.items)) {
+              return block.items
+                .map((item) => (typeof item === "string" ? item : item.text || ""))
+                .join(" ");
+            }
+            if (Array.isArray(block.lines)) return block.lines.join(" ");
+            return block.text || "";
+          })
+          .filter(Boolean)
+          .join(" ");
+      }
+
       function buildRichBlocks(text) {
+        if (Array.isArray(text)) {
+          return text.flatMap((block) => normalizeQuestionBlock(block));
+        }
         const cleaned = splitKnownSectionHeadings(
           normalizeReadableCharacters(stripPdfNoise(text)),
         );
@@ -1876,6 +1977,35 @@
         });
         flushList();
         return blocks;
+      }
+
+      function normalizeQuestionBlock(block) {
+        if (!block || typeof block !== "object") return [];
+        const type = block.type || "paragraph";
+        if (type === "image" && block.src) return [{ type: "image", src: block.src }];
+        if (type === "table" && Array.isArray(block.rows)) {
+          return [{ type: "table", rows: block.rows }];
+        }
+        if (type === "code") {
+          const lines = Array.isArray(block.lines)
+            ? block.lines
+            : String(block.text || "").split("\n");
+          return [{ type: "code", lines: lines.map(String).filter(Boolean) }];
+        }
+        if (type === "list" && Array.isArray(block.items)) {
+          return [
+            {
+              type: "list",
+              items: block.items.map((item, index) =>
+                typeof item === "string"
+                  ? { marker: `${index + 1}.`, text: item }
+                  : { marker: item.marker || `${index + 1}.`, text: item.text || "" },
+              ),
+            },
+          ];
+        }
+        const value = String(block.text || "").trim();
+        return value ? [{ type: type === "formula" ? "text" : type, text: value }] : [];
       }
 
       function parseStructuredItem(line) {
@@ -2435,7 +2565,7 @@
           showAppStatus(
             "error",
             "문제 데이터를 불러오지 못했습니다.",
-            "questions.js가 로드되지 않았거나 window.ISTQB_DATA 구조가 비어 있습니다. 정적 배포 경로와 파일 포함 여부를 확인하세요.",
+            "data/index.json 또는 세트별 문제 JSON을 로드하지 못했습니다. 정적 배포 경로와 파일 포함 여부를 확인하세요.",
             "다시 확인",
             () => window.location.reload(),
           );
@@ -2835,7 +2965,7 @@
             meta.textContent = `${source}문제 ${question.number} · 내 답 ${formatChoice(question.historySelected) || "-"} · 정답 ${formatChoice(question.answer)}`;
             const text = document.createElement("p");
             text.className = "wrong-note-text";
-            text.textContent = stripPdfNoise(question.stem).split("\n")[0];
+            text.textContent = stripPdfNoise(plainQuestionText(question.stem)).split("\n")[0];
             const go = document.createElement("button");
             go.type = "button";
             go.textContent = "문제 보기";
@@ -3258,13 +3388,15 @@
         renderCstsPage();
       });
       cstsPrevBtn?.addEventListener("click", () => {
-        const questions = (window.CSTS_DATA && window.CSTS_DATA.questions) || [];
+        const questions =
+          cstsData.sets.find((set) => set.id === cstsState.setId)?.questions || [];
         cstsState.index = Math.max(0, cstsState.index - 1);
         if (questions.length) cstsState.index = Math.min(cstsState.index, questions.length - 1);
         renderCstsPage();
       });
       cstsNextBtn?.addEventListener("click", () => {
-        const questions = (window.CSTS_DATA && window.CSTS_DATA.questions) || [];
+        const questions =
+          cstsData.sets.find((set) => set.id === cstsState.setId)?.questions || [];
         if (!questions.length) return;
         cstsState.index = Math.min(cstsState.index + 1, questions.length - 1);
         renderCstsPage();
@@ -3404,3 +3536,4 @@
             });
         });
       }
+      })();

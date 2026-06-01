@@ -1,0 +1,2934 @@
+{
+  "meta": {
+    "id": "CSTS-FL-2405",
+    "certification": "CSTS",
+    "level": "Foundation Level",
+    "version": "2405",
+    "setId": "2405FL",
+    "legacySetId": "2405FL",
+    "title": "(공개답안) CSTS 2405FL",
+    "source": "CSTS public answer PDFs",
+    "questionPdf": "(공개답안) CSTS 2405FL.pdf",
+    "answerPdf": "(공개답안) CSTS 2405FL.pdf"
+  },
+  "questions": [
+    {
+      "id": "CSTS-FL-2405-001",
+      "number": 1,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "테스팅과 디버깅에 대한 설명으로 올바르지 않은 것은 무엇인가?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "테스팅의 목적은 알려지지 않은 결함을 발견하는 것이다."
+        },
+        {
+          "key": "b",
+          "text": "테스팅은 외부 개입을 배제하고, 시스템 내부관련자가 수행하는 것이다."
+        },
+        {
+          "key": "c",
+          "text": "디버깅은 이미 알고 있는 오류를 수정하는 것이다."
+        },
+        {
+          "key": "d",
+          "text": "디버깅의 주요 작업은 오류의 위치를 파악하고 이를 적절히 수정하는 것이다."
+        }
+      ],
+      "answer": [
+        "b"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "2"
+    },
+    {
+      "id": "CSTS-FL-2405-002",
+      "number": 2,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "테스트 케이스를 체계적으로 관리해야 하는 목적으로 올바른 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "테스트 케이스를 재사용하여 테스트하기 위해서"
+        },
+        {
+          "key": "b",
+          "text": "결함의 발견 확률을 높일 수 있기 때문에"
+        },
+        {
+          "key": "c",
+          "text": "결함이 많이 발생한 부분에 테스트를 집중하기 위해서"
+        },
+        {
+          "key": "d",
+          "text": "결함을 발견하지 못할 가능성이 커지기 때문에"
+        }
+      ],
+      "answer": [
+        "a"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "1"
+    },
+    {
+      "id": "CSTS-FL-2405-003",
+      "number": 3,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음에서 설명하는 특징과 테스트 단계를 올바르게 연결한 것은?"
+        },
+        {
+          "type": "paragraph",
+          "text": "(가) 사용자 또는 제3자 테스트, 사용자 환경, 다양한 형태의 테스트가 가능함 TTA (나) 개발자 중심의 코드 레벨 테스트, 개발 환경, 개발자 또는 개발 지식이 있는 테스터가 수행하고, 테스트 대상 소프트웨어를 독립적으로 실행시킬 환경이 필요함 (다) 개발자 중심의 코드 레벨 테스트, 개발 환경, 개발자 또는 개발 지식이 있는 테스터가 수행하고, 소프트웨어 통합에 필요한 환경이 필요함 (라) 제3자 중심 명세 기반 테스트, 소프트웨어 기능 및 비기능 요구사항 만족 여부를 검증 하고, 사용자 환경 또는 사용자 환경과 최대한 유사한 환경 구성 필요함"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "(가) 인수 테스트 (나) 단위 테스트 (다) 통합 테스트 (라) 시스템 테스트"
+        },
+        {
+          "key": "b",
+          "text": "(가) 시스템 테스트 (나) 단위 테스트 (다) 통합 테스트 (라) 인수 테스트"
+        },
+        {
+          "key": "c",
+          "text": "(가) 시스템 테스트 (나) 통합 테스트 (다) 단위 테스트 (라) 인수 테스트"
+        },
+        {
+          "key": "d",
+          "text": "(가) 인수 테스트 (나) 통합 테스트 (다) 단위 테스트 (라) 시스템 테스트"
+        }
+      ],
+      "answer": [
+        "a"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "1"
+    },
+    {
+      "id": "CSTS-FL-2405-004",
+      "number": 4,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "피처에 대한 설명으로 올바르지 않은 것은 무엇인가?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "피처는 테스트 대상의 특성 중에서 테스트하고자 하는 측면 또는 관점을 말한다."
+        },
+        {
+          "key": "b",
+          "text": "피처는 크게 기능 피처와 비 기능 피처로 구분된다."
+        },
+        {
+          "key": "c",
+          "text": "하나의 테스트 대상에 대하여 여러 개의 피처가 있을 수 있다."
+        },
+        {
+          "key": "d",
+          "text": "피처와 테스트 케이스는 1:1의 관계를 갖는다."
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "4"
+    },
+    {
+      "id": "CSTS-FL-2405-005",
+      "number": 5,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 정적 테스트에 대한 설명으로 가장 올바른 것은 무엇인가?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "정적 테스트는 테스트 대상을 실행하지 않고 테스트를 수행하는 방식이며, 정적 분석 도구 를 통해서만 수행할 수 있다."
+        },
+        {
+          "key": "b",
+          "text": "정적 테스트는 테스트 대상에 대한 실행 환경을 필요로 하지 않는다."
+        },
+        {
+          "key": "c",
+          "text": "정적 분석은 자동화 도구를 활용함으로써 테스트를 자동으로 수행하고, 도출된 문제는 모두 코드 변경이 필요한 결함이다."
+        },
+        {
+          "key": "d",
+          "text": "리뷰는 각 개발 단계별로 해당 단계의 산출물이 품질 목표에 부합하는지 점검하거나 산출 물에 존재하는 결함을 검출하려는 목적으로, 정적 분석 도구를 통해 검사하는 방법이다."
+        }
+      ],
+      "answer": [
+        "b"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "2"
+    },
+    {
+      "id": "CSTS-FL-2405-006",
+      "number": 6,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음에서 설명하고 있는 용어는 무엇인가?"
+        },
+        {
+          "type": "paragraph",
+          "text": "상향식 테스트에서 아직 통합되지 않은 상위 컴포넌트의 동작을 시뮬레이션하는 모의 모듈로 TTA 테스트를 위한 인터페이스를 제공하는 형태로 구현된다."
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "테스트 스텁"
+        },
+        {
+          "key": "b",
+          "text": "테스트 드라이버"
+        },
+        {
+          "key": "c",
+          "text": "하향식 테스트"
+        },
+        {
+          "key": "d",
+          "text": "상향식 테스트"
+        }
+      ],
+      "answer": [
+        "b"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "2"
+    },
+    {
+      "id": "CSTS-FL-2405-007",
+      "number": 7,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음은 모의객체의 분류에 대한 설명으로 맞는 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "더미(Dummy)는 테스트 할 때 해당 객체의 기능이 필요한 경우에 사용되며, 더미 객체의 메소드가 호출되면 정상 동작한다."
+        },
+        {
+          "key": "b",
+          "text": "테스트 스텁(Stub)은 더미 객체에 단순한 기능을 작성하며 추가객체의 특정한 값을 가정하 지 않고 호출한 값을 리턴하거나 호출한 메시지를 출력한다."
+        },
+        {
+          "key": "c",
+          "text": "테스트 스파이(Spy)는 주로 테스트 대상 클래스(CUT)가 협력하는 클래스로 가는 출력을 검 증하는데 사용하며 CUT가 실행하는 동안 특정 협력 클래스로의 호출을 잡아낸다."
+        },
+        {
+          "key": "d",
+          "text": "가짜(Fake) 객체는 실제 협력 클래스의 기능을 대체해야 할 경우에 사용하며 실제 협력클래 스의 기능 전체를 그대로 구현하고 실제 협력 클래스가 너무 느리거나 테스트 환경에서 사 용할 수 없을 때 사용한다."
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "3"
+    },
+    {
+      "id": "CSTS-FL-2405-008",
+      "number": 8,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "통합 테스트에 대한 설명으로 올바른 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "상향식 통합 테스트는 하위 컴포넌트를 충분하게 테스트 할 수 있다."
+        },
+        {
+          "key": "b",
+          "text": "빅뱅 방식의 경우 테스트 드라이버 및 스텁을 여러 번 개발해야 한다."
+        },
+        {
+          "key": "c",
+          "text": "점진적 방식의 경우 오동작이 확인되었을 때 어떤 컴포넌트가 원인인지 찾기가 어렵다."
+        },
+        {
+          "key": "d",
+          "text": "샌드위치 방식은 테스트 스텁을 개발하는 비용이 들지 않는다."
+        }
+      ],
+      "answer": [
+        "a"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "1"
+    },
+    {
+      "id": "CSTS-FL-2405-009",
+      "number": 9,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "통합 테스트 단계에 수행하는 테스트 방법으로 올바르지 않은 것은?"
+        },
+        {
+          "type": "paragraph",
+          "text": "TTA"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "상향식 테스트"
+        },
+        {
+          "key": "b",
+          "text": "하향식 테스트"
+        },
+        {
+          "key": "c",
+          "text": "알파 테스트"
+        },
+        {
+          "key": "d",
+          "text": "빅뱅 테스트"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "3"
+    },
+    {
+      "id": "CSTS-FL-2405-010",
+      "number": 10,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "소프트웨어 개발 단계별 테스트에 대한 설명으로 올바른 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "단위 테스트: 모듈을 통합하는 과정에 사용되는 인터페이스를 대상으로 상호 작용이 올바르 게 이루어지는지 검증하는 테스트"
+        },
+        {
+          "key": "b",
+          "text": "통합 테스트: 개발 시스템이 인수 조건을 만족하는지 검증하는 테스트"
+        },
+        {
+          "key": "c",
+          "text": "시스템 테스트: 시스템이 요구사항에 맞게 개발되었는지 기능 및 비기능 측면을 확인하는 테스트"
+        },
+        {
+          "key": "d",
+          "text": "인수 테스트: 하나의 소프트웨어 단위가 정상적으로 기능을 수행하는지 여부를 확인하는 테스트"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "3"
+    },
+    {
+      "id": "CSTS-FL-2405-011",
+      "number": 11,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "시스템의 성능 테스트를 수행할 때 자원의 최대 사용치를 모니터링하기 위해 필요한 요소가 아닌 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "CPU 사용률"
+        },
+        {
+          "key": "b",
+          "text": "메인 메모리 점유율"
+        },
+        {
+          "key": "c",
+          "text": "입출력 자원 사용률"
+        },
+        {
+          "key": "d",
+          "text": "모니터링 표준 해상도"
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "4"
+    },
+    {
+      "id": "CSTS-FL-2405-012",
+      "number": 12,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "호환성이 특히 중요한 산업 분야가 아닌 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "국방 정보 시스템"
+        },
+        {
+          "key": "b",
+          "text": "자동차 안전 계장 시스템"
+        },
+        {
+          "key": "c",
+          "text": "앱 기반 애플리케이션"
+        },
+        {
+          "key": "d",
+          "text": "사물인터넷(IoT)"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "3"
+    },
+    {
+      "id": "CSTS-FL-2405-013",
+      "number": 13,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 신뢰성 테스트에 관한 설명 중 올바르지 않은 것은 무엇인가?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "신뢰성 테스트는 일반적으로 통계적인 테스트 방법을 사용하여 측정한다."
+        },
+        {
+          "key": "b",
+          "text": "구성요소 간 정보 교환 및 교환된 정보를 사용할 수 있는 능력을 측정한다."
+        },
+        {
+          "key": "c",
+          "text": "시스템이 비정상적인 상황에서도 원활하게 동작할 수 있는지를 나타내는 속성이다."
+        },
+        {
+          "key": "d",
+          "text": "신뢰성은 시스템이 어느 기간 동안에 요구되는 서비스를 제공하는 능력을 측정한다."
+        }
+      ],
+      "answer": [
+        "b"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "2"
+    },
+    {
+      "id": "CSTS-FL-2405-014",
+      "number": 14,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "침입 테스트에 대한 설명으로 올바르지 않은 것은 ?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "침입 테스트 통과로 시스템의 보안성이 확보되었다고 확신할 수 있다."
+        },
+        {
+          "key": "b",
+          "text": "모든 침입 시나리오를 미리 테스트 하는 것은 불가능하다."
+        },
+        {
+          "key": "c",
+          "text": "침입 테스트를 했다 하더라도 시스템 운영 중 침입이 발생할 수 있다."
+        },
+        {
+          "key": "d",
+          "text": "과거에 사용되었던 침입 시나리오로 테스트를 진행한다."
+        }
+      ],
+      "answer": [
+        "a"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "1"
+    },
+    {
+      "id": "CSTS-FL-2405-015",
+      "number": 15,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음은 프로그램을 얼마나 손쉽게 테스트할 수 있는지를 나타내는 테스트 용이성을 나타내는 특성들과 그에 대한 설명들이다. 특성과 설명이 올바르게 연결된 것은?"
+        },
+        {
+          "type": "paragraph",
+          "text": "(가) 제어 용이성 Ⓐ 테스트 동안에 소프트웨어에 대한 변경이 자주 발생하지 (나) 안정성 않도록 설계 (다) 분할 용이성 Ⓑ 소프트웨어 설계 정보가 잘 조직화되어 쉽게 접근 가능하 TTA (라) 이해 용이성 도록 설계 Ⓒ 테스트할 대상 영역을 제어함으로써 문제가 발생된 곳을 고립시켜 독립적으로 모듈 시험 Ⓓ 프로그램의 실행을 제어하기 용이하도록 설계"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "(가)―Ⓓ, (나)―Ⓐ, (다)―Ⓒ, (라)―Ⓑ"
+        },
+        {
+          "key": "b",
+          "text": "(가)―Ⓓ, (나)―Ⓑ, (다)―Ⓒ, (라)―Ⓐ"
+        },
+        {
+          "key": "c",
+          "text": "(가)―Ⓒ, (나)―Ⓐ, (다)―Ⓓ, (라)―Ⓑ"
+        },
+        {
+          "key": "d",
+          "text": "(가)―Ⓒ, (나)―Ⓑ, (다)―Ⓓ, (라)―Ⓐ"
+        }
+      ],
+      "answer": [
+        "a"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "1"
+    },
+    {
+      "id": "CSTS-FL-2405-016",
+      "number": 16,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 테스트 수행 방법에 대한 설명으로 올바르지 않은 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "회귀(Regression) 테스트 전략으로는 Retest-all 전략, 선택적 회귀 테스트 전략, 테스트 최소 화 전략, 테스트 우선 순위화 전략이 있다."
+        },
+        {
+          "key": "b",
+          "text": "TDD는 애자일 개발의 중요한 실전 규칙 중 하나로 테스트 케이스를 먼저 작성한 후 이를 통과할 수 있도록 결과 프로그램을 작성한다."
+        },
+        {
+          "key": "c",
+          "text": "위험기반 테스트는 테스트 대상 분석을 통해 가용한 자원을 효율적으로 사용하여 최대의 효과를 얻을 수 있는 합리적인 테스트 설계 기법이다."
+        },
+        {
+          "key": "d",
+          "text": "모델기반 테스트는 테스트 모델 구축에 큰 비용이 소요되기 때문에 장애가 발생하였을 때 많은 위험과 손실이 예상되는 자동차, 의료 등 주로 안전 필수 소프트웨어를 대상으로 한다."
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "3"
+    },
+    {
+      "id": "CSTS-FL-2405-017",
+      "number": 17,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "테스트와 관련된 다음의 설명 중 올바른 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "성숙도가 높은 테스트는 결함이 발견된 소프트웨어 모듈을 확인하고, 이를 해결하기 위해 소스 코드를 어떻게 수정해야 하는지 알려준다."
+        },
+        {
+          "key": "b",
+          "text": "단순한 소스 코드의 철자를 바로잡거나 알고리즘의 부정확한 구현을 정확하게 수정하는 작 업을 정적분석이라 한다."
+        },
+        {
+          "key": "c",
+          "text": "초기에 결함을 검출한 테스트 케이스를 이용하여 다시 테스트하는 것을 스모크테스트라 한다."
+        },
+        {
+          "key": "d",
+          "text": "유지보수 단계에서 소프트웨어가 수정된 후, 기존 프로그램이 변경된 부분으로 인해 영향을 받지 않았는지 검사하기 위한 테스트를 회귀(Regression) 테스트라 한다."
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "4"
+    },
+    {
+      "id": "CSTS-FL-2405-018",
+      "number": 18,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 소프트웨어 생명주기 모형 중 진화적 개발 모델에 대한 설명으로 가장 올바른 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "요구사항이 프로젝트 시작부터 명확하게 정의된 프로젝트에 적합한 개발 모델이다."
+        },
+        {
+          "key": "b",
+          "text": "시스템의 모든 구성 요소를 한꺼번에 개발 완료하는 방식이다."
+        },
+        {
+          "key": "c",
+          "text": "폭포수 모델보다 프로젝트 관리가 용이하여 보다 큰 차세대 프로젝트에 적합한 개발 모델 이다."
+        },
+        {
+          "key": "d",
+          "text": "사이클마다 리스크 분석이 수행되므로 발생하는 문제점을 해결할 방안을 마련할 수 있다."
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "4"
+    },
+    {
+      "id": "CSTS-FL-2405-019",
+      "number": 19,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "탐색적 테스트가 가장 적합한 소프트웨어 생명주기 모델은 무엇인가?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "애자일 모델"
+        },
+        {
+          "key": "b",
+          "text": "진화적 모델"
+        },
+        {
+          "key": "c",
+          "text": "폭포수 모델"
+        },
+        {
+          "key": "d",
+          "text": "나선형 모델"
+        }
+      ],
+      "answer": [
+        "a"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "1"
+    },
+    {
+      "id": "CSTS-FL-2405-020",
+      "number": 20,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 설명 중에서 모델기반 테스트와 거리가 가장 먼 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "개발 단계 산출물에 존재할 수 있는 결함을 검출할 수 있다는 이점도 있다."
+        },
+        {
+          "key": "b",
+          "text": "장애가 발생하였을 때 큰 비용이 유발되는 자동차, 의료 등 안전 필수 소프트웨어를 대상으 로 수행되고 있다."
+        },
+        {
+          "key": "c",
+          "text": "모델을 바탕으로 테스트 계획을 수립하고, 테스트 케이스, 테스트 절차, 테스트 입력 및 예 상 결과 등을 결정한다."
+        },
+        {
+          "key": "d",
+          "text": "기존의 테스팅에서 이용하던 의사결정표, 순서도 등은 모델이 아니다."
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "4"
+    },
+    {
+      "id": "CSTS-FL-2405-021",
+      "number": 21,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "나머지 셋과 성격이 다른 테스트는 무엇인가?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "조합 테스트"
+        },
+        {
+          "key": "b",
+          "text": "경계값 분석 테스트"
+        },
+        {
+          "key": "c",
+          "text": "정적 테스트"
+        },
+        {
+          "key": "d",
+          "text": "결정 테스트 TTA"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "3"
+    },
+    {
+      "id": "CSTS-FL-2405-022",
+      "number": 22,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "인스펙션 주재자가 수행해야 하는 역할로 올바른 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "인스펙션 참가자들을 선정하고 인스펙션을 계획한다."
+        },
+        {
+          "key": "b",
+          "text": "회의의 논쟁은 제외하고 모든 질문 및 답변등을 기록한다."
+        },
+        {
+          "key": "c",
+          "text": "회의 주재자나 개발자 입장으로 회의에 참가해야 한다."
+        },
+        {
+          "key": "d",
+          "text": "인스펙션 주재자가 기록자 역할도 수행할 수 있다."
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "4"
+    },
+    {
+      "id": "CSTS-FL-2405-023",
+      "number": 23,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "워크쓰루(Walkthroughs)를 수행하는 목적으로 올바르지 않은 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "결함 검출"
+        },
+        {
+          "key": "b",
+          "text": "진행 상황 확인"
+        },
+        {
+          "key": "c",
+          "text": "참가자 교육"
+        },
+        {
+          "key": "d",
+          "text": "시스템 이해도 향상"
+        }
+      ],
+      "answer": [
+        "b"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "2"
+    },
+    {
+      "id": "CSTS-FL-2405-024",
+      "number": 24,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "외부 인원에 의해 수행되는 리뷰 유형은 무엇인가?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "감사"
+        },
+        {
+          "key": "b",
+          "text": "기술 리뷰"
+        },
+        {
+          "key": "c",
+          "text": "관리 리뷰"
+        },
+        {
+          "key": "d",
+          "text": "인스펙션"
+        }
+      ],
+      "answer": [
+        "a"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "1"
+    },
+    {
+      "id": "CSTS-FL-2405-025",
+      "number": 25,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "<보기> 코드를 정적 분석했을 때 발견되는 문제점의 유형은 무엇인가?"
+        },
+        {
+          "type": "paragraph",
+          "text": "<보기>"
+        },
+        {
+          "type": "paragraph",
+          "text": "TTA"
+        },
+        {
+          "type": "paragraph",
+          "text": "Bool p; if(p) puts(\"p is true\"); if(!p) puts(\"p is false\");"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "초기화 하지 않은 변수의 사용"
+        },
+        {
+          "key": "b",
+          "text": "유효하지 않은 포인터의 역참조"
+        },
+        {
+          "key": "c",
+          "text": "범위를 벗어난 배열 접근"
+        },
+        {
+          "key": "d",
+          "text": "부호 있는 정수형의 오버플로"
+        }
+      ],
+      "answer": [
+        "a"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "1"
+    },
+    {
+      "id": "CSTS-FL-2405-026",
+      "number": 26,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "순환 복잡도를 측정하는 식으로 올바른 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "닫힌 영역의 개수 + 1"
+        },
+        {
+          "key": "b",
+          "text": "닫힌 영역의 개수 + 2"
+        },
+        {
+          "key": "c",
+          "text": "노드의 수 - 간선의 수 + 1"
+        },
+        {
+          "key": "d",
+          "text": "노드의 수 - 간선의 수 + 2"
+        }
+      ],
+      "answer": [
+        "a"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "1"
+    },
+    {
+      "id": "CSTS-FL-2405-027",
+      "number": 27,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "모듈 안의 동작을 자세히 관찰하면서 프로그램 원시 코드의 논리적인 구조를 검사하도록 테스트 케이스를 설계하는 방법은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "구조 기반 테스트"
+        },
+        {
+          "key": "b",
+          "text": "명세 기반 테스트"
+        },
+        {
+          "key": "c",
+          "text": "알파 테스트"
+        },
+        {
+          "key": "d",
+          "text": "베타 테스트"
+        }
+      ],
+      "answer": [
+        "a"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "1"
+    },
+    {
+      "id": "CSTS-FL-2405-028",
+      "number": 28,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "<보기>의 제어 흐름 그래프에서 문장 커버리지 100%를 만족시키는 테스트 케이스는?"
+        },
+        {
+          "type": "paragraph",
+          "text": "<보기>"
+        },
+        {
+          "type": "paragraph",
+          "text": "TTA"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "x = 1, y = 0, z = 1"
+        },
+        {
+          "key": "b",
+          "text": "x = 2, y = 0, z = 1"
+        },
+        {
+          "key": "c",
+          "text": "x = 2, y = 2, z = 1"
+        },
+        {
+          "key": "d",
+          "text": "x = 1, y = 2, z = 2"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": "csts-figures/2405FL-28.png",
+      "answerText": "3"
+    },
+    {
+      "id": "CSTS-FL-2405-029",
+      "number": 29,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "<보기>의 프로그램 코드에서 결정 커버리지 100%를 만족하기 위한 최소 테스트 케이스의 수 는 몇 개인가?"
+        },
+        {
+          "type": "paragraph",
+          "text": "<보기>"
+        },
+        {
+          "type": "paragraph",
+          "text": "int computeBill(int a) { int b=0; if (a>120) { if (a<=240)"
+        },
+        {
+          "type": "paragraph",
+          "text": "b=(a-120)*2;"
+        },
+        {
+          "type": "paragraph",
+          "text": "else {"
+        },
+        {
+          "type": "paragraph",
+          "text": "b=(a-240)*2; if (b>=100) b=b*3; } } return b; }"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "2개"
+        },
+        {
+          "key": "b",
+          "text": "3개"
+        },
+        {
+          "key": "c",
+          "text": "4개"
+        },
+        {
+          "key": "d",
+          "text": "5개"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "3"
+    },
+    {
+      "id": "CSTS-FL-2405-030",
+      "number": 30,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "커버리지 간의 포용 관계를 도식화한 것 중 올바른 것은?"
+        },
+        {
+          "type": "paragraph",
+          "text": "__IMAGE__:csts-figures/2405FL-30.png"
+        },
+        {
+          "type": "paragraph",
+          "text": "__IMAGE__:csts-figures/2405FL-30-2.png"
+        },
+        {
+          "type": "paragraph",
+          "text": "__IMAGE__:csts-figures/2405FL-30-3.png"
+        },
+        {
+          "type": "paragraph",
+          "text": "__IMAGE__:csts-figures/2405FL-30-4.png"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "그림 1"
+        },
+        {
+          "key": "b",
+          "text": "그림 2"
+        },
+        {
+          "key": "c",
+          "text": "그림 3"
+        },
+        {
+          "key": "d",
+          "text": "그림 4"
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "4"
+    },
+    {
+      "id": "CSTS-FL-2405-031",
+      "number": 31,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 소스 코드에 대하여 100% 다중 조건 커버리지를 만족하는 최소의 테스트 케이스 개수는 몇 개인가?"
+        },
+        {
+          "type": "paragraph",
+          "text": "IF ((impact>90 OR date>5) AND (severity==‘Major’)) handling = 24"
+        },
+        {
+          "type": "paragraph",
+          "text": "ELSE handling = 48"
+        },
+        {
+          "type": "paragraph",
+          "text": "END"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "2"
+        },
+        {
+          "key": "b",
+          "text": "4"
+        },
+        {
+          "key": "c",
+          "text": "6"
+        },
+        {
+          "key": "d",
+          "text": "8"
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "4"
+    },
+    {
+      "id": "CSTS-FL-2405-032",
+      "number": 32,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "명세기반 테스트의 이점에 대한 설명으로 올바르지 않은 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "명세기반 테스트는 어떤 테스트 레벨에서든 적용할 수 있다."
+        },
+        {
+          "key": "b",
+          "text": "명세기반 테스트 케이스를 통해 명세에는 있지만 구현되지 않은 기능을 검출할 수 있다."
+        },
+        {
+          "key": "c",
+          "text": "테스터가 구현에 대한 지식이 없어도 사용자 관점에서 테스트를 수행할 수 있다."
+        },
+        {
+          "key": "d",
+          "text": "명세기반 테스트 케이스는 코드가 구현된 이후에 설계할 수 있다."
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "4"
+    },
+    {
+      "id": "CSTS-FL-2405-033",
+      "number": 33,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 입력 인자와 클래스의 개수가 <보기>와 같을 때, 테스트 케이스가 가장 많이 생성되 는 조합 테스트 방법은 무엇인가?"
+        },
+        {
+          "type": "paragraph",
+          "text": "<보기>"
+        },
+        {
+          "type": "paragraph",
+          "text": "TTA 목적지 등급 좌석 파리 퍼스트 창가 런던 비즈니스 통로 이코노미"
+        },
+        {
+          "type": "paragraph",
+          "text": "Base Choice 테스트 적용할 때 기반이 되는 테스트 조합: (파리, 퍼스트, 창가)"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "Each choice 테스트"
+        },
+        {
+          "key": "b",
+          "text": "페어와이즈 테스트"
+        },
+        {
+          "key": "c",
+          "text": "All combinations 테스트"
+        },
+        {
+          "key": "d",
+          "text": "Base choice 테스트"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "3"
+    },
+    {
+      "id": "CSTS-FL-2405-034",
+      "number": 34,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "결정표 테스트에 대한 설명으로 올바른 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "명세서를 분석하여 조건과 행위를 식별한다."
+        },
+        {
+          "key": "b",
+          "text": "입력 조건은 항상 true와 false값만 가질 수 있다."
+        },
+        {
+          "key": "c",
+          "text": "중요한 조건을 선정하여 결정표에 포함시킨다."
+        },
+        {
+          "key": "d",
+          "text": "가능하지 않은 조건의 조합도 결정표에 남겨두어야 한다."
+        }
+      ],
+      "answer": [
+        "a"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "1"
+    },
+    {
+      "id": "CSTS-FL-2405-035",
+      "number": 35,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "시스템의 상태 전이도를 기반으로 테스트 케이스를 도출하는 절차로 올바른 것은?"
+        },
+        {
+          "type": "paragraph",
+          "text": "<보기>"
+        },
+        {
+          "type": "paragraph",
+          "text": "(가) 비정상적인 전이를 테스트하는 테스트 케이스를 생성한다."
+        },
+        {
+          "type": "paragraph",
+          "text": "(나) 상태 전이도로부터 전이 트리를 만든다."
+        },
+        {
+          "type": "paragraph",
+          "text": "(다) 대상 시스템의 상태 전이도를 모델링한다."
+        },
+        {
+          "type": "paragraph",
+          "text": "(라) 전이 트리로부터 각 전이 경로를 테스트하는 테스트 케이스를 생성한다."
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "(가) → (나) → (다) → (라)"
+        },
+        {
+          "key": "b",
+          "text": "(나) → (가) → (다) → (라)"
+        },
+        {
+          "key": "c",
+          "text": "(다) → (나) → (라) → (가)"
+        },
+        {
+          "key": "d",
+          "text": "(다) → (나) → (가) → (라)"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "3"
+    },
+    {
+      "id": "CSTS-FL-2405-036",
+      "number": 36,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 경험기반 테스트의 특징으로 올바르지 않은 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "테스트 시간이 제한되는 경우에 사용한다."
+        },
+        {
+          "key": "b",
+          "text": "제품에 대한 이해가 부족한 경우에 사용한다."
+        },
+        {
+          "key": "c",
+          "text": "과거 경험을 기반으로 적절한 전략과 계획을 수립하여 테스트한다."
+        },
+        {
+          "key": "d",
+          "text": "리스크가 높은 제품의 경우 공식적인 테스트 방법과 병행하지 않아도 된다."
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "4"
+    },
+    {
+      "id": "CSTS-FL-2405-037",
+      "number": 37,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "테스트 프로세스의 필요성으로 거리가 먼 것은 무엇인가?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "소프트웨어 품질 목표 달성에 프로세스가 중요한 역할을 하기 때문에"
+        },
+        {
+          "key": "b",
+          "text": "효율적이고 효과적인 테스트 수행을 위한 관리의 중요성이 부각되었기 때문에"
+        },
+        {
+          "key": "c",
+          "text": "충분한 시간과 비용을 사용하여 체계적인 테스트 수행이 필요하기 때문에"
+        },
+        {
+          "key": "d",
+          "text": "평가를 통한 테스트 활동 개선이 필요하기 때문에"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "3"
+    },
+    {
+      "id": "CSTS-FL-2405-038",
+      "number": 38,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "테스트 프로세스에 따른 문서의 산출물 순서가 올바른 것은 무엇인가?"
+        },
+        {
+          "type": "paragraph",
+          "text": "(가) 테스트 계획서 (나) 테스트 설계 명세서 (다) 테스트 케이스 명세서 (라) 테스트 절차서 (마) 테스트 결함 보고서 (바) 테스트 평가 보고서"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "(라) - (다) - (나) - (마)"
+        },
+        {
+          "key": "b",
+          "text": "(가) - (다) - (라) - (나)"
+        },
+        {
+          "key": "c",
+          "text": "(나) - (라) - (다) - (마)"
+        },
+        {
+          "key": "d",
+          "text": "(가) - (다) - (마) - (바)"
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "4"
+    },
+    {
+      "id": "CSTS-FL-2405-039",
+      "number": 39,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "테스트 계획을 구성하는 4가지 상위 수준의 항목으로 보기에 가장 거리가 먼 것은 무엇인가?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "위험 분석"
+        },
+        {
+          "key": "b",
+          "text": "테스트 메트릭"
+        },
+        {
+          "key": "c",
+          "text": "테스트 전략 수립"
+        },
+        {
+          "key": "d",
+          "text": "테스트 컨텍스트 명세 TTA"
+        }
+      ],
+      "answer": [
+        "b"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "2"
+    },
+    {
+      "id": "CSTS-FL-2405-040",
+      "number": 40,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "테스트 계획을 수립하는 과정에서 “테스터의 기술 및 경험 부족”이라는 위험이 높은 것으로 파악되었다. 이에 따른 완화 유형의 조치 계획으로 가장 적절하지 않은 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "테스트 인력에 대한 교육훈련 계획을 테스트 계획에 포함"
+        },
+        {
+          "key": "b",
+          "text": "테스터들의 훈련 시간을 충분히 확보하도록 일정에 반영"
+        },
+        {
+          "key": "c",
+          "text": "산출물에 대한 검토 및 개선 시간이 충분히 확보되도록 일정에 반영"
+        },
+        {
+          "key": "d",
+          "text": "테스트 현황 보고를 빈번하게 할 수 있도록 일정에 반영"
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "4"
+    },
+    {
+      "id": "CSTS-FL-2405-041",
+      "number": 41,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "테스트 계획에서 전략을 수립할 때 고려사항으로 올바르지 않은 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "테스트 중단 및 재시작 조건"
+        },
+        {
+          "key": "b",
+          "text": "테스트 환경 요건과 테스트 데이터 요건"
+        },
+        {
+          "key": "c",
+          "text": "개략적인 테스트 기법과 테스트 완료 기준"
+        },
+        {
+          "key": "d",
+          "text": "테스트 케이스 선택 및 테스트 케이스별 수행 절차"
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "4"
+    },
+    {
+      "id": "CSTS-FL-2405-042",
+      "number": 42,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중에서 테스트 완료 기준으로 사용되는 예를 모두 고른 것은?"
+        },
+        {
+          "type": "paragraph",
+          "text": "(가) 95%의 문장 커버리지가 충족되어야 한다 (나) 90%의 테스트 케이스(테스트 절차)가 통과되어야 한다."
+        },
+        {
+          "type": "paragraph",
+          "text": "(다) 발견된 결함의 수가 2개 이하이어야 한다."
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "(가)"
+        },
+        {
+          "key": "b",
+          "text": "(가), (나)"
+        },
+        {
+          "key": "c",
+          "text": "(가), (다)"
+        },
+        {
+          "key": "d",
+          "text": "(가), (나), (다)"
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "4"
+    },
+    {
+      "id": "CSTS-FL-2405-043",
+      "number": 43,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음의 보기는 테스트 활동의 수행할 역할별로 인력을 정의한 예시이다. 역할이 틀리게 지정 된 것은 무엇인가?"
+        },
+        {
+          "type": "paragraph",
+          "text": "역할 담당 작업 (가) 테스트 계획 관리 테스트 종료 관리 TTA (나) 테스트 모니터링 테스트 현황 보고 (다) 테스트 케이스 개발 테스트 절차 개발 (라) 테스트 실행 결함 보고"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "(가) : 테스트 관리자"
+        },
+        {
+          "key": "b",
+          "text": "(나) : 테스트 리더"
+        },
+        {
+          "key": "c",
+          "text": "(다) : 테스트 설계자"
+        },
+        {
+          "key": "d",
+          "text": "(라) : 테스트 분석가"
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "4"
+    },
+    {
+      "id": "CSTS-FL-2405-044",
+      "number": 44,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "피처 집합에 대한 설명으로 올바른 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "상호의존적으로 확인이 필요한 피처들이더라도 서로 다른 피처 집합으로 나눌 수 있다."
+        },
+        {
+          "key": "b",
+          "text": "동일한 테스트 재시작 조건이 적용되는 피처들은 동일한 피처 집합에 포함 시켜야 한다."
+        },
+        {
+          "key": "c",
+          "text": "상이한 테스트 설계 기법을 적용하는 피처들도 같은 피처 집합으로 구성할 수 있다."
+        },
+        {
+          "key": "d",
+          "text": "다른 피처 집합에 속한 피처들이더라도 함께 묶어서 테스트를 실행할 수 있다."
+        }
+      ],
+      "answer": [
+        "b"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "2"
+    },
+    {
+      "id": "CSTS-FL-2405-045",
+      "number": 45,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "테스트를 계획한 이후 테스트 케이스를 개발할 때 불명확한 테스트 케이스 개발로 이어지는 주된 원인은 무엇인가?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "테스트 대상에 대한 명확한 정리"
+        },
+        {
+          "key": "b",
+          "text": "모든 결함이 긴급한 것으로 보고됨"
+        },
+        {
+          "key": "c",
+          "text": "테스트 대상의 동작에 대한 명세 부재"
+        },
+        {
+          "key": "d",
+          "text": "음성 등 비교가 어려운 형태로 실행 결과가 산출됨"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "3"
+    },
+    {
+      "id": "CSTS-FL-2405-046",
+      "number": 46,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "테스트 설계 시 테스트 절차 명세에 작성되는 항목이 아닌 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "종료 작업"
+        },
+        {
+          "key": "b",
+          "text": "시작 작업"
+        },
+        {
+          "key": "c",
+          "text": "예상 결과"
+        },
+        {
+          "key": "d",
+          "text": "우선 순위 TTA"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "3"
+    },
+    {
+      "id": "CSTS-FL-2405-047",
+      "number": 47,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 테스트 환경에 대한 요구사항 정의와 가장 거리가 먼 것은 무엇인가?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "테스트 대상 요소가 실행될 수 있는 하드웨어 및 시스템 소프트웨어 환경이 정의되어야 한다."
+        },
+        {
+          "key": "b",
+          "text": "하드웨어의 환경의 경우, 세부 규격(CPU, 메모리 등)은 추후에 정의하도록 한다."
+        },
+        {
+          "key": "c",
+          "text": "시스템 테스트 수준에서는 가능하다면 운영 환경에 근접한 환경을 구성하는 것이 권장된다."
+        },
+        {
+          "key": "d",
+          "text": "컴포넌트 테스트 수준에서는 개발자 환경에서 테스트를 수행하는 것이 일반적이다."
+        }
+      ],
+      "answer": [
+        "b"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "2"
+    },
+    {
+      "id": "CSTS-FL-2405-048",
+      "number": 48,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 테스트 실행에 대한 설명으로 올바른 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "테스트를 실행하는 주체는 테스트 단계(레벨)에 따라서 달라질 수 있다."
+        },
+        {
+          "key": "b",
+          "text": "컴포넌트 테스트는 사용자가 직접 실행시키는 것이 일반적이다."
+        },
+        {
+          "key": "c",
+          "text": "인수 테스트는 원칙적으로 운영 환경에서 개발자에 의해 실행된다."
+        },
+        {
+          "key": "d",
+          "text": "통합 테스트는 개발 환경에서 시스템 테스트 완료 후에 수행한다."
+        }
+      ],
+      "answer": [
+        "a"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "1"
+    },
+    {
+      "id": "CSTS-FL-2405-049",
+      "number": 49,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "테스트 현황 보고서를 통해 파악할 수 있는 내용이 아닌 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "테스트 활동의 계획 대비 진척도"
+        },
+        {
+          "key": "b",
+          "text": "테스트 활동 수행의 방해 요인"
+        },
+        {
+          "key": "c",
+          "text": "테스트 완료 기준 평가"
+        },
+        {
+          "key": "d",
+          "text": "신규 또는 변경된 위험"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "3"
+    },
+    {
+      "id": "CSTS-FL-2405-050",
+      "number": 50,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 테스트 종료 조건에 대한 기준(Exit Criteria)으로 올바르지 않은 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "전체 요구 사항 중 테스트를 통해 확인된 요구 사항 비율"
+        },
+        {
+          "key": "b",
+          "text": "준비된 테스트 케이스의 통과율(Pass rate)"
+        },
+        {
+          "key": "c",
+          "text": "해당 제품 개발자의 승인 여부"
+        },
+        {
+          "key": "d",
+          "text": "발견된 결함 수 대비 수정된 결함 수"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "3"
+    },
+    {
+      "id": "CSTS-FL-2405-051",
+      "number": 51,
+      "type": "true_false",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "명세 기반 테스트와 구조 기반 테스트 방법은 대표적인 정적 테스트 방법이다. ( ○ / X )"
+        }
+      ],
+      "options": [
+        {
+          "key": "o",
+          "text": "O"
+        },
+        {
+          "key": "x",
+          "text": "X"
+        }
+      ],
+      "answer": [
+        "x"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "X"
+    },
+    {
+      "id": "CSTS-FL-2405-052",
+      "number": 52,
+      "type": "true_false",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "소프트웨어 생명주기 모델 중 폭포수 모델은 사용자의 요구사항이 개발자에게 익숙한 경우나 요구사항 변경이 개발도중에 빈번하게 이루어 질 경우에 적합한 개발 모형이다. ( O / X )"
+        }
+      ],
+      "options": [
+        {
+          "key": "o",
+          "text": "O"
+        },
+        {
+          "key": "x",
+          "text": "X"
+        }
+      ],
+      "answer": [
+        "x"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "X"
+    },
+    {
+      "id": "CSTS-FL-2405-053",
+      "number": 53,
+      "type": "true_false",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "기술 리뷰(Technical review)에서는 체크리스트를 필수적으로 사용하여야 한다. ( O / X )"
+        }
+      ],
+      "options": [
+        {
+          "key": "o",
+          "text": "O"
+        },
+        {
+          "key": "x",
+          "text": "X"
+        }
+      ],
+      "answer": [
+        "x"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "X"
+    },
+    {
+      "id": "CSTS-FL-2405-054",
+      "number": 54,
+      "type": "true_false",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "명세기반 테스트는 소프트웨어를 실행하면서 테스트하고, 구조기반 테스트는 소프트웨어를 실 행하지 않고 테스트를 수행한다. ( O / X )"
+        }
+      ],
+      "options": [
+        {
+          "key": "o",
+          "text": "O"
+        },
+        {
+          "key": "x",
+          "text": "X"
+        }
+      ],
+      "answer": [
+        "x"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "X"
+    },
+    {
+      "id": "CSTS-FL-2405-055",
+      "number": 55,
+      "type": "true_false",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "조건/분기 커버리지는 각 개별 조건식 및 전체 조건식의 결과 값이 참(True)과 거짓(False)을 적어도 한 번 이상 실행시키는 것을 기준으로 하는 테스트 방법이다. ( O / X ) TTA"
+        }
+      ],
+      "options": [
+        {
+          "key": "o",
+          "text": "O"
+        },
+        {
+          "key": "x",
+          "text": "X"
+        }
+      ],
+      "answer": [
+        "o"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "O"
+    },
+    {
+      "id": "CSTS-FL-2405-056",
+      "number": 56,
+      "type": "true_false",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "명세 기반 테스트 기법 중에서 경곗값 분석은 동등분할 테스트보다 테스트 강도가 높다."
+        },
+        {
+          "type": "paragraph",
+          "text": "(O/X)"
+        }
+      ],
+      "options": [
+        {
+          "key": "o",
+          "text": "O"
+        },
+        {
+          "key": "x",
+          "text": "X"
+        }
+      ],
+      "answer": [
+        "o"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "O"
+    },
+    {
+      "id": "CSTS-FL-2405-057",
+      "number": 57,
+      "type": "true_false",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "테스트 프로세스는 개발 프로세스가 종료된 후에 시작되며, 한번 정립된 프로세스는 변경하지 않는 것이 효율적이다. ( ○ / X )"
+        }
+      ],
+      "options": [
+        {
+          "key": "o",
+          "text": "O"
+        },
+        {
+          "key": "x",
+          "text": "X"
+        }
+      ],
+      "answer": [
+        "x"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "X"
+    },
+    {
+      "id": "CSTS-FL-2405-058",
+      "number": 58,
+      "type": "true_false",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "테스트 계획 수립 시에는 테스트 절차 실행 시 테스트 대상에 입력되는 테스트 데이터만 식별 한다. ( O / X )"
+        }
+      ],
+      "options": [
+        {
+          "key": "o",
+          "text": "O"
+        },
+        {
+          "key": "x",
+          "text": "X"
+        }
+      ],
+      "answer": [
+        "x"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "X"
+    },
+    {
+      "id": "CSTS-FL-2405-059",
+      "number": 59,
+      "type": "true_false",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "테스트 설계 및 구현 단계에서 피처 집합을 구성하는 하나의 세부 피처마다 테스트 케이스는 하나씩만 개발해야한다. ( O / X )"
+        }
+      ],
+      "options": [
+        {
+          "key": "o",
+          "text": "O"
+        },
+        {
+          "key": "x",
+          "text": "X"
+        }
+      ],
+      "answer": [
+        "x"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "X"
+    },
+    {
+      "id": "CSTS-FL-2405-060",
+      "number": 60,
+      "type": "true_false",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "결함 나이(defect age)는 수정(resolved)된 이후 검증(verified)이 될 때까지의 시간을 말한다."
+        },
+        {
+          "type": "paragraph",
+          "text": "(O / X)"
+        }
+      ],
+      "options": [
+        {
+          "key": "o",
+          "text": "O"
+        },
+        {
+          "key": "x",
+          "text": "X"
+        }
+      ],
+      "answer": [
+        "x"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "X"
+    },
+    {
+      "id": "CSTS-FL-2405-061",
+      "number": 61,
+      "type": "short_answer",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "규정된 조건에서 규정된 기간 동안 오동작 없이 의도된 기능을 수행하는 소프트웨어의 품질 특성을 무엇이라 하는가?"
+        }
+      ],
+      "options": [],
+      "answer": [
+        "신뢰성, reliability"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "신뢰성, reliability"
+    },
+    {
+      "id": "CSTS-FL-2405-062",
+      "number": 62,
+      "type": "short_answer",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음은 무엇에 대한 설명인지 기재하시오."
+        },
+        {
+          "type": "paragraph",
+          "text": "소프트웨어 개발 단계별 테스트 분류 중 이 테스트 레벨은 시스템을 대상으로 실제 운영환 경에서 사용자가 하는 테스트로, 시스템을 배포하거나 실제 사용할 준비가 되었는지 평가한다."
+        }
+      ],
+      "options": [],
+      "answer": [
+        "인수 테스트 사용자 인수 테스트"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "인수 테스트 사용자 인수 테스트"
+    },
+    {
+      "id": "CSTS-FL-2405-063",
+      "number": 63,
+      "type": "short_answer",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 사례의 내용 중 밑줄 친 부분은 어떤 테스트에 대한 설명인가?"
+        },
+        {
+          "type": "paragraph",
+          "text": "최근 릴리즈된 버전에 대해 테스트 팀에서 시스템 테스트를 했는데 꽤 많은 결함이 발견되 었다. 특히 기본 기능 관련 동작에서 많은 결함이 발견되었다. 테스트팀은 발견한 결함으로 시스템에 등록하고 개발자에게 할당했다."
+        },
+        {
+          "type": "paragraph",
+          "text": "개발자는 원인을 분석한 후 소스를 수정하여 이를 새로운 버전에 반영하였다. 테스트 팀에 서는 개발자의 결함이 제대로 수정되었는지 확인하기 위해 동일한 테스트 케이스를 사용하여 새로운 버전을 테스트 하였다."
+        }
+      ],
+      "options": [],
+      "answer": [
+        "재테스팅(Re-testing) TTA"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "재테스팅(Re-testing) TTA"
+    },
+    {
+      "id": "CSTS-FL-2405-064",
+      "number": 64,
+      "type": "short_answer",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "<보기>의 프로그램을 제어 흐름 그래프로 작성했을 때 최소 기본 블록은 몇 개인가?"
+        },
+        {
+          "type": "paragraph",
+          "text": "<보기>"
+        },
+        {
+          "type": "paragraph",
+          "text": "int foo(int x, int y, int z) { int w=0; if (x>0 || y>0) z=z+10; if (z>10) w=10; return w; }"
+        }
+      ],
+      "options": [],
+      "answer": [
+        "5개 2024-12-07"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "5개 2024-12-07"
+    },
+    {
+      "id": "CSTS-FL-2405-065",
+      "number": 65,
+      "type": "short_answer",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음은 구조기반 테스트 커버리지에 대한 설명이다. 어떤 테스트 커버리지에 대한 설명인지 기재하시오."
+        },
+        {
+          "type": "paragraph",
+          "text": "∙ 각 기본 조건식 및 전체 조건식의 결괏값이 참(True)과 거짓(False)을 적어도 한 번 이상 실행 시키는 것을 기준으로 하는 테스트 방법 ∙ 테스트 케이스 수트에 의해 실행된 전체 조건식과 기본 조건식이 몇 (%)인지 측정"
+        }
+      ],
+      "options": [],
+      "answer": [
+        "결정/조건, 조건/분기 및 / 기준 좌우가 바뀌어도 정답"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "결정/조건, 조건/분기 및 / 기준 좌우가 바뀌어도 정답"
+    },
+    {
+      "id": "CSTS-FL-2405-066",
+      "number": 66,
+      "type": "short_answer",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "<보기>의 단계들을 나열하여, 동등 분할을 하는 절차로 구성하시오."
+        },
+        {
+          "type": "paragraph",
+          "text": "<보기>"
+        },
+        {
+          "type": "paragraph",
+          "text": "(가) 동등 클래스에서 최소 하나 이상의 대푯값을 선정한다."
+        },
+        {
+          "type": "paragraph",
+          "text": "(나) 명세에서 입력과 출력을 식별한다."
+        },
+        {
+          "type": "paragraph",
+          "text": "(다) 대푯값을 테스트 케이스에 반영하여 테이블을 작성한다."
+        },
+        {
+          "type": "paragraph",
+          "text": "(라) 입력과 출력 영역을 동등 클래스들로 분할한다."
+        }
+      ],
+      "options": [],
+      "answer": [
+        "나 -> 라 -> 가 -> 다"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "나 -> 라 -> 가 -> 다"
+    },
+    {
+      "id": "CSTS-FL-2405-067",
+      "number": 67,
+      "type": "short_answer",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "<보기>의 명세를 기반으로 동등분할과 경계값 분석을 적용하여 테스트 케이스를 설계하였다."
+        },
+        {
+          "type": "paragraph",
+          "text": "이 때 설계된 테스트 케이스 수는 각각 몇 개인가? (단. 경계값 분석은 2-value를 적용한다.) (동등 분할: 개, 경계값 분석: 개) <보기>"
+        },
+        {
+          "type": "paragraph",
+          "text": "TTA"
+        },
+        {
+          "type": "paragraph",
+          "text": "- 나이가 20세 이상이면, 즉 20세부터 보험 가입이 가능하다."
+        },
+        {
+          "type": "paragraph",
+          "text": "- 나이가 50세를 초과하면, 즉 51세부터 10%의 가산이 있다."
+        },
+        {
+          "type": "paragraph",
+          "text": "- 나이가 80세를 초과하면, 즉 81세부터 가입이 불가하다."
+        },
+        {
+          "type": "paragraph",
+          "text": "- 나이는 양수 이외 값은 입력 자체가 불가능하다. (오직 양의 정수(1부터)만 입력 가능)"
+        }
+      ],
+      "options": [],
+      "answer": [
+        "동등분할: 4개, 경계값 분석: 7개 2024-12-07"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "동등분할: 4개, 경계값 분석: 7개 2024-12-07"
+    },
+    {
+      "id": "CSTS-FL-2405-068",
+      "number": 68,
+      "type": "short_answer",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음의 설명에서 빈칸에 들어갈 알맞은 테스팅은 무엇인가?"
+        },
+        {
+          "type": "paragraph",
+          "text": "( ) 테스팅은 소프트웨어 변경이 발생한 후에 수행되는 테스트로 소프트웨어에 가해진 변경이 의도하지 않은 결함을 만들지 않았으며 시스템이 기존의 요구사항을 충족함을 검증하 기 위하여 수행하는 테스트이다."
+        }
+      ],
+      "options": [],
+      "answer": [
+        "리그레션 또는 회귀"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "리그레션 또는 회귀"
+    },
+    {
+      "id": "CSTS-FL-2405-069",
+      "number": 69,
+      "type": "short_answer",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음은 결함 분석 방법에 대한 설명이다. 빈칸에 들어갈 알맞은 용어는 무엇인가?"
+        },
+        {
+          "type": "paragraph",
+          "text": "입력값, 테스트 절차, 테스트 환경 중에 어떤 요소가 결함 발생에 영향을 미치는지 분석하 여 결함 발생의 구체적인 상황을 파악하는 방법을 결함의 ( ) 라고 한다."
+        }
+      ],
+      "options": [],
+      "answer": [
+        "고립화 Isolation"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "고립화 Isolation"
+    },
+    {
+      "id": "CSTS-FL-2405-070",
+      "number": 70,
+      "type": "short_answer",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음의 보기에서 설명하는 활동은 테스트 프로세스의 어느 단계에 해당하는가?"
+        },
+        {
+          "type": "paragraph",
+          "text": "- 테스트 프로젝트에서 생성된 결과물을 이후 테스트 프로젝트에서 재사용될 수 있도록 테스트 자산으로 관리한다."
+        },
+        {
+          "type": "paragraph",
+          "text": "- 테스트 프로젝트에서 사용되었던 다양한 테스트 환경 요소들을 약속된 상태로 정리한다."
+        },
+        {
+          "type": "paragraph",
+          "text": "- 수행한 테스팅 작업과 그 결과를 보고서에 기록한다."
+        }
+      ],
+      "options": [],
+      "answer": [
+        "테스트 종료 TTA 2024-12-07"
+      ],
+      "explanation": [
+        {
+          "type": "note",
+          "text": "?? ??? ??"
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null,
+      "answerText": "테스트 종료 TTA 2024-12-07"
+    }
+  ]
+}

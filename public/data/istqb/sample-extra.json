@@ -1,0 +1,1728 @@
+{
+  "meta": {
+    "id": "ISTQB-FL-V4-EXTRA",
+    "certification": "ISTQB",
+    "level": "Foundation Level",
+    "version": "v4.0",
+    "setId": "EXTRA",
+    "legacySetId": "EXTRA",
+    "title": "ISTQB FL v4.0 ????",
+    "source": "ISTQB Foundation Level v4.0 Korean sample exams",
+    "questionPdf": "ISTQB_FL_v4.0_샘플문제_A_v1.7_한글_v1.0.pdf",
+    "answerPdf": "ISTQB_FL_v4.0_샘플문제_A_v1.7_정답과_해설_한글_v1.0.pdf"
+  },
+  "questions": [
+    {
+      "id": "ISTQB-FL-V4-EXTRA-001",
+      "number": 1,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "출시할 새로운 시스템의 장애 원인을 분석하고 수정하는 작업이 주어졌다. 다음 중 어떤 활동을 하고 있는 것인가?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "디버깅"
+        },
+        {
+          "key": "b",
+          "text": "소프트웨어 테스팅"
+        },
+        {
+          "key": "c",
+          "text": "요구사항 도출"
+        },
+        {
+          "key": "d",
+          "text": "결함 관리"
+        }
+      ],
+      "answer": [
+        "a"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답입니다. 디버깅은 컴포넌트나 시스템에 있는 장애의 원인을 찾고, 분석하고, 제거하는 과정입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다. 테스팅은 컴포넌트나 시스템과 관련 작업 산출물이 명시된 요구사항을 충족하고 목적에 적합한지 판단하고, 결함을 감지하기 위해 계획, 준비, 평가하는 과정 입니다. 장애 원인을 수정하는 것과는 무관합니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다. 요구사항 도출은 가용한 출처에서 요구사항을 수집, 포착, 통합하는 과정입니다. 장애 원인을 수정하는 것과는 무관합니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답이 아닙니다. 결함 관리는 결함을 인지, 기록, 분류, 조사, 해결, 처리하는 과정입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "장애 원인을 수정하는 것과는 무관합니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-002",
+      "number": 2,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "많은 소프트웨어 조직에서 테스트 부서를 품질 보증(QA) 부서라고 한다."
+        },
+        {
+          "type": "paragraph",
+          "text": "위 문장이 맞는지 틀리는지, 그리고 이유는 무엇인지를 바르게 설명한 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "맞다. 테스팅과 QA는 정확히 같은 의미이다"
+        },
+        {
+          "key": "b",
+          "text": "맞다. 테스팅과 QA 모두 동일한 품질 문제를 대처하는 활동에 집중하기 때문에 서로 바꿔서 사용할 수 있다"
+        },
+        {
+          "key": "c",
+          "text": "틀리다. 테스팅은 품질과 관련된 모든 활동을 포함하지만, QA는 품질 관련 프로세스에 중점을 두기 때문에 테스팅이 더 큰 개념이다"
+        },
+        {
+          "key": "d",
+          "text": "틀리다. QA는 품질 관련 프로세스에 중점을 두는 반면, 테스팅은 컴포넌트나 시스템이 목적에 적합한지 확인하고 결함을 식별하는 데 중점을 둔다"
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "다음을 근거로:"
+        },
+        {
+          "type": "paragraph",
+          "text": "테스팅과 품질 보증은 같지 않습니다. 테스팅은 컴포넌트나 시스템과 관련 작업 산출물이 명시된 요구사항을 충족하고 목적에 적합한지 확인하고, 결함을 감지하기 위해 계획, 준비, 평가하는 모든 정적 및 동적 SDLC 활동으로 구성된 프로세스입니다. 품질 보증은 품질 관련 프로세스의 수립, 도입, 모니터링, 개선, 준수에 중점을 둡니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "따라서:"
+        },
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답입니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-003",
+      "number": 3,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "옆자리에서 울린 전화가 프로그래머의 주의를 분산시켜 입력 변수의 상한을 확인하는 논리를 잘못 프로그래밍하게 했다. 나중에 시스템 테스팅에서 테스터가이 입력 필드가 유효하지 않은 입력 값을 허용한다는 것을 알아냈다."
+        },
+        {
+          "type": "paragraph",
+          "text": "다음 중 잘못 코딩 된 상한선을 올바르게 설명한 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "근본 원인(The root cause)"
+        },
+        {
+          "key": "b",
+          "text": "장애(A failure)"
+        },
+        {
+          "key": "c",
+          "text": "오류(An error)"
+        },
+        {
+          "key": "d",
+          "text": "결함(A defect)"
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다. 근본 원인은 프로그래밍 중 프로그래머의 주의가 분산됐다는 점입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다. 유효하지 않은 입력값을 허용하는 것은 장애입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다. 코드에 결함을 유발하게 만든 사고의 오류입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답입니다. 코드의 문제는 결함입니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-004",
+      "number": 4,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 테스트웨어를 작성하는 테스트 활동은?"
+        },
+        {
+          "type": "paragraph",
+          "text": "테스트 차터 #04.018 세션 시간: 1시간 대상(Explore): 등록 페이지 도구(With): 잘못된 값을 가진 여러 입력 데이터 세트 목적(To discover): 등록 과정에서 잘못된 입력값을 허용하는 것과 관련된 결함 식별"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "테스트 계획"
+        },
+        {
+          "key": "b",
+          "text": "테스트 모니터링과 테스트 제어"
+        },
+        {
+          "key": "c",
+          "text": "테스트 분석"
+        },
+        {
+          "key": "d",
+          "text": "테스트 설계"
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "고려 중인 테스트웨어는 테스트 차터입니다. 테스트 차터는 테스트 설계의 결과물입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "따라서:"
+        },
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답입니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-005",
+      "number": 5,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 추적성이 테스팅을 어떻게 지원하는지 보여주는 가장 좋은 예제는?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "변경의 영향도를 분석함으로써 테스트 완료에 대한 정보를 얻을 수 있다"
+        },
+        {
+          "key": "b",
+          "text": "테스트 케이스와 테스트 결과 간의 추적성을 분석함으로써 잔존 리스크 수준을 추정 하는 데 필요한 정보를 얻을 수 있다"
+        },
+        {
+          "key": "c",
+          "text": "변경의 영향도 분석을 실행하는 것은 리그레션 테스팅에 적절한 테스트 케이스 선택에 도움이 된다"
+        },
+        {
+          "key": "d",
+          "text": "테스트 베이시스, 테스트 대상 및 테스트 케이스 간의 추적성을 분석하는 것은 테스트 대상의 가정된 커버리지를 달성하기 위한 테스트 데이터 선택에 도움이 된다"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다. 영향도 분석을 해도 테스트 완료 정도에 대한 정보는 얻지 못합니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "변경의 영향도 분석 결과는 실행할 적합한 테스트 케이스를 선택하는 데 도움이 됩니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다. 추적성으로 예상 잔존 리스크 수준을 알고 싶다면 테스트 케이스에서 리스크까지 거슬러 올라가야 합니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답입니다. 변경에 대한 영향도 분석은 리그레션 테스트를 위한 테스트 케이스를 고르는 데 도움이 됩니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답이 아닙니다. 테스트 베이시스, 테스트 대상, 테스트 케이스 간의 추적성을 분석하는 것은 테스트 대상에 대해 정해진 커버리지를 달성하기 위한 테스트 데이터 선택에 도움이 되지 않습니다. 테스트 데이터를 선택하는 것은 추적성보다 테스트 분석이나 테스트 구현과 더 관련이 있습니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-006",
+      "number": 6,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 테스팅 독립성의 이점을 가장 잘 설명한 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "독립적인 테스트팀이 있으면, 결과물의 품질에 대한 책임을 테스트팀이 지도록 할 수 있다"
+        },
+        {
+          "key": "b",
+          "text": "조직 외부의 테스트팀을 활용할 수 있다면, 이 외부 팀이 프로젝트 관리의 납품이나 납품 마감 준수 압박에 쉽게 휘둘리지 않는다는 면에서 뚜렷한 이점이 생긴다"
+        },
+        {
+          "key": "c",
+          "text": "독립적인 테스트팀은 개발자와 독립적으로 일할 수 있고, 프로젝트 요구사항 변경으로 인해 주의가 산만해지지 않으며, 개발자와의 소통을 결함 관리 시스템을 통한 결함 보고로 제한할 수 있다"
+        },
+        {
+          "key": "d",
+          "text": "명세가 모호하거나 불일치하는 부분이 있으면, 그것을 해석할 때 일부 사항을 가정하게 되며, 독립적인 테스터는 개발자가 만든 이런 가정과 해석에 의문을 제기하는 데 유용 할 수 있다"
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다. 품질은 테스트팀만의 책임이 아닌 프로젝트에 일하는 모두의 책임이 어야 합니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다. 우선 외부 테스트팀이 납품기한을 지키지 못한 것은 이점이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "그리고 외부 테스트팀이 납품기한을 엄수할 필요가 없다고 느낄 것이라 생각할 이유도 없습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다. 테스트팀이 완전히 고립된 상태에서 일하게 하는 것은 나쁜 관행이며, 외부 테스트팀이 바뀌는 프로젝트 요구사항, 또 개발자와 원활한 의사소통에 관심을 가질 것을 기대할 것입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답입니다. 명세가 완벽한 경우는 없기 때문에 개발자는 일부 사항에 대해 가정을 해야 합니다. 독립적인 테스터는 개발자가 한 이런 가정과 그에 따른 해석에 의문을 제기하고 검증할 수 있다는 점에서 유용합니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-007",
+      "number": 7,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "당신은 V 모델을 따르는 팀에서 테스터로 일하고 있다. 다음 중 어떤 활동을 소프트웨어 개발 수명주기 초기 단계에서 수행할 수 있는가? (2개 선택)"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "동적 테스트 수행"
+        },
+        {
+          "key": "b",
+          "text": "정적 테스팅"
+        },
+        {
+          "key": "c",
+          "text": "테스트 계획"
+        },
+        {
+          "key": "d",
+          "text": "인수 테스트 수행"
+        },
+        {
+          "key": "e",
+          "text": "유지보수 테스팅"
+        }
+      ],
+      "answer": [
+        "b",
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다. 실행 가능한 코드는 일반적으로 후반 단계에서 생성되므로 소프트웨어 개발 수명주기 초기에 동적 테스트를 수행할 수 없습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답입니다. 순차적 개발 모델에서 테스터는 초기 단계에서 정적 테스팅의 한 형태인 요구사항 리뷰에 참여합니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답입니다. 테스트 분석 및 테스트 설계와 함께 테스트 프로젝트가 시작되기 전에 소프트웨어 개발 수명주기 초기에 테스트 계획을 수행할 수 있습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답이 아닙니다. 인수 테스트 수행은 동작하는 제품이 있을 때 수행할 수 있습니다. 순 차적 개발 수명주기 모델에서 동작하는 제품은 일반적으로 후반에 제공됩니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "e) 정답이 아닙니다. 유지보수 테스팅은 동작하고 배포된 제품이 있을 때 수행되고, 어떤 소프트웨어 개발 수명주기 모델이든 초기 단계에서 수행되지 않습니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-008",
+      "number": 8,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 데브옵스(DevOps)의 장점은?"
+        },
+        {
+          "type": "paragraph",
+          "text": "i. 빠른 제품 출시 및 짧은 출시 기간"
+        },
+        {
+          "type": "paragraph",
+          "text": "ii. 반복적인 수동 테스팅의 필요성 증가"
+        },
+        {
+          "type": "paragraph",
+          "text": "iii. 실행 가능한 소프트웨어의 지속적인 가용성"
+        },
+        {
+          "type": "paragraph",
+          "text": "iv. 코드 리팩토링과 관련된 리그레션 테스트 수 감소"
+        },
+        {
+          "type": "paragraph",
+          "text": "v. 모든 것이 자동화되어 있으므로 테스트 자동화 프레임워크를 설정하는 비용이 저렴하다"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "i, ii, iv"
+        },
+        {
+          "key": "b",
+          "text": "iii, v"
+        },
+        {
+          "key": "c",
+          "text": "i, iii"
+        },
+        {
+          "key": "d",
+          "text": "ii, iv, v"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "다음을 근거로:"
+        },
+        {
+          "type": "paragraph",
+          "text": "i. 참입니다. 빠른 제품 출시와 시장 진입은 데브옵스의 장점입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "ii. 거짓입니다. 보통 테스트 자동화의 사용으로 수동 테스트에 필요한 노력이 줄어듭니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "iii. 참입니다. 실행 가능한 소프트웨어의 지속적인 가용성은 장점입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "iv. 거짓입니다. 더 많은 리그레션 테스트가 필요합니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "v. 거짓입니다. 모든 것을 자동화하지 않으며 테스트 자동화 프레임워크를 구축하는 비용은 비쌉니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "따라서:"
+        },
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답이 아닙니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-009",
+      "number": 9,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "당신은 사용자가 음식을 주문하는 모바일 애플리케이션 프로젝트에서 테스터로 일하고 있다. 고객이 요구사항 목록을 보냈고, 그 중 우선순위가 높은 하나가 다음과 같다."
+        },
+        {
+          "type": "paragraph",
+          "text": "“전체 주문의 95% 이상은 10초 이내에 처리되어야 한다.”"
+        },
+        {
+          "type": "paragraph",
+          "text": "당신은 무작위로 주문이 이루어지고, 처리 시간이 측정되며, 테스트 결과가 요구사항과 비교되도록 일련의 테스트 케이스를 만들었다."
+        },
+        {
+          "type": "paragraph",
+          "text": "다음 중 수행한 테스트 유형은 무엇인가?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "테스트 케이스가 시스템에 대한 사용자의 비즈니스 요구사항을 다루기 때문에 기능 테스트이다"
+        },
+        {
+          "key": "b",
+          "text": "시스템 성능을 측정하기 때문에 비기능 테스트이다"
+        },
+        {
+          "key": "c",
+          "text": "테스트 케이스가 사용자 인터페이스와 상호작용하기 때문에 기능 테스트이다"
+        },
+        {
+          "key": "d",
+          "text": "주문 처리 시간을 측정하기 위해서는 프로그램의 내부 구조를 알아야 하기 때문에 화 이트박스 테스트이다"
+        }
+      ],
+      "answer": [
+        "b"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다. 시스템 성능 요구사항이 고객으로부터 직접 왔고 비즈니스 관점에서 성능이 중요하다는(즉, 우선순위가 높다는) 사실이이 테스트를 기능 테스트로 만들진 않습니다. 테스트는 시스템이 “무엇을” 하는지 확인하는 것이 아니라, “어떻게” 하는지 (즉, 얼마나 빨리 주문을 처리하는지) 확인하기 때문입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답입니다. 이것은 비기능 테스팅의 한 유형인 성능 유효성 테스팅의 예시입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다. 시나리오에서 사용자 인터페이스와의 상호작용이 테스트 컨디션의 일부인지 알 수 없습니다. 알 수 있었다 하더라도이 테스트의 주된 목적은 성능을 확인하는 것이지, 유용성을 확인하는 것이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답이 아닙니다. 성능 유효성 테스팅을 수행하기 위해 코드의 내부 구조를 알 필요는 없습니다. 구조에 대한 지식 없이도 수행 효율성 테스트를 할 수 있습니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-010",
+      "number": 10,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "조직의 테스트 전략은 시스템을 단종하려면 데이터 마이그레이션 테스트를 수행해야 한다고 명시하고 있다. 이런 테스팅은 어떤 테스트 유형에 포함해서 수행할 가능성이 가장 높은가?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "유지보수 테스팅"
+        },
+        {
+          "key": "b",
+          "text": "리그레션 테스팅"
+        },
+        {
+          "key": "c",
+          "text": "신뢰성 테스팅"
+        },
+        {
+          "key": "d",
+          "text": "통합 테스팅"
+        }
+      ],
+      "answer": [
+        "a"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답입니다. 시스템이 단종되면 유지보수 테스팅의 유형인 데이터 마이그레이션 테스팅이 필요할 수 있습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다. 리그레션 테스팅은 수정 작업으로 우연히 코드 다른 부분의 행동에 영향을 끼쳤는지 검증하는 것입니다. 지금은 새로운 시스템으로 데이터를 마이그레이션하는 것에 대해 이야기하고 있습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다. 단위 테스팅은 데이터 마이그레이션이 아닌 개별 하드웨어나 소프트웨어 컴포넌트에 초점을 둡니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답이 아닙니다. 통합 테스팅은 데이터 마이그레이션이 아닌 컴포넌트 간, 시스템 간, 또는 컴포넌트와 시스템 간의 상호작용에 초점을 둡니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-011",
+      "number": 11,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음은 개발 수명주기(SDLC) 중 작성한 작업 산출물 목록이다."
+        },
+        {
+          "type": "paragraph",
+          "text": "i. 비즈니스 요구사항"
+        },
+        {
+          "type": "paragraph",
+          "text": "ii. 일정 계획"
+        },
+        {
+          "type": "paragraph",
+          "text": "iii. 테스트 예산"
+        },
+        {
+          "type": "paragraph",
+          "text": "iv. 타사 실행 코드"
+        },
+        {
+          "type": "paragraph",
+          "text": "v. 사용자 스토리 및 인수 조건"
+        },
+        {
+          "type": "paragraph",
+          "text": "다음 중 리뷰가 가능한 작업 산출물은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "i, iv"
+        },
+        {
+          "key": "b",
+          "text": "i, ii, iii, iv"
+        },
+        {
+          "key": "c",
+          "text": "i, ii, iii, v"
+        },
+        {
+          "key": "d",
+          "text": "ii, iv, v"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "제3자 공급사의 실행 가능한 코드만 리뷰할 수 없습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "따라서:"
+        },
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답이 아닙니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-012",
+      "number": 12,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 정적 테스팅에 대한 올바른 설명은?"
+        },
+        {
+          "type": "paragraph",
+          "text": "i. 비정상 외부 행동을이 테스팅으로 더 쉽게 식별할 수 있다"
+        },
+        {
+          "type": "paragraph",
+          "text": "ii. 코딩 표준과의 불일치를이 테스팅으로 더 쉽게 식별할 수 있다"
+        },
+        {
+          "type": "paragraph",
+          "text": "iii. 소프트웨어 실행 시 결함으로 인한 장애를이 테스팅으로 식별할 수 있다"
+        },
+        {
+          "type": "paragraph",
+          "text": "iv. 이 테스팅의 테스트 목표는 가능한 빨리 결함을 식별하는 것이다"
+        },
+        {
+          "type": "paragraph",
+          "text": "v. 중요 보안 요구사항 중 커버되지 않은 사항을 식별 및 수정하기가 더 쉽다"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "i, iv, v"
+        },
+        {
+          "key": "b",
+          "text": "i, iii, iv"
+        },
+        {
+          "key": "c",
+          "text": "ii, iii"
+        },
+        {
+          "key": "d",
+          "text": "ii, iv, v"
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "다음을 근거로:"
+        },
+        {
+          "type": "paragraph",
+          "text": "i. 이러한 행동은 소프트웨어가 실행되고 있을 때 쉽게 감지할 수 있습니다. 따라서, 식별하기 위해 동적 테스팅을 사용해야 합니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "ii. 이것은 일반적으로 정적 테스팅으로 더 쉽게 발견할 수 있는 결함 유형인 표준과의 불일치에 대한 예시입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "iii. 만약 테스트 도중 소프트웨어가 실행된다면 그것은 동적 테스팅입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "iv. 가능한 한 조기에 결함을 식별하는 것은 정적/동적 테스팅 모두의 목적입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "v. 이것은 일반적으로 정적 테스팅으로 더 쉽게 발견할 수 있는 결함 유형인 테스트 베이시스 추적성 혹은 커버리지의 누락에 대한 예시입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "따라서:"
+        },
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답입니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-013",
+      "number": 13,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 공식 리뷰에 대한 다음 설명으로 올바른 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "일부 리뷰는 하나 이상의 역할이 필요하지 않다"
+        },
+        {
+          "key": "b",
+          "text": "리뷰 과정에 여러 활동이 포함된다"
+        },
+        {
+          "key": "c",
+          "text": "일부 특정 리뷰 유형의 작업 산출물을 제외하고는, 리뷰 회의 전에 리뷰할 문서를 배포하지 않는다"
+        },
+        {
+          "key": "d",
+          "text": "동적 테스팅으로 식별한 사항이 아니기 때문에 리뷰 중 발견한 결함은 보고하지 않는다"
+        }
+      ],
+      "answer": [
+        "b"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다. 비공식 리뷰까지 포함한 모든 유형의 리뷰에 둘 이상의 역할이 있습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답입니다. 공식 리뷰 프로세스 중 여러 활동이 있습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다. 리뷰할 문서는 가능한 한 빨리 배포해야 합니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답이 아닙니다. 리뷰 중 발견한 결함은 보고해야 합니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-014",
+      "number": 14,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 공식 리뷰에서 관리자가 수행할 수 있는 작업은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "리뷰에 대한 전반적인 책임을 진다"
+        },
+        {
+          "key": "b",
+          "text": "리뷰 대상을 결정한다"
+        },
+        {
+          "key": "c",
+          "text": "리뷰 회의의 효과적인 진행을 보장하고, 필요한 경우 중재한다"
+        },
+        {
+          "key": "d",
+          "text": "리뷰에서 나온 결정 사항과 같은 리뷰 정보를 기록한다"
+        }
+      ],
+      "answer": [
+        "b"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다. 이것은 리뷰 리더의 일입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답입니다. 이것은 공식 리뷰에서 관리자가 할 일입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다. 이것은 중재자의 일입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답이 아닙니다. 이것은 서기의 일입니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-015",
+      "number": 15,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "와인 저장 시스템은 와인 보관소의 온도 T(°C 단위로 측정, 가장 가까운 정수로 반올림) 를 측정하고, 최적 온도인 12에서 벗어난 경우 다음 규칙에 따라 사용자에게 알림을 주는 제어 장치를 사용하고 있다."
+        },
+        {
+          "type": "paragraph",
+          "text": "- T = 12면, “최적 온도”라고 표시한다"
+        },
+        {
+          "type": "paragraph",
+          "text": "- T <12면, “온도가 너무 낮습니다!”라고 표시한다"
+        },
+        {
+          "type": "paragraph",
+          "text": "- T> 12면, “온도가 너무 높습니다!”라고 표시한다"
+        },
+        {
+          "type": "paragraph",
+          "text": "3개 선택(3-value) 경계값 분석(BVA)으로 제어 장치의 동작을 확인하려고 한다. 테스트 입력값은 장치에서 제공하는 온도(°C)이다."
+        },
+        {
+          "type": "paragraph",
+          "text": "100% 커버리지를 달성하는 최소 테스트 입력값 세트는?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "11, 12, 13"
+        },
+        {
+          "key": "b",
+          "text": "10, 12, 14"
+        },
+        {
+          "key": "c",
+          "text": "10, 11, 12, 13, 14"
+        },
+        {
+          "key": "d",
+          "text": "10, 11, 13, 14"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "여기에는 3개의 동등 분할이 있습니다: {..., 10, 11}, {12}, {13, 14,...}. 경계값은 11, 12, 13입니다. 각 경계마다 3가지 값(3-value) 경계값 분석을 적용하면 경계와 양쪽으로 이웃한 값을 테스트해야 합니다. 따라서:"
+        },
+        {
+          "type": "paragraph",
+          "text": "- 11에 대해선 10, 11, 12를 테스트하고"
+        },
+        {
+          "type": "paragraph",
+          "text": "- 12에 대해선 11, 12, 13을 테스트하고"
+        },
+        {
+          "type": "paragraph",
+          "text": "- 13에 대해선 12, 13, 14를 테스트합니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "결국 10, 11, 12, 13, 14를 테스트해야 합니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "따라서:"
+        },
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답이 아닙니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-016",
+      "number": 16,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 분기 테스팅에 대한 설명으로 올바른 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "프로그램이 무조건 분기만 포함하는 경우, 테스트 케이스를 실행하지 않고도 100% 분기 커버리지를 달성할 수 있다"
+        },
+        {
+          "key": "b",
+          "text": "테스트 케이스가 코드의 모든 무조건 분기를 실행하면, 100% 분기 커버리지가 달성 된다"
+        },
+        {
+          "key": "c",
+          "text": "100% 구문 커버리지를 달성하면, 분기 커버리지도 100%이다"
+        },
+        {
+          "key": "d",
+          "text": "100% 분기 커버리지를 달성하면, 코드 모든 결정문의 모든 결정 결과가 실행된다"
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다. 이 경우에 아직 커버해야 하는(무조건) 분기가 적어도 하나는 있기 때문에 최소 하나의 테스트 케이스가 추가로 필요합니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다. 무조건 분기를 다 커버했다고 모든 조건 분기까지 커버됐다는 의미는 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다. 100% 분기 커버리지는 100% 구문 커버리지를 의미하지만, 그 반대는 아닙니다. 예를 들어서, ELSE가 없는 IF 결정문에서 하나의 테스트로 100% 구문 커버리지를 달성할 수 있지만, 분기 커버리지는 50%만 달성됩니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답입니다. 각 결정 결과는 하나의 조건 분기에 상응하기 때문에 100% 분기 커버리지는 결정 결과에 대해서도 100% 커버리지를 달성한 것이 됩니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-017",
+      "number": 17,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "당신은 고객이 은행 계좌에 접근하고 관리할 수 있는 모바일 애플리케이션을 테스트하고 있다. 이 앱의 사용성을 최대로 높이기 위한 사용자 인터페이스(UI) 모범 사례를 담은 유명한 책을 참고해, 각 화면과 이들 화면의 모든 입력 항목을 평가하는 테스트 스위트를 실행하고 있다. 다음 중 이와 같은 테스트 기법에 대한 분류로 가장 적합한 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "블랙박스(Black-box)"
+        },
+        {
+          "key": "b",
+          "text": "탐색적(Exploratory)"
+        },
+        {
+          "key": "c",
+          "text": "체크리스트 기반(Checklist-based)"
+        },
+        {
+          "key": "d",
+          "text": "오류 추정(Error guessing)"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다. 책은 일반적인 지침을 제공하지 공식적인 요구사항 문서이거나 명세, 유스케이스 목록, 사용자 스토리, 비즈니스 프로세스를 제공하진 않습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다. 이 목록을 일련의 테스트 차터라고 볼 수도 있지만, 실제로는 확인해야 할 테스트 컨디션 목록에 더 가깝습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답입니다. 사용자 인터페이스 모범 사례 목록은 체계적으로 확인해야 하는 테스트 컨디션 목록입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답이 아닙니다. 테스트는 일어날 수 있는 장애에 초점을 맞추지 않고 되려 유용성 측면 에서 사용자에게 중요한 것에 대한 지식에 초점을 두고 있습니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-018",
+      "number": 18,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 사용자 스토리 작성을 위한 협업 접근법을 가장 잘 설명한 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "사용자 스토리는 테스터와 개발자가 작성한 후 비즈니스 담당자가 승인한다"
+        },
+        {
+          "key": "b",
+          "text": "사용자 스토리는 비즈니스 담당자, 개발자, 테스터가 함께 작성한다"
+        },
+        {
+          "key": "c",
+          "text": "사용자 스토리는 비즈니스 담당자가 작성하고 개발자와 테스터가 검증한다"
+        },
+        {
+          "key": "d",
+          "text": "사용자 스토리는 독립적이고 협의 가능하며, 가치 있고, 추정 가능하며, 작고, 테스트 가능한 방식으로 작성한다"
+        }
+      ],
+      "answer": [
+        "b"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다. 협업 기반 사용자 스토리 작성은 공통된 비전을 얻기 위해 모든 이해 관계자가 협력하여 사용자 스토리를 생성하는 것을 의미합니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답입니다. 협업 기반 사용자 스토리 작성은 공통된 비전을 얻기 위해 모든 이해관계자가 협력하여 사용자 스토리를 생성하는 것을 의미합니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다. 협업 기반 사용자 스토리 작성은 공통된 비전을 얻기 위해 모든 이해 관계자가 협력하여 사용자 스토리를 생성하는 것을 의미합니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답이 아닙니다. 이것은 협력 기반 접근법에 대한 설명이 아닌 각 사용자 스토리가 가져 야 하는 속성을 나열한 것입니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-019",
+      "number": 19,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음은 테스트 계획서의 어느 부분에 속하는가?"
+        },
+        {
+          "type": "paragraph",
+          "text": "테스팅은 단위 테스팅과 단위 통합 테스팅을 사용해 수행한다. 규정에 따라 치명적인 (critical) 등급에 속한 모든 컴포넌트는 100% 분기 커버리지가 달성되었음을 입증해 야 한다."
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "의사소통"
+        },
+        {
+          "key": "b",
+          "text": "리스크 목록"
+        },
+        {
+          "key": "c",
+          "text": "테스팅 정황"
+        },
+        {
+          "key": "d",
+          "text": "테스트 접근법"
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다. 문단은 테스트 접근법에 포함되는 테스트 레벨과 완료 조건에 대한 정보를 담고 있습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다. 문단은 테스트 접근법에 포함되는 테스트 레벨과 완료 조건에 대한 정보를 담고 있습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다. 문단은 테스트 접근법에 포함되는 테스트 레벨과 완료 조건에 대한 정보를 담고 있습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답입니다. 문단은 테스트 접근법에 포함되는 테스트 레벨과 완료 조건에 대한 정보를 담고 있습니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-020",
+      "number": 20,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "팀에서 플래닝 포커로 새로운 기능에 대한 테스트 노력을 추정하고 있다. 팀 내에는 규칙들이 있는데,가령, 전체적인 합의에 도달할 시간이 없고 결과의 편차가 작을 경우, ‘가장 많은 표를 얻은 숫자를 채택한다’와 같은 규칙을 적용할 수 있다."
+        },
+        {
+          "type": "paragraph",
+          "text": "두 번째 라운드 후에도 합의에 도달하지 못해 세 번째 라운드를 수행했다. 테스트 추정 결과는 아래 표와 같다."
+        },
+        {
+          "type": "paragraph",
+          "text": "팀원들의 추정"
+        },
+        {
+          "type": "paragraph",
+          "text": "1 라운드 21 2 5 34 13 8 2"
+        },
+        {
+          "type": "paragraph",
+          "text": "2 라운드 13 8 8 34 13 8 5"
+        },
+        {
+          "type": "paragraph",
+          "text": "3 라운드 13 8 13 13 13 13 8"
+        },
+        {
+          "type": "paragraph",
+          "text": "다음 중 다음 단계로 가장 적합한 예제는?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "제품 소유자가 개입해 최종 결정을 내려야 한다"
+        },
+        {
+          "key": "b",
+          "text": "13이 가장 많은 표를 얻었으므로 최종 테스트 추정치로 13을 수용한다"
+        },
+        {
+          "key": "c",
+          "text": "합의에 도달했기 때문에 추가 조치는 없어도 된다"
+        },
+        {
+          "key": "d",
+          "text": "합의가 이루어지지 않았기 때문에 현재 릴리스에서 새로운 기능을 제외한다"
+        }
+      ],
+      "answer": [
+        "b"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다. 하나의 팀원이 결정하는 것이 아니라 팀 활동이 되어야 합니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답입니다. 만약 테스트 추정치가 같지 않지만, 결과의 차이가 작다면 “가장 많은 표를 얻은 숫자를 수용한다”와 같은 규칙을 적용할 수 있습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다. 몇몇은 13을 얘기하고 몇몇은 8을 이야기했기 때문에 합의에 도달하지 못했습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답이 아닙니다. 팀이 테스트 추정치를 합의하지 못했다고 해서 기능을 제외해서는 안 됩니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-021",
+      "number": 21,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 테스트 피라미드에 대한 설명으로 올바른 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "하위 테스트 레벨에서 훨씬 더 많은 테스트를 수행해야 한다는 것을 강조한다"
+        },
+        {
+          "key": "b",
+          "text": "각각의 하위 테스트 레벨에서 커다란 기능을 확인해야 한다고 제안한다"
+        },
+        {
+          "key": "c",
+          "text": "전체 소프트웨어 개발 수명주기에서 테스트 유형의 배치를 설명한다"
+        },
+        {
+          "key": "d",
+          "text": "자동화 테스트 구성에 영향을 미치지 않는다"
+        }
+      ],
+      "answer": [
+        "a"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답입니다. 테스트 피라미드는 하위 테스트 레벨에서 더 많은 수의 테스트를 수행해야 한다는 것을 강조한다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다. 하위 테스트 레벨에서 커다란 기능을 테스트해야 한다는 것은 사실이 아닙니다. 테스트는 더 작은 단위로 나뉘며 특정 로직에 초점을 맞추므로, 오히려 그 반 대입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다. 테스트 피라미드는 테스트 레벨에 따라 테스트의 분량이 어떻게 분포 되는지를 보여줍니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답이 아닙니다. 테스트 피라미드 모델은 테스트 자동화에서 팀을 지원합니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-022",
+      "number": 22,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "리스크 분석 중에 팀은 다음과 같은 리스크를 고려했다: “시스템이 고객에게 너무 높은 할 인을 허용할 수 있다.” 팀은 리스크 영향도가 매우 높을 것으로 추정했다."
+        },
+        {
+          "type": "paragraph",
+          "text": "이 경우, 리스크 발생 가능성에 대해서는 어떻게 말할 수 있는가?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "리스크 가능성도 매우 높다. 리스크 영향도가 높다는 건 리스크 발생 가능성도 항상 높다는 걸 의미한다"
+        },
+        {
+          "key": "b",
+          "text": "매우 낮다. 리스크 영향도가 높다는 건 리스크 발생 가능성은 항상 낮다는 걸 뜻한다"
+        },
+        {
+          "key": "c",
+          "text": "리스크 영향도와 리스크 발생 가능성은 독립적이기 때문에 리스크 발생 가능성에 대해 말할 수 없다"
+        },
+        {
+          "key": "d",
+          "text": "이렇게 리스크 영향도가 높은 경우 리스크 발생 가능성은 중요하지 않기 때문에 정의 할 필요가 없다"
+        }
+      ],
+      "answer": [
+        "c"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다. 리스크 영향도와 리스크 발생 가능성은 독립적입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다. 리스크 영향도와 리스크 발생 가능성은 독립적입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답입니다. 리스크 영향도와 리스크 발생 가능성은 독립적입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답이 아닙니다. 리스크 수준을 계산하기 위해 두 요소 모두 필요합니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-023",
+      "number": 23,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음은 개발할 새로운 소프트웨어 제품과 관련해 식별한 리스크이다:"
+        },
+        {
+          "type": "paragraph",
+          "text": "i. 관리자가 숙련된 테스터 두 명을 다른 프로젝트로 이동시킨다"
+        },
+        {
+          "type": "paragraph",
+          "text": "ii. 시스템이 기능 안전 표준을 준수하지 않는다"
+        },
+        {
+          "type": "paragraph",
+          "text": "iii. 시스템 응답 시간이 사용자 요구사항보다 느리다"
+        },
+        {
+          "type": "paragraph",
+          "text": "iv. 이해관계자의 기대치가 부정확하다"
+        },
+        {
+          "type": "paragraph",
+          "text": "v. 장애인이 시스템을 사용할 때 문제가 발생한다"
+        },
+        {
+          "type": "paragraph",
+          "text": "다음 중 프로젝트 리스크는?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "i, iv"
+        },
+        {
+          "key": "b",
+          "text": "iv, v"
+        },
+        {
+          "key": "c",
+          "text": "i, iii"
+        },
+        {
+          "key": "d",
+          "text": "ii, v"
+        }
+      ],
+      "answer": [
+        "a"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "다음을 근거로:"
+        },
+        {
+          "type": "paragraph",
+          "text": "i. 이것은 프로젝트 리스크입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "ii. 이것은 제품 리스크입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "iii. 이것은 제품 리스크입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "iv. 이것은 프로젝트 리스크입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "v. 이것은 제품 리스크입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "따라서:"
+        },
+        {
+          "type": "paragraph",
+          "text": "a) 정답입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답이 아닙니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-024",
+      "number": 24,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 제품 리스크 분석이 테스팅의 강도와 범위에 어떻게 영향을 미치는지 보여주는 예제는?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "테스트 관리자는 식별된 모든 리스크의 수준을 매일 모니터링하고 보고해서 이해관 계자가 사실을 바탕으로 출시일을 결정할 수 있도록 한다"
+        },
+        {
+          "key": "b",
+          "text": "식별된 리스크 중 하나인 “오픈소스 데이터베이스 지원 부족”으로, 팀은 시스템에 오 픈소스 데이터베이스를 통합하기로 결정했다"
+        },
+        {
+          "key": "c",
+          "text": "정량적 리스크 분석과정에서 팀은 식별된 리스크를 모두 합친 수준을 추정해서, 테스팅을 시작하기 전 총 잔여 리스크로 보고했다"
+        },
+        {
+          "key": "d",
+          "text": "리스크 평가 결과 성능 리스크 수준이 매우 높은 것으로 나타나서, 소프트웨어 개발 수명주기(SDLC) 초기에 구체적인 수행 효율성 테스팅을 수행하기로 결정했다"
+        }
+      ],
+      "answer": [
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다. 이것은 리스크 분석이 아닌 리스크 모니터링 활동의 예시입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다. 이것은 테스팅과 관련 없는 아키텍처 결정의 예시입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다. 이것은 테스팅의 강도나 범위와 관련 없는 정량적 리스크 분석을 실행하는 예시입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답입니다. 이것은 리스크 분석이 테스팅의 강도에(즉, 상세화 수준에) 어떻게 영향을 미치는지 보여줍니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-025",
+      "number": 25,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "다음 중 테스트 대상의 품질 수준을 보고하는 데 많이 사용하는 지표 두 가지는?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "시스템 테스팅 중 식별한 결함 수"
+        },
+        {
+          "key": "b",
+          "text": "테스트 설계에 들어간 전체 노력을 설계된 테스트 케이스 수로 나눈 값"
+        },
+        {
+          "key": "c",
+          "text": "실행된 테스트 절차의 수"
+        },
+        {
+          "key": "d",
+          "text": "식별한 결함 수를 작업 산출물의 크기로 나눈 값"
+        },
+        {
+          "key": "e",
+          "text": "결함을 수정하는 데 필요한 시간"
+        }
+      ],
+      "answer": [
+        "a",
+        "d"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답입니다. 발견한 결함의 수는 테스트 대상의 품질과 관련이 있습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답이 아닙니다. 이것은 테스트 대상의 품질이 아닌 테스트 효율성에 대한 지표입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다. 실행된 테스트 케이스의 수는 품질에 대해 어떤 것도 알려주지 않습니다; 테스트 결과는 알려줄 수도 있습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답입니다. 결함 밀도는 테스트 대상의 품질과 관련이 있습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "e) 정답이 아닙니다. 결함 수정 시간은 프로세스에 대한 지표입니다. 제품의 품질에 대해 아무것도 알려주지 않습니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    },
+    {
+      "id": "ISTQB-FL-V4-EXTRA-026",
+      "number": 26,
+      "type": "multiple_choice",
+      "stem": [
+        {
+          "type": "paragraph",
+          "text": "테스트 진행 상황 보고서에 들어가는 다음 정보 중 비즈니스 담당자에게 가장 유용하지않은 것은?"
+        }
+      ],
+      "options": [
+        {
+          "key": "a",
+          "text": "테스팅 진행을 방해하는 장애물"
+        },
+        {
+          "key": "b",
+          "text": "달성한 분기 커버리지"
+        },
+        {
+          "key": "c",
+          "text": "테스트 진행 상황"
+        },
+        {
+          "key": "d",
+          "text": "테스트 진행 중 나타나 새로운 리스크"
+        }
+      ],
+      "answer": [
+        "b"
+      ],
+      "explanation": [
+        {
+          "type": "paragraph",
+          "text": "a) 정답이 아닙니다. 테스트 진행의 장애 요인은 상위 수준의 것이거나 비즈니스와 관계된 것일 수 있습니다. 따라서 이것은 비즈니스 이해관계자에게 중요한 정보입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "b) 정답입니다. 분기 테스팅은 개발자와 기술 테스트 분석가 사용하는 기술 지표입니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "비즈니스 담당자는이 정보에 아무런 관심이 없습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "c) 정답이 아닙니다. 테스트 진행 상황은 프로젝트와 관련된 것이기 때문에 비즈니스 담당자에게 유용할 수 있습니다."
+        },
+        {
+          "type": "paragraph",
+          "text": "d) 정답이 아닙니다. 리스크는 제품 품질에 영향을 끼치므로 비즈니스 담당자에게 유용할 수 있습니다."
+        }
+      ],
+      "tags": [],
+      "difficulty": "normal",
+      "figure": null
+    }
+  ]
+}

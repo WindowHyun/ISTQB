@@ -1,5 +1,14 @@
 # UI Refactor Summary
 
+## 2026-06-01 Phase 2 Data Stabilization
+- 기존 `questions.js` / `csts-questions.js` 로딩을 제거하고 `fetch()` 기반 순수 JSON 로더로 전환했다.
+- 문제 데이터는 `public/data/index.json` 및 `www/data/index.json` 카탈로그와 세트별 JSON 파일로 분리했다.
+- ISTQB/CSTS 공통 문제 스키마를 `meta` + `questions` 구조로 통일하고, 모든 문제에 `{SET_ID}-{NUMBER}` 형식의 고유 `id`를 추가했다.
+- `stem` / `explanation`은 문자열 대신 block 배열 구조를 사용하며, block text 내부의 수동 줄바꿈을 제거했다.
+- 기존 저장 데이터 호환을 위해 선택 답안 조회 시 새 questionId key를 우선 사용하고 기존 번호 기반 key를 fallback으로 읽도록 했다.
+- `scripts/validate-questions.js`를 추가하고 `npm run validate:questions` 및 `npm run verify`에서 새 JSON 스키마, 중복 ID, 정답/보기 매칭, figure 경로, 수동 줄바꿈을 검증하도록 했다.
+- 서비스워커 캐시 버전을 `v32`로 올리고 세트별 JSON 파일을 캐시 대상에 반영했다.
+
 ## 대상 프로젝트
 - WindowHyun/ISTQB
 - HTML/CSS/Vanilla JS 기반 PWA/Capacitor 문제풀이 앱
