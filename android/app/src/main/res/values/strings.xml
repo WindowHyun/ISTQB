@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">ISTQB FL</string>
-    <string name="title_activity_main">ISTQB FL</string>
+    <string name="app_name">ISTQB FL Dev</string>
+    <string name="title_activity_main">ISTQB FL Dev</string>
     <string name="package_name">com.local.istqbfl</string>
     <string name="custom_url_scheme">com.local.istqbfl</string>
 </resources>

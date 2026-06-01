@@ -16,6 +16,8 @@ android/local.properties
 # Generated packages
 *.apk
 *.aab
+*.jks
+*.keystore
 
 # OS/editor files
 .DS_Store

@@ -1,14 +1,16 @@
 {
   "name": "istqb-tablet-app",
-  "version": "1.0.0",
+  "version": "1.0.2-dev",
   "private": true,
   "description": "Android wrapper project for the ISTQB FL tablet app.",
   "scripts": {
     "serve": "node server.js",
-    "cap:init": "npx cap init \"ISTQB FL\" \"com.local.istqbfl\" --web-dir .",
+    "verify": "node scripts/verify.js",
+    "cap:init": "npx cap init \"ISTQB FL\" \"com.local.istqbfl\" --web-dir www",
     "cap:add:android": "npx cap add android",
     "cap:sync": "npx cap sync android",
-    "android:open": "npx cap open android"
+    "android:open": "npx cap open android",
+    "android:release": "cd android && gradlew.bat assembleRelease"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",
