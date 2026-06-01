@@ -1,4 +1,5 @@
 ---
+
 name: Feature request
 about: 기능 추가 또는 개선 요청
 title: "[Feature] "
@@ -77,7 +78,7 @@ assignees: ""
 
 ## 영향 범위
 
-이 기능이 영향을 줄 수 있는 영역을 작성해주세요.
+이 기능이 영향을 줄 수 있는 영역을 선택해주세요.
 
 * [ ] Frontend
 * [ ] Backend
