@@ -2098,17 +2098,20 @@
       }
 
 /* ── Topbar Home Button ── */
-.topbar-home-btn {
-  padding: 4px 10px;
+.topbar-actions .topbar-home-btn {
+  width: auto;
+  min-width: unset;
+  min-height: 36px;
+  padding: 4px 12px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   border: 1px solid var(--clr-border);
   border-radius: 6px;
   background: var(--clr-surface);
   color: var(--clr-text);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
-  margin-right: 8px;
+  margin-right: 4px;
 }
 .topbar-home-btn:hover {
   background: var(--clr-hover);
