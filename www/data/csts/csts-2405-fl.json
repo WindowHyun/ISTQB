@@ -1109,22 +1109,11 @@
           "type": "code",
           "lines": [
             "Bool p;",
-            "if(p)"
+            "if(p)",
+            "puts(\"p is true\");",
+            "if(!p)",
+            "puts(\"p is false\");"
           ]
-        },
-        {
-          "type": "paragraph",
-          "text": "puts(\"p is true\");"
-        },
-        {
-          "type": "code",
-          "lines": [
-            "if(!p)"
-          ]
-        },
-        {
-          "type": "paragraph",
-          "text": "puts(\"p is false\");"
         }
       ],
       "options": [

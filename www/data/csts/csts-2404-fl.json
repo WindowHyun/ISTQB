@@ -184,8 +184,12 @@
           "type": "list",
           "items": [
             {
-              "marker": "1.",
-              "text": "1 기능 1 1.2 기능 2"
+              "marker": "1.1",
+              "text": "기능 1"
+            },
+            {
+              "marker": "1.2",
+              "text": "기능 2"
             }
           ]
         },
@@ -197,8 +201,16 @@
           "type": "list",
           "items": [
             {
-              "marker": "2.",
-              "text": "1 성능 요구사항 2.2 보안 요구사항 2.3 신뢰성 요구사항"
+              "marker": "2.1",
+              "text": "성능 요구사항"
+            },
+            {
+              "marker": "2.2",
+              "text": "보안 요구사항"
+            },
+            {
+              "marker": "2.3",
+              "text": "신뢰성 요구사항"
             }
           ]
         }
@@ -1001,23 +1013,19 @@
       "stem": [
         {
           "type": "prompt",
-          "text": "다음 프로그램에 대해 자료흐름 분석을 수행하여 검출되는 자료 패턴 중에서 잠재적 오류 인 패턴은 무엇인가?"
-        },
-        {
-          "type": "paragraph",
-          "text": "1234567"
+          "text": "다음 프로그램에 대해 자료흐름 분석을 수행하여 검출되는 자료 패턴 중에서 잠재적 오류인 패턴은 무엇인가?"
         },
         {
           "type": "code",
           "lines": [
-            "int foo(int x) {",
-            "int y;",
-            "if (x==1)",
-            "y=x+1;",
-            "x=10;",
-            "return y;",
-            "y=10;",
-            "}"
+            "1 int foo(int x) {",
+            "2   int y;",
+            "3   if (x==1)",
+            "4     y=x+1;",
+            "5   x=10;",
+            "6   return y;",
+            "7   y=10;",
+            "8 }"
           ]
         }
       ],
@@ -1152,26 +1160,18 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "다음 코드에 대해 문장 커버리지와 결정 커버리지 100%를 만족시키기 위한 최소 테스트 케이 스 수는?"
-        },
-        {
-          "type": "paragraph",
-          "text": "1 READ P, Q 2 IF P+Q > 100 THEN 3 PRINT “P+Q IS LARGE”"
+          "text": "다음 코드에 대해 문장 커버리지와 결정 커버리지 100%를 만족시키기 위한 최소 테스트 케이스 수는?"
         },
         {
           "type": "code",
           "lines": [
-            "ENDIF"
-          ]
-        },
-        {
-          "type": "paragraph",
-          "text": "4 IF P > 50 THEN 5 PRINT “P IS LARGE”"
-        },
-        {
-          "type": "code",
-          "lines": [
-            "ENDIF"
+            "1 READ P, Q",
+            "2 IF P+Q > 100 THEN",
+            "3   PRINT \"P+Q IS LARGE\"",
+            "  ENDIF",
+            "4 IF P > 50 THEN",
+            "5   PRINT \"P IS LARGE\"",
+            "  ENDIF"
           ]
         }
       ],
@@ -1256,31 +1256,20 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "<보기>의 프로그램 코드에서 다중 조건 커버리지의 분모에 해당하는 “전체 프로그램 개별 조 건들의 조합 수”는 몇 개 인가?"
+          "text": "<보기>의 프로그램 코드에서 다중 조건 커버리지의 분모에 해당하는 “전체 프로그램 개별 조건들의 조합 수”는 몇 개 인가?"
         },
         {
           "type": "note",
           "text": "<보기>"
         },
         {
-          "type": "paragraph",
-          "text": "If ((x>1) and (y==1)){"
-        },
-        {
           "type": "code",
           "lines": [
-            "z=z/x;",
-            "}"
-          ]
-        },
-        {
-          "type": "paragraph",
-          "text": "If ((x==2) or (z>1)){"
-        },
-        {
-          "type": "code",
-          "lines": [
-            "z=z+1;",
+            "If ((x>1) and (y==1)){",
+            "  z=z/x;",
+            "}",
+            "If ((x==2) or (z>1)){",
+            "  z=z+1;",
             "}"
           ]
         }
