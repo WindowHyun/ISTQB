@@ -1,4 +1,4 @@
-const CACHE_NAME = "istqb-fl-v4-tablet-pwa-v32";
+const CACHE_NAME = "istqb-fl-v4-tablet-pwa-v34";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -38,7 +38,22 @@ const APP_SHELL = [
   "./source-visuals/C22-driving-table.png",
   "./source-visuals/D22-classification-table.png",
   "./source-visuals/D23-hotel-transition.png",
-  "./source-visuals/D32-traceability.png"
+  "./source-visuals/D32-traceability.png",
+  "./csts-figures/2402FL-27.png",
+  "./csts-figures/2402FL-27-2.png",
+  "./csts-figures/2402FL-27-3.png",
+  "./csts-figures/2402FL-27-4.png",
+  "./csts-figures/2403FL-2.png",
+  "./csts-figures/2403FL-11.png",
+  "./csts-figures/2403FL-11-2.png",
+  "./csts-figures/2403FL-11-3.png",
+  "./csts-figures/2403FL-11-4.png",
+  "./csts-figures/2403FL-60.png",
+  "./csts-figures/2405FL-30.png",
+  "./csts-figures/2405FL-30-2.png",
+  "./csts-figures/2405FL-30-3.png",
+  "./csts-figures/2405FL-30-4.png",
+  "./csts-figures/SW-CSTS-7.png"
 ];
 
 self.addEventListener("install", (event) => {

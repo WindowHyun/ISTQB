@@ -18,7 +18,7 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "잠재적 결함을 포함하지 않는 요구사항은 무엇인가?"
         }
       ],
@@ -45,8 +45,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -64,8 +64,12 @@
           "text": "다음 중에서 품질 보증, 테스트, V&V의 관계를 가장 잘 표현 하고 있는 것은?"
         },
         {
+          "type": "note",
+          "text": "※ A ＜ B는 A의 개념보다 B가 더 광범위한 용어임을 의미한다. A = B는 A와 B가 동일한 범"
+        },
+        {
           "type": "paragraph",
-          "text": "※ A ＜ B는 A의 개념보다 B가 더 광범위한 용어임을 의미한다. A = B는 A와 B가 동일한 범 위를 가짐을 의미한다."
+          "text": "위를 가짐을 의미한다."
         }
       ],
       "options": [
@@ -91,8 +95,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -106,14 +110,14 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "다음 중 테스트에 관한 국제 표준은 무엇인가?"
         }
       ],
       "options": [
         {
           "key": "a",
-          "text": "ISO/IEC/IEEE29119"
+          "text": "ISO/IEC/IEEE 29119"
         },
         {
           "key": "b",
@@ -133,8 +137,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -148,11 +152,11 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
-          "text": "<보기>의 요구사항 명세서 기준으로 반드시 수행되어야 할 테스트 유형으로 올바르지 않은것은?"
+          "type": "prompt",
+          "text": "<보기>의 요구사항 명세서 기준으로 반드시 수행되어야 할 테스트 유형으로 올바르지 않은 것은?"
         },
         {
-          "type": "paragraph",
+          "type": "note",
           "text": "<보기>"
         },
         {
@@ -160,28 +164,26 @@
           "text": "1. 기능적 요구사항"
         },
         {
-          "type": "paragraph",
-          "text": "1.1 기능 1"
-        },
-        {
-          "type": "paragraph",
-          "text": "1.2 기능 2"
+          "type": "list",
+          "items": [
+            {
+              "marker": "1.",
+              "text": "1 기능 1 1.2 기능 2"
+            }
+          ]
         },
         {
           "type": "paragraph",
           "text": "2. 품질 요구사항"
         },
         {
-          "type": "paragraph",
-          "text": "2.1 성능 요구사항"
-        },
-        {
-          "type": "paragraph",
-          "text": "2.2 보안 요구사항"
-        },
-        {
-          "type": "paragraph",
-          "text": "2.3 신뢰성 요구사항"
+          "type": "list",
+          "items": [
+            {
+              "marker": "2.",
+              "text": "1 성능 요구사항 2.2 보안 요구사항 2.3 신뢰성 요구사항"
+            }
+          ]
         }
       ],
       "options": [
@@ -207,8 +209,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -253,8 +255,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -268,7 +270,7 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "다음 테스트 종류 중, 분류 기준이 다른 하나는 무엇인가?"
         }
       ],
@@ -295,8 +297,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -310,7 +312,7 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "인수 테스트에 대한 다음의 설명 중 올바르지 않은 것은?"
         }
       ],
@@ -337,8 +339,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -379,8 +381,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -395,7 +397,7 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "아래와 같은 시스템 구성에서 성능 테스트의 단계적 접근 방식 중 ⓑ에 대한 설명으로 올바른 것은?"
+          "text": "아래와 같은 시스템 구성에서 성능 테스트의 단계적 접근 방식 중 ⓑ에 대한 설명으로 올바른것은?"
         }
       ],
       "options": [
@@ -421,8 +423,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -463,8 +465,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -509,8 +511,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -524,7 +526,7 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "다음 중 이식성 테스팅에 대한 설명으로 올바른 것은?"
         }
       ],
@@ -551,8 +553,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -566,7 +568,7 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "다음에서 ISO/IEC 25010 품질 특성 중 주특성인 보안성에 대한 부특성으로 올바르지 않은 것은?"
         }
       ],
@@ -593,8 +595,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -608,11 +610,11 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "<보기>는 소프트웨어 유지보수 활동의 비율을 나타내고 있다. 이에 대한 설명으로 올바르지 않은 것은?"
         },
         {
-          "type": "paragraph",
+          "type": "note",
           "text": "<보기>"
         }
       ],
@@ -639,8 +641,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -654,7 +656,7 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "V-모델의 테스트 활동에 대한 설명으로 올바른 것은?"
         }
       ],
@@ -681,8 +683,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -696,7 +698,7 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "나선형 모델에서 나타나는 테스트의 특징으로 올바르지 않은 것은?"
         }
       ],
@@ -723,8 +725,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -738,8 +740,8 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
-          "text": "다음은 테스트 케이스를 먼저 작성하고, 이 테스트 케이스로 테스트 되는 실제 프로그램의 코드를 나중에 작성하는 TDD 프로세스이다. TDD 방식을 사용하는 가장 대표적인 소프트웨어 개발 모델은 무엇인가?"
+          "type": "prompt",
+          "text": "다음은 테스트 케이스를 먼저 작성하고, 이 테스트 케이스로 테스트 되는 실제 프로그램의 코 드를 나중에 작성하는 TDD 프로세스이다. TDD 방식을 사용하는 가장 대표적인 소프트웨어 개발 모델은 무엇인가?"
         }
       ],
       "options": [
@@ -765,8 +767,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -780,7 +782,7 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "다음 중 인스펙션과 워크쓰루의 차이를 올바르게 설명한 것은 무엇인가?"
         }
       ],
@@ -807,8 +809,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -822,7 +824,7 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "기술 리뷰에 대한 설명으로 올바르지 않은 것은?"
         }
       ],
@@ -849,8 +851,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -891,8 +893,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -933,8 +935,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -948,7 +950,7 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "코딩 표준을 준수하여 얻을 수 있는 장점으로 올바르지 않은 것은?"
         }
       ],
@@ -975,8 +977,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -990,16 +992,20 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
-          "text": "다음 제어 흐름 그래프(Control Flow Graph)를 이용한 순환 복잡도(Cyclomatic Complexity) 계산에 대한 내용 중 올바르지 않은 것은?"
+          "type": "prompt",
+          "text": "다음 제어 흐름 그래프(Control Flow Graph)를 이용한 순환 복잡도(Cyclomatic Complexity) 계 산에 대한 내용 중 올바르지 않은 것은?"
         },
         {
           "type": "paragraph",
           "text": "<제어 흐름 그래프>"
         },
         {
+          "type": "note",
+          "text": "※ McCabe Cyclomatic Complexity 계산법은 아래와 같다. (단, Program 값은 1)"
+        },
+        {
           "type": "paragraph",
-          "text": "※ McCabe Cyclomatic Complexity 계산법은 아래와 같다. (단, Program 값은 1) 계산법 : Edge - Node + (2 x Program)"
+          "text": "계산법: Edge – Node + (2 x Program)"
         }
       ],
       "options": [
@@ -1025,8 +1031,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1044,32 +1050,45 @@
           "text": "다음 보기에서 동일한 유형의 테스트 설계 기법으로만 짝 지어진 것은?"
         },
         {
-          "type": "paragraph",
-          "text": "A. 상태 전이 테스트"
+          "type": "list",
+          "items": [
+            {
+              "marker": "A.",
+              "text": "상태 전이 테스트"
+            },
+            {
+              "marker": "B.",
+              "text": "자료 흐름 테스트"
+            },
+            {
+              "marker": "C.",
+              "text": "문장 테스트"
+            },
+            {
+              "marker": "D.",
+              "text": "시나리오 테스트"
+            },
+            {
+              "marker": "E.",
+              "text": "동등 분할 테스트"
+            },
+            {
+              "marker": "F.",
+              "text": "분류 트리 테스트"
+            },
+            {
+              "marker": "G.",
+              "text": "페어와이즈 테스트"
+            },
+            {
+              "marker": "H.",
+              "text": "경계값 분석 테스트"
+            }
+          ]
         },
         {
           "type": "paragraph",
-          "text": "F. 분류 트리 테스트"
-        },
-        {
-          "type": "paragraph",
-          "text": "B. 자료 흐름 테스트 G. 페어와이즈 테스트"
-        },
-        {
-          "type": "paragraph",
-          "text": "C. 문장 테스트 H. 경계값 분석 테스트"
-        },
-        {
-          "type": "paragraph",
-          "text": "D. 시나리오 테스트"
-        },
-        {
-          "type": "paragraph",
-          "text": "I. MC/DC 테스트"
-        },
-        {
-          "type": "paragraph",
-          "text": "E. 동등 분할 테스트 J. 결정 테이블 테스트"
+          "text": "I. MC/DC 테스트 J. 결정 테이블 테스트"
         }
       ],
       "options": [
@@ -1095,8 +1114,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1110,24 +1129,27 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "다음 <보기>의 프로그램에 대하여 100% 문장 커버리지를 만족하는 테스트 데이터는 무엇인가?"
         },
         {
           "type": "paragraph",
-          "text": "(※ 단, short circuit evaluation은 없다고 가정한다.) <보기>"
+          "text": "(※ 단, short circuit evaluation은 없다고 가정한다.)"
         },
         {
-          "type": "paragraph",
-          "text": "IF (( X > 1 ) AND ( Y == 1 )) Z = Z / X"
+          "type": "note",
+          "text": "<보기>"
         },
         {
-          "type": "paragraph",
-          "text": "END IF (( X == 2 ) OR ( Z > 1 )) Z = Z + 1"
-        },
-        {
-          "type": "paragraph",
-          "text": "END"
+          "type": "code",
+          "lines": [
+            "IF (( X > 1 ) AND ( Y == 1 ))",
+            "Z = Z / X",
+            "END",
+            "IF (( X == 2 ) OR ( Z > 1 ))",
+            "Z = Z + 1",
+            "END"
+          ]
         }
       ],
       "options": [
@@ -1153,8 +1175,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1168,7 +1190,7 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "<보기>와 같은 제어 흐름 그래프에 대해 커버하는 경로가 각기 다른 3개의 테스트 케이스를 실행하였을 때 결정 커버리지 달성에 대한 설명으로 올바른 것은?"
         },
         {
@@ -1199,8 +1221,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1214,24 +1236,40 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "커버리지 간의 포용 관계를 도식화한 것 중 올바른 것은?"
         },
         {
-          "type": "paragraph",
-          "text": "__IMAGE__:csts-figures/2402FL-27.png"
+          "type": "note",
+          "text": "그림 1"
         },
         {
-          "type": "paragraph",
-          "text": "__IMAGE__:csts-figures/2402FL-27-2.png"
+          "type": "image",
+          "src": "csts-figures/2402FL-27.png"
         },
         {
-          "type": "paragraph",
-          "text": "__IMAGE__:csts-figures/2402FL-27-3.png"
+          "type": "note",
+          "text": "그림 2"
         },
         {
-          "type": "paragraph",
-          "text": "__IMAGE__:csts-figures/2402FL-27-4.png"
+          "type": "image",
+          "src": "csts-figures/2402FL-27-2.png"
+        },
+        {
+          "type": "note",
+          "text": "그림 3"
+        },
+        {
+          "type": "image",
+          "src": "csts-figures/2402FL-27-3.png"
+        },
+        {
+          "type": "note",
+          "text": "그림 4"
+        },
+        {
+          "type": "image",
+          "src": "csts-figures/2402FL-27-4.png"
         }
       ],
       "options": [
@@ -1257,8 +1295,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1272,18 +1310,18 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
-          "text": "다음의 명세를 동등 분할 테스트를 수행하기 위하여 테스트 케이스를 설계할 때 유효한 출력 에 바탕을 둔 테스트 입력은 무엇인가?"
+          "type": "prompt",
+          "text": "다음의 명세를 동등 분할 테스트를 수행하기 위하여 테스트 케이스를 설계할 때 유효한 출력에 바탕을 둔 테스트 입력은 무엇인가?"
         },
         {
           "type": "paragraph",
-          "text": "공연 티켓을 예매하는 시스템에서 티켓의 수량을 입력하는 필드가 있다. 한 사람이 한 번에 구 매할 수 있는 수량은 1장에서 5장까지이다. 1보다 작거나 5보다 큰 숫자가 입력되거나 정수가 아닌 값이 입력되면 “invalid input” 메시지가 출력된다."
+          "text": "공연 티켓을 예매하는 시스템에서 티켓의 수량을 입력하는 필드가 있다. 한 사람이 한 번에 구매할 수 있는 수량은 1장에서 5장까지이다. 1보다 작거나 5보다 큰 숫자가 입력되거나 정수가 아닌 값이 입력되면 “invalid input” 메시지가 출력된다."
         }
       ],
       "options": [
         {
           "key": "a",
-          "text": "입력 수량을 -5로 테스트한다."
+          "text": "입력 수량을 –5로 테스트한다."
         },
         {
           "key": "b",
@@ -1303,8 +1341,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1318,7 +1356,7 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "입력 인자(X)에 대해 10≤X≤20 제약조건이 있는 시스템을 개발 중이다. 개발자 실수로 X≤20 조건을 누락하여 10≤X로 구현하였을 때, 다음 중 경계 누락 오류를 찾을 가능성이 가장 높은 테스트 입력 값은 무엇인가?"
         }
       ],
@@ -1345,8 +1383,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1361,15 +1399,36 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "다음 중 입력 인자와 클래스의 개수가 <보기>와 같을 때, 생성되는 테스트 케이스 개수 순서대로 올바르게 나열한 것은? (적은 것 → 많은 것) <보기>"
+          "text": "다음 중 입력 인자와 클래스의 개수가 <보기>와 같을 때, 생성되는 테스트 케이스 개수 순서 대로 올바르게 나열한 것은? (적은 것 → 많은 것)"
+        },
+        {
+          "type": "note",
+          "text": "<보기>"
         },
         {
           "type": "paragraph",
-          "text": "목적지 등급 좌석 파리 퍼스트 창가 런던 비즈니스 통로 이코노미"
+          "text": "목적지등급좌석파리퍼스트창가런던 비즈니스통로 이코노미 Base Choice 테스트 적용할 때 기반이 되는 테스트 조합: (파리, 퍼스트, 창가)"
         },
         {
-          "type": "paragraph",
-          "text": "Base Choice 테스트 적용할 때 기반이 되는 테스트 조합: (파리, 퍼스트, 창가) (가) Each choice 테스트 (나) Pairwise 테스트 (다) All combinations 테스트 (라) Base choice 테스트"
+          "type": "list",
+          "items": [
+            {
+              "marker": "(가)",
+              "text": "Each choice 테스트"
+            },
+            {
+              "marker": "(나)",
+              "text": "Pairwise 테스트"
+            },
+            {
+              "marker": "(다)",
+              "text": "All combinations 테스트"
+            },
+            {
+              "marker": "(라)",
+              "text": "Base choice 테스트"
+            }
+          ]
         }
       ],
       "options": [
@@ -1395,8 +1454,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1411,171 +1470,100 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "아래의 입력 인자 기반으로 IPO 알고리즘을 사용하여 테스트 케이스를 도출하였다. 빈칸에 들어갈 수 있는 테스트 데이터는 무엇인가?"
+          "text": "아래의 입력 인자 기반으로 IPO 알고리즘을 사용하여 테스트 케이스를 도출하였다."
         },
         {
-          "type": "paragraph",
-          "text": "입력 인자"
+          "type": "prompt",
+          "text": "빈칸에 들어갈 수 있는 테스트 데이터는 무엇인가?"
         },
         {
-          "type": "paragraph",
-          "text": "A"
-        },
-        {
-          "type": "paragraph",
-          "text": "B"
-        },
-        {
-          "type": "paragraph",
-          "text": "C 값"
-        },
-        {
-          "type": "paragraph",
-          "text": "A1"
-        },
-        {
-          "type": "paragraph",
-          "text": "B1"
-        },
-        {
-          "type": "paragraph",
-          "text": "C1"
-        },
-        {
-          "type": "paragraph",
-          "text": "A2"
-        },
-        {
-          "type": "paragraph",
-          "text": "B2"
-        },
-        {
-          "type": "paragraph",
-          "text": "C2"
-        },
-        {
-          "type": "paragraph",
-          "text": "A3"
-        },
-        {
-          "type": "paragraph",
-          "text": "-"
-        },
-        {
-          "type": "paragraph",
-          "text": "C3 테스트 케이스"
-        },
-        {
-          "type": "paragraph",
-          "text": "A"
-        },
-        {
-          "type": "paragraph",
-          "text": "B"
-        },
-        {
-          "type": "paragraph",
-          "text": "C"
-        },
-        {
-          "type": "paragraph",
-          "text": "A1"
-        },
-        {
-          "type": "paragraph",
-          "text": "B1"
-        },
-        {
-          "type": "paragraph",
-          "text": "C1"
-        },
-        {
-          "type": "paragraph",
-          "text": "A1"
-        },
-        {
-          "type": "paragraph",
-          "text": "B2"
-        },
-        {
-          "type": "paragraph",
-          "text": "C2"
-        },
-        {
-          "type": "paragraph",
-          "text": "A2"
-        },
-        {
-          "type": "paragraph",
-          "text": "B1"
-        },
-        {
-          "type": "paragraph",
-          "text": "C3"
-        },
-        {
-          "type": "paragraph",
-          "text": "A2"
-        },
-        {
-          "type": "paragraph",
-          "text": "B2"
-        },
-        {
-          "type": "paragraph",
-          "text": "C1"
-        },
-        {
-          "type": "paragraph",
-          "text": "A3"
-        },
-        {
-          "type": "paragraph",
-          "text": "B1"
-        },
-        {
-          "type": "paragraph",
-          "text": "C2"
-        },
-        {
-          "type": "paragraph",
-          "text": "A3"
-        },
-        {
-          "type": "paragraph",
-          "text": "B2"
-        },
-        {
-          "type": "paragraph",
-          "text": "C3"
-        },
-        {
-          "type": "paragraph",
-          "text": "A1"
-        },
-        {
-          "type": "paragraph",
-          "text": "-"
-        },
-        {
-          "type": "paragraph",
-          "text": "C3"
-        },
-        {
-          "type": "paragraph",
-          "text": "A2"
-        },
-        {
-          "type": "paragraph",
-          "text": "-"
-        },
-        {
-          "type": "paragraph",
-          "text": "C2 ( )"
-        },
-        {
-          "type": "paragraph",
-          "text": "- ( )"
+          "type": "table",
+          "rows": [
+            [
+              "입력 인자",
+              "A",
+              "B",
+              "C"
+            ],
+            [
+              "값",
+              "A1",
+              "B1",
+              "C1"
+            ],
+            [
+              "",
+              "A2",
+              "B2",
+              "C2"
+            ],
+            [
+              "",
+              "A3",
+              "-",
+              "C3"
+            ],
+            [
+              "테스트 케이스",
+              "A",
+              "B",
+              "C"
+            ],
+            [
+              "",
+              "A1",
+              "B1",
+              "C1"
+            ],
+            [
+              "",
+              "A1",
+              "B2",
+              "C2"
+            ],
+            [
+              "",
+              "A2",
+              "B1",
+              "C3"
+            ],
+            [
+              "",
+              "A2",
+              "B2",
+              "C1"
+            ],
+            [
+              "",
+              "A3",
+              "B1",
+              "C2"
+            ],
+            [
+              "",
+              "A3",
+              "B2",
+              "C3"
+            ],
+            [
+              "",
+              "A1",
+              "-",
+              "C3"
+            ],
+            [
+              "",
+              "A2",
+              "-",
+              "C2"
+            ],
+            [
+              "",
+              "( )",
+              "-",
+              "( )"
+            ]
+          ]
         }
       ],
       "options": [
@@ -1601,8 +1589,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1616,8 +1604,8 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
-          "text": "자동차 보험료를 산정하는 소프트웨어가 있다. 자동차 보험료는 운전 경력, 사고 횟수, 결혼 여부, 나이 및 성별과 같은 다양한 조건에 따라 산정된다. 자동차 보험료 산정 소프트웨어를 테스트하는데 가장 적합한 테스트 방법은 무엇인가?"
+          "type": "prompt",
+          "text": "자동차 보험료를 산정하는 소프트웨어가 있다. 자동차 보험료는 운전 경력, 사고 횟수, 결혼 여부, 나이 및 성별과 같은 다양한 조건에 따라 산정된다. 자동차 보험료 산정 소프트웨어를 테스트 하는데 가장 적합한 테스트 방법은 무엇인가?"
         }
       ],
       "options": [
@@ -1643,8 +1631,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1658,28 +1646,33 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "시스템의 상태 전이도를 기반으로 테스트 케이스를 도출하는 절차로 올바른 것은?"
         },
         {
-          "type": "paragraph",
+          "type": "note",
           "text": "<보기>"
         },
         {
-          "type": "paragraph",
-          "text": "(가) 비정상적인 전이를 테스트하는 테스트 케이스를 생성한다."
-        },
-        {
-          "type": "paragraph",
-          "text": "(나) 상태 전이도로부터 전이 트리를 만든다."
-        },
-        {
-          "type": "paragraph",
-          "text": "(다) 대상 시스템의 상태 전이도를 모델링한다."
-        },
-        {
-          "type": "paragraph",
-          "text": "(라) 전이 트리로부터 각 전이 경로를 테스트하는 테스트 케이스를 생성한다."
+          "type": "list",
+          "items": [
+            {
+              "marker": "(가)",
+              "text": "비정상적인 전이를 테스트하는 테스트 케이스를 생성한다."
+            },
+            {
+              "marker": "(나)",
+              "text": "상태 전이도로부터 전이 트리를 만든다."
+            },
+            {
+              "marker": "(다)",
+              "text": "대상 시스템의 상태 전이도를 모델링한다."
+            },
+            {
+              "marker": "(라)",
+              "text": "전이 트리로부터 각 전이 경로를 테스트하는 테스트 케이스를 생성한다."
+            }
+          ]
         }
       ],
       "options": [
@@ -1705,8 +1698,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1747,8 +1740,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1789,8 +1782,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1808,20 +1801,25 @@
           "text": "테스트 관리를 위해 수행하는 활동이 일어나는 순서대로 올바르게 나열한 것은?"
         },
         {
-          "type": "paragraph",
+          "type": "note",
           "text": "<보기>"
         },
         {
-          "type": "paragraph",
-          "text": "(가) 테스트 현황을 파악하고 테스트 활동을 적절하게 제어한다."
-        },
-        {
-          "type": "paragraph",
-          "text": "(나) 테스트 대상과 범위를 식별하여 테스트 전략을 수립한다."
-        },
-        {
-          "type": "paragraph",
-          "text": "(다) 생성된 산출물을 관리하고 테스트 환경을 정리한다."
+          "type": "list",
+          "items": [
+            {
+              "marker": "(가)",
+              "text": "테스트 현황을 파악하고 테스트 활동을 적절하게 제어한다."
+            },
+            {
+              "marker": "(나)",
+              "text": "테스트 대상과 범위를 식별하여 테스트 전략을 수립한다."
+            },
+            {
+              "marker": "(다)",
+              "text": "생성된 산출물을 관리하고 테스트 환경을 정리한다."
+            }
+          ]
         }
       ],
       "options": [
@@ -1847,8 +1845,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1889,8 +1887,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1904,7 +1902,7 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "테스트 계획에 대한 설명으로 올바르지 않은 것은?"
         }
       ],
@@ -1931,8 +1929,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1973,8 +1971,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1988,20 +1986,25 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "다음 보기의 설명에 부합하는 테스트 설계기법은 무엇인가?"
         },
         {
-          "type": "paragraph",
-          "text": "- 검토할 산출물의 작성자가 아닌 별도의 주재자에 의한 진행되며, 공식적 리뷰 활동 임"
-        },
-        {
-          "type": "paragraph",
-          "text": "- 요구사항정의 및 설계 산출물, 개발 단계의 소스코드를 대상으로 진행할 수 있음"
-        },
-        {
-          "type": "paragraph",
-          "text": "- 소프트웨어 제품 승인에 대한 명확한 시작과 종료 조건을 제시해야 함"
+          "type": "list",
+          "items": [
+            {
+              "marker": "-",
+              "text": "검토할 산출물의 작성자가 아닌 별도의 주재자에 의한 진행되며, 공식적 리뷰 활동 임"
+            },
+            {
+              "marker": "-",
+              "text": "요구사항정의 및 설계 산출물, 개발 단계의 소스코드를 대상으로 진행할 수 있음"
+            },
+            {
+              "marker": "-",
+              "text": "소프트웨어 제품 승인에 대한 명확한 시작과 종료 조건을 제시해야 함"
+            }
+          ]
         }
       ],
       "options": [
@@ -2027,8 +2030,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2069,8 +2072,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2084,8 +2087,8 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
-          "text": "테스트 담당자 A씨는 고객이 요청한 기능이 충분히 테스트 되었는지 테스트 메트릭을 활용하여 확인하고자 한다. 이를 위한 테스트 메트릭으로 가장 적절한 것은 무엇인가?"
+          "type": "prompt",
+          "text": "테스트 담당자 A씨는 고객이 요청한 기능이 충분히 테스트 되었는지 테스트 메트릭을 활용하 여 확인하고자 한다. 이를 위한 테스트 메트릭으로 가장 적절한 것은 무엇인가?"
         }
       ],
       "options": [
@@ -2111,8 +2114,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2126,28 +2129,42 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "다음 보기에서 테스트 분석 및 설계에 대한 올바른 설명을 모두 고른 것은 무엇인가?"
         },
         {
-          "type": "paragraph",
-          "text": "(가) 테스트 수행 시 사용될 테스트 케이스에 대한 생성 및 확보 전략을 수립한다."
+          "type": "list",
+          "items": [
+            {
+              "marker": "(가)",
+              "text": "테스트 수행 시 사용될 테스트 케이스에 대한 생성 및 확보 전략을 수립한다."
+            },
+            {
+              "marker": "(나)",
+              "text": "테스트 계획서에 기술된 테스트 목적을 달성하기 위한 구체적인 테스트 접근 방법"
+            }
+          ]
         },
         {
           "type": "paragraph",
-          "text": "(나) 테스트 계획서에 기술된 테스트 목적을 달성하기 위한 구체적인 테스트 접근 방법 을 정의한다."
+          "text": "을 정의한다."
         },
         {
-          "type": "paragraph",
-          "text": "(다) 테스트 수행에 앞서 테스트에 사용될 테스트 데이터를 준비한다."
-        },
-        {
-          "type": "paragraph",
-          "text": "(라) 테스트를 수행하기 위한 테스트 절차서를 작성한다."
-        },
-        {
-          "type": "paragraph",
-          "text": "(마) 효과적인 커버리지 달성을 위하여 테스트 케이스는 가능한 한 많이 작성한다."
+          "type": "list",
+          "items": [
+            {
+              "marker": "(다)",
+              "text": "테스트 수행에 앞서 테스트에 사용될 테스트 데이터를 준비한다."
+            },
+            {
+              "marker": "(라)",
+              "text": "테스트를 수행하기 위한 테스트 절차서를 작성한다."
+            },
+            {
+              "marker": "(마)",
+              "text": "효과적인 커버리지 달성을 위하여 테스트 케이스는 가능한 한 많이 작성한다."
+            }
+          ]
         }
       ],
       "options": [
@@ -2173,8 +2190,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2215,8 +2232,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2230,7 +2247,7 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "테스트 레벨별 테스트 환경에 대한 설명으로 올바르지 않은 것은?"
         }
       ],
@@ -2257,8 +2274,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2272,7 +2289,7 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "테스트를 실행하는 주체는 테스트 수준에 따라서 달라질 수 있다. 다음 중 수준별 테스트를 실행하는 일반적인 주체가 올바른 것은 무엇인가?"
         }
       ],
@@ -2299,8 +2316,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2341,8 +2358,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2356,7 +2373,7 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "다음 중 테스트 모니터링 및 제어 활동으로 올바르지 않은 것은?"
         }
       ],
@@ -2383,8 +2400,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2398,11 +2415,11 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
-          "text": "<보기>는 테스트가 진행되면서 발생된 결함의 상태별 누적 개수를 보여준다. 이에 대한 설명으로 올바르지 않은 것은?"
+          "type": "prompt",
+          "text": "<보기>는 테스트가 진행되면서 발생된 결함의 상태별 누적 개수를 보여준다. 이에 대한 설명 으로 올바르지 않은 것은?"
         },
         {
-          "type": "paragraph",
+          "type": "note",
           "text": "<보기>"
         }
       ],
@@ -2429,8 +2446,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2444,7 +2461,7 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "테스트 모니터링 및 제어활동의 주요산출물인 테스트 현황 보고서의 항목으로 올바르지 않은 것은?"
         }
       ],
@@ -2471,8 +2488,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2505,8 +2522,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2543,8 +2560,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2577,8 +2594,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2593,7 +2610,7 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "모델기반 테스트는 잘 구축된 모델을 통한 테스트 자동화뿐 아니라, 테스트 모델 구축의 자 동화도 가능하게 하여 효율적인 테스트를 수행할 수 있다. ( O / X )"
+          "text": "모델 기반 테스트는 잘 구축된 모델을 통한 테스트 자동화뿐 아니라, 테스트 모델 구축의 자 동화도 가능하게 하여 효율적인 테스트를 수행할 수 있다. ( O / X )"
         }
       ],
       "options": [
@@ -2611,8 +2628,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2645,8 +2662,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2661,11 +2678,25 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "<보기>의 프로그램에 x=0, y=1 을 입력하여 테스트한다면, 문장 커버리지 100%를 달성할 수 있다. (O/X) <보기>"
+          "text": "<보기>의 프로그램에 x=0, y=1 을 입력하여 테스트한다면, 문장 커버리지 100%를 달성할 수 있다. (O/X)"
         },
         {
-          "type": "paragraph",
-          "text": "int foo (int x ,int y ) { int z =0 ; if ((x >0 )&&(y >0 )) { z =x ; } return z ; }"
+          "type": "note",
+          "text": "<보기>"
+        },
+        {
+          "type": "code",
+          "lines": [
+            "int foo (int x,int y )",
+            "{",
+            "int z =0;",
+            "if ((x >0 )&&(y >0 ))",
+            "{",
+            "z =x;",
+            "}",
+            "return z;",
+            "}"
+          ]
         }
       ],
       "options": [
@@ -2683,8 +2714,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2717,8 +2748,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2751,8 +2782,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2767,7 +2798,7 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "결함의 심각도 또는 우선순위에 상관없이 모든 결함은 동일한 결함 생명주기에 따라 처리된다."
+          "text": "결함의 심각도 또는 우선순위에 상관없이 모든 결함은 동일한 결함 생명 주기에 따라 처리된다."
         },
         {
           "type": "paragraph",
@@ -2789,8 +2820,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2823,8 +2854,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2842,12 +2873,26 @@
           "text": "빈칸에 공통으로 들어갈 알맞은 용어를 작성하시오."
         },
         {
-          "type": "paragraph",
-          "text": "- ( ) 테스팅은 프로그램 제어 흐름이나 자료 흐름 정보를 이용하여 테스트 케이스를 설계하는 방법이다."
+          "type": "list",
+          "items": [
+            {
+              "marker": "-",
+              "text": "( ) 테스팅은 프로그램 제어 흐름이나 자료 흐름 정보를 이용하여 테스트 케이스를"
+            }
+          ]
         },
         {
           "type": "paragraph",
-          "text": "- 가장 이상적인 ( ) 테스팅은 모든 경로를 최소한 한번은 실행하여 테스트하는 것이다."
+          "text": "설계하는 방법이다."
+        },
+        {
+          "type": "list",
+          "items": [
+            {
+              "marker": "-",
+              "text": "가장 이상적인 ( ) 테스팅은 모든 경로를 최소한 한번은 실행하여 테스트하는 것이다."
+            }
+          ]
         }
       ],
       "options": [],
@@ -2856,8 +2901,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2881,18 +2926,18 @@
       ],
       "options": [],
       "answer": [
-        "단위 테스트(또는 테스팅), Unit Test(또는 Testing) 컴포넌트 테스트(또는 테스팅), Component Test(또는 Testing) 2024-06-15"
+        "단위 테스트(또는 테스팅), Unit Test(또는 Testing) 컴포넌트 테스트(또는 테스팅), Component Test(또는 Testing)"
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "단위 테스트(또는 테스팅), Unit Test(또는 Testing) 컴포넌트 테스트(또는 테스팅), Component Test(또는 Testing) 2024-06-15"
+      "answerText": "단위 테스트(또는 테스팅), Unit Test(또는 Testing) 컴포넌트 테스트(또는 테스팅), Component Test(또는 Testing)"
     },
     {
       "id": "CSTS-FL-2402-063",
@@ -2910,8 +2955,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2925,7 +2970,7 @@
       "type": "short_answer",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "다음 빈칸에 알맞은 테스팅 방법은 무엇인가?"
         },
         {
@@ -2939,8 +2984,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2964,8 +3009,8 @@
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -2985,18 +3030,18 @@
       ],
       "options": [],
       "answer": [
-        "누락 결함, (요구사항이)구현되지 않은 결함 2024-06-15"
+        "누락 결함, (요구사항이)구현되지 않은 결함"
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "누락 결함, (요구사항이)구현되지 않은 결함 2024-06-15"
+      "answerText": "누락 결함, (요구사항이)구현되지 않은 결함"
     },
     {
       "id": "CSTS-FL-2402-067",
@@ -3004,32 +3049,28 @@
       "type": "short_answer",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "다음은 명세기반 테스트 기법을 설명한 것이다. 빈칸에 들어갈 알맞은 용어는 무엇인가?"
         },
         {
           "type": "paragraph",
           "text": "( ) 테스트는 소프트웨어나 시스템 입력의 결과로 입력값 / 출력값 영역을 유한 개의 상호 독립적인 집합으로 나누어 수학적인 등가 집합을 만든 후, 각 등가 집합의 원소 중 대표 값을 선택하여 테스트 케이스를 도출하는 기법이다."
-        },
-        {
-          "type": "paragraph",
-          "text": "동등 분할(클래스), 동치 분할, 동등 클래스 분할, 등가 분할"
         }
       ],
       "options": [],
       "answer": [
-        "Equivalence partitioning"
+        "동등 분할(클래스), 동치 분할, 동등 클래스 분할, 등가 분할 Equivalence partitioning"
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "Equivalence partitioning"
+      "answerText": "동등 분할(클래스), 동치 분할, 동등 클래스 분할, 등가 분할 Equivalence partitioning"
     },
     {
       "id": "CSTS-FL-2402-068",
@@ -3038,27 +3079,23 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "( )은 개발자가 범할 수 있는 실수를 추정하고 이에 따른 결함이 검출되도록 테스트 케이스를 설계하는 경험 기반 테스트 방법 중 하나이다. 즉, 특정 테스트 대상이 주어지면 테스터의 경험과 직관을 바탕으로 개발자가 범할 수 있는 실수를 나열하고, 해당 실수에 따른 결함 을 발견한다."
-        },
-        {
-          "type": "paragraph",
-          "text": "오류 추정 , 에러 추정, 에러 추정 테스트, 오류 추정 기반 테스트, 오류 추정"
+          "text": "( )은 개발자가 범할 수 있는 실수를 추정하고 이에 따른 결함이 검출되도록 테스트 케이스를 설계하는 경험 기반 테스트 방법 중 하나이다. 즉, 특정 테스트 대상이 주어지면 테스 터의 경험과 직관을 바탕으로 개발자가 범할 수 있는 실수를 나열하고, 해당 실수에 따른 결함 을 발견한다."
         }
       ],
       "options": [],
       "answer": [
-        "기반 방법"
+        "오류 추정, 에러 추정, 에러 추정 테스트, 오류 추정 기반 테스트, 오류 추정 기반 방법"
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "기반 방법"
+      "answerText": "오류 추정, 에러 추정, 에러 추정 테스트, 오류 추정 기반 테스트, 오류 추정 기반 방법"
     },
     {
       "id": "CSTS-FL-2402-069",
@@ -3067,39 +3104,48 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "<보기>의 설명에 해당하는 테스트 산출물은 무엇인가? ( ) <보기>"
+          "text": "<보기>의 설명에 해당하는 테스트 산출물은 무엇인가? ( )"
         },
         {
-          "type": "paragraph",
-          "text": "- 테스트 대상 및 범위를 기술한다."
+          "type": "note",
+          "text": "<보기>"
         },
         {
-          "type": "paragraph",
-          "text": "- 테스트의 가정 및 제약 사항을 포함한다."
-        },
-        {
-          "type": "paragraph",
-          "text": "- 테스트 중단 및 재시작 기준을 결정한다."
-        },
-        {
-          "type": "paragraph",
-          "text": "- 테스트 조직 및 인력 구성에 대해 기술한다."
+          "type": "list",
+          "items": [
+            {
+              "marker": "-",
+              "text": "테스트 대상 및 범위를 기술한다."
+            },
+            {
+              "marker": "-",
+              "text": "테스트의 가정 및 제약 사항을 포함한다."
+            },
+            {
+              "marker": "-",
+              "text": "테스트 중단 및 재시작 기준을 결정한다."
+            },
+            {
+              "marker": "-",
+              "text": "테스트 조직 및 인력 구성에 대해 기술한다."
+            }
+          ]
         }
       ],
       "options": [],
       "answer": [
-        "테스트 계획서, 테스트 계획 산출물 2024-06-15"
+        "테스트 계획서, 테스트 계획 산출물"
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "테스트 계획서, 테스트 계획 산출물 2024-06-15"
+      "answerText": "테스트 계획서, 테스트 계획 산출물"
     },
     {
       "id": "CSTS-FL-2402-070",
@@ -3108,27 +3154,27 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "<보기>의 그림은 결함이 발생한 테스트1의 상황에 추가적으로 n-1개의 테스트를 수행함으로 써 결함을 발생시키는 데이터, 절차 및 환경을 ( )하는 절차를 보여준다."
+          "text": "<보기>의 그림은 결함이 발생한 테스트1의 상황에 추가적으로 n-1개의 테스트를 수행함으로 써 결함을 발생시키는 데이터, 절차 및 환경을 ( ) 하는 절차를 보여준다."
         },
         {
-          "type": "paragraph",
+          "type": "note",
           "text": "<보기>"
         }
       ],
       "options": [],
       "answer": [
-        "결함의 일반화 2024-06-15"
+        "결함의 일반화"
       ],
       "explanation": [
         {
-          "type": "note",
-          "text": "?? ??? ??"
+          "type": "paragraph",
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
       "difficulty": "normal",
       "figure": "csts-figures/2402FL-70.png",
-      "answerText": "결함의 일반화 2024-06-15"
+      "answerText": "결함의 일반화"
     }
   ]
 }

@@ -1,0 +1,23 @@
+{
+  "generatedAt": "2026-06-02T13:27:38.496Z",
+  "viewport": {
+    "width": 430,
+    "height": 760
+  },
+  "checkedSets": [
+    "ISTQB-FL-A",
+    "ISTQB-FL-B",
+    "ISTQB-FL-C",
+    "ISTQB-FL-D",
+    "CSTS-FL-2402",
+    "CSTS-FL-2403",
+    "CSTS-FL-2404",
+    "CSTS-FL-2405",
+    "CSTS-EL-2018",
+    "CSTS-EL-2019",
+    "CSTS-EL-SW-EXAMPLE"
+  ],
+  "badCount": 0,
+  "badResults": [],
+  "screenshots": []
+}

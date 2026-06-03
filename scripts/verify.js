@@ -26,3 +26,5 @@ if (/questions\.js|csts-questions\.js/.test(html)) {
 syntaxCheck("script.js");
 syntaxCheck(path.join("www", "script.js"));
 run("node", [path.join("scripts", "validate-questions.js")]);
+run("node", [path.join("scripts", "audit-phase3-content.js")]);
+run("node", [path.join("scripts", "audit-classification-markers.js")]);

@@ -247,6 +247,7 @@
       const cstsPrevBtn = document.querySelector("#cstsPrevBtn");
       const cstsNextBtn = document.querySelector("#cstsNextBtn");
       const productHomeBtn = document.querySelector("#productHomeBtn");
+      const topbarHomeBtn = document.querySelector("#topbarHomeBtn");
       const productSubtitle = document.querySelector("#productSubtitle");
       const productTitle = document.querySelector("#productTitle");
       const sidebar = document.querySelector(".sidebar");
@@ -1493,7 +1494,8 @@
       function figureFor(question) {
         if (question.figure) return question.figure;
         const setId = question.setId || state.setId;
-        const key = `${setId}${question.number}`;
+        const sampleCode = String(setId || "").split("-").pop();
+        const key = `${sampleCode}${question.number}`;
         const figures = {
           A23: "figures/A23.png",
           B23: "figures/B23.png",
@@ -1679,6 +1681,7 @@
         }
         appendPlainLine(target, block.text, {
           markPrompt: target.id === "questionStem" || block.type === "prompt",
+          className: block.type === "note" ? "note-line" : "",
         });
       }
 
@@ -1696,6 +1699,7 @@
         splitDenseQuestionText(text).flatMap(splitFormulaIntro).forEach((part) => {
           const lineNode = document.createElement("span");
           lineNode.className = "text-line";
+          if (options.className) lineNode.classList.add(options.className);
           if (options.markPrompt && isQuestionPromptLine(part)) {
             lineNode.classList.add("prompt-line");
           }
@@ -2006,7 +2010,9 @@
           ];
         }
         const value = String(block.text || "").trim();
-        return value ? [{ type: type === "formula" ? "text" : type, text: value }] : [];
+        if (!value) return [];
+        if (["paragraph", "formula"].includes(type)) return buildRichBlocks(value);
+        return [{ type, text: value }];
       }
 
       function parseStructuredItem(line) {
@@ -3323,6 +3329,24 @@
 
       exportBackupBtn.addEventListener("click", exportBackup);
 
+      
+      // Settings panel overlay backdrop
+      const settingsBackdrop = document.createElement("div");
+      settingsBackdrop.className = "settings-backdrop";
+      document.body.appendChild(settingsBackdrop);
+      settingsBackdrop.addEventListener("click", () => {
+        if (settingsPanelToggleBtn.getAttribute("aria-expanded") === "true") {
+          settingsPanelToggleBtn.click();
+        }
+      });
+
+      // Observe settings panel visibility for backdrop
+      const settingsObserver = new MutationObserver(() => {
+        const isOpen = !settingsPanel.hidden;
+        settingsBackdrop.classList.toggle("active", isOpen);
+      });
+      settingsObserver.observe(settingsPanel, { attributes: true, attributeFilter: ["hidden"] });
+
       consoleLogBtn.addEventListener("click", () => {
         if (window.VConsole) return;
         
@@ -3399,6 +3423,7 @@
       openCstsBtn?.addEventListener("click", openCstsApp);
       cstsBackBtn?.addEventListener("click", showProductGate);
       productHomeBtn?.addEventListener("click", showProductGate);
+      topbarHomeBtn?.addEventListener("click", showProductGate);
       cstsSetSelect?.addEventListener("change", () => {
         cstsState.setId = cstsSetSelect.value;
         cstsState.index = 0;

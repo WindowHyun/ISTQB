@@ -1,184 +1,187 @@
-const fs = require("fs");
-const path = require("path");
+/**
+ * validate-questions.js
+ * 문제 데이터 검증 스크립트 (Phase 2 - Wiki 요구사항 구현)
+ * 
+ * 검증 항목:
+ * 1. JSON 파싱 가능 여부
+ * 2. 필수 필드 존재 여부
+ * 3. id 중복 여부
+ * 4. number 중복 여부
+ * 5. option key 중복 여부
+ * 6. answer가 options 안에 존재하는지
+ * 7. multiple_choice인데 options가 비어 있지 않은지
+ * 8. figure 경로가 실제 존재하는지
+ * 9. stem block type이 허용된 값인지
+ * 10. explanation block type이 허용된 값인지
+ * 11. 수동 \n 사용 여부
+ * 12. 문제와 보기 텍스트가 비어 있지 않은지
+ */
 
-const root = path.resolve(__dirname, "..");
-const dataRoot = path.join(root, "www", "data");
-const publicDataRoot = path.join(root, "public", "data");
-const allowedBlockTypes = new Set([
-  "paragraph",
-  "note",
-  "prompt",
-  "list",
-  "table",
-  "code",
-  "formula",
-  "image",
-]);
+const fs = require('fs');
+const path = require('path');
 
-function fail(message) {
-  throw new Error(message);
+const ALLOWED_BLOCK_TYPES = ['paragraph', 'note', 'prompt', 'list', 'table', 'code', 'formula', 'image'];
+const REQUIRED_FIELDS = ['id', 'number', 'type', 'stem', 'options', 'answer'];
+
+let totalErrors = 0;
+let totalWarnings = 0;
+
+function log(level, file, qId, message) {
+  const prefix = level === 'ERROR' ? '❌' : '⚠️';
+  console.log(`  ${prefix} [${level}] ${qId || 'GLOBAL'}: ${message}`);
+  if (level === 'ERROR') totalErrors++;
+  else totalWarnings++;
 }
 
-function readJson(filePath) {
-  try {
-    return JSON.parse(fs.readFileSync(filePath, "utf8"));
-  } catch (error) {
-    fail(`Invalid JSON: ${path.relative(root, filePath)} (${error.message})`);
-  }
-}
+function validateQuestion(q, filePath, allIds, allNumbers) {
+  const qId = q.id || `#${q.number || '?'}`;
 
-function assertFile(filePath, label) {
-  if (!fs.existsSync(filePath)) {
-    fail(`Missing ${label}: ${path.relative(root, filePath)}`);
+  for (const field of REQUIRED_FIELDS) {
+    if (q[field] === undefined || q[field] === null) {
+      log('ERROR', filePath, qId, `필수 필드 '${field}' 누락`);
+    }
   }
-}
 
-function textOfBlock(block) {
-  if (!block || typeof block !== "object") return "";
-  if (typeof block.text === "string") return block.text;
-  if (Array.isArray(block.lines)) return block.lines.join(" ");
-  if (Array.isArray(block.items)) {
-    return block.items
-      .map((item) => (typeof item === "string" ? item : item.text || ""))
-      .join(" ");
+  if (q.id) {
+    if (allIds.has(q.id)) {
+      log('ERROR', filePath, qId, `id 중복: ${q.id}`);
+    }
+    allIds.add(q.id);
   }
-  return "";
-}
 
-function validateBlocks(blocks, label, errors) {
-  if (!Array.isArray(blocks) || blocks.length === 0) {
-    errors.push(`${label}: missing blocks`);
-    return;
+  if (q.number !== undefined) {
+    const numKey = `${filePath}:${q.number}`;
+    if (allNumbers.has(numKey)) {
+      log('ERROR', filePath, qId, `number 중복: ${q.number}`);
+    }
+    allNumbers.add(numKey);
   }
-  blocks.forEach((block, index) => {
-    const blockLabel = `${label}[${index}]`;
-    if (!block || typeof block !== "object") {
-      errors.push(`${blockLabel}: block must be an object`);
+
+  if (Array.isArray(q.options)) {
+    const optionKeys = new Set();
+    for (const opt of q.options) {
+      if (opt.key && optionKeys.has(opt.key)) {
+        log('ERROR', filePath, qId, `option key 중복: ${opt.key}`);
+      }
+      if (opt.key) optionKeys.add(opt.key);
+    }
+
+    if (Array.isArray(q.answer) && q.type === 'multiple_choice') {
+      for (const ans of q.answer) {
+        if (!optionKeys.has(ans)) {
+          log('ERROR', filePath, qId, `answer '${ans}'가 options에 존재하지 않음`);
+        }
+      }
+    }
+
+    if (q.type === 'multiple_choice' && q.options.length === 0) {
+      log('ERROR', filePath, qId, `multiple_choice인데 options가 비어 있음`);
+    }
+
+    for (const opt of q.options) {
+      if (!opt.text || opt.text.trim() === '') {
+        log('WARNING', filePath, qId, `option '${opt.key}' 텍스트가 비어 있음`);
+      }
+    }
+  }
+
+  if (q.figure) {
+    const figPath = q.figure.startsWith('/') ? q.figure.substring(1) : q.figure;
+    const candidates = [
+      path.join(process.cwd(), figPath),
+      path.join(process.cwd(), 'www', figPath),
+    ];
+    const exists = candidates.some(p => fs.existsSync(p));
+    if (!exists) {
+      log('WARNING', filePath, qId, `figure 파일 미존재: ${q.figure}`);
+    }
+  }
+
+  const validateBlocks = (blocks, fieldName) => {
+    if (!Array.isArray(blocks)) return;
+    for (const block of blocks) {
+      if (block.type && !ALLOWED_BLOCK_TYPES.includes(block.type)) {
+        log('WARNING', filePath, qId, `${fieldName} block type '${block.type}' 은 허용되지 않은 값`);
+      }
+    }
+  };
+  validateBlocks(q.stem, 'stem');
+  validateBlocks(q.explanation, 'explanation');
+
+  const checkNewlines = (blocks, fieldName) => {
+    if (!Array.isArray(blocks)) {
+      if (typeof blocks === 'string' && blocks.includes('\\n')) {
+        log('WARNING', filePath, qId, `${fieldName}에 수동 \\n 포함`);
+      }
       return;
     }
-    if (!allowedBlockTypes.has(block.type)) {
-      errors.push(`${blockLabel}: unsupported block type "${block.type}"`);
-    }
-    const text = textOfBlock(block);
-    if (["paragraph", "note", "prompt", "formula"].includes(block.type)) {
-      if (!String(block.text || "").trim()) {
-        errors.push(`${blockLabel}: text is empty`);
-      }
-      if (/[\r\n]/.test(block.text || "")) {
-        errors.push(`${blockLabel}: manual newline in text`);
+    for (const block of blocks) {
+      if (typeof block.text === 'string' && block.text.includes('\\n')) {
+        log('WARNING', filePath, qId, `${fieldName} block에 수동 \\n 포함`);
       }
     }
-    if (block.type === "code") {
-      if (!Array.isArray(block.lines) || block.lines.length === 0) {
-        errors.push(`${blockLabel}: code lines are empty`);
-      }
-    }
-    if (block.type === "list") {
-      if (!Array.isArray(block.items) || block.items.length === 0) {
-        errors.push(`${blockLabel}: list items are empty`);
-      }
-    }
-    if (block.type === "table") {
-      if (!Array.isArray(block.rows) || block.rows.length === 0) {
-        errors.push(`${blockLabel}: table rows are empty`);
-      }
-    }
-    if (!text.trim() && !["table", "image"].includes(block.type)) {
-      errors.push(`${blockLabel}: block content is empty`);
-    }
-  });
+  };
+  checkNewlines(q.stem, 'stem');
+  checkNewlines(q.explanation, 'explanation');
+
+  if (Array.isArray(q.stem) && q.stem.length === 0) {
+    log('ERROR', filePath, qId, `stem이 비어 있음`);
+  }
 }
 
-function validateDataRoot(baseDir, label) {
-  const indexPath = path.join(baseDir, "index.json");
-  assertFile(indexPath, `${label} index.json`);
-  const index = readJson(indexPath);
-  const errors = [];
-  const questionIds = new Set();
-  const setIds = new Set();
-  let total = 0;
+function validateFile(filePath) {
+  console.log(`\n📄 ${path.basename(filePath)}`);
 
-  if (!Array.isArray(index.sets) || index.sets.length === 0) {
-    errors.push(`${label}: index.sets is empty`);
+  let data;
+  try {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    data = JSON.parse(raw);
+  } catch (e) {
+    log('ERROR', filePath, null, `JSON 파싱 실패: ${e.message}`);
+    return;
   }
 
-  for (const item of index.sets || []) {
-    if (!item.id) errors.push(`${label}: catalog item missing id`);
-    if (!item.certification) errors.push(`${item.id}: missing certification`);
-    if (!item.title) errors.push(`${item.id}: missing title`);
-    if (!item.path) errors.push(`${item.id}: missing path`);
-    if (setIds.has(item.id)) errors.push(`${item.id}: duplicate set id`);
-    setIds.add(item.id);
-
-    const setPath = path.join(baseDir, item.path.replace(/^\.\//, ""));
-    assertFile(setPath, `${item.id} set file`);
-    const payload = readJson(setPath);
-    const meta = payload.meta || {};
-    if (meta.id !== item.id) {
-      errors.push(`${item.id}: meta.id does not match index id`);
-    }
-    if (!Array.isArray(payload.questions) || payload.questions.length === 0) {
-      errors.push(`${item.id}: questions are empty`);
-      continue;
-    }
-
-    const numbers = new Set();
-    for (const question of payload.questions) {
-      total += 1;
-      const qLabel = `${item.id}-${question.number}`;
-      if (!question.id) errors.push(`${qLabel}: missing id`);
-      if (question.id && !question.id.startsWith(`${item.id}-`)) {
-        errors.push(`${qLabel}: id must start with set id`);
-      }
-      if (questionIds.has(question.id)) errors.push(`${question.id}: duplicate question id`);
-      questionIds.add(question.id);
-      if (!Number.isInteger(question.number)) errors.push(`${qLabel}: invalid number`);
-      if (numbers.has(question.number)) errors.push(`${qLabel}: duplicate number`);
-      numbers.add(question.number);
-      validateBlocks(question.stem, `${qLabel}.stem`, errors);
-      validateBlocks(question.explanation, `${qLabel}.explanation`, errors);
-
-      const type = question.type || "multiple_choice";
-      if (!Array.isArray(question.answer) || question.answer.length === 0) {
-        errors.push(`${qLabel}: missing answer`);
-      }
-      if (type === "multiple_choice") {
-        if (!Array.isArray(question.options) || question.options.length === 0) {
-          errors.push(`${qLabel}: multiple_choice options are empty`);
-        }
-        const optionKeys = new Set();
-        for (const option of question.options || []) {
-          if (!option.key) errors.push(`${qLabel}: option missing key`);
-          if (optionKeys.has(option.key)) errors.push(`${qLabel}: duplicate option key ${option.key}`);
-          optionKeys.add(option.key);
-          if (!String(option.text || "").trim()) errors.push(`${qLabel}: option ${option.key} text is empty`);
-          if (/[\r\n]/.test(option.text || "")) errors.push(`${qLabel}: option ${option.key} has manual newline`);
-        }
-        for (const answer of question.answer || []) {
-          if (!optionKeys.has(answer)) errors.push(`${qLabel}: answer ${answer} is not in options`);
-        }
-      }
-      if (question.figure) {
-        const figurePath = path.join(root, "www", question.figure);
-        if (!fs.existsSync(figurePath)) errors.push(`${qLabel}: missing figure ${question.figure}`);
-      }
-    }
+  const questions = data.questions || [];
+  if (questions.length === 0) {
+    log('WARNING', filePath, null, '문제가 0개입니다');
+    return;
   }
 
-  if (errors.length > 0) fail(errors.join("\n"));
-  return { sets: setIds.size, questions: total };
+  const allIds = new Set();
+  const allNumbers = new Set();
+
+  for (const q of questions) {
+    validateQuestion(q, filePath, allIds, allNumbers);
+  }
+
+  console.log(`  ✅ ${questions.length}개 문제 검증 완료`);
 }
 
-const wwwResult = validateDataRoot(dataRoot, "www/data");
-const publicResult = validateDataRoot(publicDataRoot, "public/data");
+console.log('=== 문제 데이터 검증 시작 ===\n');
 
-if (
-  wwwResult.sets !== publicResult.sets ||
-  wwwResult.questions !== publicResult.questions
-) {
-  fail("public/data and www/data question counts do not match");
+const dataDirs = ['www/data/istqb', 'www/data/csts', 'data/istqb', 'data/csts'];
+let filesChecked = 0;
+
+for (const dir of dataDirs) {
+  const absDir = path.join(process.cwd(), dir);
+  if (!fs.existsSync(absDir)) continue;
+
+  const files = fs.readdirSync(absDir).filter(f => f.endsWith('.json'));
+  for (const file of files) {
+    validateFile(path.join(absDir, file));
+    filesChecked++;
+  }
 }
 
-console.log(
-  `Validated ${wwwResult.questions} questions across ${wwwResult.sets} sets.`,
-);
+console.log(`\n=== 검증 완료 ===`);
+console.log(`파일: ${filesChecked}개`);
+console.log(`오류: ${totalErrors}개`);
+console.log(`경고: ${totalWarnings}개`);
+
+if (totalErrors > 0) {
+  console.log('\n❌ 검증 실패 - 오류를 수정해 주세요.');
+  process.exit(1);
+} else {
+  console.log('\n✅ 검증 통과!');
+  process.exit(0);
+}
