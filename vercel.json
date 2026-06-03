@@ -1,6 +1,7 @@
 {
   "name": "istqb-fl-tablet",
-  "cleanUrls": true,
+  "buildCommand": "",
+  "outputDirectory": ".",
   "trailingSlash": false,
   "headers": [
     {
