@@ -5,35 +5,35 @@
       "id": "ISTQB-FL-V4-A",
       "legacySetId": "A",
       "certification": "ISTQB",
-      "title": "ISTQB FL v4.0 ???? A",
+      "title": "ISTQB FL v4.0 샘플문제 A",
       "path": "./istqb/sample-a.json"
     },
     {
       "id": "ISTQB-FL-V4-B",
       "legacySetId": "B",
       "certification": "ISTQB",
-      "title": "ISTQB FL v4.0 ???? B",
+      "title": "ISTQB FL v4.0 샘플문제 B",
       "path": "./istqb/sample-b.json"
     },
     {
       "id": "ISTQB-FL-V4-C",
       "legacySetId": "C",
       "certification": "ISTQB",
-      "title": "ISTQB FL v4.0 ???? C",
+      "title": "ISTQB FL v4.0 샘플문제 C",
       "path": "./istqb/sample-c.json"
     },
     {
       "id": "ISTQB-FL-V4-D",
       "legacySetId": "D",
       "certification": "ISTQB",
-      "title": "ISTQB FL v4.0 ???? D",
+      "title": "ISTQB FL v4.0 샘플문제 D",
       "path": "./istqb/sample-d.json"
     },
     {
       "id": "ISTQB-FL-V4-EXTRA",
       "legacySetId": "EXTRA",
       "certification": "ISTQB",
-      "title": "ISTQB FL v4.0 ????",
+      "title": "ISTQB FL v4.0 샘플문제 모음",
       "path": "./istqb/sample-extra.json"
     },
     {
