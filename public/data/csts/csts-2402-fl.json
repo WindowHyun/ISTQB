@@ -153,33 +153,7 @@
         },
         {
           "type": "note",
-          "text": "<보기>"
-        },
-        {
-          "type": "paragraph",
-          "text": "1. 기능적 요구사항"
-        },
-        {
-          "type": "list",
-          "items": [
-            {
-              "marker": "1.",
-              "text": "1 기능 1 1.2 기능 2"
-            }
-          ]
-        },
-        {
-          "type": "paragraph",
-          "text": "2. 품질 요구사항"
-        },
-        {
-          "type": "list",
-          "items": [
-            {
-              "marker": "2.",
-              "text": "1 성능 요구사항 2.2 보안 요구사항 2.3 신뢰성 요구사항"
-            }
-          ]
+          "text": "<보기>\n1. 기능적 요구사항\n  1.1 기능 1\n  1.2 기능 2\n2. 품질 요구사항\n  2.1 성능 요구사항\n  2.2 보안 요구사항\n  2.3 신뢰성 요구사항"
         }
       ],
       "options": [
@@ -1042,49 +1016,12 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "다음 보기에서 동일한 유형의 테스트 설계 기법으로만 짝 지어진 것은?"
         },
         {
-          "type": "list",
-          "items": [
-            {
-              "marker": "A.",
-              "text": "상태 전이 테스트"
-            },
-            {
-              "marker": "B.",
-              "text": "자료 흐름 테스트"
-            },
-            {
-              "marker": "C.",
-              "text": "문장 테스트"
-            },
-            {
-              "marker": "D.",
-              "text": "시나리오 테스트"
-            },
-            {
-              "marker": "E.",
-              "text": "동등 분할 테스트"
-            },
-            {
-              "marker": "F.",
-              "text": "분류 트리 테스트"
-            },
-            {
-              "marker": "G.",
-              "text": "페어와이즈 테스트"
-            },
-            {
-              "marker": "H.",
-              "text": "경계값 분석 테스트"
-            }
-          ]
-        },
-        {
-          "type": "paragraph",
-          "text": "I. MC/DC 테스트 J. 결정 테이블 테스트"
+          "type": "note",
+          "text": "<보기>\nA. 상태 전이 테스트\nB. 자료 흐름 테스트\nC. 문장 테스트\nD. 시나리오 테스트\nE. 동등 분할 테스트\nF. 분류 트리 테스트\nG. 페어와이즈 테스트\nH. 경계값 분석 테스트\nI. MC/DC 테스트\nJ. 결정 테이블 테스트"
         }
       ],
       "options": [
@@ -1191,7 +1128,7 @@
         },
         {
           "type": "paragraph",
-          "text": "테스트 케이스1: A, B, D, H, K 테스트 케이스2: A, B, D, H, F, K 테스트 케이스3: A, C, F, C, F, K"
+          "text": "테스트 케이스1: A, B, D, H, K\n테스트 케이스2: A, B, D, H, F, K\n테스트 케이스3: A, C, F, C, F, K"
         }
       ],
       "options": [
