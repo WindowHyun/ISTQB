@@ -1263,23 +1263,12 @@
           "text": "<보기>"
         },
         {
-          "type": "paragraph",
-          "text": "If ((x>1) and (y==1)){"
-        },
-        {
           "type": "code",
           "lines": [
+            "If ((x>1) and (y==1)){",
             "z=z/x;",
-            "}"
-          ]
-        },
-        {
-          "type": "paragraph",
-          "text": "If ((x==2) or (z>1)){"
-        },
-        {
-          "type": "code",
-          "lines": [
+            "}",
+            "If ((x==2) or (z>1)){",
             "z=z+1;",
             "}"
           ]
