@@ -2155,3 +2155,28 @@
   opacity: 1;
   pointer-events: auto;
 }
+
+
+/* ── Settings Panel Centered Modal ── */
+.settings-content {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%) scale(0.95);
+  width: min(400px, 90vw);
+  max-height: 85vh;
+  z-index: 900 !important;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, transform 0.2s, visibility 0.2s;
+  background: var(--panel) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3) !important;
+}
+.settings-content:not([hidden]) {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, -50%) scale(1);
+}
