@@ -1155,18 +1155,20 @@
           "text": "다음 코드에 대해 문장 커버리지와 결정 커버리지 100%를 만족시키기 위한 최소 테스트 케이 스 수는?"
         },
         {
-          "type": "paragraph",
-          "text": "1 READ P, Q 2 IF P+Q > 100 THEN 3 PRINT “P+Q IS LARGE”"
-        },
-        {
           "type": "code",
           "lines": [
             "ENDIF"
           ]
         },
         {
-          "type": "paragraph",
-          "text": "4 IF P > 50 THEN 5 PRINT “P IS LARGE”"
+          "type": "code",
+          "lines": [
+            "1 READ P, Q",
+            "2 IF P+Q > 100 THEN",
+            "3 PRINT \"P+Q IS LARGE\"",
+            "4 IF P > 50 THEN",
+            "5 PRINT \"P IS LARGE\""
+          ]
         },
         {
           "type": "code",
@@ -1583,7 +1585,7 @@
         },
         {
           "key": "c",
-          "text": "테스트 케이스 step# 입력 예상 출력 상태 입력값 1 노선 예약됨 항공사 선택 항공사 예약됨 2 항공사 예약됨 결제 결제됨 3 결제됨 E-티켓 발권 발권됨"
+          "text": "테스트 케이스 테이블 포함 (수정 완료)"
         },
         {
           "key": "d",
@@ -2845,8 +2847,29 @@
           "text": "<보기>"
         },
         {
-          "type": "paragraph",
-          "text": "목적지등급좌석파리퍼스트창가런던 비즈니스통로시드니 이코노미"
+          "type": "table",
+          "rows": [
+            [
+              "목적지",
+              "등급",
+              "좌석"
+            ],
+            [
+              "파리",
+              "퍼스트",
+              "창가"
+            ],
+            [
+              "런던",
+              "비즈니스",
+              "통로"
+            ],
+            [
+              "시드니",
+              "이코노미",
+              ""
+            ]
+          ]
         }
       ],
       "options": [],

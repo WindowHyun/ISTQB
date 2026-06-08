@@ -390,8 +390,34 @@
           "text": "소프트웨어 테스트를 위한 테스트 환경을 구축하고자 한다. 필요한 환경은 Windows 7, Windows 8, Windows 10 3가지 운영체제와 admin계정, user 계정이 필요하다. 또한, Internet Explorer 9, 10, 11 3가지 브라우저 버전이 필요하다."
         },
         {
-          "type": "paragraph",
-          "text": "운영체제권한 브라우저 win10 adminIE9 win8 admin IE11 win7 userIE9 win7 ( ㉠ )"
+          "type": "table",
+          "rows": [
+            [
+              "운영체제",
+              "권한",
+              "브라우저"
+            ],
+            [
+              "win10",
+              "admin",
+              "IE9"
+            ],
+            [
+              "win8",
+              "admin",
+              "IE11"
+            ],
+            [
+              "win7",
+              "user",
+              "IE9"
+            ],
+            [
+              "win7",
+              "",
+              "( ㉠ )"
+            ]
+          ]
         },
         {
           "type": "paragraph",
