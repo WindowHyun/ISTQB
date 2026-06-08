@@ -58,6 +58,10 @@ function validateQuestion(q, filePath, allIds, allNumbers) {
   }
 
   if (Array.isArray(q.options)) {
+    if (q.type === 'multiple_choice' && q.options.length !== 4) {
+      log('WARNING', filePath, qId, `options 개수가 4개가 아님 (현재 ${q.options.length}개)`);
+    }
+
     const optionKeys = new Set();
     for (const opt of q.options) {
       if (opt.key && optionKeys.has(opt.key)) {
@@ -126,6 +130,19 @@ function validateQuestion(q, filePath, allIds, allNumbers) {
 
   if (Array.isArray(q.stem) && q.stem.length === 0) {
     log('ERROR', filePath, qId, `stem이 비어 있음`);
+  } else if (Array.isArray(q.stem)) {
+    const stemText = q.stem.map(b => b.text || '').join('\n');
+    if (/([가-라][\-\.]|[1-4]\)|[①-④]|[A-D][\.\)])\s*/.test(stemText)) {
+      log('WARNING', filePath, qId, `stem 안에 보기 패턴이 남아있을 가능성 있음`);
+    }
+  }
+
+  if (Array.isArray(q.options)) {
+    for (const opt of q.options) {
+      if (opt.text && /([가-라][\-\.]|[1-4]\)|[①-④]|[A-D][\.\)])\s/.test(opt.text)) {
+        log('WARNING', filePath, qId, `options 텍스트 안에 여러 선택지가 합쳐져 있을 가능성 있음: ${opt.text.substring(0, 20)}...`);
+      }
+    }
   }
 }
 

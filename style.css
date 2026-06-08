@@ -715,6 +715,7 @@
         margin: 0 0 10px;
         max-width: 100%;
         overflow-wrap: anywhere;
+        white-space: pre-wrap;
       }
 
       .question-stem .dense-line,
@@ -792,7 +793,7 @@
         display: grid;
         grid-template-columns: 34px minmax(0, 1fr);
         gap: 12px;
-        align-items: start;
+        align-items: flex-start;
         width: 100%;
         min-height: 58px;
         padding: 13px 14px;
@@ -811,6 +812,7 @@
         line-height: 1.6;
         word-break: keep-all;
         overflow-wrap: anywhere;
+        white-space: pre-line;
       }
 
       .option-text .code-block,

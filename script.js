@@ -86,6 +86,108 @@
         csts: "CSTS FL",
       };
 
+      function formatQuestionForUi(rawQuestion) {
+        const q = JSON.parse(JSON.stringify(rawQuestion));
+
+        const fixNewlines = (blocks) => {
+          if (!Array.isArray(blocks)) return blocks;
+          return blocks.map((b) => {
+            if (typeof b.text === "string") {
+              b.text = b.text.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").replace(/\r\n/g, "\n").trim();
+              b.text = b.text.replace(/\n{3,}/g, "\n\n");
+
+              // General list item separation (requires negative lookbehind to avoid matching '다.' at end of word)
+              b.text = b.text.replace(/([^\n])\s*(•|○|①|②|③|④|⑤|(?<![가-힣A-Za-z0-9])[가-마][\-\.]\s+|(?<![가-힣A-Za-z0-9])[1-9][0-9]*[\.\)]\s|(?<![가-힣A-Za-z0-9])[A-Za-z][\.\)]\s)/g, "$1\n$2");
+              b.text = b.text.replace(/([^\n])\s*([1-4]사분면:)/g, "$1\n$2");
+
+              // Specific broken stems from PDF extraction
+              b.text = b.text.replace("리뷰 활동은 다음과 같다: 개별 리뷰 리뷰 착수 리뷰 계획 의사소통 및 분석", "리뷰 활동은 다음과 같다:\nA. 개별 리뷰\nB. 리뷰 착수\nC. 리뷰 계획\nD. 의사소통 및 분석");
+              b.text = b.text.replace("그리고 리뷰에서 맡은 책임은 다음과 같다: 리뷰 회의의 효과적인 진행과 편안한 리뷰 환경을 보장한다 리뷰 회의에서 결정사항, 식별한 새로운 이상 현상과 같은 리뷰 정보를 기록한다 리뷰 대상을 결정하고 리뷰에 참여할인력, 리뷰 시간 등 자원을 제공한다 리뷰 진행 시기, 장소 협의 등 리뷰에 대한 전반적인 책임을 진다", "그리고 리뷰에서 맡은 책임은 다음과 같다:\nA. 리뷰 회의의 효과적인 진행과 편안한 리뷰 환경을 보장한다\nB. 리뷰 회의에서 결정사항, 식별한 새로운 이상 현상과 같은 리뷰 정보를 기록한다\nC. 리뷰 대상을 결정하고 리뷰에 참여할 인력, 리뷰 시간 등 자원을 제공한다\nD. 리뷰 진행 시기, 장소 협의 등 리뷰에 대한 전반적인 책임을 진다");
+              b.text = b.text.replace("다음과 같은 테스트 활동이 있다: 테스트 분석 테스트 설계 테스트 구현 테스트 완료", "다음과 같은 테스트 활동이 있다:\nA. 테스트 분석\nB. 테스트 설계\nC. 테스트 구현\nD. 테스트 완료");
+            }
+            return b;
+          });
+        };
+
+        q.stem = fixNewlines(q.stem);
+        q.explanation = fixNewlines(q.explanation);
+
+        if (q.type !== "multiple_choice") {
+          return q;
+        }
+
+        const optionRegexes = [
+          /(?<![가-힣A-Za-z0-9])([가-라][\-\.])\s+(.*?)(?=(?:(?<![가-힣A-Za-z0-9])[가-라][\-\.])\s+|$)/gs,
+          /([1-4]\))\s*(.*?)(?=(?:[1-4]\))|$)/gs,
+          /([①-④])\s*(.*?)(?=(?:[①-④])|$)/gs,
+          /([A-D][\.\)])\s*(.*?)(?=(?:[A-D][\.\)])|$)/gs,
+        ];
+
+        const trySplitOptions = (text) => {
+          for (const regex of optionRegexes) {
+            const matches = [...text.matchAll(regex)];
+            if (matches.length >= 2 && matches.length <= 5) {
+              return matches.map((m) => ({ label: m[1], text: m[2].trim() }));
+            }
+          }
+          return null;
+        };
+
+        const extractFromStem = () => {
+          if (!q.stem || q.stem.length === 0) return false;
+          const lastBlock = q.stem[q.stem.length - 1];
+          if (lastBlock.type !== "paragraph" && lastBlock.type !== "prompt") return false;
+
+          const text = lastBlock.text;
+          const match = text.match(/(?<![가-힣A-Za-z0-9])([가-라][\-\.]\s+|[1-4]\)|[①-④]|[A-D][\.\)])\s*/);
+          if (match) {
+            const index = match.index;
+            const potentialQuestion = text.substring(0, index).trim();
+            const potentialOptions = text.substring(index);
+
+            const extracted = trySplitOptions(potentialOptions);
+            if (extracted && extracted.length >= 2) {
+              lastBlock.text = potentialQuestion;
+              if (lastBlock.text === "") q.stem.pop();
+              q.options = extracted.map((ext, i) => ({
+                key: String.fromCharCode(97 + i),
+                text: `${ext.label} ${ext.text}`,
+              }));
+              return true;
+            }
+          }
+          return false;
+        };
+
+        const extractFromOptions = () => {
+          if (q.options && q.options.length === 1) {
+            const extracted = trySplitOptions(q.options[0].text);
+            if (extracted && extracted.length >= 2) {
+              q.options = extracted.map((ext, i) => ({
+                key: String.fromCharCode(97 + i),
+                text: `${ext.label} ${ext.text}`,
+              }));
+              return true;
+            }
+          }
+          return false;
+        };
+
+        if (!q.options || q.options.length <= 1) {
+          let extracted = extractFromOptions();
+          if (!extracted) extractFromStem();
+        }
+
+        if (Array.isArray(q.options)) {
+          q.options = q.options.map((opt) => {
+            if (opt.text) opt.text = opt.text.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").replace(/\r\n/g, "\n").trim();
+            return opt;
+          });
+        }
+
+        return q;
+      }
+
       function normalizeSetPayload(payload, catalogItem) {
         const meta = payload?.meta || {};
         const certification = String(
@@ -98,13 +200,16 @@
           questionPdf: meta.questionPdf || "",
           answerPdf: meta.answerPdf || "",
           questions: Array.isArray(payload?.questions)
-            ? payload.questions.map((question) => ({
-                ...question,
-                setId: meta.id || catalogItem.id,
-                legacySetId: meta.legacySetId || catalogItem.legacySetId || meta.setId,
-                setTitle: meta.title || catalogItem.title || catalogItem.id,
-                certification,
-              }))
+            ? payload.questions.map((rawQuestion) => {
+                const question = formatQuestionForUi(rawQuestion);
+                return {
+                  ...question,
+                  setId: meta.id || catalogItem.id,
+                  legacySetId: meta.legacySetId || catalogItem.legacySetId || meta.setId,
+                  setTitle: meta.title || catalogItem.title || catalogItem.id,
+                  certification,
+                };
+              })
             : [],
         };
       }

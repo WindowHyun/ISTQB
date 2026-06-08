@@ -659,7 +659,7 @@
         },
         {
           "key": "d",
-          "text": "테스트 준비 검토(Test Readiness Review, TRR): 인수테스트를 받을 준비가 되었는지 를 평가한다. IF ((X > 10) OR (Y ==2)) Z = X + Y IF ((X < Z) AND (Y > 15)) Z = X IF (X <= Z) PRINT(Z)"
+          "text": "테스트 준비 검토(Test Readiness Review, TRR): 인수테스트를 받을 준비가 되었는지 를 평가한다."
         }
       ],
       "answer": [
@@ -684,6 +684,10 @@
         {
           "type": "paragraph",
           "text": "다음 자료 흐름도에 대한 자료 흐름 패턴에 해당하지 않는 것은?"
+        },
+        {
+          "type": "code",
+          "text": "IF ((X > 10) OR (Y ==2)) Z = X + Y\\nIF ((X < Z) AND (Y > 15)) Z = X\\nIF (X <= Z) PRINT(Z)"
         }
       ],
       "options": [
