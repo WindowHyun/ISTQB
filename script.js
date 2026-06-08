@@ -1,4 +1,4 @@
-      (async () => {
+(async () => {
       const appLogStore = (() => {
         const maxEntries = 200;
         const entries = [];
@@ -94,13 +94,9 @@
           return blocks.map((b) => {
             if (typeof b.text === "string") {
               b.text = b.text.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").replace(/\r\n/g, "\n").trim();
-              b.text = b.text.replace(/\n{3,}/g, "\n\n");
-
-              // General list item separation (requires negative lookbehind to avoid matching '다.' at end of word)
+              b.text = b.text.replace(/\n{3,}/g, "\n\n");
               b.text = b.text.replace(/([^\n])\s*(•|○|①|②|③|④|⑤|Ⓐ|Ⓑ|Ⓒ|Ⓓ|Ⓔ|ⓐ|ⓑ|ⓒ|ⓓ|ⓔ|㉠|㉡|㉢|㉣|㉤|(?<![가-힣A-Za-z0-9])[가-마][\-\.]\s+|(?<![가-힣A-Za-z0-9])[1-9][0-9]*[\.\)]\s|(?<![가-힣A-Za-z0-9])[A-Za-z][\.\)]\s)/g, "$1\n$2");
-              b.text = b.text.replace(/([^\n])\s*([1-4]사분면:)/g, "$1\n$2");
-
-              // Specific broken stems from PDF extraction
+              b.text = b.text.replace(/([^\n])\s*([1-4]사분면:)/g, "$1\n$2");
               b.text = b.text.replace("리뷰 활동은 다음과 같다: 개별 리뷰 리뷰 착수 리뷰 계획 의사소통 및 분석", "리뷰 활동은 다음과 같다:\nA. 개별 리뷰\nB. 리뷰 착수\nC. 리뷰 계획\nD. 의사소통 및 분석");
               b.text = b.text.replace("그리고 리뷰에서 맡은 책임은 다음과 같다: 리뷰 회의의 효과적인 진행과 편안한 리뷰 환경을 보장한다 리뷰 회의에서 결정사항, 식별한 새로운 이상 현상과 같은 리뷰 정보를 기록한다 리뷰 대상을 결정하고 리뷰에 참여할인력, 리뷰 시간 등 자원을 제공한다 리뷰 진행 시기, 장소 협의 등 리뷰에 대한 전반적인 책임을 진다", "그리고 리뷰에서 맡은 책임은 다음과 같다:\nA. 리뷰 회의의 효과적인 진행과 편안한 리뷰 환경을 보장한다\nB. 리뷰 회의에서 결정사항, 식별한 새로운 이상 현상과 같은 리뷰 정보를 기록한다\nC. 리뷰 대상을 결정하고 리뷰에 참여할 인력, 리뷰 시간 등 자원을 제공한다\nD. 리뷰 진행 시기, 장소 협의 등 리뷰에 대한 전반적인 책임을 진다");
               b.text = b.text.replace("다음과 같은 테스트 활동이 있다: 테스트 분석 테스트 설계 테스트 구현 테스트 완료", "다음과 같은 테스트 활동이 있다:\nA. 테스트 분석\nB. 테스트 설계\nC. 테스트 구현\nD. 테스트 완료");
@@ -287,16 +283,14 @@
       function saveLastProduct() {
         try {
           localStorage.setItem(lastProductStorageKey, activeProduct);
-        } catch {
-          // Product restore is optional; the selected app still works in-memory.
+        } catch {
         }
       }
 
       function clearLastProduct() {
         try {
           localStorage.removeItem(lastProductStorageKey);
-        } catch {
-          // Ignore storage failures.
+        } catch {
         }
       }
 
@@ -646,8 +640,7 @@
       function saveAnswers() {
         try {
           localStorage.setItem(storageKey(), JSON.stringify(state.answers));
-        } catch {
-          // Some tablet browsers block localStorage for file:// pages. Keep the in-memory answers usable.
+        } catch {
         }
         savePersistentSnapshot();
       }
@@ -656,8 +649,7 @@
         const uiState = buildSnapshot().uiState;
         try {
           localStorage.setItem(uiStorageKey(), JSON.stringify(uiState));
-        } catch {
-          // Returning from background still works while the page remains alive.
+        } catch {
         }
         savePersistentSnapshot();
       }
@@ -680,16 +672,14 @@
         const snapshot = buildSnapshot();
         try {
           localStorage.setItem(persistenceKey(), JSON.stringify(snapshot));
-        } catch {
-          // IndexedDB below is the fallback for browsers with small or blocked localStorage.
+        } catch {
         }
         const db = await openPersistenceDb();
         if (!db) return;
         try {
           const transaction = db.transaction("snapshots", "readwrite");
           transaction.objectStore("snapshots").put(snapshot, "latest");
-        } catch {
-          // Losing persistence should not interrupt answering a question.
+        } catch {
         }
       }
 
@@ -713,8 +703,7 @@
               request.onsuccess = () => resolve(request.result || snapshot);
               request.onerror = () => resolve(snapshot);
             });
-          } catch {
-            // Keep whatever localStorage already restored.
+          } catch {
           }
         }
         if (!snapshot || typeof snapshot !== "object") return;
@@ -1625,9 +1614,7 @@
         image.alt = `문제 ${question.number} 그림`;
         image.loading = "lazy";
         image.draggable = false;
-        image.addEventListener("click", () => openFigureModal(src, image.alt));
-
-        // 확대 힌트 버튼 (#4)
+        image.addEventListener("click", () => openFigureModal(src, image.alt));
         const zoomBtn = document.createElement("button");
         zoomBtn.type = "button";
         zoomBtn.className = "figure-zoom-btn";
@@ -2777,15 +2764,11 @@
         hideAppStatus();
         renderRichText(questionStem, question.stem, { plainContent: true });
         renderFigure(question);
-        navSummary.textContent = `현재 ${state.index + 1} / ${questions.length}`;
-
-        // 긴 지문 접기/펼치기 기능 제거됨
+        navSummary.textContent = `현재 ${state.index + 1} / ${questions.length}`;
         document.querySelector(".stem-toggle-btn")?.remove();
         questionStem.classList.remove("stem-collapsed");
 
-        options.replaceChildren();
-
-        // 복수정답 배지 (#3)
+        options.replaceChildren();
         if (multi) {
           const badge = document.createElement("div");
           badge.className = "multi-answer-badge";
@@ -3434,10 +3417,7 @@
         render();
       });
 
-      exportBackupBtn.addEventListener("click", exportBackup);
-
-      
-      // Settings panel overlay backdrop
+      exportBackupBtn.addEventListener("click", exportBackup);
       const settingsBackdrop = document.createElement("div");
       settingsBackdrop.className = "settings-backdrop";
       document.body.appendChild(settingsBackdrop);
@@ -3445,9 +3425,7 @@
         if (settingsPanelToggleBtn.getAttribute("aria-expanded") === "true") {
           settingsPanelToggleBtn.click();
         }
-      });
-
-      // Observe settings panel visibility for backdrop
+      });
       const settingsObserver = new MutationObserver(() => {
         const isOpen = !settingsPanel.hidden;
         settingsBackdrop.classList.toggle("active", isOpen);
@@ -3558,8 +3536,7 @@
       function updateSidebarBackdrop() {
         if (!sidebarBackdrop) return;
         const showBackdrop = isMobileLayout() && !state.sidebarCollapsed;
-        sidebarBackdrop.classList.toggle("visible", showBackdrop);
-        // 배경 스크롤 잠금
+        sidebarBackdrop.classList.toggle("visible", showBackdrop);
         document.body.style.overflow = showBackdrop ? "hidden" : "";
       }
 
