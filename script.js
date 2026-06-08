@@ -97,7 +97,7 @@
               b.text = b.text.replace(/\n{3,}/g, "\n\n");
 
               // General list item separation (requires negative lookbehind to avoid matching '다.' at end of word)
-              b.text = b.text.replace(/([^\n])\s*(•|○|①|②|③|④|⑤|(?<![가-힣A-Za-z0-9])[가-마][\-\.]\s+|(?<![가-힣A-Za-z0-9])[1-9][0-9]*[\.\)]\s|(?<![가-힣A-Za-z0-9])[A-Za-z][\.\)]\s)/g, "$1\n$2");
+              b.text = b.text.replace(/([^\n])\s*(•|○|①|②|③|④|⑤|Ⓐ|Ⓑ|Ⓒ|Ⓓ|Ⓔ|ⓐ|ⓑ|ⓒ|ⓓ|ⓔ|㉠|㉡|㉢|㉣|㉤|(?<![가-힣A-Za-z0-9])[가-마][\-\.]\s+|(?<![가-힣A-Za-z0-9])[1-9][0-9]*[\.\)]\s|(?<![가-힣A-Za-z0-9])[A-Za-z][\.\)]\s)/g, "$1\n$2");
               b.text = b.text.replace(/([^\n])\s*([1-4]사분면:)/g, "$1\n$2");
 
               // Specific broken stems from PDF extraction
