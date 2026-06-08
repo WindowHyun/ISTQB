@@ -978,9 +978,9 @@
           "lines": [
             "Bool p;",
             "if(p)",
-            "    puts(\"p is true\");",
+            "  puts(\"p is true\");",
             "if(!p)",
-            "    puts(\"p is false\");"
+            "  puts(\"p is false\");"
           ]
         }
       ],
@@ -1247,10 +1247,10 @@
           "type": "code",
           "lines": [
             "if ((x>1) and (y==0)){",
-            "z=z/x;",
+            "  z=z/x;",
             "}",
             "if ((x==2) or (z>1)){",
-            "z=z+1;",
+            "  z=z+1;",
             "}"
           ]
         },
@@ -3355,10 +3355,10 @@
           "type": "code",
           "lines": [
             "IF ((X>1) AND (Y==1))",
-            "Z=Z/X",
+            "  Z=Z/X",
             "END",
             "IF ((X==2) OR (Z>1))",
-            "Z=Z+1",
+            "  Z=Z+1",
             "END"
           ]
         },

@@ -1301,11 +1301,11 @@
           "type": "code",
           "lines": [
             "IF ((X≥6) || (Y>14))",
-            "Z=X+Y",
+            "  Z=X+Y",
             "IF ((X<Z) && (Y>14))",
-            "Z=X",
+            "  Z=X",
             "IF (X≤Z)",
-            "RETURN 0"
+            "  RETURN 0"
           ]
         }
       ],
@@ -1354,11 +1354,11 @@
           "type": "code",
           "lines": [
             "IF ((X > 10) OR (Y == 2))",
-            "Z = X + Y",
+            "  Z = X + Y",
             "IF ((X < Z) AND (Y > 15))",
-            "Z = X",
+            "  Z = X",
             "IF (X <= Z)",
-            "PRINT(Z)"
+            "  PRINT(Z)"
           ]
         }
       ],
@@ -1407,9 +1407,9 @@
           "type": "code",
           "lines": [
             "IF ((impact>90 OR date>5) AND (severity==‘Major’))",
-            "handling = 24",
+            "  handling = 24",
             "ELSE",
-            "handling = 48",
+            "  handling = 48",
             "END"
           ]
         }
@@ -2582,12 +2582,12 @@
           "lines": [
             "int foo (int x,int y )",
             "{",
-            "int z =0;",
-            "if ((x >0 )&&(y >0 ))",
-            "{",
-            "z =x;",
-            "}",
-            "return z;",
+            "  int z =0;",
+            "  if ((x >0 )&&(y >0 ))",
+            "  {",
+            "    z =x;",
+            "  }",
+            "  return z;",
             "}"
           ]
         }

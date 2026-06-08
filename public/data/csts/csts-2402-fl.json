@@ -1140,10 +1140,10 @@
           "type": "code",
           "lines": [
             "IF (( X > 1 ) AND ( Y == 1 ))",
-            "Z = Z / X",
+            "  Z = Z / X",
             "END",
             "IF (( X == 2 ) OR ( Z > 1 ))",
-            "Z = Z + 1",
+            "  Z = Z + 1",
             "END"
           ]
         }
@@ -2710,12 +2710,12 @@
           "lines": [
             "int foo (int x,int y )",
             "{",
-            "int z =0;",
-            "if ((x >0 )&&(y >0 ))",
-            "{",
-            "z =x;",
-            "}",
-            "return z;",
+            "  int z =0;",
+            "  if ((x >0 )&&(y >0 ))",
+            "  {",
+            "    z =x;",
+            "  }",
+            "  return z;",
             "}"
           ]
         }

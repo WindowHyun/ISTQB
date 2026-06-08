@@ -1553,10 +1553,10 @@
           "type": "code",
           "lines": [
             "IF (( X > 1 ) AND ( Y == 1 ))",
-            "Z = Z / X",
+            "  Z = Z / X",
             "END",
             "IF (( X == 2 ) OR ( Z > 1 ))",
-            "Z = Z + 1",
+            "  Z = Z + 1",
             "END"
           ]
         }
@@ -2809,10 +2809,10 @@
           "type": "code",
           "lines": [
             "IF ((X>1) AND (Y==1))",
-            "Z=Z/X",
+            "  Z=Z/X",
             "END",
             "IF ((X==2) OR (Z>1))",
-            "Z=Z+1",
+            "  Z=Z+1",
             "END"
           ]
         },

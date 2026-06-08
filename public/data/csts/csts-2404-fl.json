@@ -1011,12 +1011,12 @@
           "type": "code",
           "lines": [
             "int foo(int x) {",
-            "int y;",
-            "if (x==1)",
-            "y=x+1;",
-            "x=10;",
-            "return y;",
-            "y=10;",
+            "  int y;",
+            "  if (x==1)",
+            "    y=x+1;",
+            "  x=10;",
+            "  return y;",
+            "  y=10;",
             "}"
           ]
         }
@@ -1165,9 +1165,9 @@
           "lines": [
             "1 READ P, Q",
             "2 IF P+Q > 100 THEN",
-            "3 PRINT \"P+Q IS LARGE\"",
+            "3   PRINT \"P+Q IS LARGE\"",
             "4 IF P > 50 THEN",
-            "5 PRINT \"P IS LARGE\""
+            "5   PRINT \"P IS LARGE\""
           ]
         },
         {
@@ -1268,10 +1268,10 @@
           "type": "code",
           "lines": [
             "If ((x>1) and (y==1)){",
-            "z=z/x;",
+            "  z=z/x;",
             "}",
             "If ((x==2) or (z>1)){",
-            "z=z+1;",
+            "  z=z+1;",
             "}"
           ]
         }
