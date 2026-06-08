@@ -870,7 +870,7 @@
           key.textContent = option.key.toUpperCase();
           const text = document.createElement("span");
           text.className = "option-text";
-          renderRichText(text, option.text, { plainContent: true });
+          renderRichText(text, option.text);
           row.append(key, text);
           cstsOptions.appendChild(row);
         });
@@ -2822,7 +2822,7 @@
           key.textContent = option.key;
           const text = document.createElement("span");
           text.className = "option-text";
-          renderRichText(text, option.text, { plainContent: true });
+          renderRichText(text, option.text);
           button.draggable = false;
           button.append(key, text);
           button.addEventListener("click", () =>
