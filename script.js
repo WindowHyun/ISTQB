@@ -180,7 +180,9 @@
 
         if (Array.isArray(q.options)) {
           q.options = q.options.map((opt) => {
-            if (opt.text) opt.text = opt.text.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").replace(/\r\n/g, "\n").trim();
+            if (typeof opt.text === "string") {
+              opt.text = opt.text.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").replace(/\r\n/g, "\n").trim();
+            }
             return opt;
           });
         }
