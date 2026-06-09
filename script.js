@@ -2955,7 +2955,7 @@
         }
         
         questions.forEach((question) => {
-           const ansKey = `${question.setId || history.setId}-${history.mode}-${question.number}`;
+           const ansKey = answerKey(question, history.mode);
            const selected = history.answers[ansKey] || [];
            const isCor =
              question.type === "short_answer"
@@ -3378,7 +3378,7 @@
           
           const historyAnswers = {};
           Object.keys(state.answers).forEach(key => {
-            if (key.includes(`-${targetMode}-`)) {
+            if (key.endsWith(`-${targetMode}`) || key.includes(`-${targetMode}-`)) {
                historyAnswers[key] = state.answers[key];
             }
           });
@@ -3566,9 +3566,9 @@
       if (clearWrongNoteBtn) {
         clearWrongNoteBtn.addEventListener("click", () => {
           if (confirm("정말로 모든 오답 기록을 비우시겠습니까?")) {
-            state.wrongAnswers = {};
-            saveState();
-            renderWrongNotes();
+            state.histories = [];
+            savePersistentSnapshot();
+            renderWrongNote();
           }
         });
       }
