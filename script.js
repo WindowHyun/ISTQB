@@ -1729,7 +1729,14 @@
             target.appendChild(renderReferenceImage(block.src));
             return;
           }
-          if (block.type === "table") {
+          if (block.type === "note") {
+          const noteNode = document.createElement("span");
+          noteNode.className = "text-line note-line";
+          noteNode.textContent = block.text;
+          target.appendChild(noteNode);
+          return;
+        }
+        if (block.type === "table") {
             target.appendChild(renderDataTable(block));
             return;
           }
@@ -1775,7 +1782,7 @@
         }
         appendPlainLine(target, block.text, {
           markPrompt: target.id === "questionStem" || block.type === "prompt",
-          className: block.type === "note" ? "note-line" : "",
+          className: "",
         });
       }
 
