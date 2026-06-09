@@ -1131,22 +1131,14 @@
         {
           "type": "code",
           "lines": [
-            "ENDIF"
-          ]
-        },
-        {
-          "type": "code",
-          "lines": [
+            "ENDIF",
+            "",
             "1 READ P, Q",
             "2 IF P+Q > 100 THEN",
             "3   PRINT \"P+Q IS LARGE\"",
             "4 IF P > 50 THEN",
-            "5   PRINT \"P IS LARGE\""
-          ]
-        },
-        {
-          "type": "code",
-          "lines": [
+            "5   PRINT \"P IS LARGE\"",
+            "",
             "ENDIF"
           ]
         }

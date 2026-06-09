@@ -1,3 +1,9 @@
+
+const { JSDOM } = require('jsdom');
+const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
+global.document = dom.window.document;
+global.window = dom.window;
+
 (async () => {
       const appLogStore = (() => {
         const maxEntries = 200;
@@ -2118,7 +2124,7 @@
 
       function parseStructuredItem(line) {
         const match = line.match(
-          /^(\d+\.(?!\d)|\(\d+\)|[A-E]\.|[a-e]\)|(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s*(.+)$/i,
+          /^(\d+\.|\(\d+\)|[A-E]\.|[a-e]\)|(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s*(.+)$/i,
         );
         if (!match) return null;
         return { marker: match[1], text: match[2].trim() };
@@ -3679,3 +3685,13 @@
         });
       }
       })();
+
+
+const data = JSON.parse(fs.readFileSync('public/data/csts/csts-example-answer-included.json', 'utf8'));
+const q = data.questions.find(x => x.number === 26);
+const blocks = buildRichBlocks(q.stem);
+console.log(JSON.stringify(blocks, null, 2));
+
+const cstsData = JSON.parse(fs.readFileSync('public/data/csts/csts-2404-fl.json', 'utf8'));
+const q24 = cstsData.questions.find(x => x.number === 24);
+console.log("Q24 options:", q24.options);
