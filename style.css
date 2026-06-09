@@ -1209,7 +1209,9 @@
       }
 
       .modal-body {
-        overflow: auto;
+        overflow-y: auto;
+        overflow-x: hidden;
+        max-height: calc(92vh - 60px);
         padding: 18px 20px;
       }
 
