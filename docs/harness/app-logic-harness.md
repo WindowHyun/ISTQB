@@ -1,68 +1,68 @@
-# App Logic Harness
+# 앱 로직 하네스
 
-## Scope
+## 적용 범위
 
-Use this harness for changes to app behavior, including:
+다음 앱 동작 변경에는 이 하네스를 사용합니다.
 
-- Practice, exam, random, and wrong-answer modes
-- Grading and answer selection
-- Explanation display
-- Navigation between questions
-- Wrong-answer note behavior
-- `localStorage` and IndexedDB persistence
-- Progress restore after reload
-- Export/import of solving history
-- Confirmation dialogs and state transitions
+- 연습 모드, 시험 모드, 랜덤 모드, 오답 모드
+- 채점과 답 선택
+- 해설 표시
+- 문제 간 이동
+- 오답 노트 동작
+- `localStorage`와 IndexedDB 상태 저장
+- 새로고침 후 진행 상태 복원
+- 풀이 기록 가져오기/내보내기
+- 확인 알림과 상태 전환
 
-## Goals
+## 목표
 
-The app logic harness should prove that user workflows remain correct after behavioral changes.
+앱 로직 하네스는 동작 변경 이후에도 사용자 워크플로가 올바르게 유지된다는 것을 증명해야 합니다.
 
-## Required checks
+## 필수 점검
 
-Run:
+다음을 실행합니다.
 
 ```bash
 npm run verify
 ```
 
-Add targeted checks based on the changed workflow. Prefer automated DOM or Playwright scenarios when a behavior can regress.
+변경된 워크플로에 맞는 대상 점검을 추가합니다. 회귀 가능성이 있는 동작은 자동화된 DOM 테스트 또는 Playwright 시나리오를 우선합니다.
 
-## Suggested scenario matrix
+## 권장 시나리오 매트릭스
 
-| Area | Scenario examples |
+| 영역 | 시나리오 예시 |
 | --- | --- |
-| Practice mode | Select answer, immediate feedback appears, explanation is visible |
-| Exam mode | Select answers, grade after completion, score/result state is stable |
-| Random mode | Randomized order works without losing answer mapping |
-| Wrong-answer mode | Existing wrong-answer records are preserved until explicitly retried |
-| Navigation | Previous/next buttons keep selection and state consistent |
-| Persistence | Reload restores current set, mode, question, and answers |
-| Import/export | Exported JSON can be imported and restores expected progress |
+| 연습 모드 | 답 선택 후 즉시 피드백이 나타나고 해설이 표시됨 |
+| 시험 모드 | 답 선택 후 완료 시 채점하며 점수/결과 상태가 안정적임 |
+| 랜덤 모드 | 무작위 순서에서도 정답 매핑이 유지됨 |
+| 오답 모드 | 사용자가 명시적으로 다시 풀기 전까지 기존 오답 기록이 보존됨 |
+| 문제 이동 | 이전/다음 버튼 이동 후 선택과 상태가 일관됨 |
+| 상태 저장 | 새로고침 후 현재 세트, 모드, 문제, 답변이 복원됨 |
+| 가져오기/내보내기 | 내보낸 JSON을 다시 가져오면 예상 진행 상태가 복원됨 |
 
-## What to verify
+## 확인할 내용
 
-- State transitions do not silently clear user progress.
-- Mode changes show the expected confirmation behavior.
-- Grading uses the original answer key after randomization or navigation.
-- Wrong-answer records are not accidentally deleted.
-- Persistence handles reloads and unavailable storage gracefully.
-- Root and `www` app scripts stay synchronized when both are used.
+- 상태 전환이 사용자 진행 상황을 조용히 삭제하지 않는지 확인합니다.
+- 모드 변경 시 예상 확인 알림이 표시되는지 확인합니다.
+- 랜덤화 또는 문제 이동 이후에도 원래 정답 키로 채점되는지 확인합니다.
+- 오답 기록이 의도치 않게 삭제되지 않는지 확인합니다.
+- 저장소 사용 불가 상황과 새로고침 복원이 안전하게 처리되는지 확인합니다.
+- 루트 앱 스크립트와 `www` 앱 스크립트를 함께 사용하는 경우 동기화되어 있는지 확인합니다.
 
-## When to improve the harness
+## 하네스를 보강해야 하는 경우
 
-Add or propose a test when:
+다음 경우에는 테스트를 추가하거나 보강안을 제안합니다.
 
-- A bug affects a specific user workflow.
-- A regression requires multiple clicks or reloads to reproduce.
-- State is stored across browser APIs.
-- A mode-specific branch is not covered by existing verification.
+- 특정 사용자 워크플로에서 버그가 발생한 경우
+- 여러 번의 클릭이나 새로고침이 있어야 재현되는 회귀인 경우
+- 상태가 브라우저 저장소 API에 걸쳐 저장되는 경우
+- 기존 검증이 특정 모드 분기를 다루지 않는 경우
 
-## Reporting checklist
+## 보고 체크리스트
 
-In the final response, include:
+최종 응답에는 다음을 포함합니다.
 
-- Behavior changed.
-- Manual or automated scenarios checked.
-- Storage/state risks considered.
-- Any workflow that still needs human exploratory testing.
+- 변경한 동작
+- 수동 또는 자동으로 확인한 시나리오
+- 고려한 저장소/상태 리스크
+- 아직 사람의 탐색적 테스트가 필요한 워크플로

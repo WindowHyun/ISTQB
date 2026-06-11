@@ -1,35 +1,35 @@
-# UI Render Harness
+# UI 렌더링 하네스
 
-## Scope
+## 적용 범위
 
-Use this harness for changes to:
+다음 변경에는 이 하네스를 사용합니다.
 
 - `index.html`, `www/index.html`
 - `style.css`, `www/style.css`
-- `script.js`, `www/script.js` when rendering changes are involved
-- Question rendering for stems, options, explanations, figures, tables, code blocks, and responsive layout
-- Visual assets that affect question display
+- 렌더링 변경이 포함된 `script.js`, `www/script.js`
+- 지문, 선택지, 해설, 그림, 표, 코드 블록, 반응형 레이아웃의 문제 렌더링
+- 문제 표시 방식에 영향을 주는 시각 에셋
 
-## Goals
+## 목표
 
-The UI render harness should prove that questions load, render, and remain usable across the expected mobile/tablet layout.
+UI 렌더링 하네스는 문제가 로드되고, 화면에 정상 렌더링되며, 예상 모바일/태블릿 레이아웃에서 사용 가능한 상태를 유지한다는 것을 증명해야 합니다.
 
-## Required checks
+## 필수 점검
 
-Always run:
+항상 다음을 실행합니다.
 
 ```bash
 npm run verify
 ```
 
-For visible rendering, image, table, option, CSS, or layout changes, run the Playwright visual audit:
+눈에 보이는 렌더링, 이미지, 표, 선택지, CSS, 레이아웃 변경이 있다면 Playwright 시각 감사를 실행합니다.
 
 ```bash
 npm run serve
 node scripts/visual-audit-render.js
 ```
 
-If running both in one shell, use a background server and stop it after the audit:
+한 셸에서 서버 실행과 감사를 함께 수행할 때는 백그라운드 서버를 사용하고 감사 후 종료합니다.
 
 ```bash
 npm run serve > /tmp/istqb-server.log 2>&1 &
@@ -38,42 +38,42 @@ node scripts/visual-audit-render.js
 kill $SERVER_PID
 ```
 
-## What to verify
+## 확인할 내용
 
-- The app loads without console-breaking errors.
-- The selected question set renders a stable question title, stem, and options or answer input.
-- Images load and stay within the viewport.
-- Stem, figure, and options have readable spacing.
-- Options are not merged into one visual block.
-- Tables and list-like content remain legible.
-- Mobile/tablet viewport behavior remains usable.
-- `tmp/visual-audit/report.json` has `badCount: 0`, or each finding is reviewed and explained.
+- 앱이 콘솔을 중단시키는 오류 없이 로드되는지 확인합니다.
+- 선택한 문제 세트에서 문제 제목, 지문, 선택지 또는 답 입력이 안정적으로 렌더링되는지 확인합니다.
+- 이미지가 로드되고 viewport를 벗어나지 않는지 확인합니다.
+- 지문, 그림, 선택지 사이의 간격이 읽기 좋은지 확인합니다.
+- 선택지가 하나의 시각 블록으로 합쳐지지 않는지 확인합니다.
+- 표와 목록형 콘텐츠가 읽을 수 있는 상태인지 확인합니다.
+- 모바일/태블릿 viewport에서 사용성이 유지되는지 확인합니다.
+- `tmp/visual-audit/report.json`의 `badCount`가 0인지 확인하거나, 발견 항목을 각각 검토하고 설명합니다.
 
-## Screenshot expectations
+## 스크린샷 기준
 
-Take or preserve screenshots when:
+다음 경우에는 스크린샷을 캡처하거나 보존합니다.
 
-- A perceptible web UI change is made.
-- The visual audit reports failures.
-- A layout bug is fixed and needs before/after evidence.
+- 눈에 보이는 웹 UI 변경이 있는 경우
+- 시각 감사에서 실패가 보고된 경우
+- 레이아웃 버그를 수정했고 전/후 증거가 필요한 경우
 
-Visual audit screenshots are written under `tmp/visual-audit/` and should normally not be committed.
+시각 감사 스크린샷은 `tmp/visual-audit/` 아래에 생성되며, 일반적으로 커밋하지 않습니다.
 
-## When to improve the harness
+## 하네스를 보강해야 하는 경우
 
-Add or propose coverage when a rendering defect is not caught by the existing audit, such as:
+기존 감사가 잡지 못하는 렌더링 결함이 발견되면 커버리지를 추가하거나 보강안을 제안합니다. 예시는 다음과 같습니다.
 
-- A new component type.
-- A new image container.
-- A responsive breakpoint issue.
-- A table or code-block pattern with recurring failures.
-- A mode-specific rendering problem not covered by set traversal.
+- 새로운 컴포넌트 타입
+- 새로운 이미지 컨테이너
+- 반응형 breakpoint 문제
+- 반복적으로 실패하는 표 또는 코드 블록 패턴
+- 현재 세트 순회로 잡히지 않는 모드별 렌더링 문제
 
-## Reporting checklist
+## 보고 체크리스트
 
-In the final response, include:
+최종 응답에는 다음을 포함합니다.
 
-- UI files changed.
-- Verification and visual audit commands.
-- Visual audit report status.
-- Screenshots captured or reason screenshots were not needed.
+- 변경한 UI 파일
+- 검증 및 시각 감사 명령
+- 시각 감사 리포트 상태
+- 캡처한 스크린샷 또는 스크린샷이 필요 없었던 이유

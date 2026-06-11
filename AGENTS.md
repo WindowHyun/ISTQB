@@ -1,34 +1,34 @@
 # AGENTS.md
 
-## Repository workflow
+## 저장소 작업 방식
 
-This repository uses a harness-first workflow for Codex work. Before making changes, classify the work by impact area and read the matching harness document under `docs/harness/`.
+이 저장소는 Codex 작업에 하네스 우선(harness-first) 방식을 사용합니다. 변경을 시작하기 전에 작업 영향 범위를 분류하고, `docs/harness/` 아래의 관련 하네스 문서를 먼저 읽습니다.
 
-## Required harness routing
+## 필수 하네스 라우팅
 
-- Data, question JSON, answers, options, explanations, image paths:
-  - Read `docs/harness/data-harness.md`.
-- UI, CSS, question rendering, images, tables, options, responsive layout:
-  - Read `docs/harness/ui-render-harness.md`.
-- App behavior, modes, grading, wrong-answer notes, persistence, import/export:
-  - Read `docs/harness/app-logic-harness.md`.
-- Android, Capacitor, `www/`, APK, manifests, icons, service worker packaging:
-  - Read `docs/harness/android-build-harness.md`.
-- Release, pre-delivery, broad multi-area changes:
-  - Read `docs/harness/release-harness.md`.
+- 데이터, 문제 JSON, 정답, 선택지, 해설, 이미지 경로:
+  - `docs/harness/data-harness.md`를 읽습니다.
+- UI, CSS, 문제 렌더링, 이미지, 표, 선택지, 반응형 레이아웃:
+  - `docs/harness/ui-render-harness.md`를 읽습니다.
+- 앱 동작, 풀이 모드, 채점, 오답 노트, 상태 저장, 가져오기/내보내기:
+  - `docs/harness/app-logic-harness.md`를 읽습니다.
+- Android, Capacitor, `www/`, APK, 매니페스트, 아이콘, 서비스 워커 패키징:
+  - `docs/harness/android-build-harness.md`를 읽습니다.
+- 릴리스, 전달 전 점검, 여러 영역에 걸친 큰 변경:
+  - `docs/harness/release-harness.md`를 읽습니다.
 
-## Default verification
+## 기본 검증
 
-- Run `npm run verify` after data, JavaScript, UI, or app behavior changes.
-- For UI/rendering/image/table/option changes, run the visual audit described in `docs/harness/ui-render-harness.md`.
-- For Android or packaged web asset changes, evaluate `npm run cap:sync` and Android build checks described in `docs/harness/android-build-harness.md`.
-- If a requested change exposes a defect not covered by an existing harness, update or propose a harness improvement before treating the work as complete.
+- 데이터, JavaScript, UI, 앱 동작을 변경한 뒤에는 `npm run verify`를 실행합니다.
+- UI/렌더링/이미지/표/선택지 변경은 `docs/harness/ui-render-harness.md`에 설명된 시각 감사도 실행합니다.
+- Android 또는 패키징되는 웹 에셋 변경은 `npm run cap:sync`와 `docs/harness/android-build-harness.md`의 Android 빌드 점검 필요 여부를 판단합니다.
+- 요청된 변경에서 기존 하네스가 잡지 못하는 결함 유형이 드러나면, 작업 완료로 보기 전에 하네스를 보강하거나 보강안을 제시합니다.
 
-## Reporting expectations
+## 보고 기준
 
-Final responses should include:
+최종 응답에는 다음을 포함합니다.
 
-- What changed.
-- Which harness document(s) were used.
-- Exact commands executed and their results.
-- Any skipped checks, with a clear environment or scope reason.
+- 변경한 내용
+- 사용한 하네스 문서
+- 실행한 정확한 명령과 결과
+- 생략한 점검이 있다면 생략 사유와 범위

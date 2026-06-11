@@ -1,40 +1,40 @@
-# Release Harness
+# 릴리스 하네스
 
-## Scope
+## 적용 범위
 
-Use this harness for release preparation, broad changes, or work that touches multiple areas of the app.
+릴리스 준비, 넓은 범위의 변경, 또는 앱의 여러 영역을 동시에 건드리는 작업에는 이 하네스를 사용합니다.
 
-## Goals
+## 목표
 
-The release harness should combine the relevant area harnesses into a final confidence checklist before delivery.
+릴리스 하네스는 전달 전 최종 신뢰도를 확보하기 위해 관련 영역 하네스를 조합해야 합니다.
 
-## Release checklist
+## 릴리스 체크리스트
 
-### 1. Classify changed areas
+### 1. 변경 영역 분류
 
-Review the diff and identify whether the release includes:
+diff를 검토하고 릴리스에 다음 영역이 포함되는지 확인합니다.
 
-- Data changes
-- UI/rendering changes
-- App logic changes
-- Android/packaging changes
-- Documentation-only changes
+- 데이터 변경
+- UI/렌더링 변경
+- 앱 로직 변경
+- Android/패키징 변경
+- 문서 전용 변경
 
-### 2. Run relevant harnesses
+### 2. 관련 하네스 실행
 
-Always run:
+항상 다음을 실행합니다.
 
 ```bash
 npm run verify
 ```
 
-For UI-visible changes, run the visual audit from `ui-render-harness.md`.
+눈에 보이는 UI 변경이 있다면 `ui-render-harness.md`의 시각 감사를 실행합니다.
 
-For Android packaging changes, run the checks from `android-build-harness.md`.
+Android 패키징 변경이 있다면 `android-build-harness.md`의 점검을 실행합니다.
 
-### 3. Confirm generated artifacts
+### 3. 생성 산출물 확인
 
-Verify that generated or local-only files are not accidentally committed:
+생성 파일 또는 로컬 전용 파일이 실수로 커밋되지 않았는지 확인합니다.
 
 - `node_modules/`
 - `android/**/build/`
@@ -43,24 +43,24 @@ Verify that generated or local-only files are not accidentally committed:
 - `*.aab`
 - `*.jks`
 - `*.keystore`
-- `tmp/visual-audit/` unless a report is intentionally committed
+- 의도적으로 리포트를 커밋하는 경우가 아니라면 `tmp/visual-audit/`
 
-### 4. Review user-facing behavior
+### 4. 사용자 관점 동작 검토
 
-For release-impacting changes, confirm:
+릴리스에 영향을 주는 변경이라면 다음을 확인합니다.
 
-- App loads from the local server.
-- The expected question sets are visible.
-- Practice and exam mode basics still work.
-- Images and tables in representative questions render correctly.
-- Offline/PWA behavior was not unintentionally changed.
+- 앱이 로컬 서버에서 로드되는지 확인합니다.
+- 예상 문제 세트가 표시되는지 확인합니다.
+- 연습 모드와 시험 모드의 기본 동작이 유지되는지 확인합니다.
+- 대표 문제의 이미지와 표가 정상 렌더링되는지 확인합니다.
+- 오프라인/PWA 동작이 의도치 않게 변경되지 않았는지 확인합니다.
 
-## Reporting checklist
+## 보고 체크리스트
 
-In the final response or release note, include:
+최종 응답 또는 릴리스 노트에는 다음을 포함합니다.
 
-- Changed areas.
-- Harnesses executed.
-- Commands and outcomes.
-- Known limitations or skipped checks.
-- Any manual review still recommended.
+- 변경 영역
+- 실행한 하네스
+- 명령과 결과
+- 알려진 한계 또는 생략한 점검
+- 아직 권장되는 수동 검토

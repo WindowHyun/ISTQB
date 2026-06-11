@@ -1,55 +1,55 @@
-# Data Harness
+# 데이터 하네스
 
-## Scope
+## 적용 범위
 
-Use this harness for changes to:
+다음 변경에는 이 하네스를 사용합니다.
 
 - `public/data/**/*.json`
 - `www/data/**/*.json`
-- Question IDs, titles, metadata, answers, options, explanations, figures, tables, lists, and block structures
-- Scripts that extract, normalize, validate, or repair question data
+- 문제 ID, 제목, 메타데이터, 정답, 선택지, 해설, 그림, 표, 목록, block 구조
+- 문제 데이터를 추출, 정규화, 검증, 보정하는 스크립트
 
-## Goals
+## 목표
 
-The data harness should prove that question content is structurally valid, renderable, and internally consistent.
+데이터 하네스는 문제 콘텐츠가 구조적으로 유효하고, 화면에 렌더링 가능하며, 내부 정합성을 유지한다는 것을 증명해야 합니다.
 
-## Required checks
+## 필수 점검
 
-Run the default repository verification:
+저장소 기본 검증을 실행합니다.
 
 ```bash
 npm run verify
 ```
 
-This command should cover syntax checks, question validation, content audits, and classification marker audits.
+이 명령은 문법 검사, 문제 검증, 콘텐츠 감사, 분류 마커 감사를 포함해야 합니다.
 
-## What to verify
+## 확인할 내용
 
-- JSON parses successfully.
-- Question IDs are unique inside each set.
-- Required metadata exists.
-- Multiple-choice questions have valid options.
-- Answer keys match available options.
-- Explanations and stems use supported block structures.
-- Figure and image paths point to committed assets.
-- Manual line breaks, tables, and lists are intentional and renderable.
-- Root data and packaged `www/data` copies are synchronized when both are affected.
+- JSON이 정상 파싱되는지 확인합니다.
+- 각 세트 안에서 문제 ID가 중복되지 않는지 확인합니다.
+- 필수 메타데이터가 있는지 확인합니다.
+- 객관식 문제에 유효한 선택지가 있는지 확인합니다.
+- 정답 키가 실제 선택지와 매칭되는지 확인합니다.
+- 해설과 지문이 지원되는 block 구조를 사용하는지 확인합니다.
+- 그림과 이미지 경로가 커밋된 실제 에셋을 가리키는지 확인합니다.
+- 수동 줄바꿈, 표, 목록이 의도된 형식이며 렌더링 가능한지 확인합니다.
+- 루트 데이터와 패키징용 `www/data` 사본이 함께 영향받는 경우 동기화되어 있는지 확인합니다.
 
-## When to improve the harness
+## 하네스를 보강해야 하는 경우
 
-Add or propose validation coverage when a defect involves:
+다음 결함이 발견되면 검증 규칙을 추가하거나 보강안을 제안합니다.
 
-- A malformed block type that current validation accepts.
-- A missing asset path that validation does not detect.
-- A duplicated or unstable question ID pattern.
-- Answers that are semantically mismatched but structurally valid.
-- Repeated extraction/normalization defects from source PDFs.
+- 현재 검증이 허용하는 잘못된 block 타입
+- 현재 검증이 탐지하지 못하는 누락 에셋 경로
+- 중복되거나 불안정한 문제 ID 패턴
+- 구조적으로는 유효하지만 의미적으로 잘못 매칭된 정답
+- PDF 추출/정규화 과정에서 반복되는 결함
 
-## Reporting checklist
+## 보고 체크리스트
 
-In the final response, include:
+최종 응답에는 다음을 포함합니다.
 
-- Data files changed.
-- Validation command results.
-- Any known content risk that needs manual review.
-- Whether `www/data` synchronization was required.
+- 변경한 데이터 파일
+- 검증 명령 결과
+- 수동 검토가 필요한 콘텐츠 리스크
+- `www/data` 동기화 필요 여부
