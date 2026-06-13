@@ -989,7 +989,54 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "운전면허시험 결과 분석 시스템을 개발하는 프로젝트에 참여하고 있다. 다음 결정 테이블을 기반으로 테스트 케이스를 설계하라는 요청을 받았다: R1 R2 R3 C1: 첫 시험 도전? - - F C2: 이론 시험 합격? T F - C3: 실기 시험 합격? T - F 운전 면허 발급? X 운전 강습 추가 요청? X 시험 재-응시 요청? X"
+          "text": "운전면허시험 결과 분석 시스템을 개발하는 프로젝트에 참여하고 있다. 다음 결정 테이블을 기반으로 테스트 케이스를 설계하라는 요청을 받았다:"
+        },
+        {
+          "type": "table",
+          "rows": [
+            [
+              "",
+              "R1",
+              "R2",
+              "R3"
+            ],
+            [
+              "C1: 첫 시험 도전?",
+              "-",
+              "-",
+              "F"
+            ],
+            [
+              "C2: 이론 시험 합격?",
+              "T",
+              "F",
+              "-"
+            ],
+            [
+              "C3: 실기 시험 합격?",
+              "T",
+              "-",
+              "F"
+            ],
+            [
+              "운전 면허 발급?",
+              "X",
+              "",
+              ""
+            ],
+            [
+              "운전 강습 추가 요청?",
+              "",
+              "X",
+              ""
+            ],
+            [
+              "시험 재-응시 요청?",
+              "",
+              "",
+              "X"
+            ]
+          ]
         },
         {
           "type": "paragraph",
@@ -1106,7 +1153,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": "/data/istqb/figures/sample-c-q23.png"
     },
     {
       "id": "ISTQB-FL-V4-C-024",
@@ -1151,7 +1198,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": "/data/istqb/figures/sample-c-q24.png"
     },
     {
       "id": "ISTQB-FL-V4-C-025",
@@ -1516,7 +1563,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": "/data/istqb/figures/sample-c-q32.png"
     },
     {
       "id": "ISTQB-FL-V4-C-033",
