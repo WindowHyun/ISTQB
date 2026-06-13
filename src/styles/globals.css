@@ -1,0 +1,25 @@
+@import "../../style.css";
+
+.state-card {
+  margin: 2rem auto;
+  max-width: 48rem;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  background: #fff;
+  box-shadow: 0 1rem 3rem rgb(15 23 42 / 12%);
+}
+
+.state-card.error,
+.feedback.wrong {
+  border: 1px solid #ef4444;
+  color: #991b1b;
+}
+
+.feedback.correct {
+  border: 1px solid #16a34a;
+  color: #166534;
+}
+
+.option.selected {
+  outline: 3px solid #166064;
+}

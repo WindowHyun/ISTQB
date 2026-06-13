@@ -4,6 +4,8 @@
   "private": true,
   "description": "Android wrapper project for the ISTQB FL tablet app.",
   "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc && vite build",
     "serve": "node local-server.js",
     "validate:questions": "node scripts/validate-questions.js",
     "verify": "node scripts/verify.js",
@@ -20,7 +22,14 @@
     "@capacitor/cli": "^7.0.0",
     "@capacitor/core": "^7.0.0",
     "jsdom": "^29.1.1",
-    "playwright": "^1.60.0"
+    "playwright": "^1.60.0",
+    "@vitejs/plugin-react": "^5.1.2",
+    "vite": "^7.2.7",
+    "typescript": "^5.9.3",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3"
   },
   "devDependencies": {
     "jest": "^30.4.2"
