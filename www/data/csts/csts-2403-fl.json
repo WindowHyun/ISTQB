@@ -46,7 +46,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -61,7 +65,11 @@
       "stem": [
         {
           "type": "prompt",
-          "text": "<보기>는 결함(Defect), 오류(Error) 및 장애(Failure)를 발생 순서에 따라 도식화 한 것이다. 순서가 올바른 것은?"
+          "text": "<보기>는 결함(Defect), 오류(Error) 및 장애(Failure)를 발생 순서에 따라 도식화 한 것이"
+        },
+        {
+          "type": "prompt",
+          "text": "다. 순서가 올바른 것은?"
         },
         {
           "type": "note",
@@ -97,7 +105,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -139,7 +151,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -181,7 +197,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -227,7 +247,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -316,7 +340,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -358,7 +386,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -400,7 +432,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -442,7 +478,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -484,7 +524,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -558,7 +602,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -600,7 +648,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -619,15 +671,27 @@
         },
         {
           "type": "paragraph",
-          "text": "* CSCP, CSCQ, CSC, CSU 등은 시스템을 구성하는 주요 컴포넌트를 나타낸다."
+          "text": "* CSCP, CSCQ, CSC, CSU 등은 시스템을 구성하는 주요 컴포넌트를 나타낸"
         },
         {
           "type": "paragraph",
-          "text": "* 화살표는 컴포넌트가 하위 컴포넌트를 호출하는 것을 의미한다."
+          "text": "다."
         },
         {
           "type": "paragraph",
-          "text": "* 컴포넌트가 연결되지 않은 것은 서로 다른 시스템을 의미한다."
+          "text": "* 화살표는 컴포넌트가 하위 컴포넌트를 호출하는 것을 의미한"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
+        },
+        {
+          "type": "paragraph",
+          "text": "* 컴포넌트가 연결되지 않은 것은 서로 다른 시스템을 의미한"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "options": [
@@ -654,7 +718,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -696,7 +764,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -719,7 +791,11 @@
         },
         {
           "type": "paragraph",
-          "text": "팩스 전송 시스템은 지난 수십 년 간 개발되어 사용해 왔으며, 새로운 기능이 추가되기보다는 다양한 하드웨어 플랫폼에 맞도록 최적화시키는 일이 빈번히 일어났다."
+          "text": "팩스 전송 시스템은 지난 수십 년 간 개발되어 사용해 왔으며, 새로운 기능이 추가되기보다는 다양한 하드웨어 플랫폼에 맞도록 최적화시키는 일이 빈번히 일어났"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "options": [
@@ -746,7 +822,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -788,7 +868,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -855,7 +939,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -897,7 +985,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -939,7 +1031,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -958,7 +1054,15 @@
         },
         {
           "type": "paragraph",
-          "text": "이 리뷰방법에서는 작성자 본인이 보통 회의를 주재하며 기록자 역할도 담당할 수 있고, 절 차 및 작업물에 대한 개요 설명 단계를 회의의 한 부분으로 다룰 수 있다. 이 리뷰 방법으 로 결함을 검출할 뿐만 아니라 참가자들의 교육이나 지식 공유를 위해 수행되기도 한다."
+          "text": "이 리뷰방법에서는 작성자 본인이 보통 회의를 주재하며 기록자 역할도 담당할 수 있고, 절 차 및 작업물에 대한 개요 설명 단계를 회의의 한 부분으로 다룰 수 있"
+        },
+        {
+          "type": "paragraph",
+          "text": "다. 이 리뷰 방법으 로 결함을 검출할 뿐만 아니라 참가자들의 교육이나 지식 공유를 위해 수행되기도 한"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "options": [
@@ -985,7 +1089,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1027,7 +1135,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1069,7 +1181,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1111,7 +1227,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1153,7 +1273,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1172,7 +1296,11 @@
         },
         {
           "type": "paragraph",
-          "text": "소스코드뿐 아니라 설계 다이어그램의 구조를 분석하여 테스트 케이스를 설계하며, 소프트 웨어의 내부 구조를 이용한다."
+          "text": "소스코드뿐 아니라 설계 다이어그램의 구조를 분석하여 테스트 케이스를 설계하며, 소프트 웨어의 내부 구조를 이용한"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "options": [
@@ -1199,7 +1327,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1214,7 +1346,11 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "<보기>의 진리표를 이용하여 (A or B)에 대한 결정 커버리지를 100% 달성하고자 한다. 결정 커버리지를 100% 달성할 수 있는 테스트 케이스 조합은?"
+          "text": "<보기>의 진리표를 이용하여 (A or B)에 대한 결정 커버리지를 100% 달성하고자 한"
+        },
+        {
+          "type": "paragraph",
+          "text": "다. 결정 커버리지를 100% 달성할 수 있는 테스트 케이스 조합은?"
         },
         {
           "type": "note",
@@ -1280,7 +1416,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1333,7 +1473,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1386,7 +1530,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1438,7 +1586,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1480,7 +1632,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1555,7 +1711,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1570,7 +1730,11 @@
       "stem": [
         {
           "type": "prompt",
-          "text": "입력값의 유효범위로 0에서 100을 갖는 성적 처리 프로그램을 고려했을 때 이 프로그램을 경 계값 분석 테스트를 수행하기 위해 테스트 케이스를 도출하였다. 이 중 가장 적합하지 않은 테스트 케이스는 무엇인가?"
+          "text": "입력값의 유효범위로 0에서 100을 갖는 성적 처리 프로그램을 고려했을 때 이 프로그램을 경 계값 분석 테스트를 수행하기 위해 테스트 케이스를 도출하였"
+        },
+        {
+          "type": "prompt",
+          "text": "다. 이 중 가장 적합하지 않은 테스트 케이스는 무엇인가?"
         }
       ],
       "options": [
@@ -1597,7 +1761,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1612,7 +1780,19 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "어떤 기업에서 Client-Server 기반 제품을 개발한 후 제품의 호환성을 테스트하려고 한다. 서버 운영체제는 Linux와 Cent OS를 지원하고, 클라이언트 운영체제는 Windows 10과 Windows 11 을 지원한다. 또한, 관리자용 웹 콘솔은 Edge와 Chrome을 지원한다. 이 제품의 호환성 시험을 위해 어떤 테스트 케이스 설계 기법이 가장 적절한가?"
+          "text": "어떤 기업에서 Client-Server 기반 제품을 개발한 후 제품의 호환성을 테스트하려고 한"
+        },
+        {
+          "type": "paragraph",
+          "text": "다. 서버 운영체제는 Linux와 Cent OS를 지원하고, 클라이언트 운영체제는 Windows 10과 Windows 11 을 지원한"
+        },
+        {
+          "type": "paragraph",
+          "text": "다. 또한, 관리자용 웹 콘솔은 Edge와 Chrome을 지원한"
+        },
+        {
+          "type": "paragraph",
+          "text": "다. 이 제품의 호환성 시험을 위해 어떤 테스트 케이스 설계 기법이 가장 적절한가?"
         }
       ],
       "options": [
@@ -1639,7 +1819,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1654,7 +1838,19 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "<보기>는 4가지 모드를 가지는 전자시계의 상태 전이도이다. 이를 바탕으로 루트 노트에서 단말 노드까지를 묶어 하나의 테스트 케이스로 만들어 단일 전이 테스트 방식으로 테스트하는 경우, 수행되는 테스트 케이스의 수는 몇 개인가?(단. 유효하지 않은 전이는 고려하지 않는다.)"
+          "text": "<보기>는 4가지 모드를 가지는 전자시계의 상태 전이도이"
+        },
+        {
+          "type": "paragraph",
+          "text": "다. 이를 바탕으로 루트 노트에서 단말 노드까지를 묶어 하나의 테스트 케이스로 만들어 단일 전이 테스트 방식으로 테스트하는 경우, 수행되는 테스트 케이스의 수는 몇 개인가?("
+        },
+        {
+          "type": "paragraph",
+          "text": "단. 유효하지 않은 전이는 고려하지 않는"
+        },
+        {
+          "type": "paragraph",
+          "text": "다.)"
         },
         {
           "type": "note",
@@ -1662,7 +1858,11 @@
         },
         {
           "type": "paragraph",
-          "text": "전자시계의 입력가능 값은 SET, RESET, CHANGE MODE이다."
+          "text": "전자시계의 입력가능 값은 SET, RESET, CHANGE MODE이"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "options": [
@@ -1689,7 +1889,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1731,7 +1935,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1773,7 +1981,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1815,7 +2027,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1830,7 +2046,11 @@
       "stem": [
         {
           "type": "prompt",
-          "text": "<보기>는 테스트 프로세스를 도식화한 것이다. 이 중 빈칸에 해당 되는 단계에서 수행해야 하는 세부 항목으로 올바른 것은?"
+          "text": "<보기>는 테스트 프로세스를 도식화한 것이"
+        },
+        {
+          "type": "prompt",
+          "text": "다. 이 중 빈칸에 해당 되는 단계에서 수행해야 하는 세부 항목으로 올바른 것은?"
         },
         {
           "type": "note",
@@ -1861,7 +2081,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1903,7 +2127,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -1918,7 +2146,11 @@
       "stem": [
         {
           "type": "prompt",
-          "text": "테스트를 계획할 때, 구체적인 테스트 전략을 수립하기에 앞서 테스트 수행의 배경이 되는 다 양한 요소들을 테스트 컨텍스트로 식별하고 명세한다. 다음 보기에서 테스트 컨텍스트 항목들 로만 구성된 것으로 올바른 것은?"
+          "text": "테스트를 계획할 때, 구체적인 테스트 전략을 수립하기에 앞서 테스트 수행의 배경이 되는 다 양한 요소들을 테스트 컨텍스트로 식별하고 명세한"
+        },
+        {
+          "type": "prompt",
+          "text": "다. 다음 보기에서 테스트 컨텍스트 항목들 로만 구성된 것으로 올바른 것은?"
         },
         {
           "type": "list",
@@ -1966,7 +2198,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2008,7 +2244,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2050,7 +2290,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2092,7 +2336,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2134,7 +2382,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2176,7 +2428,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2218,7 +2474,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2260,7 +2520,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2302,7 +2566,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2344,7 +2612,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2386,7 +2658,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2401,7 +2677,11 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "테스트 대상은 시스템을 구성하는 전체 소프트웨어가 될 수도 있고, 전체 소프트웨어의 일부 분만이 테스트 대상이 될 수도 있다. ( O / X )"
+          "text": "테스트 대상은 시스템을 구성하는 전체 소프트웨어가 될 수도 있고, 전체 소프트웨어의 일부 분만이 테스트 대상이 될 수도 있"
+        },
+        {
+          "type": "paragraph",
+          "text": "다. ( O / X )"
         }
       ],
       "options": [
@@ -2420,7 +2700,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2435,7 +2719,11 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "FIRST 원칙은 통합 테스트를 잘 수행하기 위한 원칙이다.( O / X )"
+          "text": "FIRST 원칙은 통합 테스트를 잘 수행하기 위한 원칙이"
+        },
+        {
+          "type": "paragraph",
+          "text": "다.( O / X )"
         }
       ],
       "options": [
@@ -2454,7 +2742,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2469,7 +2761,11 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "인수 테스트는 통합 테스트가 완료된 후에 전체 시스템이 시스템 명세에 따라 개발되었는지 검증하기 위해 수행하는 방법이다. ( O / X )"
+          "text": "인수 테스트는 통합 테스트가 완료된 후에 전체 시스템이 시스템 명세에 따라 개발되었는지 검증하기 위해 수행하는 방법이"
+        },
+        {
+          "type": "paragraph",
+          "text": "다. ( O / X )"
         }
       ],
       "options": [
@@ -2488,7 +2784,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2503,7 +2803,11 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "테스트 주도 개발인 TDD(Test-Driven Development)는 테스트 되는 실제 프로그램의 코드를 먼저 작성하고 프로그램에 대한 테스트 케이스를 나중에 작성하는 방식이다. ( O / X )"
+          "text": "테스트 주도 개발인 TDD(Test-Driven Development)는 테스트 되는 실제 프로그램의 코드를 먼저 작성하고 프로그램에 대한 테스트 케이스를 나중에 작성하는 방식이"
+        },
+        {
+          "type": "paragraph",
+          "text": "다. ( O / X )"
         }
       ],
       "options": [
@@ -2522,7 +2826,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2537,7 +2845,11 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "소프트웨어 개발 모델에 따라 개발 단계별로 적용할 수 있는 리뷰의 유형은 달라진다. ( O / X )"
+          "text": "소프트웨어 개발 모델에 따라 개발 단계별로 적용할 수 있는 리뷰의 유형은 달라진"
+        },
+        {
+          "type": "paragraph",
+          "text": "다. ( O / X )"
         }
       ],
       "options": [
@@ -2556,7 +2868,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2571,7 +2887,11 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "<보기>의 프로그램에 x=0, y=1 을 입력하여 테스트한다면, 문장 커버리지 100%를 달성할 수 있다. ( O / X )"
+          "text": "<보기>의 프로그램에 x=0, y=1 을 입력하여 테스트한다면, 문장 커버리지 100%를 달성할 수 있"
+        },
+        {
+          "type": "paragraph",
+          "text": "다. ( O / X )"
         },
         {
           "type": "note",
@@ -2608,7 +2928,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2623,7 +2947,11 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "소프트웨어 제품의 품질은 제품을 개발하고 운영하는 조직 규모에 의해 결정된다. ( O / X )"
+          "text": "소프트웨어 제품의 품질은 제품을 개발하고 운영하는 조직 규모에 의해 결정된"
+        },
+        {
+          "type": "paragraph",
+          "text": "다. ( O / X )"
         }
       ],
       "options": [
@@ -2642,7 +2970,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2657,7 +2989,11 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "명세기반 테스트 설계 기법 선택 시 테스트 대상의 동작이 상태 의존적인 경우에는 시나리오 테스트, 분류트리 기법, 인과 그래프 테스트가 적용된다. ( O / X )"
+          "text": "명세기반 테스트 설계 기법 선택 시 테스트 대상의 동작이 상태 의존적인 경우에는 시나리오 테스트, 분류트리 기법, 인과 그래프 테스트가 적용된"
+        },
+        {
+          "type": "paragraph",
+          "text": "다. ( O / X )"
         }
       ],
       "options": [
@@ -2676,7 +3012,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2691,7 +3031,11 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "테스트 레벨에 따라 테스트 실행에 참여하는 주체(개발자, 테스터, 사용자 등)는 달라지더라도 테스터는 항상 테스트 실행에 참여해야 한다. ( O / X )"
+          "text": "테스트 레벨에 따라 테스트 실행에 참여하는 주체(개발자, 테스터, 사용자 등)는 달라지더라도 테스터는 항상 테스트 실행에 참여해야 한"
+        },
+        {
+          "type": "paragraph",
+          "text": "다. ( O / X )"
         }
       ],
       "options": [
@@ -2710,7 +3054,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2725,7 +3073,15 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "아래 그래프는 “상태별 누적 결함 수”를 보여 준다. 그래프에서 Open 곡선과 Resolved 곡선 사이 의 공간은 개발자가 수정한 사항을 다시 재테스팅하여 검증해야 하는 작업을 의미한다. ( O / X )"
+          "text": "아래 그래프는 “상태별 누적 결함 수”를 보여 준"
+        },
+        {
+          "type": "paragraph",
+          "text": "다. 그래프에서 Open 곡선과 Resolved 곡선 사이 의 공간은 개발자가 수정한 사항을 다시 재테스팅하여 검증해야 하는 작업을 의미한"
+        },
+        {
+          "type": "paragraph",
+          "text": "다. ( O / X )"
         }
       ],
       "options": [
@@ -2744,7 +3100,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2769,7 +3129,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2811,7 +3175,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2826,7 +3194,11 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "다음은 ISO/IEC 25010 제품 품질 모델의 8가지 품질 주특성 중 하나에 대한 설명이다. 어떤 품질 특성을 설명한 것인지 기술하시오."
+          "text": "다음은 ISO/IEC 25010 제품 품질 모델의 8가지 품질 주특성 중 하나에 대한 설명이"
+        },
+        {
+          "type": "paragraph",
+          "text": "다. 어떤 품질 특성을 설명한 것인지 기술하시오."
         },
         {
           "type": "paragraph",
@@ -2840,7 +3212,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2882,7 +3258,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2901,17 +3281,34 @@
         },
         {
           "type": "paragraph",
-          "text": "소프트웨어에 의해 제어되는 자동차 전자제어장치(ECU; Electronic Control Unit)의 오류는 차 량 운전자 및 탑승자의 안전에 큰 위험을 초래할 수 있다. 자동차 기능 안정성 국제 표준인 ISO 26262는 사고방지를 위해 개발 프로세스 및 각 개발 단계에 적용 가능한 기능 안전을 정 의한다. 이러한 표준 준수 여부를 독립적으로 평가하고 교정활동을 요구하는 보고서를 산출하 게 한다."
+          "text": "소프트웨어에 의해 제어되는 자동차 전자제어장치(ECU; Electronic Control Unit)의 오류는 차 량 운전자 및 탑승자의 안전에 큰 위험을 초래할 수 있"
         }
       ],
-      "options": [],
+      "options": [
+        {
+          "key": "a",
+          "text": "다. 자동차 기능 안정성 국제 표준인 ISO 26262는 사고방지를 위해 개발 프로세스 및 각 개발 단계에 적용 가능한 기능 안전을 정 의한"
+        },
+        {
+          "key": "b",
+          "text": "다. 이러한 표준 준수 여부를 독립적으로 평가하고 교정활동을 요구하는 보고서를 산출하 게 한"
+        },
+        {
+          "key": "c",
+          "text": "다."
+        }
+      ],
       "answer": [
         "감사, Audit"
       ],
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2926,11 +3323,19 @@
       "stem": [
         {
           "type": "prompt",
-          "text": "다음은 명세기반 테스트 기법을 설명한 것이다. 빈칸에 들어갈 알맞은 용어는 무엇인가?"
+          "text": "다음은 명세기반 테스트 기법을 설명한 것이"
+        },
+        {
+          "type": "prompt",
+          "text": "다. 빈칸에 들어갈 알맞은 용어는 무엇인가?"
         },
         {
           "type": "paragraph",
-          "text": "( ) 테스트는 소프트웨어나 시스템 입력의 결과로 입력값 / 출력값 영역을 유한 개의 상호 독립적인 집합으로 나누어 수학적인 등가 집합을 만든 후, 각 등가 집합의 원소 중 대표 값을 선택하여 테스트 케이스를 도출하는 기법이다."
+          "text": "( ) 테스트는 소프트웨어나 시스템 입력의 결과로 입력값 / 출력값 영역을 유한 개의 상호 독립적인 집합으로 나누어 수학적인 등가 집합을 만든 후, 각 등가 집합의 원소 중 대표 값을 선택하여 테스트 케이스를 도출하는 기법이"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "options": [],
@@ -2940,7 +3345,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -2955,7 +3364,11 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "명세기반 테스트 설계 기법 중 ( ) 테스트는 모든 조건들과 그에 대한 모든 가 능한 조합으로 인한 행위를 분석하여 테스트 케이스를 설계하면서 요구사항 등 테스트 베이시 스의 누락을 발견하는데 가장 효과적이다."
+          "text": "명세기반 테스트 설계 기법 중 ( ) 테스트는 모든 조건들과 그에 대한 모든 가 능한 조합으로 인한 행위를 분석하여 테스트 케이스를 설계하면서 요구사항 등 테스트 베이시 스의 누락을 발견하는데 가장 효과적이"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "options": [],
@@ -2965,7 +3378,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -3015,7 +3432,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -3030,7 +3451,11 @@
       "stem": [
         {
           "type": "prompt",
-          "text": "아래 빈칸①에 공통으로 들어갈 알맞은 용어는 무엇인가?"
+          "text": "아래 빈칸"
+        },
+        {
+          "type": "prompt",
+          "text": "①에 공통으로 들어갈 알맞은 용어는 무엇인가?"
         }
       ],
       "options": [],
@@ -3040,7 +3465,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],
@@ -3055,7 +3484,15 @@
       "stem": [
         {
           "type": "prompt",
-          "text": "다음 <보기>는 테스트 실행 절차를 나타내고 있다. 빈칸 ③에 들어갈 테스트 작업은 무엇인가?"
+          "text": "다음 <보기>는 테스트 실행 절차를 나타내고 있"
+        },
+        {
+          "type": "prompt",
+          "text": "다. 빈칸"
+        },
+        {
+          "type": "prompt",
+          "text": "③에 들어갈 테스트 작업은 무엇인가?"
         },
         {
           "type": "paragraph",
@@ -3073,7 +3510,11 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "원본 공개답안 PDF 기준 정답입니"
+        },
+        {
+          "type": "paragraph",
+          "text": "다."
         }
       ],
       "tags": [],

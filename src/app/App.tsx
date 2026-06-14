@@ -1,73 +1,66 @@
-import { useEffect, useMemo, useState } from "react";
-import { AppShell } from "../components/layout/AppShell";
-import { EmptyState } from "../components/common/EmptyState";
-import { ErrorState } from "../components/common/ErrorState";
-import { LoadingState } from "../components/common/LoadingState";
-import { QuestionCard } from "../components/quiz/QuestionCard";
-import { QuestionNav } from "../components/quiz/QuestionNav";
-import { ResultPanel } from "../components/quiz/ResultPanel";
-import { loadQuestionIndex, loadQuestionSet } from "../features/quiz/quiz.loader";
-import { answerKey, createEmptySnapshot, loadSnapshot, saveSnapshot } from "../features/quiz/quiz.storage";
-import { clampQuestionIndex, toSavedAnswer } from "../features/quiz/quiz.utils";
-import type { QuestionSet, QuestionSetSummary, QuizSnapshot } from "../features/quiz/quiz.types";
+import React, { useEffect, useState, Suspense } from 'react';
+import { useQuizStore } from '../store/useQuizStore';
+import { restorePersistentSnapshot } from '../utils/storage';
 
-export function App() {
-  const [sets, setSets] = useState<QuestionSetSummary[]>([]);
-  const [questionSet, setQuestionSet] = useState<QuestionSet | null>(null);
-  const [selectedSetId, setSelectedSetId] = useState<string>();
-  const [index, setIndex] = useState(0);
-  const [snapshot, setSnapshot] = useState<QuizSnapshot>(() => createEmptySnapshot());
-  const [selected, setSelected] = useState<string[]>([]);
-  const [error, setError] = useState<string>();
-  const [loading, setLoading] = useState(true);
+const Sidebar = React.lazy(() => import('../components/layout/Sidebar').then(module => ({ default: module.Sidebar })));
+const QuestionWorkspace = React.lazy(() => import('../components/quiz/QuestionWorkspace').then(module => ({ default: module.QuestionWorkspace })));
+
+export const App = () => {
+  const { mode, activeProduct, setMode, setActiveProduct } = useQuizStore();
+  const [isRestored, setIsRestored] = useState(false);
 
   useEffect(() => {
-    Promise.all([loadQuestionIndex(), loadSnapshot()])
-      .then(([indexData, saved]) => {
-        setSets(indexData.sets);
-        setSnapshot(saved);
-        setSelectedSetId(saved.uiState.selectedSetId ?? indexData.sets[0]?.id);
-      })
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, []);
+    const lastProduct = localStorage.getItem("istqb-fl-v4-sample-last-product") as 'istqb' | 'csts';
+    if (lastProduct) {
+      setActiveProduct(lastProduct);
+      restorePersistentSnapshot(lastProduct).then(() => setIsRestored(true));
+    } else {
+      setIsRestored(true); // show home
+    }
+  }, [setActiveProduct]);
 
-  useEffect(() => {
-    const summary = sets.find((set) => set.id === selectedSetId);
-    if (!summary) return;
-    setLoading(true);
-    loadQuestionSet(summary)
-      .then((nextSet) => {
-        setQuestionSet(nextSet);
-        const restoredIndex = nextSet.questions.findIndex((question) => question.id === snapshot.uiState.currentQuestionId);
-        setIndex(clampQuestionIndex(restoredIndex >= 0 ? restoredIndex : 0, nextSet.questions));
-      })
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [selectedSetId, sets, snapshot.uiState.currentQuestionId]);
-
-  const question = questionSet?.questions[index];
-  const saved = useMemo(() => question ? snapshot.answers[`${question.id}-${snapshot.uiState.mode}`] : undefined, [question, snapshot]);
-
-  useEffect(() => setSelected(saved?.selected ?? []), [saved]);
-
-  useEffect(() => {
-    if (!question || !selectedSetId) return;
-    saveSnapshot({ ...snapshot, uiState: { ...snapshot.uiState, activeProduct: questionSet?.meta.certification ?? null, selectedSetId, currentQuestionId: question.id } });
-  }, [index, question?.id, selectedSetId]);
-
-  if (loading) return <LoadingState />;
-  if (error) return <ErrorState message={error} />;
-  if (!questionSet || !question) return <EmptyState />;
-
-  const onSelect = (key: string) => {
-    const nextSelected = selected.includes(key) ? selected.filter((item) => item !== key) : [key];
-    const answer = toSavedAnswer(question, snapshot.uiState.mode, nextSelected);
-    const nextSnapshot = { ...snapshot, answers: { ...snapshot.answers, [answerKey(answer)]: answer } };
-    setSelected(nextSelected);
-    setSnapshot(nextSnapshot);
-    saveSnapshot(nextSnapshot);
+  const handleProductSelect = async (product: 'istqb' | 'csts') => {
+    localStorage.setItem("istqb-fl-v4-sample-last-product", product);
+    setActiveProduct(product);
+    await restorePersistentSnapshot(product);
+    setMode('practice');
   };
 
-  return <AppShell sets={sets} selectedSetId={selectedSetId} onSetChange={setSelectedSetId}><QuestionCard question={question} selected={selected} onSelect={onSelect} /><ResultPanel isCorrect={saved?.isCorrect} /><QuestionNav index={index} total={questionSet.questions.length} onPrev={() => setIndex((value) => clampQuestionIndex(value - 1, questionSet.questions))} onNext={() => setIndex((value) => clampQuestionIndex(value + 1, questionSet.questions))} /></AppShell>;
-}
+  if (!isRestored) {
+    return <div className="loading">앱 로딩 중...</div>;
+  }
+
+  if (mode === 'home' || !activeProduct) {
+    return (
+      <section className="product-gate" aria-labelledby="productGateTitle">
+        <div className="product-gate-inner">
+          <p className="product-eyebrow">Practice App</p>
+          <h1 id="productGateTitle">학습할 자격증을 선택하세요</h1>
+          <div className="product-actions">
+            <button 
+              className="product-button primary" 
+              onClick={() => handleProductSelect('istqb')}
+            >
+              ISTQB
+            </button>
+            <button 
+              className="product-button" 
+              onClick={() => handleProductSelect('csts')}
+            >
+              CSTS
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <main className="app-shell" aria-label={`${activeProduct.toUpperCase()} 문제풀이 앱`}>
+      <Suspense fallback={<div className="loading">워크스페이스 로딩 중...</div>}>
+        <Sidebar />
+        <QuestionWorkspace />
+      </Suspense>
+    </main>
+  );
+};

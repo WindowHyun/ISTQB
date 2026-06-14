@@ -20,6 +20,7 @@ function syntaxCheck(relativePath) {
 
 const html = fs.readFileSync(path.join(root, "www", "index.html"), "utf8");
 if (/questions\.js|csts-questions\.js/.test(html)) {
+  // questions.js is removed
   throw new Error("www/index.html must not load questions.js or csts-questions.js");
 }
 
