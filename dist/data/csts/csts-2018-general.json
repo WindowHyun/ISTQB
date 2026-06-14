@@ -46,11 +46,7 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -112,11 +108,7 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -131,11 +123,7 @@
       "stem": [
         {
           "type": "prompt",
-          "text": "테스트 용이성(Testability)은 프로그램이 얼마나 손쉽게 테스트 가능한지를 나타 내는 특성이"
-        },
-        {
-          "type": "prompt",
-          "text": "다. 다음 보기 중 테스트 용이성에 대한 설명으로 올바르지 않은 것은 무엇인가?"
+          "text": "테스트 용이성(Testability)은 프로그램이 얼마나 손쉽게 테스트 가능한지를 나타 내는 특성이다. 다음 보기 중 테스트 용이성에 대한 설명으로 올바르지 않은 것은 무엇인가?"
         }
       ],
       "options": [
@@ -162,11 +150,7 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -208,11 +192,7 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -283,11 +263,7 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -329,11 +305,7 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -360,11 +332,7 @@
         },
         {
           "type": "paragraph",
-          "text": "우리 회사는 다음과 같은 인력 채용 규정을 따르고 있"
-        },
-        {
-          "type": "paragraph",
-          "text": "다. 21~23세까지는 Part-time 으로만 채용 가능하고, 24~55세까지는 Full-time 으로 채용이 가능하"
+          "text": "우리 회사는 다음과 같은 인력 채용 규정을 따르고 있다. 21~23세까지는 Part-time 으로만 채용 가능하고, 24~55세까지는 Full-time 으로 채용이 가능하"
         },
         {
           "type": "paragraph",
@@ -399,11 +367,7 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -445,11 +409,7 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -570,11 +530,7 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -597,11 +553,7 @@
         },
         {
           "type": "paragraph",
-          "text": "가. 문장 커버리지와 분기 커버리지는 상호 포함관계에 있"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "가. 문장 커버리지와 분기 커버리지는 상호 포함관계에 있다."
         },
         {
           "type": "paragraph",
@@ -652,11 +604,7 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -671,11 +619,7 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "아래와 같은 제어 흐름도를 갖는 프로그램이 있"
-        },
-        {
-          "type": "paragraph",
-          "text": "다. A, B, E, G, H와 같은 경로로 테스트를 수행했을 때, 분기 커버리지는 얼마인가? (소수점 첫째 자리에서 반올림)"
+          "text": "아래와 같은 제어 흐름도를 갖는 프로그램이 있다. A, B, E, G, H와 같은 경로로 테스트를 수행했을 때, 분기 커버리지는 얼마인가? (소수점 첫째 자리에서 반올림)"
         },
         {
           "type": "note",
@@ -710,11 +654,7 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -756,11 +696,7 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -802,11 +738,7 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -821,11 +753,7 @@
       "stem": [
         {
           "type": "prompt",
-          "text": "다음은 공식 검토(Formal Review)에 대한 설명이"
-        },
-        {
-          "type": "prompt",
-          "text": "다. 공식 검토 종류에 대한 설명 으로 잘못된 것은 무엇인가?"
+          "text": "다음은 공식 검토(Formal Review)에 대한 설명이다. 공식 검토 종류에 대한 설명 으로 잘못된 것은 무엇인가?"
         }
       ],
       "options": [
@@ -852,11 +780,7 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -906,11 +830,7 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -925,34 +845,17 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "테스트 스텁 (Test Stub): 테스트 대상 모듈을 호출하여 모듈을 실행시키는 프로 그램이"
-        },
-        {
-          "type": "paragraph",
-          "text": "다. ( O / X )"
+          "text": "테스트 스텁 (Test Stub): 테스트 대상 모듈을 호출하여 모듈을 실행시키는 프로 그램이다. ( O / X )"
         }
       ],
-      "options": [
-        {
-          "key": "o",
-          "text": "O"
-        },
-        {
-          "key": "x",
-          "text": "X"
-        }
-      ],
+      "options": [],
       "answer": [
         "x"
       ],
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -967,34 +870,17 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "워크쓰루는 리뷰 유형 중에서 절차와 역할을 명확하게 지켜야하는 가장 공식적 인 리뷰 유형이"
-        },
-        {
-          "type": "paragraph",
-          "text": "다. ( O / X )"
+          "text": "워크쓰루는 리뷰 유형 중에서 절차와 역할을 명확하게 지켜야하는 가장 공식적 인 리뷰 유형이다. ( O / X )"
         }
       ],
-      "options": [
-        {
-          "key": "o",
-          "text": "O"
-        },
-        {
-          "key": "x",
-          "text": "X"
-        }
-      ],
+      "options": [],
       "answer": [
         "x"
       ],
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1019,11 +905,7 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1048,11 +930,7 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],
@@ -1067,11 +945,7 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "아래와 같은 제어 흐름도를 갖는 프로그램이 있"
-        },
-        {
-          "type": "paragraph",
-          "text": "다. A, C, F, H와 같은 경로로 테스트를 수행했을 때, 문장 커버리지는 얼마인가? (소수점 첫째 자리에서 반올림)"
+          "text": "아래와 같은 제어 흐름도를 갖는 프로그램이 있다. A, C, F, H와 같은 경로로 테스트를 수행했을 때, 문장 커버리지는 얼마인가? (소수점 첫째 자리에서 반올림)"
         }
       ],
       "options": [],
@@ -1081,11 +955,7 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "원본 공개답안 PDF 기준 정답입니다."
         }
       ],
       "tags": [],

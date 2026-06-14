@@ -580,7 +580,7 @@
         font-size: var(--question-font-size);
         line-height: 1.82;
         word-break: keep-all;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
         overflow-x: auto;
       }
 
@@ -611,7 +611,7 @@
         opacity: 0.9;
       }
 
-      /* 그림 확대 힌트 버튼 (이미지 아래에 고정) */
+      /* 그림 ?��? ?�트 버튼 (?��?지 ?�래??고정) */
       .figure-zoom-btn {
         display: inline-flex;
         align-items: center;
@@ -661,8 +661,8 @@
         font-size: 15px;
         line-height: 1.65;
         white-space: pre-wrap;
-        word-break: normal;
-        overflow-wrap: anywhere;
+        word-break: keep-all;
+        overflow-wrap: break-word;
       }
 
       .question-stem .text-line,
@@ -670,7 +670,7 @@
         display: block;
         margin: 0 0 10px;
         max-width: 100%;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
       }
 
       .question-stem .dense-line,
@@ -681,7 +681,7 @@
         background: var(--secondary);
         font-size: calc(var(--question-font-size) - 1px);
         line-height: 1.7;
-        word-break: normal;
+        word-break: keep-all;
       }
 
       .question-stem .plain-list {
@@ -770,7 +770,7 @@
       .option-text {
         line-height: 1.6;
         word-break: keep-all;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
       }
 
       .option-text .code-block,
@@ -852,7 +852,7 @@
         background: #f7faf6;
         line-height: 1.65;
         word-break: keep-all;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
       }
 
       .feedback strong {
@@ -963,7 +963,7 @@
         text-align: left;
         white-space: normal;
         word-break: keep-all;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
       }
 
       .data-table th {
@@ -976,7 +976,7 @@
         border-bottom: 0;
       }
 
-      /* data-table 수평 스크롤 래퍼 */
+      /* data-table ?�평 ?�크�??�퍼 */
       .data-table-wrapper {
         margin: 12px 0;
         overflow-x: auto;
@@ -1061,7 +1061,7 @@
         cursor: zoom-in;
       }
 
-      /* 복수정답 배지 */
+      /* 복수?�답 배�? */
       .multi-answer-badge {
         display: flex;
         align-items: center;
@@ -1265,20 +1265,20 @@
         margin: 0;
         line-height: 1.5;
         word-break: keep-all;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
       }
 
       /* ============================================================
-   반응형 브레이크포인트 시스템
-   1024px+   : 데스크탑 2컬럼
-   901-1023px : 태블릿 가로 (좁은 2컬럼)
-   701-900px  : 태블릿 세로 (갤럭시탭 S10 FE 등) — 오버레이 사이드바
-   481-700px  : 폰 가로
-   ≤480px     : 폰 세로
+   반응??브레?�크?�인???�스??
+   1024px+   : ?�스?�탑 2컬럼
+   901-1023px : ?�블�?가�?(좁�? 2컬럼)
+   701-900px  : ?�블�??�로 (갤럭?�탭 S10 FE ?? ???�버?�이 ?�이?�바
+   481-700px  : ??가�?
+   ??80px     : ???�로
    ============================================================ */
 
       /* ----------------------------------------------------------
-   태블릿 가로: 901~1023px — 좁은 2컬럼
+   ?�블�?가�? 901~1023px ??좁�? 2컬럼
    ---------------------------------------------------------- */
       @media (min-width: 901px) and (max-width: 1023px) {
         .app-shell {
@@ -1315,11 +1315,11 @@
       }
 
       /* ----------------------------------------------------------
-   태블릿 세로: 701~900px (갤럭시탭 S10 FE 기본 영역)
-   사이드바 → 상단 확장 패널
+   ?�블�??�로: 701~900px (갤럭?�탭 S10 FE 기본 ?�역)
+   ?�이?�바 ???�단 ?�장 ?�널
    ---------------------------------------------------------- */
       @media (max-width: 900px) {
-        /* 앱 레이아웃: 단일 컬럼 */
+        /* ???�이?�웃: ?�일 컬럼 */
         .app-shell {
           grid-template-columns: 1fr;
           grid-template-rows: auto 1fr;
@@ -1327,12 +1327,12 @@
           overflow: hidden;
         }
 
-        /* 브랜드 숨기기 */
+        /* 브랜???�기�?*/
         .brand {
           display: none;
         }
 
-        /* 사이드바 — 기본(접힘): 상단 고정 헤더 역할 */
+        /* ?�이?�바 ??기본(?�힘): ?�단 고정 ?�더 ??�� */
         .sidebar {
           position: relative;
           z-index: 20;
@@ -1346,7 +1346,7 @@
           -webkit-backdrop-filter: blur(16px);
         }
 
-        /* 사이드바 — 펼침: 문제 영역과 겹치지 않게 상단 흐름에 배치 */
+        /* ?�이?�바 ???�침: 문제 ?�역�?겹치지 ?�게 ?�단 ?�름??배치 */
         .sidebar:not(.mobile-collapsed) {
           position: relative;
           top: auto;
@@ -1360,7 +1360,7 @@
           box-shadow: 0 6px 24px rgba(23, 32, 28, 0.12);
         }
 
-        /* 모바일 요약 바 */
+        /* 모바???�약 �?*/
         .mobile-sidebar-summary {
           display: grid;
           grid-template-columns: minmax(0, 1fr) auto;
@@ -1417,12 +1417,12 @@
           font-weight: 800;
         }
 
-        /* 접힘 시 컨트롤 숨기기 */
+        /* ?�힘 ??컨트�??�기�?*/
         .sidebar.mobile-collapsed .sidebar-controls {
           display: none;
         }
 
-        /* 펼침 시 컨트롤 그리드 */
+        /* ?�침 ??컨트�?그리??*/
         .sidebar-controls {
           display: grid;
           gap: 12px;
@@ -1464,7 +1464,7 @@
           margin-top: 6px;
         }
 
-        /* 워크스페이스: 독립적인 스크롤 영역 */
+        /* ?�크?�페?�스: ?�립?�인 ?�크�??�역 */
         .workspace {
           padding: 18px;
           gap: 16px;
@@ -1488,7 +1488,7 @@
           font-size: calc(var(--question-font-size) - 1px);
         }
 
-        /* 문제번호 nav: 8열 기본 */
+        /* 문제번호 nav: 8??기본 */
         .question-nav {
           grid-template-columns: repeat(8, minmax(34px, 1fr));
         }
@@ -1499,7 +1499,7 @@
       }
 
       /* ----------------------------------------------------------
-   오버레이 백드롭 (모든 모바일 공통)
+   ?�버?�이 백드�?(모든 모바??공통)
    ---------------------------------------------------------- */
       #sidebarBackdrop {
         display: none;
@@ -1533,10 +1533,10 @@
       }
 
       /* ----------------------------------------------------------
-   태블릿 세로 전용 추가 조정: 701~900px
+   ?�블�??�로 ?�용 추�? 조정: 701~900px
    ---------------------------------------------------------- */
       @media (min-width: 701px) and (max-width: 900px) {
-        /* 문제번호 10열 + 더 큰 터치 타겟 */
+        /* 문제번호 10??+ ?????�치 ?��?*/
         .question-nav {
           grid-template-columns: repeat(10, minmax(44px, 1fr));
         }
@@ -1544,27 +1544,27 @@
           min-height: 48px;
         }
 
-        /* 이전/다음 버튼 */
+        /* ?�전/?�음 버튼 */
         .topbar-actions button {
           width: 60px;
           min-height: 60px;
           font-size: 34px;
         }
 
-        /* 설정 토글 버튼 */
+        /* ?�정 ?��? 버튼 */
         #sidebarToggleBtn {
           width: 44px;
           min-height: 44px;
           padding: 0;
         }
 
-        /* 선택지 버튼 */
+        /* ?�택지 버튼 */
         .option {
           min-height: 60px;
           padding: 14px 16px;
         }
 
-        /* 워크스페이스 패딩 */
+        /* ?�크?�페?�스 ?�딩 */
         .workspace {
           padding: 20px;
         }
@@ -1576,7 +1576,7 @@
       }
 
       /* ----------------------------------------------------------
-   폰 가로: 481~700px
+   ??가�? 481~700px
    ---------------------------------------------------------- */
       @media (max-width: 700px) {
         .product-actions {
@@ -1609,14 +1609,14 @@
           font-size: 18px;
         }
 
-        /* 이전/다음 버튼 */
+        /* ?�전/?�음 버튼 */
         .topbar-actions button {
           width: 52px;
           min-height: 52px;
           font-size: 30px;
         }
 
-        /* 사이드바 내 버튼 그리드: 2열 */
+        /* ?�이?�바 ??버튼 그리?? 2??*/
         .actions,
         .record-actions,
         .danger-actions,
@@ -1677,7 +1677,7 @@
           padding: 8px;
         }
 
-        /* 선택지 */
+        /* ?�택지 */
         .option {
           grid-template-columns: 30px minmax(0, 1fr);
           padding: 12px;
@@ -1690,7 +1690,7 @@
       }
 
       /* ----------------------------------------------------------
-   폰 세로: ≤480px — 컴팩트
+   ???�로: ??80px ??컴팩??
    ---------------------------------------------------------- */
       @media (max-width: 480px) {
         :root {
@@ -1752,7 +1752,7 @@
           line-height: 1.7;
         }
 
-        /* 6열 nav (화면이 좁아서) */
+        /* 6??nav (?�면??좁아?? */
         .question-nav {
           grid-template-columns: repeat(6, minmax(34px, 1fr));
         }
@@ -1944,12 +1944,12 @@
       }
 
       .option.correct::after {
-        content: "정답";
+        content: "?�답";
         color: var(--success);
       }
 
       .option.wrong::after {
-        content: "확인";
+        content: "?�인";
         color: var(--destructive);
       }
 
