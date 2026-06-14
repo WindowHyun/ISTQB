@@ -177,42 +177,28 @@
           "text": "<보기>"
         },
         {
-          "type": "paragraph",
+          "type": "note",
           "text": "1. 기능적 요구사항"
         },
         {
-          "type": "list",
-          "items": [
-            {
-              "marker": "1.1",
-              "text": "기능 1"
-            },
-            {
-              "marker": "1.2",
-              "text": "기능 2"
-            }
-          ]
+          "type": "note",
+          "text": "1.1 로그인 기능"
         },
         {
-          "type": "paragraph",
+          "type": "note",
+          "text": "1.2 결제 기능"
+        },
+        {
+          "type": "note",
           "text": "2. 품질 요구사항"
         },
         {
-          "type": "list",
-          "items": [
-            {
-              "marker": "2.1",
-              "text": "성능 요구사항"
-            },
-            {
-              "marker": "2.2",
-              "text": "보안 요구사항"
-            },
-            {
-              "marker": "2.3",
-              "text": "신뢰성 요구사항"
-            }
-          ]
+          "type": "note",
+          "text": "2.1 초당 1000 트랜잭션 처리"
+        },
+        {
+          "type": "note",
+          "text": "2.2 사용자 데이터 암호화"
         }
       ],
       "options": [
@@ -416,7 +402,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2404FL-8.png",
+      "figure": "/images/questions/CSTS-FL-2404-008.png",
       "answerText": "3"
     },
     {
@@ -767,7 +753,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2404FL-15.png",
+      "figure": "/images/questions/CSTS-FL-2404-015.png",
       "answerText": "3"
     },
     {
@@ -1029,19 +1015,23 @@
       "stem": [
         {
           "type": "prompt",
-          "text": "다음 프로그램에 대해 자료흐름 분석을 수행하여 검출되는 자료 패턴 중에서 잠재적 오류인 패턴은 무엇인가?"
+          "text": "다음 프로그램에 대해 자료흐름 분석을 수행하여 검출되는 자료 패턴 중에서 잠재적 오류 인 패턴은 무엇인가?"
+        },
+        {
+          "type": "paragraph",
+          "text": "1234567"
         },
         {
           "type": "code",
           "lines": [
-            "1 int foo(int x) {",
-            "2   int y;",
-            "3   if (x==1)",
-            "4     y=x+1;",
-            "5   x=10;",
-            "6   return y;",
-            "7   y=10;",
-            "8 }"
+            "int foo(int x) {",
+            "  int y;",
+            "  if (x==1)",
+            "    y=x+1;",
+            "  x=10;",
+            "  return y;",
+            "  y=10;",
+            "}"
           ]
         }
       ],
@@ -1089,6 +1079,30 @@
         {
           "type": "note",
           "text": "<보기>"
+        },
+        {
+          "type": "note",
+          "text": "1: a = input()"
+        },
+        {
+          "type": "note",
+          "text": "2: if (a > 200):"
+        },
+        {
+          "type": "note",
+          "text": "3:    print(\"High\")"
+        },
+        {
+          "type": "note",
+          "text": "4: else:"
+        },
+        {
+          "type": "note",
+          "text": "5:    print(\"Low\")"
+        },
+        {
+          "type": "note",
+          "text": "6: end"
         }
       ],
       "options": [
@@ -1120,7 +1134,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2404FL-23.png",
+      "figure": "/images/questions/CSTS-FL-2404-023.png",
       "answerText": "1"
     },
     {
@@ -1166,7 +1180,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2404FL-24.png",
+      "figure": "/images/questions/CSTS-FL-2404-024.png",
       "answerText": "2"
     },
     {
@@ -1176,18 +1190,20 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "다음 코드에 대해 문장 커버리지와 결정 커버리지 100%를 만족시키기 위한 최소 테스트 케이스 수는?"
+          "text": "다음 코드에 대해 문장 커버리지와 결정 커버리지 100%를 만족시키기 위한 최소 테스트 케이 스 수는?"
         },
         {
           "type": "code",
           "lines": [
+            "ENDIF",
+            "",
             "1 READ P, Q",
             "2 IF P+Q > 100 THEN",
             "3   PRINT \"P+Q IS LARGE\"",
-            "  ENDIF",
             "4 IF P > 50 THEN",
             "5   PRINT \"P IS LARGE\"",
-            "  ENDIF"
+            "",
+            "ENDIF"
           ]
         }
       ],
@@ -1262,7 +1278,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2404FL-26.png",
+      "figure": "/images/questions/CSTS-FL-2404-026.png",
       "answerText": "4"
     },
     {
@@ -1272,7 +1288,7 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "<보기>의 프로그램 코드에서 다중 조건 커버리지의 분모에 해당하는 “전체 프로그램 개별 조건들의 조합 수”는 몇 개 인가?"
+          "text": "<보기>의 프로그램 코드에서 다중 조건 커버리지의 분모에 해당하는 “전체 프로그램 개별 조 건들의 조합 수”는 몇 개 인가?"
         },
         {
           "type": "note",
@@ -1541,7 +1557,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2404FL-31.png",
+      "figure": "/images/questions/CSTS-FL-2404-031.png",
       "answerText": "4"
     },
     {
@@ -1625,7 +1641,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2404FL-33.png",
+      "figure": "/images/questions/CSTS-FL-2404-033.png",
       "answerText": "3"
     },
     {
@@ -1667,7 +1683,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2404FL-34.png",
+      "figure": "/images/questions/CSTS-FL-2404-034.png",
       "answerText": "4"
     },
     {
@@ -2821,16 +2837,16 @@
       "type": "short_answer",
       "stem": [
         {
-          "type": "paragraph",
-          "text": "다음 중 입력 인자와 클래스의 개수가 <보기>와 같을 때, 페어와이즈 조합 테스트를 적용하 면 생성되는 테스트 케이스는 몇 개인가?"
+          "type": "prompt",
+          "text": "다음 중 입력 인자와 클래스의 개수가 <보기>와 같을 때, 페어와이즈 조합 테스트를 적용하면 생성되는 테스트 케이스는 몇 개인가?"
         },
         {
-          "type": "note",
+          "type": "paragraph",
           "text": "<보기>"
         },
         {
-          "type": "paragraph",
-          "text": "목적지등급좌석파리퍼스트창가런던 비즈니스통로시드니 이코노미"
+          "type": "image",
+          "text": "![이미지](/images/questions/CSTS-FL-2404-067.png)"
         }
       ],
       "options": [],
@@ -2845,7 +2861,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null,
+      "figure": "/images/questions/CSTS-FL-2404-067.png",
       "answerText": "9개"
     },
     {

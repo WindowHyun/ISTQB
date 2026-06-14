@@ -55,7 +55,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-1.jpeg",
+      "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-001.png",
       "answerText": "2"
     },
     {
@@ -111,18 +111,14 @@
         },
         {
           "type": "note",
-          "text": "※ A ＜ B는 A의 개념보다 B가 더 광범위한 용어임을 의미한"
+          "text": "※ A < B는 A의 개념보다 B가 더 광범위한 용어임을 의미한"
         },
         {
           "type": "note",
-          "text": "다. A = B는 A와 B가 동일한 범"
+          "text": "다. A = B는 A와 B가 동일한 범위를 가짐을 의미한"
         },
         {
-          "type": "paragraph",
-          "text": "위를 가짐을 의미한"
-        },
-        {
-          "type": "paragraph",
+          "type": "note",
           "text": "다."
         }
       ],
@@ -155,7 +151,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-3.jpeg",
+      "figure": null,
       "answerText": "3"
     },
     {
@@ -281,7 +277,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-6.png",
+      "figure": null,
       "answerText": "3"
     },
     {
@@ -327,7 +323,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-7.png",
+      "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-007.png",
       "answerText": "4"
     },
     {
@@ -369,7 +365,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-8.jpeg",
+      "figure": null,
       "answerText": "3"
     },
     {
@@ -495,7 +491,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-11.jpeg",
+      "figure": null,
       "answerText": "4"
     },
     {
@@ -662,7 +658,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-14.jpeg",
+      "figure": null,
       "answerText": "3"
     },
     {
@@ -746,7 +742,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-16.jpeg",
+      "figure": null,
       "answerText": "1"
     },
     {
@@ -855,7 +851,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-18.jpeg",
+      "figure": null,
       "answerText": "3"
     },
     {
@@ -939,7 +935,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-20.jpeg",
+      "figure": null,
       "answerText": "1"
     },
     {
@@ -1079,7 +1075,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-23.jpeg",
+      "figure": null,
       "answerText": "3"
     },
     {
@@ -1163,7 +1159,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-25.jpeg",
+      "figure": null,
       "answerText": "3"
     },
     {
@@ -1209,7 +1205,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-26.jpeg",
+      "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-026.png",
       "answerText": "1"
     },
     {
@@ -1251,7 +1247,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-27.jpeg",
+      "figure": null,
       "answerText": "1"
     },
     {
@@ -1275,15 +1271,15 @@
           "type": "code",
           "lines": [
             "if ((x>1) and (y==0)){",
-            "z=z/x;",
+            "  z=z/x;",
             "}",
             "if ((x==2) or (z>1)){",
-            "z=z+1;",
+            "  z=z+1;",
             "}"
           ]
         },
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "테스트 케이스"
         },
         {
@@ -1371,7 +1367,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-29.jpeg",
+      "figure": null,
       "answerText": "1"
     },
     {
@@ -1493,8 +1489,8 @@
           "text": "아래의 테이블을 이용하여 페어와이즈(pairwise) 조합 테스트 케이스를 설계한 결과로 올바른것은?"
         },
         {
-          "type": "paragraph",
-          "text": "MachineOS ProtocolIBM WindowsTCPHP UnixUDP"
+          "type": "image",
+          "text": "![이미지](/images/questions/CSTS-EL-SW-EXAMPLE-032.png)"
         }
       ],
       "options": [
@@ -1526,7 +1522,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-32.jpeg",
+      "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-032.png",
       "answerText": "4"
     },
     {
@@ -1555,8 +1551,8 @@
           "text": "또한, 공로상을 받은 직원들은 스페인 연수를 지원하고 있다."
         },
         {
-          "type": "paragraph",
-          "text": "규칙12345678조건 B등급 이상YYYYNNNN 10년차 이상YYNNYYNN 공로상 수상YNYNYNYN행위프랑스YYFFFFFF 싱가포르FFYYFFFF스페인YFYFFFFF"
+          "type": "image",
+          "text": "![이미지](/images/questions/CSTS-EL-SW-EXAMPLE-033.png)"
         }
       ],
       "options": [
@@ -1588,7 +1584,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null,
+      "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-033.png",
       "answerText": "3"
     },
     {
@@ -1630,7 +1626,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-34.jpeg",
+      "figure": null,
       "answerText": "4"
     },
     {
@@ -1735,7 +1731,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-36.jpeg",
+      "figure": null,
       "answerText": "3"
     },
     {
@@ -1832,7 +1828,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-38.jpeg",
+      "figure": null,
       "answerText": "4"
     },
     {
@@ -1937,7 +1933,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-40.jpeg",
+      "figure": null,
       "answerText": "4"
     },
     {
@@ -2009,7 +2005,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-41.jpeg",
+      "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-041.png",
       "answerText": "3"
     },
     {
@@ -2051,7 +2047,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-42.jpeg",
+      "figure": null,
       "answerText": "4"
     },
     {
@@ -2181,7 +2177,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-45.jpeg",
+      "figure": null,
       "answerText": "3"
     },
     {
@@ -2295,7 +2291,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-47.jpeg",
+      "figure": null,
       "answerText": "3"
     },
     {
@@ -2409,7 +2405,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-49.jpeg",
+      "figure": null,
       "answerText": "3"
     },
     {
@@ -2501,7 +2497,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-51.jpeg",
+      "figure": null,
       "answerText": "X"
     },
     {
@@ -2638,7 +2634,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-56.jpeg",
+      "figure": null,
       "answerText": "O"
     },
     {
@@ -2750,7 +2746,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-60.jpeg",
+      "figure": null,
       "answerText": "O"
     },
     {
@@ -2870,7 +2866,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-64.jpeg",
+      "figure": null,
       "answerText": "재테스팅 / retesting / 재테스트 / retest"
     },
     {
@@ -2887,13 +2883,9 @@
           "items": [
             {
               "marker": "-",
-              "text": "이 기법의 목적은 소프트웨어 개발 프로젝트 진행 상황을 모니터하고 계획과 현재 일정 상"
+              "text": "이 기법의 목적은 소프트웨어 개발 프로젝트 진행 상황을 모니터하고 계획과 현재 일정 상태를 평가하여 필요하다면 자원이나 일정, 프로젝트 범위 등을 변경하는 것이다."
             }
           ]
-        },
-        {
-          "type": "paragraph",
-          "text": "태를 평가하여 필요하다면 자원이나 일정, 프로젝트 범위 등을 변경하는 것이다."
         },
         {
           "type": "list",
@@ -2942,7 +2934,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-66.jpeg",
+      "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-066.png",
       "answerText": "50%"
     },
     {
@@ -2958,10 +2950,10 @@
           "type": "code",
           "lines": [
             "IF ((X>1) AND (Y==1))",
-            "Z=Z/X",
+            "  Z=Z/X",
             "END",
             "IF ((X==2) OR (Z>1))",
-            "Z=Z+1",
+            "  Z=Z+1",
             "END"
           ]
         },
@@ -2994,7 +2986,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-67.jpeg",
+      "figure": null,
       "answerText": "TC1"
     },
     {
@@ -3170,7 +3162,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-70.jpeg",
+      "figure": null,
       "answerText": "심각도(결함 심각도)"
     }
   ]

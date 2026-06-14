@@ -55,7 +55,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-1.png",
+      "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-001.png",
       "answerText": "2"
     },
     {
@@ -323,7 +323,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-7.png",
+      "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-007.png",
       "answerText": "4"
     },
     {
@@ -1205,7 +1205,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-26.png",
+      "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-026.png",
       "answerText": "1"
     },
     {
@@ -1489,24 +1489,8 @@
           "text": "아래의 테이블을 이용하여 페어와이즈(pairwise) 조합 테스트 케이스를 설계한 결과로 올바른것은?"
         },
         {
-          "type": "table",
-          "rows": [
-            [
-              "Machine",
-              "OS",
-              "Protocol"
-            ],
-            [
-              "IBM",
-              "Windows",
-              "TCP"
-            ],
-            [
-              "HP",
-              "Unix",
-              "UDP"
-            ]
-          ]
+          "type": "image",
+          "text": "![이미지](/images/questions/CSTS-EL-SW-EXAMPLE-032.png)"
         }
       ],
       "options": [
@@ -1538,7 +1522,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null,
+      "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-032.png",
       "answerText": "4"
     },
     {
@@ -1567,108 +1551,8 @@
           "text": "또한, 공로상을 받은 직원들은 스페인 연수를 지원하고 있다."
         },
         {
-          "type": "table",
-          "rows": [
-            [
-              "규칙",
-              "1",
-              "2",
-              "3",
-              "4",
-              "5",
-              "6",
-              "7",
-              "8"
-            ],
-            [
-              "조건",
-              "",
-              "",
-              "",
-              "",
-              "",
-              "",
-              "",
-              ""
-            ],
-            [
-              "B등급 이상",
-              "Y",
-              "Y",
-              "Y",
-              "Y",
-              "N",
-              "N",
-              "N",
-              "N"
-            ],
-            [
-              "10년차 이상",
-              "Y",
-              "Y",
-              "N",
-              "N",
-              "Y",
-              "Y",
-              "N",
-              "N"
-            ],
-            [
-              "공로상 수상",
-              "Y",
-              "N",
-              "Y",
-              "N",
-              "Y",
-              "N",
-              "Y",
-              "N"
-            ],
-            [
-              "행위",
-              "",
-              "",
-              "",
-              "",
-              "",
-              "",
-              "",
-              ""
-            ],
-            [
-              "프랑스",
-              "Y",
-              "Y",
-              "F",
-              "F",
-              "F",
-              "F",
-              "F",
-              "F"
-            ],
-            [
-              "싱가포르",
-              "F",
-              "F",
-              "Y",
-              "Y",
-              "F",
-              "F",
-              "F",
-              "F"
-            ],
-            [
-              "스페인",
-              "Y",
-              "F",
-              "Y",
-              "F",
-              "F",
-              "F",
-              "F",
-              "F"
-            ]
-          ]
+          "type": "image",
+          "text": "![이미지](/images/questions/CSTS-EL-SW-EXAMPLE-033.png)"
         }
       ],
       "options": [
@@ -1700,7 +1584,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null,
+      "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-033.png",
       "answerText": "3"
     },
     {
@@ -2121,7 +2005,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-41.png",
+      "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-041.png",
       "answerText": "3"
     },
     {
@@ -3050,7 +2934,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/SW-CSTS-66.png",
+      "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-066.png",
       "answerText": "50%"
     },
     {

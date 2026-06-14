@@ -640,7 +640,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2403FL-13.png",
+      "figure": "/images/questions/CSTS-FL-2403-013.png",
       "answerText": "2"
     },
     {
@@ -1063,7 +1063,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2403FL-22.png",
+      "figure": "/images/questions/CSTS-FL-2403-022.png",
       "answerText": "2"
     },
     {
@@ -1218,39 +1218,8 @@
           "text": "<보기>"
         },
         {
-          "type": "table",
-          "headers": [
-            "테스트 케이스 ID",
-            "A",
-            "B",
-            "A or B"
-          ],
-          "rows": [
-            [
-              "(가)",
-              "T",
-              "T",
-              "T"
-            ],
-            [
-              "(나)",
-              "T",
-              "F",
-              "T"
-            ],
-            [
-              "(다)",
-              "F",
-              "T",
-              "T"
-            ],
-            [
-              "(라)",
-              "F",
-              "F",
-              "F"
-            ]
-          ]
+          "type": "image",
+          "text": "![이미지](/images/questions/CSTS-FL-2403-026.png)"
         }
       ],
       "options": [
@@ -1282,7 +1251,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null,
+      "figure": "/images/questions/CSTS-FL-2403-026.png",
       "answerText": "4"
     },
     {
@@ -1711,7 +1680,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2403FL-34.png",
+      "figure": "/images/questions/CSTS-FL-2403-034.png",
       "answerText": "1"
     },
     {
@@ -1883,7 +1852,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2403FL-38.png",
+      "figure": "/images/questions/CSTS-FL-2403-038.png",
       "answerText": "1"
     },
     {
@@ -2696,7 +2665,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2403FL-60.png",
+      "figure": "/images/questions/CSTS-FL-2403-060.png",
       "answerText": "X"
     },
     {
@@ -2996,7 +2965,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2403FL-69.png",
+      "figure": "/images/questions/CSTS-FL-2403-069.png",
       "answerText": "테스트 환경"
     },
     {
@@ -3033,7 +3002,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2403FL-70.png",
+      "figure": "/images/questions/CSTS-FL-2403-070.png",
       "answerText": ""
     }
   ]

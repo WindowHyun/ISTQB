@@ -65,18 +65,14 @@
         },
         {
           "type": "note",
-          "text": "※ A ＜ B는 A의 개념보다 B가 더 광범위한 용어임을 의미한"
+          "text": "※ A < B는 A의 개념보다 B가 더 광범위한 용어임을 의미한"
         },
         {
           "type": "note",
-          "text": "다. A = B는 A와 B가 동일한 범"
+          "text": "다. A = B는 A와 B가 동일한 범위를 가짐을 의미한"
         },
         {
-          "type": "paragraph",
-          "text": "위를 가짐을 의미한"
-        },
-        {
-          "type": "paragraph",
+          "type": "note",
           "text": "다."
         }
       ],
@@ -168,30 +164,32 @@
           "text": "<보기>"
         },
         {
-          "type": "paragraph",
+          "type": "note",
           "text": "1. 기능적 요구사항"
         },
         {
-          "type": "list",
-          "items": [
-            {
-              "marker": "1.",
-              "text": "1 기능 1 1.2 기능 2"
-            }
-          ]
+          "type": "note",
+          "text": "1.1 기능 1"
         },
         {
-          "type": "paragraph",
+          "type": "note",
+          "text": "1.2 기능 2"
+        },
+        {
+          "type": "note",
           "text": "2. 품질 요구사항"
         },
         {
-          "type": "list",
-          "items": [
-            {
-              "marker": "2.",
-              "text": "1 성능 요구사항 2.2 보안 요구사항 2.3 신뢰성 요구사항"
-            }
-          ]
+          "type": "note",
+          "text": "2.1 성능 요구사항"
+        },
+        {
+          "type": "note",
+          "text": "2.2 보안 요구사항"
+        },
+        {
+          "type": "note",
+          "text": "2.3 신뢰성 요구사항"
         }
       ],
       "options": [
@@ -437,7 +435,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2402FL-9.png",
+      "figure": "/images/questions/CSTS-FL-2402-009.png",
       "answerText": "2"
     },
     {
@@ -663,7 +661,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2402FL-14.png",
+      "figure": "/images/questions/CSTS-FL-2402-014.png",
       "answerText": "3"
     },
     {
@@ -1057,7 +1055,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2402FL-23.png",
+      "figure": "/images/questions/CSTS-FL-2402-023.png",
       "answerText": "2"
     },
     {
@@ -1066,49 +1064,52 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "다음 보기에서 동일한 유형의 테스트 설계 기법으로만 짝 지어진 것은?"
         },
         {
-          "type": "list",
-          "items": [
-            {
-              "marker": "A.",
-              "text": "상태 전이 테스트"
-            },
-            {
-              "marker": "B.",
-              "text": "자료 흐름 테스트"
-            },
-            {
-              "marker": "C.",
-              "text": "문장 테스트"
-            },
-            {
-              "marker": "D.",
-              "text": "시나리오 테스트"
-            },
-            {
-              "marker": "E.",
-              "text": "동등 분할 테스트"
-            },
-            {
-              "marker": "F.",
-              "text": "분류 트리 테스트"
-            },
-            {
-              "marker": "G.",
-              "text": "페어와이즈 테스트"
-            },
-            {
-              "marker": "H.",
-              "text": "경계값 분석 테스트"
-            }
-          ]
+          "type": "note",
+          "text": "<보기>"
         },
         {
-          "type": "paragraph",
-          "text": "I. MC/DC 테스트 J. 결정 테이블 테스트"
+          "type": "note",
+          "text": "A. 상태 전이 테스트"
+        },
+        {
+          "type": "note",
+          "text": "B. 자료 흐름 테스트"
+        },
+        {
+          "type": "note",
+          "text": "C. 문장 테스트"
+        },
+        {
+          "type": "note",
+          "text": "D. 시나리오 테스트"
+        },
+        {
+          "type": "note",
+          "text": "E. 동등 분할 테스트"
+        },
+        {
+          "type": "note",
+          "text": "F. 분류 트리 테스트"
+        },
+        {
+          "type": "note",
+          "text": "G. 페어와이즈 테스트"
+        },
+        {
+          "type": "note",
+          "text": "H. 경계값 분석 테스트"
+        },
+        {
+          "type": "note",
+          "text": "I. MC/DC 테스트"
+        },
+        {
+          "type": "note",
+          "text": "J. 결정 테이블 테스트"
         }
       ],
       "options": [
@@ -1168,10 +1169,10 @@
           "type": "code",
           "lines": [
             "IF (( X > 1 ) AND ( Y == 1 ))",
-            "Z = Z / X",
+            "  Z = Z / X",
             "END",
             "IF (( X == 2 ) OR ( Z > 1 ))",
-            "Z = Z + 1",
+            "  Z = Z + 1",
             "END"
           ]
         }
@@ -1219,7 +1220,15 @@
         },
         {
           "type": "paragraph",
-          "text": "테스트 케이스1: A, B, D, H, K 테스트 케이스2: A, B, D, H, F, K 테스트 케이스3: A, C, F, C, F, K"
+          "text": "테스트 케이스1: A, B, D, H, K"
+        },
+        {
+          "type": "paragraph",
+          "text": "테스트 케이스2: A, B, D, H, F, K"
+        },
+        {
+          "type": "paragraph",
+          "text": "테스트 케이스3: A, C, F, C, F, K"
         }
       ],
       "options": [
@@ -1251,7 +1260,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2402FL-26.png",
+      "figure": "/images/questions/CSTS-FL-2402-026.png",
       "answerText": "1"
     },
     {
@@ -1430,8 +1439,12 @@
           "text": "<보기>"
         },
         {
+          "type": "image",
+          "text": "![이미지](/images/questions/CSTS-FL-2402-030.png)"
+        },
+        {
           "type": "paragraph",
-          "text": "목적지등급좌석파리퍼스트창가런던 비즈니스통로 이코노미 Base Choice 테스트 적용할 때 기반이 되는 테스트 조합: (파리, 퍼스트, 창가)"
+          "text": "Base Choice 테스트 적용할 때 기반이 되는 테스트 조합: (파리, 퍼스트, 창가)"
         },
         {
           "type": "list",
@@ -1484,7 +1497,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null,
+      "figure": "/images/questions/CSTS-FL-2402-030.png",
       "answerText": "3"
     },
     {
@@ -1505,93 +1518,8 @@
           "text": "빈칸에 들어갈 수 있는 테스트 데이터는 무엇인가?"
         },
         {
-          "type": "table",
-          "rows": [
-            [
-              "입력 인자",
-              "A",
-              "B",
-              "C"
-            ],
-            [
-              "값",
-              "A1",
-              "B1",
-              "C1"
-            ],
-            [
-              "",
-              "A2",
-              "B2",
-              "C2"
-            ],
-            [
-              "",
-              "A3",
-              "-",
-              "C3"
-            ],
-            [
-              "테스트 케이스",
-              "A",
-              "B",
-              "C"
-            ],
-            [
-              "",
-              "A1",
-              "B1",
-              "C1"
-            ],
-            [
-              "",
-              "A1",
-              "B2",
-              "C2"
-            ],
-            [
-              "",
-              "A2",
-              "B1",
-              "C3"
-            ],
-            [
-              "",
-              "A2",
-              "B2",
-              "C1"
-            ],
-            [
-              "",
-              "A3",
-              "B1",
-              "C2"
-            ],
-            [
-              "",
-              "A3",
-              "B2",
-              "C3"
-            ],
-            [
-              "",
-              "A1",
-              "-",
-              "C3"
-            ],
-            [
-              "",
-              "A2",
-              "-",
-              "C2"
-            ],
-            [
-              "",
-              "( )",
-              "-",
-              "( )"
-            ]
-          ]
+          "type": "image",
+          "text": "![이미지](/images/questions/CSTS-FL-2402-031.png)"
         }
       ],
       "options": [
@@ -1623,7 +1551,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null,
+      "figure": "/images/questions/CSTS-FL-2402-031.png",
       "answerText": "4"
     },
     {
@@ -2492,7 +2420,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2402FL-49.png",
+      "figure": "/images/questions/CSTS-FL-2402-049.png",
       "answerText": "4"
     },
     {
@@ -2688,12 +2616,12 @@
           "lines": [
             "int foo (int x,int y )",
             "{",
-            "int z =0;",
-            "if ((x >0 )&&(y >0 ))",
-            "{",
-            "z =x;",
-            "}",
-            "return z;",
+            "  int z =0;",
+            "  if ((x >0 )&&(y >0 ))",
+            "  {",
+            "    z =x;",
+            "  }",
+            "  return z;",
             "}"
           ]
         }
@@ -3155,7 +3083,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2402FL-70.png",
+      "figure": "/images/questions/CSTS-FL-2402-070.png",
       "answerText": "결함의 일반화"
     }
   ]

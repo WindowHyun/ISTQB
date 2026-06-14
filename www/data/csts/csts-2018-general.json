@@ -212,6 +212,31 @@
         {
           "type": "note",
           "text": "[보기]"
+        },
+        {
+          "type": "list",
+          "items": [
+            {
+              "marker": "(가)",
+              "text": "테스트 수행 시 사용될 테스트 케이스에 대한 생성 및 확보 전략을 수립한다."
+            },
+            {
+              "marker": "(나)",
+              "text": "테스트 계획서에 기술된 테스트 목적을 달성하기 위한 구체적인 테스트 접근 방법을 정의한다."
+            },
+            {
+              "marker": "(다)",
+              "text": "테스트 수행에 앞서 테스트에 사용될 테스트 데이터를 준비한다."
+            },
+            {
+              "marker": "(라)",
+              "text": "테스트를 수행하기 위한 테스트 절차서를 작성한다."
+            },
+            {
+              "marker": "(마)",
+              "text": "효과적인 커버리지 달성을 위하여 테스트 케이스는 가능한 한 많이 작성한다."
+            }
+          ]
         }
       ],
       "options": [
@@ -403,11 +428,7 @@
         },
         {
           "type": "paragraph",
-          "text": "다."
-        },
-        {
-          "type": "prompt",
-          "text": "빈칸에 들어가는 테스트 케이스는 무엇인가?"
+          "text": "다. 빈칸에 들어가는 테스트 케이스는 무엇인가?"
         },
         {
           "type": "note",
@@ -430,20 +451,8 @@
           "text": "다."
         },
         {
-          "type": "paragraph",
-          "text": "운영체제권한 브라우저 win10 adminIE9 win8 admin IE11 win7 userIE9 win7 ( ㉠ )"
-        },
-        {
-          "type": "paragraph",
-          "text": "( ㉠ )"
-        },
-        {
-          "type": "paragraph",
-          "text": "win8 userIE9 win7 user IE11 win8 user IE10 win10 user IE10 ( ㉡ )"
-        },
-        {
-          "type": "paragraph",
-          "text": "admin ( ㉡ )"
+          "type": "image",
+          "text": "![이미지](/images/questions/CSTS-EL-2018-009.png)"
         }
       ],
       "options": [
@@ -475,7 +484,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null,
+      "figure": "/images/questions/CSTS-EL-2018-009.png",
       "answerText": "③"
     },
     {
@@ -711,7 +720,7 @@
         },
         {
           "key": "d",
-          "text": "테스트 준비 검토(Test Readiness Review, TRR): 인수테스트를 받을 준비가 되었는지 를 평가한다. IF ((X > 10) OR (Y ==2)) Z = X + Y IF ((X < Z) AND (Y > 15)) Z = X IF (X <= Z) PRINT(Z)"
+          "text": "테스트 준비 검토(Test Readiness Review, TRR): 인수테스트를 받을 준비가 되었는지 를 평가한다."
         }
       ],
       "answer": [
@@ -736,6 +745,14 @@
         {
           "type": "paragraph",
           "text": "다음 자료 흐름도에 대한 자료 흐름 패턴에 해당하지 않는 것은?"
+        },
+        {
+          "type": "code",
+          "lines": [
+            "IF ((X > 10) OR (Y ==2)) Z = X + Y",
+            "IF ((X < Z) AND (Y > 15)) Z = X",
+            "IF (X <= Z) PRINT(Z)"
+          ]
         }
       ],
       "options": [
@@ -892,7 +909,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2018-SAMPLE-20.png",
+      "figure": "/images/questions/CSTS-EL-2018-020.png",
       "answerText": "50%"
     }
   ]

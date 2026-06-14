@@ -241,7 +241,7 @@
       "type": "multiple_choice",
       "stem": [
         {
-          "type": "paragraph",
+          "type": "prompt",
           "text": "[보기]에서 설명하는 특징과 테스트 단계를 바르게 연결한 것은?"
         },
         {
@@ -249,47 +249,16 @@
           "text": "<보기>"
         },
         {
-          "type": "list",
-          "items": [
-            {
-              "marker": "(가)",
-              "text": "사용자 또는 제3자 테스트, 사용자 환경, 다양한 형태의 테스트 가능(알파, 베타 테스트)"
-            },
-            {
-              "marker": "(나)",
-              "text": "개발자 중심의 개발 환경, 개발자 또는 개발 지식이 있는 테스터가 수행, 테스트 대상 단위"
-            }
-          ]
+          "type": "note",
+          "text": "가. 소프트웨어를 독립적으로 실행시킬 환경 필요"
         },
         {
-          "type": "paragraph",
-          "text": "소프트웨어를 독립적으로 실행시킬 환경 필요"
+          "type": "note",
+          "text": "나. 컴포넌트 통합에 필요한 환경 필요(테스트 드라이버, 테스트 스텁)"
         },
         {
-          "type": "list",
-          "items": [
-            {
-              "marker": "(다)",
-              "text": "개발자 중심의 개발 환경, 개발자 또는 개발 지식이 있는 테스터가 수행, 소프트웨어 통합"
-            }
-          ]
-        },
-        {
-          "type": "paragraph",
-          "text": "에 필요한 환경 필요(테스트 드라이버, 테스트 스텁)"
-        },
-        {
-          "type": "list",
-          "items": [
-            {
-              "marker": "(라)",
-              "text": "제3자 중심의 명세 기반 테스트, 소프트웨어 기능 및 비 기능 요구사항 만족 여부 검증, 사"
-            }
-          ]
-        },
-        {
-          "type": "paragraph",
-          "text": "용자 환경 또는 사용자 환경과 최대한 유사한 환경 구성 필요"
+          "type": "note",
+          "text": "다. 실제 사용자 환경 또는 사용자 환경과 최대한 유사한 환경 구성 필요"
         }
       ],
       "options": [
@@ -671,7 +640,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2403FL-13.png",
+      "figure": "/images/questions/CSTS-FL-2403-013.png",
       "answerText": "2"
     },
     {
@@ -1094,7 +1063,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2403FL-22.png",
+      "figure": "/images/questions/CSTS-FL-2403-022.png",
       "answerText": "2"
     },
     {
@@ -1249,39 +1218,8 @@
           "text": "<보기>"
         },
         {
-          "type": "table",
-          "headers": [
-            "테스트 케이스 ID",
-            "A",
-            "B",
-            "A or B"
-          ],
-          "rows": [
-            [
-              "(가)",
-              "T",
-              "T",
-              "T"
-            ],
-            [
-              "(나)",
-              "T",
-              "F",
-              "T"
-            ],
-            [
-              "(다)",
-              "F",
-              "T",
-              "T"
-            ],
-            [
-              "(라)",
-              "F",
-              "F",
-              "F"
-            ]
-          ]
+          "type": "image",
+          "text": "![이미지](/images/questions/CSTS-FL-2403-026.png)"
         }
       ],
       "options": [
@@ -1313,7 +1251,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null,
+      "figure": "/images/questions/CSTS-FL-2403-026.png",
       "answerText": "4"
     },
     {
@@ -1329,11 +1267,11 @@
           "type": "code",
           "lines": [
             "IF ((X≥6) || (Y>14))",
-            "Z=X+Y",
+            "  Z=X+Y",
             "IF ((X<Z) && (Y>14))",
-            "Z=X",
+            "  Z=X",
             "IF (X≤Z)",
-            "RETURN 0"
+            "  RETURN 0"
           ]
         }
       ],
@@ -1382,11 +1320,11 @@
           "type": "code",
           "lines": [
             "IF ((X > 10) OR (Y == 2))",
-            "Z = X + Y",
+            "  Z = X + Y",
             "IF ((X < Z) AND (Y > 15))",
-            "Z = X",
+            "  Z = X",
             "IF (X <= Z)",
-            "PRINT(Z)"
+            "  PRINT(Z)"
           ]
         }
       ],
@@ -1435,9 +1373,9 @@
           "type": "code",
           "lines": [
             "IF ((impact>90 OR date>5) AND (severity==‘Major’))",
-            "handling = 24",
+            "  handling = 24",
             "ELSE",
-            "handling = 48",
+            "  handling = 48",
             "END"
           ]
         }
@@ -1742,7 +1680,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2403FL-34.png",
+      "figure": "/images/questions/CSTS-FL-2403-034.png",
       "answerText": "1"
     },
     {
@@ -1914,7 +1852,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2403FL-38.png",
+      "figure": "/images/questions/CSTS-FL-2403-038.png",
       "answerText": "1"
     },
     {
@@ -2593,12 +2531,12 @@
           "lines": [
             "int foo (int x,int y )",
             "{",
-            "int z =0;",
-            "if ((x >0 )&&(y >0 ))",
-            "{",
-            "z =x;",
-            "}",
-            "return z;",
+            "  int z =0;",
+            "  if ((x >0 )&&(y >0 ))",
+            "  {",
+            "    z =x;",
+            "  }",
+            "  return z;",
             "}"
           ]
         }
@@ -2727,7 +2665,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2403FL-60.png",
+      "figure": "/images/questions/CSTS-FL-2403-060.png",
       "answerText": "X"
     },
     {
@@ -3027,7 +2965,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2403FL-69.png",
+      "figure": "/images/questions/CSTS-FL-2403-069.png",
       "answerText": "테스트 환경"
     },
     {
@@ -3064,7 +3002,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2403FL-70.png",
+      "figure": "/images/questions/CSTS-FL-2403-070.png",
       "answerText": ""
     }
   ]

@@ -1611,59 +1611,8 @@
           "text": "다음 표는 테스트 케이스부터 요구사항까지의 추적성 행렬을 보여주고 있다. “X”는 주어진 테스트 케이스가 해당 요구사항을 커버하고 있음을 의미한다:"
         },
         {
-          "type": "table",
-          "rows": [
-            [
-              "",
-              "Req 1",
-              "Req 2",
-              "Req 3",
-              "Req 4",
-              "Req 5",
-              "Req 6",
-              "Req 7"
-            ],
-            [
-              "TC1",
-              "X",
-              "X",
-              "X",
-              "X",
-              "",
-              "",
-              ""
-            ],
-            [
-              "TC2",
-              "",
-              "",
-              "X",
-              "",
-              "X",
-              "X",
-              ""
-            ],
-            [
-              "TC3",
-              "X",
-              "",
-              "",
-              "",
-              "X",
-              "",
-              ""
-            ],
-            [
-              "TC4",
-              "",
-              "",
-              "",
-              "",
-              "X",
-              "",
-              ""
-            ]
-          ]
+          "type": "image",
+          "text": "![이미지](/images/questions/ISTQB-FL-V4-D-032.png)"
         },
         {
           "type": "paragraph",
@@ -1711,7 +1660,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": "/images/questions/ISTQB-FL-V4-D-032.png"
     },
     {
       "id": "ISTQB-FL-V4-D-033",

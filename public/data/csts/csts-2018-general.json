@@ -451,59 +451,8 @@
           "text": "다."
         },
         {
-          "type": "table",
-          "rows": [
-            [
-              "운영체제",
-              "권한",
-              "브라우저"
-            ],
-            [
-              "win10",
-              "admin",
-              "IE9"
-            ],
-            [
-              "win8",
-              "admin",
-              "IE11"
-            ],
-            [
-              "win7",
-              "user",
-              "IE9"
-            ],
-            [
-              "win7",
-              "( ㉠ )",
-              "( ㉠ )"
-            ],
-            [
-              "win8",
-              "user",
-              "IE9"
-            ],
-            [
-              "win7",
-              "user",
-              "IE11"
-            ],
-            [
-              "win8",
-              "user",
-              "IE10"
-            ],
-            [
-              "win10",
-              "user",
-              "IE10"
-            ],
-            [
-              "( ㉡ )",
-              "admin",
-              "( ㉡ )"
-            ]
-          ]
+          "type": "image",
+          "text": "![이미지](/images/questions/CSTS-EL-2018-009.png)"
         }
       ],
       "options": [
@@ -535,7 +484,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null,
+      "figure": "/images/questions/CSTS-EL-2018-009.png",
       "answerText": "③"
     },
     {
@@ -960,7 +909,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2018-SAMPLE-20.png",
+      "figure": "/images/questions/CSTS-EL-2018-020.png",
       "answerText": "50%"
     }
   ]

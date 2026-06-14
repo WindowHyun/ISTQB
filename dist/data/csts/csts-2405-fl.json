@@ -1275,7 +1275,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2405FL-28.png",
+      "figure": "/images/questions/CSTS-FL-2405-028.png",
       "answerText": "3"
     },
     {
@@ -1523,29 +1523,8 @@
           "text": "<보기>"
         },
         {
-          "type": "table",
-          "rows": [
-            [
-              "목적지",
-              "등급",
-              "좌석"
-            ],
-            [
-              "파리",
-              "퍼스트",
-              "창가"
-            ],
-            [
-              "런던",
-              "비즈니스",
-              "통로"
-            ],
-            [
-              "",
-              "이코노미",
-              ""
-            ]
-          ]
+          "type": "image",
+          "text": "![이미지](/images/questions/CSTS-FL-2405-033.png)"
         },
         {
           "type": "paragraph",
@@ -1581,7 +1560,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null,
+      "figure": "/images/questions/CSTS-FL-2405-033.png",
       "answerText": "3"
     },
     {

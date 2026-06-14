@@ -1360,7 +1360,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2019-SAMPLE-31.png",
+      "figure": "/images/questions/CSTS-EL-2019-031.png",
       "answerText": "②"
     },
     {
@@ -2653,24 +2653,8 @@
           "text": "다음은 전기밥솥의 동작을 표로 나타낸 것이다. 페어와이즈 설계 기법을 적용하여 테스트 케이스를 설계할 때 도출될 수 있는 최소 테스트 케이스 개수는 몇 개인지 기재하시오."
         },
         {
-          "type": "table",
-          "rows": [
-            [
-              "모드",
-              "설정",
-              "전원"
-            ],
-            [
-              "취사",
-              "현미",
-              "ON"
-            ],
-            [
-              "보온",
-              "백미",
-              "OFF"
-            ]
-          ]
+          "type": "image",
+          "text": "![이미지](/images/questions/CSTS-EL-2019-065.png)"
         }
       ],
       "options": [],
@@ -2685,7 +2669,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null,
+      "figure": "/images/questions/CSTS-EL-2019-065.png",
       "answerText": "4개"
     },
     {
@@ -2710,7 +2694,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2019-SAMPLE-66.png",
+      "figure": "/images/questions/CSTS-EL-2019-066.png",
       "answerText": "3개"
     },
     {
@@ -2735,7 +2719,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2019-SAMPLE-67.png",
+      "figure": "/images/questions/CSTS-EL-2019-067.png",
       "answerText": "50%"
     },
     {
@@ -2812,7 +2796,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2019-SAMPLE-69.png",
+      "figure": "/images/questions/CSTS-EL-2019-069.png",
       "answerText": "kk"
     },
     {

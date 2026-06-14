@@ -402,7 +402,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2404FL-8.png",
+      "figure": "/images/questions/CSTS-FL-2404-008.png",
       "answerText": "3"
     },
     {
@@ -753,7 +753,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2404FL-15.png",
+      "figure": "/images/questions/CSTS-FL-2404-015.png",
       "answerText": "3"
     },
     {
@@ -1134,7 +1134,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2404FL-23.png",
+      "figure": "/images/questions/CSTS-FL-2404-023.png",
       "answerText": "1"
     },
     {
@@ -1180,7 +1180,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2404FL-24.png",
+      "figure": "/images/questions/CSTS-FL-2404-024.png",
       "answerText": "2"
     },
     {
@@ -1278,7 +1278,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2404FL-26.png",
+      "figure": "/images/questions/CSTS-FL-2404-026.png",
       "answerText": "4"
     },
     {
@@ -1557,7 +1557,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2404FL-31.png",
+      "figure": "/images/questions/CSTS-FL-2404-031.png",
       "answerText": "4"
     },
     {
@@ -1641,7 +1641,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2404FL-33.png",
+      "figure": "/images/questions/CSTS-FL-2404-033.png",
       "answerText": "3"
     },
     {
@@ -1683,7 +1683,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2404FL-34.png",
+      "figure": "/images/questions/CSTS-FL-2404-034.png",
       "answerText": "4"
     },
     {
@@ -2845,29 +2845,8 @@
           "text": "<보기>"
         },
         {
-          "type": "table",
-          "rows": [
-            [
-              "목적지",
-              "등급",
-              "좌석"
-            ],
-            [
-              "파리",
-              "퍼스트",
-              "창가"
-            ],
-            [
-              "런던",
-              "비즈니스",
-              "통로"
-            ],
-            [
-              "시드니",
-              "이코노미",
-              ""
-            ]
-          ]
+          "type": "image",
+          "text": "![이미지](/images/questions/CSTS-FL-2404-067.png)"
         }
       ],
       "options": [],
@@ -2882,7 +2861,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null,
+      "figure": "/images/questions/CSTS-FL-2404-067.png",
       "answerText": "9개"
     },
     {

@@ -1110,9 +1110,9 @@
           "lines": [
             "Bool p;",
             "if(p)",
-            "puts(\"p is true\");",
+            "  puts(\"p is true\");",
             "if(!p)",
-            "puts(\"p is false\");"
+            "  puts(\"p is false\");"
           ]
         }
       ],
@@ -1275,7 +1275,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2405FL-28.png",
+      "figure": "/images/questions/CSTS-FL-2405-028.png",
       "answerText": "3"
     },
     {
@@ -1295,16 +1295,16 @@
           "type": "code",
           "lines": [
             "int computeBill(int a) {",
-            "int b=0;",
-            "if (a>120) {",
-            "if (a<=240)",
-            "b=(a-120)*2;",
-            "else {",
-            "b=(a-240)*2;",
-            "if (b>=100) b=b*3;",
-            "}",
-            "}",
-            "return b;",
+            "  int b=0;",
+            "  if (a>120) {",
+            "    if (a<=240)",
+            "      b=(a-120)*2;",
+            "    else {",
+            "      b=(a-240)*2;",
+            "      if (b>=100) b=b*3;",
+            "    }",
+            "  }",
+            "  return b;",
             "}"
           ]
         }
@@ -1428,9 +1428,9 @@
           "type": "code",
           "lines": [
             "IF ((impact>90 OR date>5) AND (severity==‘Major’))",
-            "handling = 24",
+            "  handling = 24",
             "ELSE",
-            "handling = 48",
+            "  handling = 48",
             "END"
           ]
         }
@@ -1523,8 +1523,12 @@
           "text": "<보기>"
         },
         {
+          "type": "image",
+          "text": "![이미지](/images/questions/CSTS-FL-2405-033.png)"
+        },
+        {
           "type": "paragraph",
-          "text": "목적지등급좌석파리퍼스트창가런던 비즈니스통로 이코노미 Base Choice 테스트 적용할 때 기반이 되는 테스트 조합: (파리, 퍼스트, 창가)"
+          "text": "Base Choice 테스트 적용할 때 기반이 되는 테스트 조합: (파리, 퍼스트, 창가)"
         }
       ],
       "options": [
@@ -1556,7 +1560,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null,
+      "figure": "/images/questions/CSTS-FL-2405-033.png",
       "answerText": "3"
     },
     {
@@ -2751,12 +2755,12 @@
           "type": "code",
           "lines": [
             "int foo(int x, int y, int z) {",
-            "int w=0;",
-            "if (x>0 || y>0)",
-            "z=z+10;",
-            "if (z>10)",
-            "w=10;",
-            "return w;",
+            "  int w=0;",
+            "  if (x>0 || y>0)",
+            "    z=z+10;",
+            "  if (z>10)",
+            "    w=10;",
+            "  return w;",
             "}"
           ]
         }

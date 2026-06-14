@@ -435,7 +435,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2402FL-9.png",
+      "figure": "/images/questions/CSTS-FL-2402-009.png",
       "answerText": "2"
     },
     {
@@ -661,7 +661,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2402FL-14.png",
+      "figure": "/images/questions/CSTS-FL-2402-014.png",
       "answerText": "3"
     },
     {
@@ -1055,7 +1055,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2402FL-23.png",
+      "figure": "/images/questions/CSTS-FL-2402-023.png",
       "answerText": "2"
     },
     {
@@ -1260,7 +1260,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2402FL-26.png",
+      "figure": "/images/questions/CSTS-FL-2402-026.png",
       "answerText": "1"
     },
     {
@@ -1439,29 +1439,8 @@
           "text": "<보기>"
         },
         {
-          "type": "table",
-          "rows": [
-            [
-              "목적지",
-              "등급",
-              "좌석"
-            ],
-            [
-              "파리",
-              "퍼스트",
-              "창가"
-            ],
-            [
-              "런던",
-              "비즈니스",
-              "통로"
-            ],
-            [
-              "",
-              "이코노미",
-              ""
-            ]
-          ]
+          "type": "image",
+          "text": "![이미지](/images/questions/CSTS-FL-2402-030.png)"
         },
         {
           "type": "paragraph",
@@ -1518,7 +1497,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null,
+      "figure": "/images/questions/CSTS-FL-2402-030.png",
       "answerText": "3"
     },
     {
@@ -1539,93 +1518,8 @@
           "text": "빈칸에 들어갈 수 있는 테스트 데이터는 무엇인가?"
         },
         {
-          "type": "table",
-          "rows": [
-            [
-              "입력 인자",
-              "A",
-              "B",
-              "C"
-            ],
-            [
-              "값",
-              "A1",
-              "B1",
-              "C1"
-            ],
-            [
-              "",
-              "A2",
-              "B2",
-              "C2"
-            ],
-            [
-              "",
-              "A3",
-              "-",
-              "C3"
-            ],
-            [
-              "테스트 케이스",
-              "A",
-              "B",
-              "C"
-            ],
-            [
-              "",
-              "A1",
-              "B1",
-              "C1"
-            ],
-            [
-              "",
-              "A1",
-              "B2",
-              "C2"
-            ],
-            [
-              "",
-              "A2",
-              "B1",
-              "C3"
-            ],
-            [
-              "",
-              "A2",
-              "B2",
-              "C1"
-            ],
-            [
-              "",
-              "A3",
-              "B1",
-              "C2"
-            ],
-            [
-              "",
-              "A3",
-              "B2",
-              "C3"
-            ],
-            [
-              "",
-              "A1",
-              "-",
-              "C3"
-            ],
-            [
-              "",
-              "A2",
-              "-",
-              "C2"
-            ],
-            [
-              "",
-              "( )",
-              "-",
-              "( )"
-            ]
-          ]
+          "type": "image",
+          "text": "![이미지](/images/questions/CSTS-FL-2402-031.png)"
         }
       ],
       "options": [
@@ -1657,7 +1551,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null,
+      "figure": "/images/questions/CSTS-FL-2402-031.png",
       "answerText": "4"
     },
     {
@@ -2526,7 +2420,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2402FL-49.png",
+      "figure": "/images/questions/CSTS-FL-2402-049.png",
       "answerText": "4"
     },
     {
@@ -3189,7 +3083,7 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "csts-figures/2402FL-70.png",
+      "figure": "/images/questions/CSTS-FL-2402-070.png",
       "answerText": "결함의 일반화"
     }
   ]
