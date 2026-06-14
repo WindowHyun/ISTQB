@@ -1500,19 +1500,19 @@
       "options": [
         {
           "key": "a",
-          "text": "TC Machine OS Protocol 1 IBM Unix UDP 2 HP Windows UDP 3 IBM Windows TCP"
+          "text": "| TC | Machine | OS | Protocol |\n|---|---|---|---|\n| 1 | IBM | Unix | UDP |\n| 2 | HP | Windows | UDP |\n| 3 | IBM | Windows | TCP |"
         },
         {
           "key": "b",
-          "text": "TC Machine OS Protocol 1 IBM Windows TCP 2 IBM Unix UDP 3 HP Windows TCP"
+          "text": "| TC | Machine | OS | Protocol |\n|---|---|---|---|\n| 1 | IBM | Windows | TCP |\n| 2 | IBM | Unix | UDP |\n| 3 | HP | Windows | TCP |"
         },
         {
           "key": "c",
-          "text": "TC Machine OS Protocol 1 IBM Unix TCP 2 IBM Windows UDP 3 HP Windows UDP 4 HP Unix TCP"
+          "text": "| TC | Machine | OS | Protocol |\n|---|---|---|---|\n| 1 | IBM | Unix | TCP |\n| 2 | IBM | Windows | UDP |\n| 3 | HP | Windows | UDP |\n| 4 | HP | Unix | TCP |"
         },
         {
           "key": "d",
-          "text": "TC Machine OS Protocol 1 IBM Windows TCP 2 IBM Unix UDP 3 HP Windows UDP 4 HP Unix TCP"
+          "text": "| TC | Machine | OS | Protocol |\n|---|---|---|---|\n| 1 | IBM | Windows | TCP |\n| 2 | IBM | Unix | UDP |\n| 3 | HP | Windows | UDP |\n| 4 | HP | Unix | TCP |"
         }
       ],
       "answer": [
@@ -1562,19 +1562,19 @@
       "options": [
         {
           "key": "a",
-          "text": "테스트케이스 입력 기대출력 인사평점 근속연수 공로상 수상 1 B 15 Y 프랑스/스페인 2 A 13 N 프랑스 3 A 8 Y 싱가포르/스페인 4 B 7 N 싱가포르 5 C 17 Y 해당 없음 6 D 12 N 해당 없음 7 E 9 Y 해당 없음 8 F 3 N 해당 없음"
+          "text": "| 테스트케이스 | 인사평점 | 근속연수 | 공로상 수상 | 기대출력 |\n|---|---|---|---|---|\n| 1 | B | 15 | Y | 프랑스/스페인 |\n| 2 | A | 13 | N | 프랑스 |\n| 3 | A | 8 | Y | 싱가포르/스페인 |\n| 4 | B | 7 | N | 싱가포르 |\n| 5 | C | 17 | Y | 해당 없음 |\n| 6 | D | 12 | N | 해당 없음 |\n| 7 | E | 9 | Y | 해당 없음 |\n| 8 | F | 3 | N | 해당 없음 |"
         },
         {
           "key": "b",
-          "text": "테스트케이스 입력 기대출력 인사평점 근속연수 공로상 수상 1 B 15 Y 프랑스/스페인 2 A 13 N 프랑스 3 A 8 Y 싱가포르/스페인 4 B 7 N 싱가포르 5 C 17 Y 해당 없음 6 D 12 N 해당 없음"
+          "text": "| 테스트케이스 | 인사평점 | 근속연수 | 공로상 수상 | 기대출력 |\n|---|---|---|---|---|\n| 1 | B | 15 | Y | 프랑스/스페인 |\n| 2 | A | 13 | N | 프랑스 |\n| 3 | A | 8 | Y | 싱가포르/스페인 |\n| 4 | B | 7 | N | 싱가포르 |\n| 5 | C | 17 | Y | 해당 없음 |\n| 6 | D | 12 | N | 해당 없음 |"
         },
         {
           "key": "c",
-          "text": "테스트케이스 입력 기대출력 인사평점 근속연수 공로상 수상 1 B 15 Y 프랑스/스페인 2 A 13 N 프랑스 3 A 8 Y 싱가포르/스페인 4 B 7 N 싱가포르 5 C 17 Y 해당 없음"
+          "text": "| 테스트케이스 | 인사평점 | 근속연수 | 공로상 수상 | 기대출력 |\n|---|---|---|---|---|\n| 1 | B | 15 | Y | 프랑스/스페인 |\n| 2 | A | 13 | N | 프랑스 |\n| 3 | A | 8 | Y | 싱가포르/스페인 |\n| 4 | B | 7 | N | 싱가포르 |\n| 5 | C | 17 | Y | 해당 없음 |"
         },
         {
           "key": "d",
-          "text": "테스트케이스 입력 기대출력 인사평점 근속연수 공로상 수상 1 B 15 Y 프랑스/스페인 2 A 13 N 프랑스 3 A 8 Y 싱가포르/스페인 4 B 7 N 싱가포르"
+          "text": "| 테스트케이스 | 인사평점 | 근속연수 | 공로상 수상 | 기대출력 |\n|---|---|---|---|---|\n| 1 | B | 15 | Y | 프랑스/스페인 |\n| 2 | A | 13 | N | 프랑스 |\n| 3 | A | 8 | Y | 싱가포르/스페인 |\n| 4 | B | 7 | N | 싱가포르 |"
         }
       ],
       "answer": [
