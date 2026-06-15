@@ -619,6 +619,14 @@
         {
           "type": "paragraph",
           "text": "다음 프로그램에 대하여 (X=15, Y=2, Z=0), (X=10, Y=20, Z=0)의 테스트 케이스를 실행 하였을 때, 조건/분기 커버리지는 몇 %인가? (소수점 첫째 자리에서 반올림)"
+        },
+        {
+          "type": "code",
+          "lines": [
+            "IF ((X > 10) OR (Y ==2)) Z = X + Y",
+            "IF ((X < Z) AND (Y > 15)) Z = X",
+            "IF (X <= Z) PRINT(Z)"
+          ]
         }
       ],
       "options": [
@@ -745,14 +753,6 @@
         {
           "type": "paragraph",
           "text": "다음 자료 흐름도에 대한 자료 흐름 패턴에 해당하지 않는 것은?"
-        },
-        {
-          "type": "code",
-          "lines": [
-            "IF ((X > 10) OR (Y ==2)) Z = X + Y",
-            "IF ((X < Z) AND (Y > 15)) Z = X",
-            "IF (X <= Z) PRINT(Z)"
-          ]
         }
       ],
       "options": [
