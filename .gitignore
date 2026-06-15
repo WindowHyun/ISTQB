@@ -30,3 +30,8 @@ tmp/
 
 # Vite 빌드 산출물 (prebuild에서 sync-assets로 재생성; 정본은 www/ + public/)
 dist/
+
+# Playwright E2E 산출물
+test-results/
+playwright-report/
+playwright/.cache/

@@ -231,7 +231,7 @@ export async function importUserData(file: File): Promise<boolean> {
           const db = await getDb();
           const tx = db.transaction(STORE_NAME, "readwrite");
           const store = tx.objectStore(STORE_NAME);
-          Object.values(data.histories).forEach((h: ExamHistory) => store.put(h));
+          (Object.values(data.histories) as ExamHistory[]).forEach((h) => store.put(h));
         }
         
         await restorePersistentSnapshot(getActiveProduct());
