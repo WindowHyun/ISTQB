@@ -89,27 +89,6 @@
       function formatQuestionForUi(rawQuestion) {
         const q = JSON.parse(JSON.stringify(rawQuestion));
 
-        const fixNewlines = (blocks) => {
-          if (!Array.isArray(blocks)) return blocks;
-          return blocks.map((b) => {
-            if (typeof b.text === "string") {
-              b.text = b.text.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").replace(/\r\n/g, "\n").trim();
-              b.text = b.text.replace(/\n{3,}/g, "\n\n");
-              b.text = b.text.replace(/([^\n])\s*(•|○|①|②|③|④|⑤|Ⓐ|Ⓑ|Ⓒ|Ⓓ|Ⓔ|ⓐ|ⓑ|ⓒ|ⓓ|ⓔ|㉠|㉡|㉢|㉣|㉤|(?<![가-힣A-Za-z0-9])[1-9][0-9]*[\.\)]\s)/g, "$1\n$2");
-              b.text = b.text.replace(/([^\n])\s*(가\.|나\.|다\.|라\.|마\.)\s/g, (match, p1, p2) => { if (p1 === "." || p1 === "?" || p1 === "!") return match; return `${p1}\n${p2} `; });
-              b.text = b.text.replace(/([^\n])\s*(가\.|나\.|다\.|라\.|마\.)\s/g, (match, p1, p2) => { if (p1 === "." || p1 === "?" || p1 === "!") return match; return `${p1}\n${p2} `; });
-              b.text = b.text.replace(/([^\n])\s*([1-4]사분면:)/g, "$1\n$2");
-              b.text = b.text.replace("리뷰 활동은 다음과 같다: 개별 리뷰 리뷰 착수 리뷰 계획 의사소통 및 분석", "리뷰 활동은 다음과 같다:\nA. 개별 리뷰\nB. 리뷰 착수\nC. 리뷰 계획\nD. 의사소통 및 분석");
-              b.text = b.text.replace("그리고 리뷰에서 맡은 책임은 다음과 같다: 리뷰 회의의 효과적인 진행과 편안한 리뷰 환경을 보장한다 리뷰 회의에서 결정사항, 식별한 새로운 이상 현상과 같은 리뷰 정보를 기록한다 리뷰 대상을 결정하고 리뷰에 참여할인력, 리뷰 시간 등 자원을 제공한다 리뷰 진행 시기, 장소 협의 등 리뷰에 대한 전반적인 책임을 진다", "그리고 리뷰에서 맡은 책임은 다음과 같다:\nA. 리뷰 회의의 효과적인 진행과 편안한 리뷰 환경을 보장한다\nB. 리뷰 회의에서 결정사항, 식별한 새로운 이상 현상과 같은 리뷰 정보를 기록한다\nC. 리뷰 대상을 결정하고 리뷰에 참여할 인력, 리뷰 시간 등 자원을 제공한다\nD. 리뷰 진행 시기, 장소 협의 등 리뷰에 대한 전반적인 책임을 진다");
-              b.text = b.text.replace("다음과 같은 테스트 활동이 있다: 테스트 분석 테스트 설계 테스트 구현 테스트 완료", "다음과 같은 테스트 활동이 있다:\nA. 테스트 분석\nB. 테스트 설계\nC. 테스트 구현\nD. 테스트 완료");
-            }
-            return b;
-          });
-        };
-
-        q.stem = fixNewlines(q.stem);
-        q.explanation = fixNewlines(q.explanation);
-
         if (q.type !== "multiple_choice") {
           return q;
         }
@@ -410,6 +389,7 @@
       let wrongNoteFilter = "all";
       let lastRenderedQuestionKey = "";
       let lastModalTrigger = null;
+
       const emptySet = {
         id: "",
         title: productLabels[activeProduct],
@@ -792,6 +772,7 @@
         );
       }
 
+
       function showProductGate() {
         saveAnswers();
         saveUiState();
@@ -809,18 +790,12 @@
         productGate?.setAttribute("hidden", "");
         appShell?.classList.remove("is-product-hidden");
       }
-
-      function openIstqbApp() {
-        startProduct("istqb");
+      function openProductApp(productId) {
+        startProduct(productId);
         showActiveProductApp();
         questionTitle?.focus?.();
       }
 
-      function openCstsApp() {
-        startProduct("csts");
-        showActiveProductApp();
-        questionTitle?.focus?.();
-      }
 
       function backupExportMessage(fileName, method) {
         if (method === "share") {
@@ -1192,10 +1167,14 @@
         return value
           .filter((history) => isPlainObject(history))
           .map((history) => {
-            // Histories saved in "review" mode stored their answers under the
-            // "exam" answer key, so normalize them to "exam" to keep the saved
-            // key and the lookup key (answerKey(question, history.mode)) aligned.
-            const mode = history.mode === "random" ? "random" : "exam";
+            // Histories only ever carry answer keys built with answerMode()
+            // ("exam" or "random"; review grades into "exam"). Normalize any
+            // legacy "review" history to "exam" so the saved keys match what
+            // historyWrongNoteItems looks up via answerKey(question, history.mode).
+            const rawMode = ["exam", "random", "review"].includes(history.mode)
+              ? history.mode
+              : "exam";
+            const mode = rawMode === "review" ? "exam" : rawMode;
             const setId =
               mode === "random" ? "random" : validSetId(history.setId);
             const timestamp = Number.isFinite(history.timestamp)
@@ -1426,11 +1405,13 @@
       }
 
       function isReviewRetake() {
+        if (state.mode === "random") return Boolean(state.reviewRetake["random"]);
         return Boolean(state.reviewRetake[state.setId]);
       }
 
       function setReviewRetake(value) {
-        state.reviewRetake[state.setId] = value;
+        if (state.mode === "random") state.reviewRetake["random"] = value;
+        else state.reviewRetake[state.setId] = value;
       }
 
       function resetAnswersFor(mode) {
@@ -1771,7 +1752,7 @@
       function splitStructuralMarkers(text) {
         return String(text || "")
           .replace(
-            /(^|\s)(?=(?:\d+\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s)/g,
+            /(^|\s)(?=(?:\d+\.|[A-E]\.|[가-차]\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s)/g,
             "$1\n",
           )
           .replace(/\s*(?=\b(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.\s)/gi, "\n")
@@ -1995,11 +1976,13 @@
           return [
             {
               type: "list",
-              items: block.items.map((item, index) =>
-                typeof item === "string"
-                  ? { marker: `${index + 1}.`, text: item }
-                  : { marker: item.marker || `${index + 1}.`, text: item.text || "" },
-              ),
+              items: block.items.map((item) => {
+                if (typeof item === "string") {
+                  const parsed = parseStructuredItem(item);
+                  return parsed ? parsed : { marker: "•", text: item };
+                }
+                return { marker: item.marker || "•", text: item.text || "" };
+              }),
             },
           ];
         }
@@ -2011,7 +1994,7 @@
 
       function parseStructuredItem(line) {
         const match = line.match(
-          /^(\d+\.(?!\d)|\(\d+\)|[A-E]\.|[a-e]\)|[\uAC00-\uCC28]\.|(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s*(.+)$/i,
+          /^(\d+\.(?!\d)|\(\d+\)|[A-E]\.|[a-e]\)|[가-차]\.|(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s*(.+)$/i,
         );
         if (!match) return null;
         return { marker: match[1], text: match[2].trim() };
@@ -2023,7 +2006,7 @@
         if (/^\(\d+\)$/.test(m)) return { kind: "paren", order: parseInt(m.replace(/\D/g, ""), 10) };
         if (/^[A-Ea-e]\.$/.test(m)) return { kind: "alphadot", order: m.toLowerCase().charCodeAt(0) };
         if (/^[a-e]\)$/.test(m)) return { kind: "alphaparen", order: m.toLowerCase().charCodeAt(0) };
-        if (/^[\uAC00-\uCC28]\.$/.test(m)) return { kind: "hangul", order: m.charCodeAt(0) };
+        if (/^[가-차]\.$/.test(m)) return { kind: "hangul", order: m.charCodeAt(0) };
         if (/^(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.$/i.test(m)) {
           const map = { i: 1, ii: 2, iii: 3, iv: 4, v: 5, vi: 6, vii: 7, viii: 8, ix: 9, x: 10 };
           return { kind: "roman", order: map[m.replace(".", "").toLowerCase()] || 0 };
@@ -2607,11 +2590,9 @@
           state.mode === "review" && isReviewRetake()
             ? "오답 재채점"
             : "채점하기";
-        retryWrongBtn.hidden =
-          state.mode !== "review" ||
-          !isExamGraded() ||
-          isReviewRetake() ||
-          missedExamQuestions().length === 0;
+        const canRetryExam = state.mode === "review" && isExamGraded() && !isReviewRetake() && missedExamQuestions().length > 0;
+        const canRetryRandom = state.mode === "random" && isRandomGraded() && !isReviewRetake() && missedRandomQuestions().length > 0;
+        retryWrongBtn.hidden = !(canRetryExam || canRetryRandom);
         wrongNoteBtn.disabled = !hasWrongNoteItems();
         const navPosition =
           questions.length > 0
@@ -3186,7 +3167,13 @@
       }
 
       function updateTimer() {
-        if (isExamGraded() || isRandomGraded() || state.mode === 'review') return;
+        // Stop accumulating once the current mode is graded (or in review mode).
+        // Refresh lastTick before returning so the paused span is never added in
+        // one jump when timing later resumes (e.g. retry-wrong / new set).
+        if (isExamGraded() || isRandomGraded() || state.mode === 'review') {
+          state.lastTick = Date.now();
+          return;
+        }
         const now = Date.now();
         if (state.lastTick) {
           state.elapsedSeconds = (state.elapsedSeconds || 0) + (now - state.lastTick) / 1000;
@@ -3311,10 +3298,13 @@
           state.histories.push({
             id: timestamp.toString(),
             timestamp,
+            // Store the mode actually used to build the answer keys (exam/random),
+            // not state.mode, so historyWrongNoteItems' answerKey(question, history.mode)
+            // matches the keys saved in historyAnswers. (review grades into "exam".)
             mode: targetMode,
             setId: targetSetId,
             answers: historyAnswers,
-            randomRefs: state.mode === "random" ? [...state.randomRefs] : null
+            randomRefs: targetMode === "random" ? [...state.randomRefs] : null
           });
         }
 
@@ -3326,14 +3316,21 @@
       });
 
       retryWrongBtn.addEventListener("click", () => {
-        const missed = missedExamQuestions();
-        if (missed.length === 0) return;
-        state.reviewIds[state.setId] = missed.map(
-          (question) => question.number,
-        );
-        missed.forEach(
-          (question) => delete state.answers[answerKey(question, "exam")],
-        );
+        if (state.mode === "random") {
+          const missed = missedRandomQuestions();
+          if (missed.length === 0) return;
+          state.randomRefs = missed.map(q => ({ setId: q.setId, number: q.number }));
+          missed.forEach(q => delete state.answers[answerKey(q, "random")]);
+        } else {
+          const missed = missedExamQuestions();
+          if (missed.length === 0) return;
+          state.reviewIds[state.setId] = missed.map(
+            (question) => question.number,
+          );
+          missed.forEach(
+            (question) => delete state.answers[answerKey(question, "exam")],
+          );
+        }
         setReviewRetake(true);
         state.index = 0;
         state.elapsedSeconds = 0; state.lastTick = Date.now();
@@ -3429,8 +3426,8 @@
 
       const sidebarBackdrop = document.querySelector("#sidebarBackdrop");
 
-      openIstqbBtn?.addEventListener("click", openIstqbApp);
-      openCstsBtn?.addEventListener("click", openCstsApp);
+      openIstqbBtn?.addEventListener("click", () => openProductApp("istqb"));
+      openCstsBtn?.addEventListener("click", () => openProductApp("csts"));
       productHomeBtn?.addEventListener("click", showProductGate);
       topbarHomeBtn?.addEventListener("click", showProductGate);
 

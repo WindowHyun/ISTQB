@@ -42,3 +42,13 @@ for (const [asset, targets] of plan) {
   }
 }
 console.log(`[sync-assets] www/ 정본에서 ${count}개 자산 폴더 동기화 완료`);
+
+// 코드 동기화 (#53): script.js 는 루트가 기능 정본(random 재시도·타이머 버그수정 등) → www 로 복사.
+// 자산과 방향이 반대임에 유의(자산=www 정본, script.js=루트 정본).
+// style.css 는 settings 패널 등 index.html 구조 차이로 단순 통일 불가 → 제외(HTML 통일 선행 과제).
+const scriptSrc = path.join(root, "script.js");
+const scriptDst = path.join(srcRoot, "script.js");
+if (fs.existsSync(scriptSrc)) {
+  fs.copyFileSync(scriptSrc, scriptDst);
+  console.log("[sync-assets] script.js 루트 정본 → www 동기화 완료");
+}
