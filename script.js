@@ -248,7 +248,6 @@
       }
 
       await loadQuestionProductData();
-      const cstsData = productData.csts;
       const istqbDataError = questionDataErrors.istqb || "";
       const lastProductStorageKey = "istqb-csts-last-product";
 
@@ -390,10 +389,6 @@
       let wrongNoteFilter = "all";
       let lastRenderedQuestionKey = "";
       let lastModalTrigger = null;
-      const cstsState = {
-        setId: cstsData.sets[0]?.id || "",
-        index: 0,
-      };
 
       const emptySet = {
         id: "",

@@ -269,7 +269,6 @@
       }
 
       await loadQuestionProductData();
-      const cstsData = productData.csts;
       const istqbDataError = questionDataErrors.istqb || "";
       const lastProductStorageKey = "istqb-csts-last-product";
 
@@ -334,21 +333,9 @@
       let dbPromise = null;
 
       const productGate = document.querySelector("#productGate");
-      const cstsPage = document.querySelector("#cstsPage");
       const appShell = document.querySelector(".app-shell");
       const openIstqbBtn = document.querySelector("#openIstqbBtn");
       const openCstsBtn = document.querySelector("#openCstsBtn");
-      const cstsBackBtn = document.querySelector("#cstsBackBtn");
-      const cstsSetSelect = document.querySelector("#cstsSetSelect");
-      const cstsSummary = document.querySelector("#cstsSummary");
-      const cstsQuestionMeta = document.querySelector("#cstsQuestionMeta");
-      const cstsQuestionTitle = document.querySelector("#cstsQuestionTitle");
-      const cstsQuestionStem = document.querySelector("#cstsQuestionStem");
-      const cstsQuestionFigure = document.querySelector("#cstsQuestionFigure");
-      const cstsOptions = document.querySelector("#cstsOptions");
-      const cstsAnswer = document.querySelector("#cstsAnswer");
-      const cstsPrevBtn = document.querySelector("#cstsPrevBtn");
-      const cstsNextBtn = document.querySelector("#cstsNextBtn");
       const productHomeBtn = document.querySelector("#productHomeBtn");
       const topbarHomeBtn = document.querySelector("#topbarHomeBtn");
       const productSubtitle = document.querySelector("#productSubtitle");
@@ -423,11 +410,6 @@
       let wrongNoteFilter = "all";
       let lastRenderedQuestionKey = "";
       let lastModalTrigger = null;
-      const cstsState = {
-        setId: cstsData.sets[0]?.id || "",
-        index: 0,
-      };
-
       const emptySet = {
         id: "",
         title: productLabels[activeProduct],
@@ -810,118 +792,12 @@
         );
       }
 
-      function currentCstsSet() {
-        return (
-          cstsData.sets.find((set) => set.id === cstsState.setId) ||
-          cstsData.sets[0] || { id: "", title: "", questions: [] }
-        );
-      }
-
-      function summaryPill(text) {
-        const pill = document.createElement("span");
-        pill.textContent = text;
-        return pill;
-      }
-
-      function renderCstsSelect() {
-        if (!cstsSetSelect) return;
-        const fragment = document.createDocumentFragment();
-        cstsData.sets.forEach((set) => {
-          const option = document.createElement("option");
-          option.value = set.id;
-          option.textContent = `${set.title} (${set.questions.length}문항)`;
-          fragment.appendChild(option);
-        });
-        cstsSetSelect.replaceChildren(fragment);
-        cstsSetSelect.value = currentCstsSet().id;
-      }
-
-      function renderCstsFigure(question) {
-        cstsQuestionFigure.replaceChildren();
-        if (!question.figure) return;
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "figure-button";
-        button.setAttribute("aria-label", `CSTS 문제 ${question.number} 그림 확대`);
-        const image = document.createElement("img");
-        image.src = question.figure;
-        image.alt = `CSTS 문제 ${question.number} 참고 그림`;
-        button.appendChild(image);
-        button.addEventListener("click", () => openFigureModal(question, button));
-        cstsQuestionFigure.appendChild(button);
-      }
-
-      function renderCstsOptions(question) {
-        cstsOptions.replaceChildren();
-        if (!question.options.length) {
-          cstsOptions.textContent = "단답형 문제입니다.";
-          return;
-        }
-
-        question.options.forEach((option) => {
-          const row = document.createElement("div");
-          row.className = question.answer.includes(option.key)
-            ? "option correct"
-            : "option";
-          const key = document.createElement("span");
-          key.className = "option-key";
-          key.textContent = option.key.toUpperCase();
-          const text = document.createElement("span");
-          text.className = "option-text";
-          renderRichText(text, option.text);
-          row.append(key, text);
-          cstsOptions.appendChild(row);
-        });
-      }
-
-      function renderCstsPage() {
-        const set = currentCstsSet();
-        const questions = set.questions || [];
-        if (!questions.length) {
-          cstsSummary.replaceChildren();
-          cstsQuestionMeta.textContent = "CSTS";
-          cstsQuestionTitle.textContent = "추출된 문제가 없습니다";
-          cstsQuestionStem.textContent =
-            "CSTS 문제 JSON을 찾지 못했습니다. data/index.json과 세트별 JSON 경로를 확인하세요.";
-          cstsQuestionFigure.replaceChildren();
-          cstsOptions.replaceChildren();
-          cstsAnswer.textContent = "";
-          cstsPrevBtn.disabled = true;
-          cstsNextBtn.disabled = true;
-          return;
-        }
-
-        cstsState.index = Math.max(0, Math.min(cstsState.index, questions.length - 1));
-        const question = questions[cstsState.index];
-        const typeLabel = {
-          multiple_choice: "4지선다",
-          true_false: "O/X",
-          short_answer: "단답형",
-        }[question.type] || question.type;
-        const figureCount = questions.filter((item) => item.figure).length;
-        cstsSummary.replaceChildren(
-          summaryPill(`${questions.length}문항`),
-          summaryPill(`${figureCount}개 이미지 추출`),
-          summaryPill(typeLabel),
-        );
-        cstsQuestionMeta.textContent = set.title;
-        cstsQuestionTitle.textContent = `문제 ${cstsState.index + 1} / ${questions.length}`;
-        renderRichText(cstsQuestionStem, question.stem, { plainContent: true });
-        renderCstsFigure(question);
-        renderCstsOptions(question);
-        cstsAnswer.textContent = `정답: ${question.answerText || question.answer.join(", ")}`;
-        cstsPrevBtn.disabled = cstsState.index === 0;
-        cstsNextBtn.disabled = cstsState.index >= questions.length - 1;
-      }
-
       function showProductGate() {
         saveAnswers();
         saveUiState();
         clearLastProduct();
         productGate?.classList.remove("is-product-hidden");
         productGate?.removeAttribute("hidden");
-        cstsPage?.classList.add("is-product-hidden");
-        cstsPage?.setAttribute("hidden", "");
         appShell?.classList.add("is-product-hidden");
         sidebarBackdrop?.classList.remove("visible");
         document.body.style.overflow = "";
@@ -931,8 +807,6 @@
       function showActiveProductApp() {
         productGate?.classList.add("is-product-hidden");
         productGate?.setAttribute("hidden", "");
-        cstsPage?.classList.add("is-product-hidden");
-        cstsPage?.setAttribute("hidden", "");
         appShell?.classList.remove("is-product-hidden");
       }
 
@@ -3557,28 +3431,8 @@
 
       openIstqbBtn?.addEventListener("click", openIstqbApp);
       openCstsBtn?.addEventListener("click", openCstsApp);
-      cstsBackBtn?.addEventListener("click", showProductGate);
       productHomeBtn?.addEventListener("click", showProductGate);
       topbarHomeBtn?.addEventListener("click", showProductGate);
-      cstsSetSelect?.addEventListener("change", () => {
-        cstsState.setId = cstsSetSelect.value;
-        cstsState.index = 0;
-        renderCstsPage();
-      });
-      cstsPrevBtn?.addEventListener("click", () => {
-        const questions =
-          cstsData.sets.find((set) => set.id === cstsState.setId)?.questions || [];
-        cstsState.index = Math.max(0, cstsState.index - 1);
-        if (questions.length) cstsState.index = Math.min(cstsState.index, questions.length - 1);
-        renderCstsPage();
-      });
-      cstsNextBtn?.addEventListener("click", () => {
-        const questions =
-          cstsData.sets.find((set) => set.id === cstsState.setId)?.questions || [];
-        if (!questions.length) return;
-        cstsState.index = Math.min(cstsState.index + 1, questions.length - 1);
-        renderCstsPage();
-      });
 
       function isMobileLayout() {
         return window.innerWidth <= 900;
