@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISTQB CBT · 커밋 기록 대시보드</title>
+<style>
+  :root {
+    --bg: #f6f8fa; --card: #ffffff; --text: #1f2328; --muted: #656d76;
+    --border: #d0d7de; --accent: #0969da; --grid: #eaeef2;
+    --feat: #1a7f37; --fix: #cf222e; --docs: #0969da; --refactor: #8250df;
+    --chore: #9a6700; --other: #656d76;
+    --shadow: 0 1px 3px rgba(27,31,36,.08), 0 1px 2px rgba(27,31,36,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --card: #161b22; --text: #e6edf3; --muted: #8b949e;
+      --border: #30363d; --accent: #58a6ff; --grid: #21262d;
+      --feat: #3fb950; --fix: #f85149; --docs: #58a6ff; --refactor: #a371f7;
+      --chore: #d29922; --other: #8b949e;
+      --shadow: 0 1px 3px rgba(0,0,0,.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 64px; }
+  header h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  header p { color: var(--muted); margin: 0 0 28px; font-size: .9rem; }
+  header a { color: var(--accent); text-decoration: none; }
+  header a:hover { text-decoration: underline; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow); }
+  .card .label { color: var(--muted); font-size: .8rem; margin-bottom: 6px; }
+  .card .value { font-size: 1.8rem; font-weight: 700; }
+  .card .sub { color: var(--muted); font-size: .78rem; margin-top: 2px; }
+
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 22px 24px; box-shadow: var(--shadow); margin-bottom: 24px; }
+  .panel h2 { font-size: 1.05rem; margin: 0 0 18px; display: flex; align-items: center; gap: 8px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+
+  svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .bar-label { font-size: 10px; fill: var(--muted); }
+  .bar-val { font-size: 10px; fill: var(--muted); font-weight: 600; }
+  .axis { stroke: var(--grid); stroke-width: 1; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 12px 18px; margin-top: 14px; font-size: .82rem; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  .dot { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+  .hbar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-size: .85rem; }
+  .hbar-name { width: 92px; flex-shrink: 0; color: var(--muted); }
+  .hbar-track { flex: 1; background: var(--grid); border-radius: 6px; height: 20px; overflow: hidden; }
+  .hbar-fill { height: 100%; border-radius: 6px; }
+  .hbar-num { width: 34px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+  .timeline { list-style: none; margin: 0; padding: 0; max-height: 460px; overflow-y: auto; }
+  .timeline li { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--grid); align-items: baseline; }
+  .timeline li:last-child { border-bottom: none; }
+  .tl-tag { flex-shrink: 0; font-size: .68rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; color: #fff; min-width: 58px; text-align: center; text-transform: uppercase; letter-spacing: .3px; }
+  .tl-date { flex-shrink: 0; color: var(--muted); font-size: .78rem; font-variant-numeric: tabular-nums; width: 78px; }
+  .tl-hash { flex-shrink: 0; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .76rem; color: var(--accent); width: 58px; }
+  .tl-hash a { color: var(--accent); text-decoration: none; }
+  .tl-hash a:hover { text-decoration: underline; }
+  .tl-msg { flex: 1; font-size: .85rem; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .filters button { font: inherit; font-size: .8rem; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; }
+  .filters button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  footer { text-align: center; color: var(--muted); font-size: .78rem; margin-top: 32px; }
+  .section-title { font-size: 1.25rem; margin: 38px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+  .section-title:first-of-type { margin-top: 8px; }
+  .lbl-chip { display: inline-block; font-size: .68rem; font-weight: 600; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+  .state-pill { flex-shrink: 0; font-size: .68rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; color: #fff; min-width: 54px; text-align: center; }
+  .st-open { background: var(--feat); }
+  .st-closed { background: var(--refactor); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📊 ISTQB CBT · 커밋 &amp; 이슈 대시보드</h1>
+    <p>저장소 <a href="https://github.com/WindowHyun/ISTQB" target="_blank" rel="noopener">WindowHyun/ISTQB</a> · 생성일 2026-06-15</p>
+  </header>
+
+  <h3 class="section-title">커밋</h3>
+  <section class="cards" id="cards"></section>
+
+  <section class="panel">
+    <h2>📅 일별 커밋 추이</h2>
+    <div id="daily"></div>
+  </section>
+
+  <div class="grid2">
+    <section class="panel">
+      <h2>🏷️ 카테고리별 분포</h2>
+      <div id="category"></div>
+      <div class="legend" id="catLegend"></div>
+    </section>
+    <section class="panel">
+      <h2>👥 기여자별 커밋</h2>
+      <div id="authors"></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>🕒 커밋 타임라인</h2>
+    <div class="filters" id="filters"></div>
+    <ul class="timeline" id="timeline"></ul>
+  </section>
+
+  <h3 class="section-title">GitHub 이슈</h3>
+  <section class="cards" id="issueCards"></section>
+
+  <div class="grid2">
+    <section class="panel">
+      <h2>📌 상태별 분포</h2>
+      <div id="issueState"></div>
+      <div class="legend" id="issueStateLegend"></div>
+    </section>
+    <section class="panel">
+      <h2>🏷️ 라벨별 분포</h2>
+      <div id="issueLabels"></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>📋 이슈 목록</h2>
+    <div class="filters" id="issueFilters"></div>
+    <ul class="timeline" id="issueList"></ul>
+  </section>
+
+  <footer>vanilla JS + SVG · 외부 의존성 없음 · git log + gh issue 기반 자동 생성</footer>
+</div>
+
+<script>
+// ── 커밋 데이터 (git log 기준, 최신순) ──────────────────────────────
+const COMMITS = [
+  {hash:"8c04c35",author:"AI Bot",date:"2026-06-15",subject:"Add sample image for ISTQB question C-Q32"},
+  {hash:"70de673",author:"AI Bot",date:"2026-06-14",subject:"fix: resolve incorrect line breaks for '다.' and 'A/B/C/D' inside sentences"},
+  {hash:"1930f2a",author:"AI Bot",date:"2026-06-14",subject:"feat: extract all tables and graphs from PDFs and replace markdown with images (Phase 5)"},
+  {hash:"4eb468e",author:"AI Bot",date:"2026-06-14",subject:"feat: manually recover missing option tables from PDF for 3 questions"},
+  {hash:"19369b6",author:"AI Bot",date:"2026-06-14",subject:"fix: resolve data corruption and line breaking anomalies"},
+  {hash:"40252c4",author:"AI Bot",date:"2026-06-14",subject:"feat(react): complete react migration and apply 6 optimizations (pwa, memoization, debounce, virtual scroll arch)"},
+  {hash:"df4d83f",author:"YyyyyyCH",date:"2026-06-14",subject:"Start Vite React TypeScript migration"},
+  {hash:"3209a96",author:"YyyyyyCH",date:"2026-06-13",subject:"fix(data): Restore missing tables and extract/add diagrams for ISTQB sample sets"},
+  {hash:"6a7d98a",author:"YyyyyyCH",date:"2026-06-13",subject:"Clean up temporary test and fix scripts"},
+  {hash:"172a1ad",author:"YyyyyyCH",date:"2026-06-13",subject:"Merge pull request #31 from WindowHyun/codex/find-how-to-include-harness-engineering-in-codex"},
+  {hash:"e7765b2",author:"YyyyyyCH",date:"2026-06-11",subject:"docs: translate harness guides to korean"},
+  {hash:"4877808",author:"YyyyyyCH",date:"2026-06-11",subject:"docs: add harness engineering guide"},
+  {hash:"588897f",author:"YyyyyyCH",date:"2026-06-10",subject:"Fix CSTS 2404FL Q67 table content to match original PDF"},
+  {hash:"47b01dc",author:"YyyyyyCH",date:"2026-06-10",subject:"Fix CSTS 2404FL Q67 to render as table instead of note"},
+  {hash:"401993e",author:"YyyyyyCH",date:"2026-06-09",subject:"Fix UI bugs: choices splitting on decimals formula variables in parenthesis splitting consecutive code blocks"},
+  {hash:"d69d1ce",author:"YyyyyyCH",date:"2026-06-09",subject:"Fix UI rendering for note blocks to display as a single box"},
+  {hash:"81ae2be",author:"YyyyyyCH",date:"2026-06-09",subject:"Fix Wrong Notes logic for newer question IDs"},
+  {hash:"0211324",author:"YyyyyyCH",date:"2026-06-09",subject:"Fix UI bugs and format 18 JSON questions"},
+  {hash:"04338eb",author:"YyyyyyCH",date:"2026-06-09",subject:"refactor: clean up dead code and comments from CSS/JS files"},
+  {hash:"a88ee8e",author:"YyyyyyCH",date:"2026-06-09",subject:"chore: add .vercelignore to optimize deployment size"},
+  {hash:"6dc1dba",author:"YyyyyyCH",date:"2026-06-08",subject:"docs: Add update log for June 8, 2026"},
+  {hash:"78fca0a",author:"YyyyyyCH",date:"2026-06-08",subject:"Fix corrupted text in all ISTQB sample data JSON files safely"},
+  {hash:"eeb3284",author:"YyyyyyCH",date:"2026-06-08",subject:"Fix corrupted Korean text in ISTQB FL v4.0 titles"},
+  {hash:"fc9b978",author:"YyyyyyCH",date:"2026-06-08",subject:"Fix squished lists in CSTS 2402FL Q4 Q24 Q26"},
+  {hash:"caf76ff",author:"YyyyyyCH",date:"2026-06-08",subject:"Change settings panel to a centered modal to fix positioning and stacking issues"},
+  {hash:"d4c4825",author:"YyyyyyCH",date:"2026-06-08",subject:"Fix settings panel z-index stacking issue by moving out of sidebar"},
+  {hash:"73f1196",author:"YyyyyyCH",date:"2026-06-08",subject:"Auto-indent code blocks in CSTS questions"},
+  {hash:"8b1bb8a",author:"YyyyyyCH",date:"2026-06-08",subject:"Fix CSTS list item formatting for circled letters"},
+  {hash:"63da7e8",author:"YyyyyyCH",date:"2026-06-08",subject:"Fix CSTS 2018 Q5 Q9 Q15 and 2019 Q65 formatting issues"},
+  {hash:"77456fc",author:"YyyyyyCH",date:"2026-06-08",subject:"Fix TypeError when rendering rich text options array"},
+  {hash:"8d280ff",author:"YyyyyyCH",date:"2026-06-08",subject:"Fix rendering options to support rich text like tables"},
+  {hash:"06d40cc",author:"YyyyyyCH",date:"2026-06-08",subject:"Fix CSTS issues reported by subagents: squashed tables and codes"},
+  {hash:"4e791e9",author:"YyyyyyCH",date:"2026-06-08",subject:"Fix CSTS 2404 Q27 code block formatting"},
+  {hash:"753f1e7",author:"YyyyyyCH",date:"2026-06-08",subject:"Fix CSTS formatting issues: code blocks pairwise/decision tables"},
+  {hash:"0d747fd",author:"YyyyyyCH",date:"2026-06-08",subject:"Phase 1-3 complete: Regex adapter JSON separation UI layout fixes"},
+  {hash:"f8cfc15",author:"YyyyyyCH",date:"2026-06-03",subject:"Fix Phase 3: Add missing CSTS example images and fix JSON structure"},
+  {hash:"c46ef05",author:"YyyyyyCH",date:"2026-06-03",subject:"Fix topbar home button size override"},
+  {hash:"52ad7f6",author:"YyyyyyCH",date:"2026-06-03",subject:"Fix Vercel 404: force static site with outputDirectory"},
+  {hash:"cb3fb44",author:"YyyyyyCH",date:"2026-06-03",subject:"Phase 1-2 fixes: move home button to topbar, settings overlay, validate-questions script"},
+  {hash:"7251925",author:"YyyyyyCH",date:"2026-06-01",subject:"Stabilize question data schema"},
+  {hash:"fa70269",author:"YyyyyyCH",date:"2026-06-01",subject:"Fix quiz restore navigation and settings panel"},
+  {hash:"c1e1fc8",author:"YyyyyyCH",date:"2026-06-01",subject:"Update feature_request.md"},
+  {hash:"e1ca96e",author:"YyyyyyCH",date:"2026-06-01",subject:"Add feature request issue template"},
+  {hash:"5afa1fb",author:"YyyyyyCH",date:"2026-05-31",subject:"Fix timer logic missing occurrences and add localStorage persistence"},
+  {hash:"84978e3",author:"YyyyyyCH",date:"2026-05-31",subject:"Fix timer logic, add clear wrong notes button, fix D22 formatting"},
+  {hash:"c407df1",author:"YyyyyyCH",date:"2026-05-31",subject:"Replace custom console log modal with vConsole"},
+  {hash:"b82e275",author:"YyyyyyCH",date:"2026-05-31",subject:"Rename server.js to local-server.js to fix Vercel static deployment"},
+  {hash:"23e7e94",author:"YyyyyyCH",date:"2026-05-31",subject:"Update vercel.json with valid project name"},
+  {hash:"c5b51d2",author:"YyyyyyCH",date:"2026-05-31",subject:"Update QA_REPORT with structural fix details"},
+  {hash:"afca5d0",author:"YyyyyyCH",date:"2026-05-31",subject:"Normalize CSTS code and table rendering"},
+  {hash:"aac43f1",author:"YyyyyyCH",date:"2026-05-31",subject:"Reduce inline figure display size"},
+  {hash:"9ea3675",author:"YyyyyyCH",date:"2026-05-31",subject:"Render CSTS text tables as images"},
+  {hash:"5eb8b18",author:"YyyyyyCH",date:"2026-05-31",subject:"Polish CSTS question rendering"},
+  {hash:"66072b5",author:"YyyyyyCH",date:"2026-05-31",subject:"Start CSTS in shared practice flow"},
+  {hash:"bff4292",author:"YyyyyyCH",date:"2026-05-31",subject:"Use shared solver for CSTS"},
+  {hash:"d07b0a3",author:"YyyyyyCH",date:"2026-05-31",subject:"Fix CSTS figure option extraction"},
+  {hash:"8d399cb",author:"YyyyyyCH",date:"2026-05-31",subject:"Polish CSTS solving QA"},
+  {hash:"7883d1b",author:"YyyyyyCH",date:"2026-05-30",subject:"Enable CSTS solving flow"},
+  {hash:"a0b2029",author:"YyyyyyCH",date:"2026-05-30",subject:"Add CSTS extraction and preview"},
+  {hash:"71b140f",author:"YyyyyyCH",date:"2026-05-30",subject:"Add ISTQB and CSTS entry flow"},
+  {hash:"ff21db6",author:"YyyyyyCH",date:"2026-05-30",subject:"Improve question readability on tablet layouts"},
+  {hash:"6936ac2",author:"YyyyyyCH",date:"2026-05-30",subject:"Refactor UI for PWA and static deployment"},
+  {hash:"7188b59",author:"YyyyyyCH",date:"2026-05-12",subject:"Add in-app console log viewer"},
+  {hash:"bd1a7f1",author:"YyyyyyCH",date:"2026-05-12",subject:"Fix tablet layout overflow"},
+  {hash:"56be4d8",author:"YyyyyyCH",date:"2026-05-12",subject:"Prepare Dev APK version 1.0.2"},
+  {hash:"873e396",author:"YyyyyyCH",date:"2026-05-12",subject:"Fix question text spacing audit issues"},
+  {hash:"58e74bf",author:"YyyyyyCH",date:"2026-05-12",subject:"Update ISTQB app data and visuals"},
+  {hash:"bf2c63a",author:"YyyyyyCH",date:"2026-05-05",subject:"Initial ISTQB tablet APK app"}
+];
+
+// ── 카테고리 분류 ────────────────────────────────────────────────
+const CAT_COLORS = { feat:"var(--feat)", fix:"var(--fix)", docs:"var(--docs)", refactor:"var(--refactor)", chore:"var(--chore)", other:"var(--other)" };
+const CAT_LABELS = { feat:"기능 (feat)", fix:"수정 (fix)", docs:"문서 (docs)", refactor:"리팩터 (refactor)", chore:"기타작업 (chore)", other:"기타 (other)" };
+
+function classify(s) {
+  const t = s.toLowerCase();
+  if (/^feat|^add |^enable |^start |^use |^render |^implement|^prepare /.test(t)) return "feat";
+  if (/^fix|\bfix\b|corrupt|restore|resolve|stabilize|normalize|polish/.test(t)) return "fix";
+  if (/^docs|^update .*(log|report|readme|md)|^merge /.test(t)) return "docs";
+  if (/^refactor|clean up|^improve /.test(t)) return "refactor";
+  if (/^chore|^rename |^reduce /.test(t)) return "chore";
+  return "other";
+}
+COMMITS.forEach(c => c.cat = classify(c.subject));
+
+// ── 통계 카드 ────────────────────────────────────────────────────
+const dates = COMMITS.map(c => c.date).sort();
+const activeDays = new Set(COMMITS.map(c => c.date)).size;
+const authors = [...new Set(COMMITS.map(c => c.author))];
+const cardsData = [
+  { label:"전체 커밋", value: COMMITS.length, sub: dates[0] + " ~ " + dates[dates.length-1] },
+  { label:"활동일 수", value: activeDays, sub: "약 6주간" },
+  { label:"기여자", value: authors.length, sub: authors.join(", ") },
+  { label:"최다 작업일", value: "15", sub: "2026-06-08" }
+];
+document.getElementById("cards").innerHTML = cardsData.map(c =>
+  `<div class="card"><div class="label">${c.label}</div><div class="value">${c.value}</div><div class="sub">${c.sub}</div></div>`
+).join("");
+
+// ── 일별 커밋 막대그래프 (SVG) ──────────────────────────────────
+(function(){
+  const byDate = {};
+  COMMITS.forEach(c => byDate[c.date] = (byDate[c.date]||0) + 1);
+  const days = Object.keys(byDate).sort();
+  const max = Math.max(...Object.values(byDate));
+  const W = 1000, H = 240, padL = 28, padB = 56, padT = 10;
+  const bw = (W - padL) / days.length;
+  const chartH = H - padB - padT;
+  let bars = "";
+  days.forEach((d, i) => {
+    const v = byDate[d];
+    const h = (v / max) * chartH;
+    const x = padL + i * bw;
+    const y = padT + chartH - h;
+    bars += `<rect x="${x+2}" y="${y}" width="${bw-4}" height="${h}" rx="3" fill="var(--accent)"><title>${d}: ${v} commits</title></rect>`;
+    bars += `<text class="bar-val" x="${x+bw/2}" y="${y-4}" text-anchor="middle">${v}</text>`;
+    const md = d.slice(5);
+    bars += `<text class="bar-label" x="${x+bw/2}" y="${H-padB+16}" text-anchor="middle" transform="rotate(45 ${x+bw/2} ${H-padB+16})">${md}</text>`;
+  });
+  document.getElementById("daily").innerHTML =
+    `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+       <line class="axis" x1="${padL}" y1="${padT+chartH}" x2="${W}" y2="${padT+chartH}"/>${bars}</svg>`;
+})();
+
+// ── 카테고리 분포 (도넛) ────────────────────────────────────────
+(function(){
+  const counts = {};
+  COMMITS.forEach(c => counts[c.cat] = (counts[c.cat]||0) + 1);
+  const order = ["fix","feat","docs","refactor","chore","other"].filter(k => counts[k]);
+  const total = COMMITS.length;
+  const cx = 130, cy = 130, r = 100, sw = 38;
+  const circ = 2 * Math.PI * r;
+  let offset = 0, segs = "";
+  order.forEach(k => {
+    const frac = counts[k] / total;
+    const len = frac * circ;
+    segs += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${CAT_COLORS[k]}" stroke-width="${sw}"
+      stroke-dasharray="${len} ${circ-len}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})">
+      <title>${CAT_LABELS[k]}: ${counts[k]} (${Math.round(frac*100)}%)</title></circle>`;
+    offset += len;
+  });
+  document.getElementById("category").innerHTML =
+    `<svg viewBox="0 0 260 260" style="max-width:260px;margin:0 auto;">${segs}
+      <text x="${cx}" y="${cy-4}" text-anchor="middle" style="font-size:30px;font-weight:700;fill:var(--text)">${total}</text>
+      <text x="${cx}" y="${cy+18}" text-anchor="middle" style="font-size:12px;fill:var(--muted)">commits</text></svg>`;
+  document.getElementById("catLegend").innerHTML = order.map(k =>
+    `<span><i class="dot" style="background:${CAT_COLORS[k]}"></i>${CAT_LABELS[k]} · ${counts[k]}</span>`
+  ).join("");
+})();
+
+// ── 기여자별 (수평 막대) ────────────────────────────────────────
+(function(){
+  const counts = {};
+  COMMITS.forEach(c => counts[c.author] = (counts[c.author]||0) + 1);
+  const entries = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+  const max = entries[0][1];
+  const palette = ["var(--accent)","var(--feat)","var(--refactor)","var(--chore)"];
+  document.getElementById("authors").innerHTML = entries.map(([name,n],i) =>
+    `<div class="hbar-row">
+       <span class="hbar-name" title="${name}">${name}</span>
+       <span class="hbar-track"><span class="hbar-fill" style="width:${(n/max)*100}%;background:${palette[i%palette.length]}"></span></span>
+       <span class="hbar-num">${n}</span>
+     </div>`
+  ).join("");
+})();
+
+// ── 타임라인 + 필터 ─────────────────────────────────────────────
+(function(){
+  const cats = ["all","fix","feat","docs","refactor","chore","other"];
+  const labelOf = c => c==="all" ? "전체" : CAT_LABELS[c].split(" ")[0];
+  const filters = document.getElementById("filters");
+  const tl = document.getElementById("timeline");
+  function render(filter){
+    const items = COMMITS.filter(c => filter==="all" || c.cat===filter);
+    tl.innerHTML = items.map(c =>
+      `<li>
+         <span class="tl-tag" style="background:${CAT_COLORS[c.cat]}">${c.cat}</span>
+         <span class="tl-date">${c.date.slice(5)}</span>
+         <span class="tl-hash">${c.hash}</span>
+         <span class="tl-msg">${c.subject.replace(/</g,"&lt;")}</span>
+       </li>`
+    ).join("");
+  }
+  filters.innerHTML = cats.map((c,i) =>
+    `<button data-cat="${c}" class="${i===0?'active':''}">${labelOf(c)}</button>`
+  ).join("");
+  filters.addEventListener("click", e => {
+    if (e.target.tagName !== "BUTTON") return;
+    [...filters.children].forEach(b => b.classList.remove("active"));
+    e.target.classList.add("active");
+    render(e.target.dataset.cat);
+  });
+  render("all");
+})();
+
+// ── GitHub 이슈 데이터 (open + closed, gh issue list 기준) ───────
+const ISSUES = [
+  {n:1,state:"CLOSED",labels:["bug"],created:"2026-05-14",closed:"2026-06-01",title:"(Issue)ERROR RangeError: Maximum call stack size exceeded: RangeError: Maximum call stack size exceeded at restartTimer"},
+  {n:10,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-14",title:"[Feature] Phase 1. 긴급 기능 버그 수정"},
+  {n:11,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-01",title:"[Sub-Issue][Phase 1] 마지막 문제에서 다음 버튼 클릭 시 문제 번호가 전체 문제 수를 초과하지 않도록 수정"},
+  {n:12,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-01",title:"[Sub-Issue][Phase 1] 마지막 문제에서는 다음 버튼 비활성화"},
+  {n:13,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-01",title:"[Sub-Issue][Phase 1] 새로고침 후 현재 문제 화면 복원"},
+  {n:14,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-01",title:"[Sub-Issue][Phase 1] 현재 자격증, 문제 세트, 문제 번호, 풀이 모드 유지"},
+  {n:15,state:"CLOSED",labels:["documentation"],created:"2026-06-01",closed:"2026-06-01",title:"[Sub-Issue][Phase 1] 문제 풀이 타이머 처리 조건 정리"},
+  {n:16,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-01",title:"[Sub-Issue][Phase 1] [처음] 버튼 위치를 설정 패널 내부에서 상단 영역으로 변경"},
+  {n:17,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-01",title:"[Sub-Issue][Phase 1] 환경설정 패널 레이아웃 영향 개선"},
+  {n:18,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-14",title:"[Feature] Phase 2. 데이터 구조 안정화"},
+  {n:19,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-14",title:"[Sub-Issue][Phase 2] 기존 문제 JS 파일 기반 관리 구조 제거"},
+  {n:20,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-14",title:"[Sub-Issue][Phase 2] 문제 데이터 JSON 파일 분리"},
+  {n:21,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-14",title:"[Sub-Issue][Phase 2] 문제 세트별 JSON 파일 분리"},
+  {n:22,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-14",title:"[Sub-Issue][Phase 2] public/data/index.json 기반 문제 세트 목록 관리"},
+  {n:23,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-14",title:"[Sub-Issue][Phase 2] ISTQB/CSTS 공통 문제 스키마 통일"},
+  {n:24,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-14",title:"[Sub-Issue][Phase 2] 문제 식별자 추가"},
+  {n:25,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-14",title:"[Sub-Issue][Phase 2] 저장 기준을 문제 식별자 기반으로 변경"},
+  {n:26,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-14",title:"[Sub-Issue][Phase 2] stem, explanation block 구조 적용"},
+  {n:27,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-14",title:"[Sub-Issue][Phase 2] 화면용 수동 줄바꿈 제거"},
+  {n:28,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-14",title:"[Sub-Issue][Phase 2] 문제 검증 스크립트 추가"},
+  {n:29,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-14",title:"[Feature] Phase 3. 콘텐츠 이슈 정리"},
+  {n:30,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-14",title:"[Sub-Issue][Phase 3] ISTQB 샘플문제 A/B/C/D 가시성 이슈 수정"},
+  {n:33,state:"CLOSED",labels:["bug","data-issue"],created:"2026-06-14",closed:"2026-06-14",title:"[Data Issue] 문제 데이터 텍스트 끊김/보기 오류 자동 복구 및 잔여 결함 리포트"},
+  {n:34,state:"CLOSED",labels:[],created:"2026-06-14",closed:"2026-06-14",title:"[Bug Fix] 문제 텍스트 렌더링 줄바꿈 오작동 수정 (다., A/B/C/D)"},
+  {n:35,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug] 오답 노트가 비거나 잘못 표시됨 (review 재채점 시 history.mode 불일치)"},
+  {n:36,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug] 채점 완료 후에도 타이머가 계속 증가함"},
+  {n:37,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug] 한글 보기 마커(가.나.다.라.)가 구조화 목록으로 인식되지 않음"},
+  {n:38,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug] 연속된 두 번호 목록이 하나로 병합 렌더링됨"},
+  {n:39,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug] 그림 확대 버튼 위치 밀림 + --hover CSS 변수 미정의"},
+  {n:40,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug] 랜덤 모드 40문항 하드코딩 (40개 미만 시 무한 재셔플 위험)"},
+  {n:41,state:"OPEN",labels:["enhancement"],created:"2026-06-15",closed:null,title:"[Improvement] 복수 정답 문항 초과 선택 제한 없음"},
+  {n:42,state:"OPEN",labels:["enhancement"],created:"2026-06-15",closed:null,title:"[Improvement] 다크모드 색상 변수 누락 + 고아 CSS 정리"},
+  {n:43,state:"OPEN",labels:["enhancement"],created:"2026-06-15",closed:null,title:"[Improvement] CSTS 관련 dead code 정리"},
+  {n:44,state:"OPEN",labels:["enhancement"],created:"2026-06-15",closed:null,title:"[Improvement] questionNav 현재 문제 버튼 자동 스크롤 추가"},
+  {n:45,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug] sanitizeHistories가 잘못된 review mode history를 정화하지 않음"}
+];
+const REPO = "https://github.com/WindowHyun/ISTQB/issues/";
+const LBL_COLORS = { bug:"#d73a4a", enhancement:"#a371f7", documentation:"#0969da", "data-issue":"#9a6700", "(없음)":"var(--muted)" };
+
+// 이슈 통계 카드
+(function(){
+  const open = ISSUES.filter(i => i.state==="OPEN").length;
+  const closed = ISSUES.filter(i => i.state==="CLOSED").length;
+  const rate = Math.round(closed / ISSUES.length * 100);
+  const data = [
+    { label:"전체 이슈", value: ISSUES.length, sub:"open + closed" },
+    { label:"Open", value: open, sub:"미해결" },
+    { label:"Closed", value: closed, sub:"해결 완료" },
+    { label:"해결률", value: rate + "%", sub: closed + " / " + ISSUES.length }
+  ];
+  document.getElementById("issueCards").innerHTML = data.map(c =>
+    `<div class="card"><div class="label">${c.label}</div><div class="value">${c.value}</div><div class="sub">${c.sub}</div></div>`
+  ).join("");
+})();
+
+// 이슈 상태 도넛
+(function(){
+  const open = ISSUES.filter(i => i.state==="OPEN").length;
+  const closed = ISSUES.length - open;
+  const segData = [["Closed", closed, "var(--refactor)"], ["Open", open, "var(--feat)"]];
+  const total = ISSUES.length, cx=130, cy=130, r=100, sw=38, circ=2*Math.PI*r;
+  let offset=0, segs="";
+  segData.forEach(([name,v,col]) => {
+    const len = v/total*circ;
+    segs += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${col}" stroke-width="${sw}"
+      stroke-dasharray="${len} ${circ-len}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})">
+      <title>${name}: ${v} (${Math.round(v/total*100)}%)</title></circle>`;
+    offset += len;
+  });
+  document.getElementById("issueState").innerHTML =
+    `<svg viewBox="0 0 260 260" style="max-width:260px;margin:0 auto;">${segs}
+      <text x="${cx}" y="${cy-4}" text-anchor="middle" style="font-size:30px;font-weight:700;fill:var(--text)">${total}</text>
+      <text x="${cx}" y="${cy+18}" text-anchor="middle" style="font-size:12px;fill:var(--muted)">issues</text></svg>`;
+  document.getElementById("issueStateLegend").innerHTML =
+    `<span><i class="dot" style="background:var(--refactor)"></i>Closed · ${closed}</span>
+     <span><i class="dot" style="background:var(--feat)"></i>Open · ${open}</span>`;
+})();
+
+// 라벨별 분포 (이슈 한 건이 여러 라벨 가질 수 있음)
+(function(){
+  const counts = {};
+  ISSUES.forEach(i => {
+    const ls = i.labels.length ? i.labels : ["(없음)"];
+    ls.forEach(l => counts[l] = (counts[l]||0) + 1);
+  });
+  const entries = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+  const max = entries[0][1];
+  document.getElementById("issueLabels").innerHTML = entries.map(([name,n]) =>
+    `<div class="hbar-row">
+       <span class="hbar-name" title="${name}">${name}</span>
+       <span class="hbar-track"><span class="hbar-fill" style="width:${(n/max)*100}%;background:${LBL_COLORS[name]||'var(--accent)'}"></span></span>
+       <span class="hbar-num">${n}</span>
+     </div>`
+  ).join("");
+})();
+
+// 이슈 목록 + 필터
+(function(){
+  const filtersEl = document.getElementById("issueFilters");
+  const listEl = document.getElementById("issueList");
+  const opts = [["all","전체"],["OPEN","Open"],["CLOSED","Closed"]];
+  function render(f){
+    const items = ISSUES.filter(i => f==="all" || i.state===f)
+      .sort((a,b) => b.n - a.n);
+    listEl.innerHTML = items.map(i => {
+      const chips = (i.labels.length ? i.labels : ["(없음)"]).map(l =>
+        `<span class="lbl-chip" style="border-color:${LBL_COLORS[l]||'var(--border)'};color:${LBL_COLORS[l]||'var(--muted)'}">${l}</span>`
+      ).join(" ");
+      const pill = i.state==="OPEN"
+        ? `<span class="state-pill st-open">OPEN</span>`
+        : `<span class="state-pill st-closed">CLOSED</span>`;
+      const dateInfo = i.state==="OPEN" ? ("생성 " + i.created.slice(5)) : ("닫힘 " + (i.closed||"").slice(5));
+      return `<li>
+         ${pill}
+         <span class="tl-date">${dateInfo}</span>
+         <span class="tl-hash"><a href="${REPO}${i.n}" target="_blank" rel="noopener">#${i.n}</a></span>
+         <span class="tl-msg">${i.title.replace(/</g,"&lt;")} ${chips}</span>
+       </li>`;
+    }).join("");
+  }
+  filtersEl.innerHTML = opts.map(([v,l],idx) =>
+    `<button data-f="${v}" class="${idx===0?'active':''}">${l}</button>`
+  ).join("");
+  filtersEl.addEventListener("click", e => {
+    if (e.target.tagName !== "BUTTON") return;
+    [...filtersEl.children].forEach(b => b.classList.remove("active"));
+    e.target.classList.add("active");
+    render(e.target.dataset.f);
+  });
+  render("all");
+})();
+</script>
+</body>
+</html>
