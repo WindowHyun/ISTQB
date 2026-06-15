@@ -27,3 +27,6 @@ Thumbs.db
 
 # Temp / scratch
 tmp/
+
+# Vite 빌드 산출물 (prebuild에서 sync-assets로 재생성; 정본은 www/ + public/)
+dist/
