@@ -1947,6 +1947,13 @@
           }
           const listItem = parseStructuredItem(line);
           if (listItem) {
+            if (pendingList.length > 0) {
+              const prev = markerInfo(pendingList[pendingList.length - 1].marker);
+              const cur = markerInfo(listItem.marker);
+              if (prev.kind !== cur.kind || (cur.kind !== "bullet" && cur.order <= prev.order)) {
+                flushList();
+              }
+            }
             pendingList.push(listItem);
             return;
           }
@@ -1996,6 +2003,20 @@
         );
         if (!match) return null;
         return { marker: match[1], text: match[2].trim() };
+      }
+
+      function markerInfo(marker) {
+        const m = String(marker).trim();
+        if (/^\d+\.$/.test(m)) return { kind: "num", order: parseInt(m, 10) };
+        if (/^\(\d+\)$/.test(m)) return { kind: "paren", order: parseInt(m.replace(/\D/g, ""), 10) };
+        if (/^[A-Ea-e]\.$/.test(m)) return { kind: "alphadot", order: m.toLowerCase().charCodeAt(0) };
+        if (/^[a-e]\)$/.test(m)) return { kind: "alphaparen", order: m.toLowerCase().charCodeAt(0) };
+        if (/^[가-차]\.$/.test(m)) return { kind: "hangul", order: m.charCodeAt(0) };
+        if (/^(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.$/i.test(m)) {
+          const map = { i: 1, ii: 2, iii: 3, iv: 4, v: 5, vi: 6, vii: 7, viii: 8, ix: 9, x: 10 };
+          return { kind: "roman", order: map[m.replace(".", "").toLowerCase()] || 0 };
+        }
+        return { kind: "bullet", order: 0 };
       }
 
       function renderStructuredList(items) {

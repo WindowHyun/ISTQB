@@ -589,8 +589,10 @@
       .question-figure {
         position: relative;
         margin: 4px 0 8px;
+      }
+      .figure-scroll-wrapper {
         overflow-x: auto;
-        text-align: center;
+        width: 100%;
       }
 
       .question-figure img {
@@ -611,26 +613,30 @@
         opacity: 0.9;
       }
 
-      /* 그림 확대 힌트 버튼 (이미지 아래에 고정) */
+      /* 그림 확대 힌트 버튼 (이미지 위에 고정, 가로 스크롤과 무관) */
       .figure-zoom-btn {
-        display: inline-flex;
+        position: absolute;
+        right: 10px;
+        bottom: 10px;
+        display: flex;
         align-items: center;
-        justify-content: center;
         gap: 4px;
-        padding: 6px 12px;
-        margin-top: 8px;
-        border: 1px solid var(--line);
+        padding: 5px 11px;
+        border: none;
         border-radius: 20px;
-        background: var(--surface);
-        color: var(--accent-strong);
+        background: rgba(23, 32, 28, 0.62);
+        color: #fff;
         font-size: 13px;
         font-weight: 700;
         cursor: pointer;
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
         transition: background 0.15s;
+        pointer-events: auto;
       }
 
       .figure-zoom-btn:hover {
-        background: var(--hover);
+        background: rgba(22, 96, 100, 0.9);
       }
 
       .table-block {

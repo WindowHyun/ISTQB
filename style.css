@@ -52,6 +52,11 @@
         --safe-bottom: max(24px, env(safe-area-inset-bottom));
         --safe-top: env(safe-area-inset-top);
         --question-font-size: 19px;
+        --clr-border: var(--border);
+        --clr-surface: var(--card);
+        --clr-text: var(--foreground);
+        --clr-hover: var(--muted-surface);
+        --clr-accent: var(--primary);
       }
 
       * {
