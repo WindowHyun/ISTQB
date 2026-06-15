@@ -70,6 +70,53 @@ export async function loadHistoriesFromDB(): Promise<Record<string, ExamHistory>
   }
 }
 
+type UnknownRecord = Record<string, unknown>;
+
+function isPlainObject(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+// 외부(localStorage/백업 파일) 값을 신뢰하지 않고 정제한다.
+function sanitizeAnswers(value: unknown): Record<string, string[]> {
+  const result: Record<string, string[]> = {};
+  if (!isPlainObject(value)) return result;
+  for (const [key, choices] of Object.entries(value)) {
+    if (Array.isArray(choices)) {
+      const filtered = choices.filter((c): c is string => typeof c === "string");
+      if (filtered.length) result[key] = filtered;
+    }
+  }
+  return result;
+}
+
+const VALID_MODES = ["home", "exam", "practice", "random", "review"];
+
+function sanitizeUiState(value: unknown): Partial<QuizState> {
+  if (!isPlainObject(value)) return {};
+  const out: Partial<QuizState> = {};
+  if (typeof value.mode === "string" && VALID_MODES.includes(value.mode)) {
+    out.mode = value.mode as QuizState["mode"];
+  }
+  if (typeof value.setId === "string") out.setId = value.setId;
+  if (typeof value.index === "number" && Number.isInteger(value.index) && value.index >= 0) {
+    out.index = value.index;
+  }
+  if (typeof value.elapsedSeconds === "number" && Number.isFinite(value.elapsedSeconds)) {
+    out.elapsedSeconds = value.elapsedSeconds;
+  }
+  if (typeof value.navCollapsed === "boolean") out.navCollapsed = value.navCollapsed;
+  if (isPlainObject(value.reviewIds)) {
+    const reviewIds: Record<string, string[]> = {};
+    for (const [key, ids] of Object.entries(value.reviewIds)) {
+      if (Array.isArray(ids)) {
+        reviewIds[key] = ids.filter((id): id is string => typeof id === "string");
+      }
+    }
+    out.reviewIds = reviewIds;
+  }
+  return out;
+}
+
 export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts') {
   // temporarily set the product to fetch the correct keys
   useQuizStore.getState().setActiveProduct(activeProduct);
@@ -94,8 +141,8 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
     }
     
     useQuizStore.getState().hydrate({
-      ...uiState,
-      answers,
+      ...sanitizeUiState(uiState),
+      answers: sanitizeAnswers(answers),
       histories,
       activeProduct, // ensure it's set
     });

@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useQuizStore } from '../store/useQuizStore';
 
+// Fisher–Yates shuffle: 균일 분포를 보장한다. (sort 비교자에 Math.random을 쓰면 편향됨)
+function shuffleQuestions<T>(items: T[]): T[] {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
 export interface Question {
   id?: string;
   number: number;
@@ -62,7 +72,7 @@ export function useQuestions() {
 
     function applyMode(questions: Question[]) {
       if (mode === 'random') {
-        const shuffled = [...questions].sort(() => Math.random() - 0.5);
+        const shuffled = shuffleQuestions(questions);
         const take = Math.min(40, shuffled.length);
         setCurrentQuestions(shuffled.slice(0, take));
       } else if (mode === 'review') {

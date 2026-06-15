@@ -36,8 +36,8 @@ export const Sidebar = () => {
 
       <div className="sidebar-controls">
         <section className="panel">
-          <label>문제 세트</label>
-          <select value={setId} onChange={handleSetChange}>
+          <label htmlFor="setSelect">문제 세트</label>
+          <select id="setSelect" value={setId} onChange={handleSetChange}>
             {appData?.istqb.sets.map((set) => (
               <option key={set.id} value={set.id}>{set.title}</option>
             ))}
@@ -48,13 +48,15 @@ export const Sidebar = () => {
         </section>
 
         <section className="panel">
-          <label>풀이 모드</label>
-          <div className="segmented">
+          <label id="modeLabel">풀이 모드</label>
+          <div className="segmented" role="group" aria-labelledby="modeLabel">
             {['practice', 'exam', 'random', 'review'].map((m) => (
-              <button 
-                key={m} 
+              <button
+                key={m}
+                type="button"
                 className={mode === m ? 'active' : ''}
-                onClick={() => handleModeChange(m as any)}
+                aria-pressed={mode === m}
+                onClick={() => handleModeChange(m as typeof mode)}
               >
                 {m.toUpperCase()}
               </button>
@@ -63,7 +65,7 @@ export const Sidebar = () => {
         </section>
 
         <section className="panel">
-          <button className="danger" onClick={() => {
+          <button type="button" className="danger" onClick={() => {
             if (confirm("이 모드의 모든 답안을 지우시겠습니까?")) {
               clearAnswers(setId, mode);
               clearHistory(setId, mode);
@@ -71,8 +73,11 @@ export const Sidebar = () => {
           }}>
             선택 답안 초기화
           </button>
-          <button className="secondary" onClick={exportUserData}>기록 내보내기</button>
-          <input type="file" accept=".json" onChange={handleFileImport} />
+          <button type="button" className="secondary" onClick={exportUserData}>기록 내보내기</button>
+          <label className="file-import">
+            <span>기록 가져오기</span>
+            <input type="file" accept=".json" aria-label="백업 파일 가져오기" onChange={handleFileImport} />
+          </label>
         </section>
       </div>
     </aside>

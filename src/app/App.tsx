@@ -10,7 +10,8 @@ export const App = () => {
   const [isRestored, setIsRestored] = useState(false);
 
   useEffect(() => {
-    const lastProduct = localStorage.getItem("istqb-fl-v4-sample-last-product") as 'istqb' | 'csts';
+    const stored = localStorage.getItem("istqb-fl-v4-sample-last-product");
+    const lastProduct = stored === 'istqb' || stored === 'csts' ? stored : null;
     if (lastProduct) {
       setActiveProduct(lastProduct);
       restorePersistentSnapshot(lastProduct).then(() => setIsRestored(true));

@@ -671,7 +671,7 @@ function buildRichBlocks(text) {
 
   
 // === React Wrapper ===
-export const RichText = ({ content: text }) => {
+export const RichText = ({ content: text }: { content: unknown }) => {
   const ref = useRef(null);
   useEffect(() => {
     if (ref.current) {

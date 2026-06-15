@@ -4,14 +4,23 @@ import { Question } from '../../hooks/useQuestions';
 // @ts-ignore
 import { RichText } from '../../utils/parser';
 
-const OptionItem = React.memo(({ 
-  opt, 
-  isSelected, 
-  showFeedback, 
-  mode, 
-  isCorrectAnswer, 
-  handleSelect 
-}: any) => {
+interface OptionItemProps {
+  opt: { key: string; text: string };
+  isSelected: boolean;
+  showFeedback: boolean;
+  mode: string;
+  isCorrectAnswer: boolean;
+  handleSelect: (key: string) => void;
+}
+
+const OptionItem = React.memo(({
+  opt,
+  isSelected,
+  showFeedback,
+  mode,
+  isCorrectAnswer,
+  handleSelect
+}: OptionItemProps) => {
   let className = "option";
   if (isSelected) className += " selected";
   if (showFeedback || mode === 'review') {
