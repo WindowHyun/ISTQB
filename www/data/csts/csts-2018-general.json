@@ -779,12 +779,12 @@
       "explanation": [
         {
           "type": "paragraph",
-          "text": "원본 공개답안 PDF 기준 정답입니다."
+          "text": "해당 자료 흐름도에서 발생하는 자료 흐름 패턴은 ~d, ~u, du, uk, uu, ku이며 kd 패턴은 없습니다. 따라서 정답은 ④ kd입니다."
         }
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null,
+      "figure": "/images/questions/CSTS-EL-2018-015.png",
       "answerText": "④"
     },
     {
