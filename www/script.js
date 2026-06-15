@@ -94,11 +94,11 @@
           return blocks.map((b) => {
             if (typeof b.text === "string") {
               b.text = b.text.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").replace(/\r\n/g, "\n").trim();
-              b.text = b.text.replace(/\n{3,}/g, "\n\n");
+              b.text = b.text.replace(/\n{3,}/g, "\n\n");
               b.text = b.text.replace(/([^\n])\s*(•|○|①|②|③|④|⑤|Ⓐ|Ⓑ|Ⓒ|Ⓓ|Ⓔ|ⓐ|ⓑ|ⓒ|ⓓ|ⓔ|㉠|㉡|㉢|㉣|㉤|(?<![가-힣A-Za-z0-9])[1-9][0-9]*[\.\)]\s)/g, "$1\n$2");
               b.text = b.text.replace(/([^\n])\s*(가\.|나\.|다\.|라\.|마\.)\s/g, (match, p1, p2) => { if (p1 === "." || p1 === "?" || p1 === "!") return match; return `${p1}\n${p2} `; });
               b.text = b.text.replace(/([^\n])\s*(가\.|나\.|다\.|라\.|마\.)\s/g, (match, p1, p2) => { if (p1 === "." || p1 === "?" || p1 === "!") return match; return `${p1}\n${p2} `; });
-              b.text = b.text.replace(/([^\n])\s*([1-4]사분면:)/g, "$1\n$2");
+              b.text = b.text.replace(/([^\n])\s*([1-4]사분면:)/g, "$1\n$2");
               b.text = b.text.replace("리뷰 활동은 다음과 같다: 개별 리뷰 리뷰 착수 리뷰 계획 의사소통 및 분석", "리뷰 활동은 다음과 같다:\nA. 개별 리뷰\nB. 리뷰 착수\nC. 리뷰 계획\nD. 의사소통 및 분석");
               b.text = b.text.replace("그리고 리뷰에서 맡은 책임은 다음과 같다: 리뷰 회의의 효과적인 진행과 편안한 리뷰 환경을 보장한다 리뷰 회의에서 결정사항, 식별한 새로운 이상 현상과 같은 리뷰 정보를 기록한다 리뷰 대상을 결정하고 리뷰에 참여할인력, 리뷰 시간 등 자원을 제공한다 리뷰 진행 시기, 장소 협의 등 리뷰에 대한 전반적인 책임을 진다", "그리고 리뷰에서 맡은 책임은 다음과 같다:\nA. 리뷰 회의의 효과적인 진행과 편안한 리뷰 환경을 보장한다\nB. 리뷰 회의에서 결정사항, 식별한 새로운 이상 현상과 같은 리뷰 정보를 기록한다\nC. 리뷰 대상을 결정하고 리뷰에 참여할 인력, 리뷰 시간 등 자원을 제공한다\nD. 리뷰 진행 시기, 장소 협의 등 리뷰에 대한 전반적인 책임을 진다");
               b.text = b.text.replace("다음과 같은 테스트 활동이 있다: 테스트 분석 테스트 설계 테스트 구현 테스트 완료", "다음과 같은 테스트 활동이 있다:\nA. 테스트 분석\nB. 테스트 설계\nC. 테스트 구현\nD. 테스트 완료");
@@ -285,14 +285,14 @@
       function saveLastProduct() {
         try {
           localStorage.setItem(lastProductStorageKey, activeProduct);
-        } catch {
+        } catch {
         }
       }
 
       function clearLastProduct() {
         try {
           localStorage.removeItem(lastProductStorageKey);
-        } catch {
+        } catch {
         }
       }
 
@@ -490,9 +490,13 @@
         return copy;
       }
 
+      function randomQuestionCount() {
+        return Math.min(40, allQuestions().length);
+      }
+
       function generateRandomRefs() {
         state.randomRefs = shuffle(allQuestions())
-          .slice(0, 40)
+          .slice(0, randomQuestionCount())
           .map((question) => ({
             setId: question.setId,
             number: question.number,
@@ -500,7 +504,8 @@
       }
 
       function randomQuestions() {
-        if (state.randomRefs.length !== 40) generateRandomRefs();
+        if (state.randomRefs.length !== randomQuestionCount() && !isReviewRetake())
+          generateRandomRefs();
         return state.randomRefs
           .map((ref) => {
             const set = data.sets.find((item) => item.id === ref.setId);
@@ -642,7 +647,7 @@
       function saveAnswers() {
         try {
           localStorage.setItem(storageKey(), JSON.stringify(state.answers));
-        } catch {
+        } catch {
         }
         savePersistentSnapshot();
       }
@@ -651,7 +656,7 @@
         const uiState = buildSnapshot().uiState;
         try {
           localStorage.setItem(uiStorageKey(), JSON.stringify(uiState));
-        } catch {
+        } catch {
         }
         savePersistentSnapshot();
       }
@@ -674,14 +679,14 @@
         const snapshot = buildSnapshot();
         try {
           localStorage.setItem(persistenceKey(), JSON.stringify(snapshot));
-        } catch {
+        } catch {
         }
         const db = await openPersistenceDb();
         if (!db) return;
         try {
           const transaction = db.transaction("snapshots", "readwrite");
           transaction.objectStore("snapshots").put(snapshot, "latest");
-        } catch {
+        } catch {
         }
       }
 
@@ -705,7 +710,7 @@
               request.onsuccess = () => resolve(request.result || snapshot);
               request.onerror = () => resolve(snapshot);
             });
-          } catch {
+          } catch {
           }
         }
         if (!snapshot || typeof snapshot !== "object") return;
@@ -1313,9 +1318,10 @@
         return value
           .filter((history) => isPlainObject(history))
           .map((history) => {
-            const mode = ["exam", "random", "review"].includes(history.mode)
-              ? history.mode
-              : "exam";
+            // Histories saved in "review" mode stored their answers under the
+            // "exam" answer key, so normalize them to "exam" to keep the saved
+            // key and the lookup key (answerKey(question, history.mode)) aligned.
+            const mode = history.mode === "random" ? "random" : "exam";
             const setId =
               mode === "random" ? "random" : validSetId(history.setId);
             const timestamp = Number.isFinite(history.timestamp)
@@ -1616,7 +1622,7 @@
         image.alt = `문제 ${question.number} 그림`;
         image.loading = "lazy";
         image.draggable = false;
-        image.addEventListener("click", () => openFigureModal(src, image.alt));
+        image.addEventListener("click", () => openFigureModal(src, image.alt));
         const zoomBtn = document.createElement("button");
         zoomBtn.type = "button";
         zoomBtn.className = "figure-zoom-btn";
@@ -2735,7 +2741,7 @@
           );
           setMeta.textContent =
             state.mode === "random"
-              ? "전체 랜덤 40문항"
+              ? `전체 랜덤 ${randomQuestions().length}문항`
               : `${set.title} · ${set.questions.length}문항`;
           questionTitle.textContent = "오답 없음";
           questionStem.textContent = isExamGraded()
@@ -2773,11 +2779,11 @@
         hideAppStatus();
         renderRichText(questionStem, question.stem, { plainContent: true });
         renderFigure(question);
-        navSummary.textContent = `현재 ${state.index + 1} / ${questions.length}`;
+        navSummary.textContent = `현재 ${state.index + 1} / ${questions.length}`;
         document.querySelector(".stem-toggle-btn")?.remove();
         questionStem.classList.remove("stem-collapsed");
 
-        options.replaceChildren();
+        options.replaceChildren();
         if (multi) {
           const badge = document.createElement("div");
           badge.className = "multi-answer-badge";
@@ -3271,6 +3277,7 @@
       }
 
       function updateTimer() {
+        if (isExamGraded() || isRandomGraded() || state.mode === 'review') return;
         const now = Date.now();
         if (state.lastTick) {
           state.elapsedSeconds = (state.elapsedSeconds || 0) + (now - state.lastTick) / 1000;
@@ -3395,7 +3402,7 @@
           state.histories.push({
             id: timestamp.toString(),
             timestamp,
-            mode: state.mode,
+            mode: targetMode,
             setId: targetSetId,
             answers: historyAnswers,
             randomRefs: state.mode === "random" ? [...state.randomRefs] : null
@@ -3426,7 +3433,7 @@
         render();
       });
 
-      exportBackupBtn.addEventListener("click", exportBackup);
+      exportBackupBtn.addEventListener("click", exportBackup);
       const settingsBackdrop = document.createElement("div");
       settingsBackdrop.className = "settings-backdrop";
       document.body.appendChild(settingsBackdrop);
@@ -3434,7 +3441,7 @@
         if (settingsPanelToggleBtn.getAttribute("aria-expanded") === "true") {
           settingsPanelToggleBtn.click();
         }
-      });
+      });
       const settingsObserver = new MutationObserver(() => {
         const isOpen = !settingsPanel.hidden;
         settingsBackdrop.classList.toggle("active", isOpen);
@@ -3545,7 +3552,7 @@
       function updateSidebarBackdrop() {
         if (!sidebarBackdrop) return;
         const showBackdrop = isMobileLayout() && !state.sidebarCollapsed;
-        sidebarBackdrop.classList.toggle("visible", showBackdrop);
+        sidebarBackdrop.classList.toggle("visible", showBackdrop);
         document.body.style.overflow = showBackdrop ? "hidden" : "";
       }
 

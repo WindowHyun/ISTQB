@@ -457,9 +457,13 @@
         return copy;
       }
 
+      function randomQuestionCount() {
+        return Math.min(40, allQuestions().length);
+      }
+
       function generateRandomRefs() {
         state.randomRefs = shuffle(allQuestions())
-          .slice(0, 40)
+          .slice(0, randomQuestionCount())
           .map((question) => ({
             setId: question.setId,
             number: question.number,
@@ -467,7 +471,8 @@
       }
 
       function randomQuestions() {
-        if (state.randomRefs.length !== 40 && !isReviewRetake()) generateRandomRefs();
+        if (state.randomRefs.length !== randomQuestionCount() && !isReviewRetake())
+          generateRandomRefs();
         return state.randomRefs
           .map((ref) => {
             const set = data.sets.find((item) => item.id === ref.setId);
@@ -1167,9 +1172,14 @@
         return value
           .filter((history) => isPlainObject(history))
           .map((history) => {
-            const mode = ["exam", "random", "review"].includes(history.mode)
+            // Histories only ever carry answer keys built with answerMode()
+            // ("exam" or "random"; review grades into "exam"). Normalize any
+            // legacy "review" history to "exam" so the saved keys match what
+            // historyWrongNoteItems looks up via answerKey(question, history.mode).
+            const rawMode = ["exam", "random", "review"].includes(history.mode)
               ? history.mode
               : "exam";
+            const mode = rawMode === "review" ? "exam" : rawMode;
             const setId =
               mode === "random" ? "random" : validSetId(history.setId);
             const timestamp = Number.isFinite(history.timestamp)
@@ -2595,7 +2605,7 @@
           );
           setMeta.textContent =
             state.mode === "random"
-              ? "전체 랜덤 40문항"
+              ? `전체 랜덤 ${randomQuestions().length}문항`
               : `${set.title} · ${set.questions.length}문항`;
           questionTitle.textContent = "오답 없음";
           questionStem.textContent = isExamGraded()
@@ -3141,7 +3151,13 @@
       }
 
       function updateTimer() {
-        if (isExamGraded() || isRandomGraded() || state.mode === 'review') return;
+        // Stop accumulating once the current mode is graded (or in review mode).
+        // Refresh lastTick before returning so the paused span is never added in
+        // one jump when timing later resumes (e.g. retry-wrong / new set).
+        if (isExamGraded() || isRandomGraded() || state.mode === 'review') {
+          state.lastTick = Date.now();
+          return;
+        }
         const now = Date.now();
         if (state.lastTick) {
           state.elapsedSeconds = (state.elapsedSeconds || 0) + (now - state.lastTick) / 1000;
@@ -3266,10 +3282,13 @@
           state.histories.push({
             id: timestamp.toString(),
             timestamp,
-            mode: state.mode,
+            // Store the mode actually used to build the answer keys (exam/random),
+            // not state.mode, so historyWrongNoteItems' answerKey(question, history.mode)
+            // matches the keys saved in historyAnswers. (review grades into "exam".)
+            mode: targetMode,
             setId: targetSetId,
             answers: historyAnswers,
-            randomRefs: state.mode === "random" ? [...state.randomRefs] : null
+            randomRefs: targetMode === "random" ? [...state.randomRefs] : null
           });
         }
 
