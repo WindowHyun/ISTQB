@@ -35,12 +35,12 @@ function structuredMarkerCount(question) {
   for (const block of question.stem || []) {
     if (block.type === "list" && Array.isArray(block.items)) {
       count += block.items.filter((item) => {
-        const marker = item && typeof item === "object" ? item.marker || "" : "";
-        return /^\([가-바]\)$/.test(marker);
+        const marker = item && typeof item === "object" ? String(item.marker || "").trim() : "";
+        return /^(\([가-바]\)|[가-차]\.)$/.test(marker);
       }).length;
     }
     if (block.type === "table" && Array.isArray(block.rows)) {
-      count += block.rows.flat().filter((cell) => /^\([가-바]\)$/.test(String(cell || "").trim())).length;
+      count += block.rows.flat().filter((cell) => /^(\([가-바]\)|[가-차]\.)$/.test(String(cell || "").trim())).length;
     }
   }
   return count;

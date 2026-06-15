@@ -135,10 +135,10 @@ function normalizeQuestionData(rawQuestion) {
   }
 
   // 4. Validate and flag for review
-  if (!Array.isArray(q.options) || q.options.length < 2) {
-    requiresManualReview = true;
-  } else if (q.options.length !== 4) {
-    requiresManualReview = true;
+  if (q.type === 'multiple_choice') {
+    if (!Array.isArray(q.options) || (q.options.length !== 4 && q.options.length !== 5)) {
+      requiresManualReview = true;
+    }
   }
 
   if (Array.isArray(q.answer) && q.answer.length > 0) {

@@ -89,27 +89,6 @@
       function formatQuestionForUi(rawQuestion) {
         const q = JSON.parse(JSON.stringify(rawQuestion));
 
-        const fixNewlines = (blocks) => {
-          if (!Array.isArray(blocks)) return blocks;
-          return blocks.map((b) => {
-            if (typeof b.text === "string") {
-              b.text = b.text.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").replace(/\r\n/g, "\n").trim();
-              b.text = b.text.replace(/\n{3,}/g, "\n\n");
-              b.text = b.text.replace(/([^\n])\s*(•|○|①|②|③|④|⑤|Ⓐ|Ⓑ|Ⓒ|Ⓓ|Ⓔ|ⓐ|ⓑ|ⓒ|ⓓ|ⓔ|㉠|㉡|㉢|㉣|㉤|(?<![가-힣A-Za-z0-9])[1-9][0-9]*[\.\)]\s)/g, "$1\n$2");
-              b.text = b.text.replace(/([^\n])\s*(가\.|나\.|다\.|라\.|마\.)\s/g, (match, p1, p2) => { if (p1 === "." || p1 === "?" || p1 === "!") return match; return `${p1}\n${p2} `; });
-              b.text = b.text.replace(/([^\n])\s*(가\.|나\.|다\.|라\.|마\.)\s/g, (match, p1, p2) => { if (p1 === "." || p1 === "?" || p1 === "!") return match; return `${p1}\n${p2} `; });
-              b.text = b.text.replace(/([^\n])\s*([1-4]사분면:)/g, "$1\n$2");
-              b.text = b.text.replace("리뷰 활동은 다음과 같다: 개별 리뷰 리뷰 착수 리뷰 계획 의사소통 및 분석", "리뷰 활동은 다음과 같다:\nA. 개별 리뷰\nB. 리뷰 착수\nC. 리뷰 계획\nD. 의사소통 및 분석");
-              b.text = b.text.replace("그리고 리뷰에서 맡은 책임은 다음과 같다: 리뷰 회의의 효과적인 진행과 편안한 리뷰 환경을 보장한다 리뷰 회의에서 결정사항, 식별한 새로운 이상 현상과 같은 리뷰 정보를 기록한다 리뷰 대상을 결정하고 리뷰에 참여할인력, 리뷰 시간 등 자원을 제공한다 리뷰 진행 시기, 장소 협의 등 리뷰에 대한 전반적인 책임을 진다", "그리고 리뷰에서 맡은 책임은 다음과 같다:\nA. 리뷰 회의의 효과적인 진행과 편안한 리뷰 환경을 보장한다\nB. 리뷰 회의에서 결정사항, 식별한 새로운 이상 현상과 같은 리뷰 정보를 기록한다\nC. 리뷰 대상을 결정하고 리뷰에 참여할 인력, 리뷰 시간 등 자원을 제공한다\nD. 리뷰 진행 시기, 장소 협의 등 리뷰에 대한 전반적인 책임을 진다");
-              b.text = b.text.replace("다음과 같은 테스트 활동이 있다: 테스트 분석 테스트 설계 테스트 구현 테스트 완료", "다음과 같은 테스트 활동이 있다:\nA. 테스트 분석\nB. 테스트 설계\nC. 테스트 구현\nD. 테스트 완료");
-            }
-            return b;
-          });
-        };
-
-        q.stem = fixNewlines(q.stem);
-        q.explanation = fixNewlines(q.explanation);
-
         if (q.type !== "multiple_choice") {
           return q;
         }
@@ -285,14 +264,14 @@
       function saveLastProduct() {
         try {
           localStorage.setItem(lastProductStorageKey, activeProduct);
-        } catch {
+        } catch {
         }
       }
 
       function clearLastProduct() {
         try {
           localStorage.removeItem(lastProductStorageKey);
-        } catch {
+        } catch {
         }
       }
 
@@ -334,21 +313,9 @@
       let dbPromise = null;
 
       const productGate = document.querySelector("#productGate");
-      const cstsPage = document.querySelector("#cstsPage");
       const appShell = document.querySelector(".app-shell");
       const openIstqbBtn = document.querySelector("#openIstqbBtn");
       const openCstsBtn = document.querySelector("#openCstsBtn");
-      const cstsBackBtn = document.querySelector("#cstsBackBtn");
-      const cstsSetSelect = document.querySelector("#cstsSetSelect");
-      const cstsSummary = document.querySelector("#cstsSummary");
-      const cstsQuestionMeta = document.querySelector("#cstsQuestionMeta");
-      const cstsQuestionTitle = document.querySelector("#cstsQuestionTitle");
-      const cstsQuestionStem = document.querySelector("#cstsQuestionStem");
-      const cstsQuestionFigure = document.querySelector("#cstsQuestionFigure");
-      const cstsOptions = document.querySelector("#cstsOptions");
-      const cstsAnswer = document.querySelector("#cstsAnswer");
-      const cstsPrevBtn = document.querySelector("#cstsPrevBtn");
-      const cstsNextBtn = document.querySelector("#cstsNextBtn");
       const productHomeBtn = document.querySelector("#productHomeBtn");
       const topbarHomeBtn = document.querySelector("#topbarHomeBtn");
       const productSubtitle = document.querySelector("#productSubtitle");
@@ -500,7 +467,7 @@
       }
 
       function randomQuestions() {
-        if (state.randomRefs.length !== 40) generateRandomRefs();
+        if (state.randomRefs.length !== 40 && !isReviewRetake()) generateRandomRefs();
         return state.randomRefs
           .map((ref) => {
             const set = data.sets.find((item) => item.id === ref.setId);
@@ -642,7 +609,7 @@
       function saveAnswers() {
         try {
           localStorage.setItem(storageKey(), JSON.stringify(state.answers));
-        } catch {
+        } catch {
         }
         savePersistentSnapshot();
       }
@@ -651,7 +618,7 @@
         const uiState = buildSnapshot().uiState;
         try {
           localStorage.setItem(uiStorageKey(), JSON.stringify(uiState));
-        } catch {
+        } catch {
         }
         savePersistentSnapshot();
       }
@@ -674,14 +641,14 @@
         const snapshot = buildSnapshot();
         try {
           localStorage.setItem(persistenceKey(), JSON.stringify(snapshot));
-        } catch {
+        } catch {
         }
         const db = await openPersistenceDb();
         if (!db) return;
         try {
           const transaction = db.transaction("snapshots", "readwrite");
           transaction.objectStore("snapshots").put(snapshot, "latest");
-        } catch {
+        } catch {
         }
       }
 
@@ -705,7 +672,7 @@
               request.onsuccess = () => resolve(request.result || snapshot);
               request.onerror = () => resolve(snapshot);
             });
-          } catch {
+          } catch {
           }
         }
         if (!snapshot || typeof snapshot !== "object") return;
@@ -805,109 +772,6 @@
         );
       }
 
-      function currentCstsSet() {
-        return (
-          cstsData.sets.find((set) => set.id === cstsState.setId) ||
-          cstsData.sets[0] || { id: "", title: "", questions: [] }
-        );
-      }
-
-      function summaryPill(text) {
-        const pill = document.createElement("span");
-        pill.textContent = text;
-        return pill;
-      }
-
-      function renderCstsSelect() {
-        if (!cstsSetSelect) return;
-        const fragment = document.createDocumentFragment();
-        cstsData.sets.forEach((set) => {
-          const option = document.createElement("option");
-          option.value = set.id;
-          option.textContent = `${set.title} (${set.questions.length}문항)`;
-          fragment.appendChild(option);
-        });
-        cstsSetSelect.replaceChildren(fragment);
-        cstsSetSelect.value = currentCstsSet().id;
-      }
-
-      function renderCstsFigure(question) {
-        cstsQuestionFigure.replaceChildren();
-        if (!question.figure) return;
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "figure-button";
-        button.setAttribute("aria-label", `CSTS 문제 ${question.number} 그림 확대`);
-        const image = document.createElement("img");
-        image.src = question.figure;
-        image.alt = `CSTS 문제 ${question.number} 참고 그림`;
-        button.appendChild(image);
-        button.addEventListener("click", () => openFigureModal(question, button));
-        cstsQuestionFigure.appendChild(button);
-      }
-
-      function renderCstsOptions(question) {
-        cstsOptions.replaceChildren();
-        if (!question.options.length) {
-          cstsOptions.textContent = "단답형 문제입니다.";
-          return;
-        }
-
-        question.options.forEach((option) => {
-          const row = document.createElement("div");
-          row.className = question.answer.includes(option.key)
-            ? "option correct"
-            : "option";
-          const key = document.createElement("span");
-          key.className = "option-key";
-          key.textContent = option.key.toUpperCase();
-          const text = document.createElement("span");
-          text.className = "option-text";
-          renderRichText(text, option.text);
-          row.append(key, text);
-          cstsOptions.appendChild(row);
-        });
-      }
-
-      function renderCstsPage() {
-        const set = currentCstsSet();
-        const questions = set.questions || [];
-        if (!questions.length) {
-          cstsSummary.replaceChildren();
-          cstsQuestionMeta.textContent = "CSTS";
-          cstsQuestionTitle.textContent = "추출된 문제가 없습니다";
-          cstsQuestionStem.textContent =
-            "CSTS 문제 JSON을 찾지 못했습니다. data/index.json과 세트별 JSON 경로를 확인하세요.";
-          cstsQuestionFigure.replaceChildren();
-          cstsOptions.replaceChildren();
-          cstsAnswer.textContent = "";
-          cstsPrevBtn.disabled = true;
-          cstsNextBtn.disabled = true;
-          return;
-        }
-
-        cstsState.index = Math.max(0, Math.min(cstsState.index, questions.length - 1));
-        const question = questions[cstsState.index];
-        const typeLabel = {
-          multiple_choice: "4지선다",
-          true_false: "O/X",
-          short_answer: "단답형",
-        }[question.type] || question.type;
-        const figureCount = questions.filter((item) => item.figure).length;
-        cstsSummary.replaceChildren(
-          summaryPill(`${questions.length}문항`),
-          summaryPill(`${figureCount}개 이미지 추출`),
-          summaryPill(typeLabel),
-        );
-        cstsQuestionMeta.textContent = set.title;
-        cstsQuestionTitle.textContent = `문제 ${cstsState.index + 1} / ${questions.length}`;
-        renderRichText(cstsQuestionStem, question.stem, { plainContent: true });
-        renderCstsFigure(question);
-        renderCstsOptions(question);
-        cstsAnswer.textContent = `정답: ${question.answerText || question.answer.join(", ")}`;
-        cstsPrevBtn.disabled = cstsState.index === 0;
-        cstsNextBtn.disabled = cstsState.index >= questions.length - 1;
-      }
 
       function showProductGate() {
         saveAnswers();
@@ -915,8 +779,6 @@
         clearLastProduct();
         productGate?.classList.remove("is-product-hidden");
         productGate?.removeAttribute("hidden");
-        cstsPage?.classList.add("is-product-hidden");
-        cstsPage?.setAttribute("hidden", "");
         appShell?.classList.add("is-product-hidden");
         sidebarBackdrop?.classList.remove("visible");
         document.body.style.overflow = "";
@@ -926,22 +788,14 @@
       function showActiveProductApp() {
         productGate?.classList.add("is-product-hidden");
         productGate?.setAttribute("hidden", "");
-        cstsPage?.classList.add("is-product-hidden");
-        cstsPage?.setAttribute("hidden", "");
         appShell?.classList.remove("is-product-hidden");
       }
-
-      function openIstqbApp() {
-        startProduct("istqb");
+      function openProductApp(productId) {
+        startProduct(productId);
         showActiveProductApp();
         questionTitle?.focus?.();
       }
 
-      function openCstsApp() {
-        startProduct("csts");
-        showActiveProductApp();
-        questionTitle?.focus?.();
-      }
 
       function backupExportMessage(fileName, method) {
         if (method === "share") {
@@ -1546,11 +1400,13 @@
       }
 
       function isReviewRetake() {
+        if (state.mode === "random") return Boolean(state.reviewRetake["random"]);
         return Boolean(state.reviewRetake[state.setId]);
       }
 
       function setReviewRetake(value) {
-        state.reviewRetake[state.setId] = value;
+        if (state.mode === "random") state.reviewRetake["random"] = value;
+        else state.reviewRetake[state.setId] = value;
       }
 
       function resetAnswersFor(mode) {
@@ -1616,7 +1472,7 @@
         image.alt = `문제 ${question.number} 그림`;
         image.loading = "lazy";
         image.draggable = false;
-        image.addEventListener("click", () => openFigureModal(src, image.alt));
+        image.addEventListener("click", () => openFigureModal(src, image.alt));
         const zoomBtn = document.createElement("button");
         zoomBtn.type = "button";
         zoomBtn.className = "figure-zoom-btn";
@@ -1626,7 +1482,11 @@
           openFigureModal(src, image.alt),
         );
 
-        questionFigure.append(image, zoomBtn);
+        const wrapper = document.createElement("div");
+        wrapper.className = "figure-scroll-wrapper";
+        wrapper.appendChild(image);
+
+        questionFigure.append(wrapper, zoomBtn);
       }
 
       function openFigureModal(src, alt) {
@@ -1887,7 +1747,7 @@
       function splitStructuralMarkers(text) {
         return String(text || "")
           .replace(
-            /(^|\s)(?=(?:\d+\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s)/g,
+            /(^|\s)(?=(?:\d+\.|[A-E]\.|[가-차]\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s)/g,
             "$1\n",
           )
           .replace(/\s*(?=\b(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.\s)/gi, "\n")
@@ -2104,11 +1964,13 @@
           return [
             {
               type: "list",
-              items: block.items.map((item, index) =>
-                typeof item === "string"
-                  ? { marker: `${index + 1}.`, text: item }
-                  : { marker: item.marker || `${index + 1}.`, text: item.text || "" },
-              ),
+              items: block.items.map((item) => {
+                if (typeof item === "string") {
+                  const parsed = parseStructuredItem(item);
+                  return parsed ? parsed : { marker: "•", text: item };
+                }
+                return { marker: item.marker || "•", text: item.text || "" };
+              }),
             },
           ];
         }
@@ -2120,7 +1982,7 @@
 
       function parseStructuredItem(line) {
         const match = line.match(
-          /^(\d+\.(?!\d)|\(\d+\)|[A-E]\.|[a-e]\)|(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s*(.+)$/i,
+          /^(\d+\.(?!\d)|\(\d+\)|[A-E]\.|[a-e]\)|[가-차]\.|(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s*(.+)$/i,
         );
         if (!match) return null;
         return { marker: match[1], text: match[2].trim() };
@@ -2702,11 +2564,9 @@
           state.mode === "review" && isReviewRetake()
             ? "오답 재채점"
             : "채점하기";
-        retryWrongBtn.hidden =
-          state.mode !== "review" ||
-          !isExamGraded() ||
-          isReviewRetake() ||
-          missedExamQuestions().length === 0;
+        const canRetryExam = state.mode === "review" && isExamGraded() && !isReviewRetake() && missedExamQuestions().length > 0;
+        const canRetryRandom = state.mode === "random" && isRandomGraded() && !isReviewRetake() && missedRandomQuestions().length > 0;
+        retryWrongBtn.hidden = !(canRetryExam || canRetryRandom);
         wrongNoteBtn.disabled = !hasWrongNoteItems();
         const navPosition =
           questions.length > 0
@@ -2773,11 +2633,11 @@
         hideAppStatus();
         renderRichText(questionStem, question.stem, { plainContent: true });
         renderFigure(question);
-        navSummary.textContent = `현재 ${state.index + 1} / ${questions.length}`;
+        navSummary.textContent = `현재 ${state.index + 1} / ${questions.length}`;
         document.querySelector(".stem-toggle-btn")?.remove();
         questionStem.classList.remove("stem-collapsed");
 
-        options.replaceChildren();
+        options.replaceChildren();
         if (multi) {
           const badge = document.createElement("div");
           badge.className = "multi-answer-badge";
@@ -2891,6 +2751,12 @@
           fragment.appendChild(button);
         });
         questionNav.appendChild(fragment);
+        setTimeout(() => {
+          const currentBtn = questionNav.querySelector(".current");
+          if (currentBtn) {
+            currentBtn.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+          }
+        }, 10);
       }
 
       function renderStats() {
@@ -3182,6 +3048,10 @@
         feedbackExpanded = false;
         const current = new Set(selectedFor(question));
         if (question.answer.length > 1) {
+          if (!current.has(key) && current.size >= question.answer.length) {
+            window.alert(`정답을 ${question.answer.length}개까지만 선택할 수 있습니다.`);
+            return;
+          }
           current.has(key) ? current.delete(key) : current.add(key);
         } else {
           current.clear();
@@ -3271,6 +3141,7 @@
       }
 
       function updateTimer() {
+        if (isExamGraded() || isRandomGraded() || state.mode === 'review') return;
         const now = Date.now();
         if (state.lastTick) {
           state.elapsedSeconds = (state.elapsedSeconds || 0) + (now - state.lastTick) / 1000;
@@ -3410,14 +3281,21 @@
       });
 
       retryWrongBtn.addEventListener("click", () => {
-        const missed = missedExamQuestions();
-        if (missed.length === 0) return;
-        state.reviewIds[state.setId] = missed.map(
-          (question) => question.number,
-        );
-        missed.forEach(
-          (question) => delete state.answers[answerKey(question, "exam")],
-        );
+        if (state.mode === "random") {
+          const missed = missedRandomQuestions();
+          if (missed.length === 0) return;
+          state.randomRefs = missed.map(q => ({ setId: q.setId, number: q.number }));
+          missed.forEach(q => delete state.answers[answerKey(q, "random")]);
+        } else {
+          const missed = missedExamQuestions();
+          if (missed.length === 0) return;
+          state.reviewIds[state.setId] = missed.map(
+            (question) => question.number,
+          );
+          missed.forEach(
+            (question) => delete state.answers[answerKey(question, "exam")],
+          );
+        }
         setReviewRetake(true);
         state.index = 0;
         state.elapsedSeconds = 0; state.lastTick = Date.now();
@@ -3426,7 +3304,7 @@
         render();
       });
 
-      exportBackupBtn.addEventListener("click", exportBackup);
+      exportBackupBtn.addEventListener("click", exportBackup);
       const settingsBackdrop = document.createElement("div");
       settingsBackdrop.className = "settings-backdrop";
       document.body.appendChild(settingsBackdrop);
@@ -3434,7 +3312,7 @@
         if (settingsPanelToggleBtn.getAttribute("aria-expanded") === "true") {
           settingsPanelToggleBtn.click();
         }
-      });
+      });
       const settingsObserver = new MutationObserver(() => {
         const isOpen = !settingsPanel.hidden;
         settingsBackdrop.classList.toggle("active", isOpen);
@@ -3513,30 +3391,10 @@
 
       const sidebarBackdrop = document.querySelector("#sidebarBackdrop");
 
-      openIstqbBtn?.addEventListener("click", openIstqbApp);
-      openCstsBtn?.addEventListener("click", openCstsApp);
-      cstsBackBtn?.addEventListener("click", showProductGate);
+      openIstqbBtn?.addEventListener("click", () => openProductApp("istqb"));
+      openCstsBtn?.addEventListener("click", () => openProductApp("csts"));
       productHomeBtn?.addEventListener("click", showProductGate);
       topbarHomeBtn?.addEventListener("click", showProductGate);
-      cstsSetSelect?.addEventListener("change", () => {
-        cstsState.setId = cstsSetSelect.value;
-        cstsState.index = 0;
-        renderCstsPage();
-      });
-      cstsPrevBtn?.addEventListener("click", () => {
-        const questions =
-          cstsData.sets.find((set) => set.id === cstsState.setId)?.questions || [];
-        cstsState.index = Math.max(0, cstsState.index - 1);
-        if (questions.length) cstsState.index = Math.min(cstsState.index, questions.length - 1);
-        renderCstsPage();
-      });
-      cstsNextBtn?.addEventListener("click", () => {
-        const questions =
-          cstsData.sets.find((set) => set.id === cstsState.setId)?.questions || [];
-        if (!questions.length) return;
-        cstsState.index = Math.min(cstsState.index + 1, questions.length - 1);
-        renderCstsPage();
-      });
 
       function isMobileLayout() {
         return window.innerWidth <= 900;
@@ -3545,7 +3403,7 @@
       function updateSidebarBackdrop() {
         if (!sidebarBackdrop) return;
         const showBackdrop = isMobileLayout() && !state.sidebarCollapsed;
-        sidebarBackdrop.classList.toggle("visible", showBackdrop);
+        sidebarBackdrop.classList.toggle("visible", showBackdrop);
         document.body.style.overflow = showBackdrop ? "hidden" : "";
       }
 

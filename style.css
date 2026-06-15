@@ -629,7 +629,10 @@
       .question-figure {
         position: relative;
         margin: 4px 0 8px;
+      }
+      .figure-scroll-wrapper {
         overflow-x: auto;
+        width: 100%;
       }
 
       .question-figure img {
@@ -1988,6 +1991,15 @@
           --ring: rgba(86, 182, 172, 0.42);
           --accent-strong: #91d9d2;
           --shadow: 0 20px 48px rgba(0, 0, 0, 0.34);
+          --bg: var(--background);
+          --ink: var(--foreground);
+          --muted: var(--muted-foreground);
+          --line: var(--border);
+          --panel: var(--card);
+          --accent: var(--primary);
+          --good: var(--success);
+          --bad: var(--destructive);
+          --warn: var(--warning);
         }
 
         body {
@@ -2117,6 +2129,7 @@
   transform: translate(-50%, -50%) scale(0.95);
   width: min(400px, 90vw);
   max-height: 85vh;
+  overflow-y: auto !important;
   z-index: 900 !important;
   opacity: 0;
   visibility: hidden;
