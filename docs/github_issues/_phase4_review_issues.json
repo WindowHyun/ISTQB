@@ -10,5 +10,6 @@
   { "code": "R9",  "issue": 64, "title": "[Improvement] 서비스워커 이중 전략 + PWA manifest 아이콘 빈 배열", "file": "R9_service-worker-dual-strategy.md", "severity": "Medium", "labels": "enhancement" },
   { "code": "R10", "issue": 65, "title": "[Bug] 외부 입력 무검증(last-product, 백업 JSON)", "file": "R10_missing-input-validation.md", "severity": "Medium", "labels": "bug" },
   { "code": "R11", "issue": 66, "title": "[Improvement] React 측 접근성 회귀(ARIA/포커스/라벨 누락)", "file": "R11_react-accessibility-regression.md", "severity": "Medium", "labels": "enhancement" },
-  { "code": "R12", "issue": 67, "title": "[Chore] 빌드 전용 패키지가 dependencies에 분류됨", "file": "R12_dependency-classification.md", "severity": "Low", "labels": "enhancement" }
+  { "code": "R12", "issue": 67, "title": "[Chore] 빌드 전용 패키지가 dependencies에 분류됨", "file": "R12_dependency-classification.md", "severity": "Low", "labels": "enhancement" },
+  { "code": "R13", "issue": 68, "title": "[Test] React 앱 E2E 스모크 추가 (#56/#57 해결 후)", "file": "R13_react-e2e-smoke.md", "severity": "High", "labels": "enhancement" }
 ]
