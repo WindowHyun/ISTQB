@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -84,7 +84,7 @@
 <div class="wrap">
   <header>
     <h1>📊 ISTQB CBT · 커밋 &amp; 이슈 대시보드</h1>
-    <p>저장소 <a href="https://github.com/WindowHyun/ISTQB" target="_blank" rel="noopener">WindowHyun/ISTQB</a> · 생성일 2026-06-15</p>
+    <p>저장소 <a href="https://github.com/WindowHyun/ISTQB" target="_blank" rel="noopener">WindowHyun/ISTQB</a> · 생성일 2026-06-16</p>
   </header>
 
   <h3 class="section-title">커밋</h3>
@@ -140,6 +140,12 @@
 <script>
 // ── 커밋 데이터 (git log 기준, 최신순) ──────────────────────────────
 const COMMITS = [
+  {hash:"6c8e006",author:"AI Bot",date:"2026-06-16",subject:"fix(ui): UI 이슈 수정 (#37, #38, #39, #41, #42, #44, #51)"},
+  {hash:"3578122",author:"AI Bot",date:"2026-06-16",subject:"fix(data): C31 그래프·CSTS-2018 자료흐름도 이미지 복원 (#48, #50 완료)"},
+  {hash:"564f936",author:"AI Bot",date:"2026-06-16",subject:"fix(data): 보류했던 표/그래프/코드 문항 복원 (#46 잔여, #48, #50)"},
+  {hash:"4ee77e1",author:"AI Bot",date:"2026-06-16",subject:"fix: 오답노트·타이머·랜덤모드 로직 버그 수정 (#35, #36, #40, #45)"},
+  {hash:"139295d",author:"AI Bot",date:"2026-06-16",subject:"fix(data): PDF 대조로 발견한 문항 오염 수정 및 데이터 소스 단일화"},
+  {hash:"c2a13ef",author:"AI Bot",date:"2026-06-15",subject:"docs: QA 재검증 리포트·커밋/이슈 대시보드 추가 및 README 현행화"},
   {hash:"8c04c35",author:"AI Bot",date:"2026-06-15",subject:"Add sample image for ISTQB question C-Q32"},
   {hash:"70de673",author:"AI Bot",date:"2026-06-14",subject:"fix: resolve incorrect line breaks for '다.' and 'A/B/C/D' inside sentences"},
   {hash:"1930f2a",author:"AI Bot",date:"2026-06-14",subject:"feat: extract all tables and graphs from PDFs and replace markdown with images (Phase 5)"},
@@ -360,18 +366,26 @@ const ISSUES = [
   {n:29,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-14",title:"[Feature] Phase 3. 콘텐츠 이슈 정리"},
   {n:30,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-14",title:"[Sub-Issue][Phase 3] ISTQB 샘플문제 A/B/C/D 가시성 이슈 수정"},
   {n:33,state:"CLOSED",labels:["bug","data-issue"],created:"2026-06-14",closed:"2026-06-14",title:"[Data Issue] 문제 데이터 텍스트 끊김/보기 오류 자동 복구 및 잔여 결함 리포트"},
-  {n:34,state:"CLOSED",labels:[],created:"2026-06-14",closed:"2026-06-14",title:"[Bug Fix] 문제 텍스트 렌더링 줄바꿈 오작동 수정 (다., A/B/C/D)"},
-  {n:35,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug] 오답 노트가 비거나 잘못 표시됨 (review 재채점 시 history.mode 불일치)"},
-  {n:36,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug] 채점 완료 후에도 타이머가 계속 증가함"},
-  {n:37,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug] 한글 보기 마커(가.나.다.라.)가 구조화 목록으로 인식되지 않음"},
-  {n:38,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug] 연속된 두 번호 목록이 하나로 병합 렌더링됨"},
-  {n:39,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug] 그림 확대 버튼 위치 밀림 + --hover CSS 변수 미정의"},
-  {n:40,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug] 랜덤 모드 40문항 하드코딩 (40개 미만 시 무한 재셔플 위험)"},
-  {n:41,state:"OPEN",labels:["enhancement"],created:"2026-06-15",closed:null,title:"[Improvement] 복수 정답 문항 초과 선택 제한 없음"},
-  {n:42,state:"OPEN",labels:["enhancement"],created:"2026-06-15",closed:null,title:"[Improvement] 다크모드 색상 변수 누락 + 고아 CSS 정리"},
+  {n:34,state:"CLOSED",labels:[""],created:"2026-06-14",closed:"2026-06-14",title:"[Bug Fix] 문제 텍스트 렌더링 줄바꿈 오작동 수정 (다., A/B/C/D)"},
+  {n:35,state:"CLOSED",labels:["bug"],created:"2026-06-15",closed:"2026-06-15",title:"[Bug] 오답 노트가 비거나 잘못 표시됨 (review 재채점 시 history.mode 불일치)"},
+  {n:36,state:"CLOSED",labels:["bug"],created:"2026-06-15",closed:"2026-06-15",title:"[Bug] 채점 완료 후에도 타이머가 계속 증가함"},
+  {n:37,state:"CLOSED",labels:["bug"],created:"2026-06-15",closed:"2026-06-15",title:"[Bug] 한글 보기 마커(가.나.다.라.)가 구조화 목록으로 인식되지 않음"},
+  {n:38,state:"CLOSED",labels:["bug"],created:"2026-06-15",closed:"2026-06-15",title:"[Bug] 연속된 두 번호 목록이 하나로 병합 렌더링됨"},
+  {n:39,state:"CLOSED",labels:["bug"],created:"2026-06-15",closed:"2026-06-15",title:"[Bug] 그림 확대 버튼 위치 밀림 + --hover CSS 변수 미정의"},
+  {n:40,state:"CLOSED",labels:["bug"],created:"2026-06-15",closed:"2026-06-15",title:"[Bug] 랜덤 모드 40문항 하드코딩 (40개 미만 시 무한 재셔플 위험)"},
+  {n:41,state:"CLOSED",labels:["enhancement"],created:"2026-06-15",closed:"2026-06-15",title:"[Improvement] 복수 정답 문항 초과 선택 제한 없음"},
+  {n:42,state:"CLOSED",labels:["enhancement"],created:"2026-06-15",closed:"2026-06-15",title:"[Improvement] 다크모드 색상 변수 누락 + 고아 CSS 정리"},
   {n:43,state:"OPEN",labels:["enhancement"],created:"2026-06-15",closed:null,title:"[Improvement] CSTS 관련 dead code 정리"},
-  {n:44,state:"OPEN",labels:["enhancement"],created:"2026-06-15",closed:null,title:"[Improvement] questionNav 현재 문제 버튼 자동 스크롤 추가"},
-  {n:45,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug] sanitizeHistories가 잘못된 review mode history를 정화하지 않음"}
+  {n:44,state:"CLOSED",labels:["enhancement"],created:"2026-06-15",closed:"2026-06-15",title:"[Improvement] questionNav 현재 문제 버튼 자동 스크롤 추가"},
+  {n:45,state:"CLOSED",labels:["bug"],created:"2026-06-15",closed:"2026-06-15",title:"[Bug] sanitizeHistories가 잘못된 review mode history를 정화하지 않음"},
+  {n:46,state:"CLOSED",labels:["bug","data-issue"],created:"2026-06-15",closed:"2026-06-15",title:"[Critical][Data] 문항 지문(stem)이 다른 문제 내용으로 오염됨 (ISTQB-D/EXTRA, CSTS-2404)"},
+  {n:47,state:"CLOSED",labels:["bug","data-issue"],created:"2026-06-15",closed:"2026-06-15",title:"[Critical][Data] CSTS 문항 지문/보기/정답 본문 잘림·누락 (풀이 불가)"},
+  {n:48,state:"CLOSED",labels:["bug","data-issue"],created:"2026-06-15",closed:"2026-06-15",title:"[Critical][Data] ISTQB-C 31번 그래프 데이터 누락 및 수치가 해설과 불일치"},
+  {n:49,state:"CLOSED",labels:["bug","data-issue"],created:"2026-06-15",closed:"2026-06-15",title:"[Bug][Data] 문항 끝에 섹션/정답표 헤더 텍스트 잔류 (ISTQB-A 40, CSTS-2019 70)"},
+  {n:50,state:"CLOSED",labels:["bug","data-issue"],created:"2026-06-15",closed:"2026-06-15",title:"[Critical][Data] CSTS-2018 코드 블록 위치 뒤바뀜(12↔15) 및 그림 자산 누락"},
+  {n:51,state:"CLOSED",labels:["enhancement"],created:"2026-06-15",closed:"2026-06-15",title:"[Improvement][UI] 표/그림 문항 figure 필드 불일치 및 렌더링 규약 통일 (수정 보류)"},
+  {n:52,state:"OPEN",labels:["bug","data-issue"],created:"2026-06-15",closed:null,title:"[Critical][Data] 문제 데이터가 www/public/dist 3곳에 분기되어 동기화 안 됨 (웹은 뒤처진 public/data 사용)"},
+  {n:53,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[High][Arch] script.js·style.css가 루트/www에 중복 분기되어 동기화 안 됨"}
 ];
 const REPO = "https://github.com/WindowHyun/ISTQB/issues/";
 const LBL_COLORS = { bug:"#d73a4a", enhancement:"#a371f7", documentation:"#0969da", "data-issue":"#9a6700", "(없음)":"var(--muted)" };
