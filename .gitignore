@@ -24,3 +24,6 @@ android/local.properties
 Thumbs.db
 *.log
 .vercel
+
+# Temp / scratch
+tmp/
