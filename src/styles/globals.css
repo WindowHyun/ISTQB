@@ -635,6 +635,26 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
   max-width: 100%;
 }
 .reference-image, .table-image { max-width: 100%; height: auto; border-radius: 6px; }
+
+/* 데이터 표(HTML) — SVG 대신 줄바꿈 가능한 실제 표 */
+.data-table-wrap { overflow-x: auto; }
+.data-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+}
+.data-table th, .data-table td {
+  border: 1px solid var(--line-strong);
+  padding: 8px 12px;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+.data-table th { background: var(--surface-3); font-weight: 700; color: var(--text); }
+.data-table tr:nth-child(even) td { background: var(--surface-2); }
 .code-block {
   display: block;
   white-space: pre;
