@@ -670,6 +670,151 @@ function buildRichBlocks(text) {
   }
 
   
+// PDF 추출 노이즈 제거 — parser.tsx 추출 시 누락되어 buildRichBlocks에서 ReferenceError를 유발했음(복원).
+function stripPdfNoise(text) {
+  return String(text || "")
+    .replace(/Korean Software Testing Qualifications Board[^\n]*/gi, "")
+    .replace(/www\.kstqb\.org\s+I\s+info@kstqb\.org(?:\s+\d+\s+of\s+\d+)?/gi, "")
+    .replace(/www\.kstqb\.org\s*/gi, "")
+    .replace(/info@kstqb\.org\s*/gi, "")
+    .replace(/\b\d+\s+of\s+\d+\b/gi, "")
+    .replace(/실\s+무/g, "실무")
+    .replace(/수행\s+하고/g, "수행하고")
+    .replace(/실행\s+하는/g, "실행하는")
+    .replace(/제공\s+되었다/g, "제공되었다")
+    .replace(/초과\s+하는/g, "초과하는")
+    .replace(/포함\s+되어/g, "포함되어")
+    .replace(/등록\s+하지/g, "등록하지")
+    .replace(/유지\s+된다/g, "유지된다")
+    .replace(/대출\s+되어/g, "대출되어")
+    .replace(/처리\s+되며/g, "처리되며")
+    .replace(/표시\s+되지/g, "표시되지")
+    .replace(/할\s+인/g, "할인")
+    .replace(/테스트 케이\s+스/g, "테스트 케이스")
+    .replace(/케\s+이스/g, "케이스")
+    .replace(/테\s+스트/g, "테스트")
+    .replace(/테스\s+트/g, "테스트")
+    .replace(/시\s+간/g, "시간")
+    .replace(/나타\s+낸/g, "나타낸")
+    .replace(/같\s+은/g, "같은")
+    .replace(/요구사\s+항/g, "요구사항")
+    .replace(/비\s+즈니스/g, "비즈니스")
+    .replace(/컴포\s+넌트/g, "컴포넌트")
+    .replace(/사\s+용자/g, "사용자")
+    .replace(/두\((\d+)\)\s+개/g, "두($1)개")
+    .replace(/\s{2,}/g, " ");
+}
+
+function normalizeReadableCharacters(text) {
+  const roman = {
+    Ⅰ: "I", Ⅱ: "II", Ⅲ: "III", Ⅳ: "IV", Ⅴ: "V",
+    Ⅵ: "VI", Ⅶ: "VII", Ⅷ: "VIII", Ⅸ: "IX", Ⅹ: "X",
+    ⅰ: "i", ⅱ: "ii", ⅲ: "iii", ⅳ: "iv", ⅴ: "v",
+    ⅵ: "vi", ⅶ: "vii", ⅷ: "viii", ⅸ: "ix", ⅹ: "x",
+  };
+  return String(text || "").replace(
+    /[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹ]/g,
+    (value) => roman[value] || value,
+  );
+}
+
+function splitKnownSectionHeadings(text) {
+  const headings = [
+    "당신은 다음과 같이 테스트 케이스 세트를 도출했다:",
+    "테스트 케이스로 달성한",
+    "다음과 같은 테스트 활동이 있다:",
+    "그리고 다음과 같은 테스트 활동이 있다:",
+    "다음과 같은 완화 활동이 있다.",
+    "그리고 다음과 같은 완화 활동이 있다.",
+    "다음 중 위",
+    "다음 중 이",
+    "다음 중 업무와",
+    "다음 중 테스트",
+    "어떤 테스트 케이스가",
+  ];
+  return headings.reduce(
+    (value, heading) => value.replaceAll(heading, `\n${heading}`),
+    text,
+  );
+}
+
+function splitStructuralMarkers(text) {
+  return String(text || "")
+    .replace(
+      /(^|\s)(?=(?:\d+\.|[A-E]\.|[가-차]\.|[•])\s)/g,
+      "$1\n",
+    )
+    .replace(/\s*(?=\b(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.\s)/gi, "\n")
+    .replace(/\s*(?=(?:Given:|When:|Then:|And:)\s)/g, "\n")
+    .replace(
+      /\s*\|\s*(?=(?:제목:|심각도:|우선순위:|환경:|설명:|재현 절차:|첨부파일:)\s*)/g,
+      "\n",
+    )
+    .replace(/\s+(?=(?:다음 중\s|다음 중이\s|다음 중에서\s|다음 예시 중\s))/g, "\n")
+    .replace(/\s+(?=다음 테스트\s)/g, "\n")
+    .replace(/\s+(?=그래프는\s)/g, "\n")
+    .replace(/\s+(?=테스트 스위트에 이미\s)/g, "\n")
+    .replace(/\s+(?=3점 추정 기법을\s)/g, "\n")
+    .replace(/\s+(?=(?:인수 조건:|AC\d+:)\s*)/g, "\n")
+    .replace(
+      /\s+(?=(?:결함 ID:|제목:|애플리케이션:|결함:|재현 절차:|심각도:|우선순위:|환경:|설명:|첨부파일:)\s*)/g,
+      "\n",
+    )
+    .replace(/(^|\s)([a-e]\))\s+/g, "$1\n$2 ")
+    .replace(
+      /\s*(?=(?:당신은 다음과 같이 테스트 케이스 세트를 도출했다:|테스트 케이스로 달성한))/g,
+      "\n",
+    )
+    .replace(
+      /\s*(?=(?:리뷰 활동은 다음과 같다:|그리고 다음과 같은 완화 활동이 있다\.|다음 중 위|다음 중 분석한|테스트 도구 분류는 다음과 같다:|구현된 기능은 다음과 같다:|사전 조건은 다음과 같다:))/g,
+      "\n",
+    )
+    .replace(/\s+(?=그리고 다음과 같은 설명이 있다:)/g, "\n")
+    .replace(/\s*(?=(?:환경 구성:|테스트 케이스 세트:|TC\d+\s+실행))/g, "\n")
+    .replace(/\s*(따라서:)/g, "\n$1")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+// 그림/표 클릭 시 확대 — 레거시 모달 대신 새 탭으로 안전하게 폴백.
+// (이전엔 정의 없이 참조되어 클릭 시 ReferenceError가 발생했음)
+function openFigureModal(src) {
+  try {
+    window.open(src, "_blank", "noopener");
+  } catch {
+    // 모달/팝업이 불가한 환경에서는 조용히 무시
+  }
+}
+
+// 블록 목록을 대상 DOM에 렌더한다. (RichText가 호출하나 parser.tsx 추출 시 누락되어
+// 'renderRichText is not defined' 런타임 크래시를 유발했음 — 복원)
+function renderRichText(target, text) {
+  target.replaceChildren();
+  const blocks = buildRichBlocks(text);
+  blocks.forEach((block) => {
+    if (block.type === "image") {
+      target.appendChild(renderReferenceImage(block.src));
+      return;
+    }
+    if (block.type === "table") {
+      target.appendChild(renderDataTable(block));
+      return;
+    }
+    if (block.type === "code") {
+      target.appendChild(renderCodeBlock(block.lines));
+      return;
+    }
+    if (block.type === "list") {
+      target.appendChild(renderStructuredList(block.items));
+      return;
+    }
+    const line = document.createElement("span");
+    line.className = "text-line";
+    line.textContent = block.text;
+    target.appendChild(line);
+  });
+}
+
 // === React Wrapper ===
 export const RichText = ({ content: text }: { content: unknown }) => {
   const ref = useRef(null);
