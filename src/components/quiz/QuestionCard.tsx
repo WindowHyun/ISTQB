@@ -44,14 +44,20 @@ const OptionItem = React.memo(({
 });
 
 export const QuestionCard = React.memo(({ question }: { question: Question }) => {
-  const { mode, setId, answers, setAnswer } = useQuizStore();
+  const { mode, setId, answers, setAnswer, graded } = useQuizStore();
   const [showFeedback, setShowFeedback] = useState(false);
 
-  const answerKey = `${setId}-${mode}-${question.id || question.number}`;
+  // 오답(review) 모드는 시험(exam) 답안을 읽고/판정한다.
+  const answerMode = mode === 'review' ? 'exam' : mode;
+  const answerKey = `${setId}-${answerMode}-${question.id || question.number}`;
   const selected = answers[answerKey] || [];
   const isMulti = question.answer.length > 1;
+  const isGraded = Boolean(graded[`${setId}-${answerMode}`]);
+  // 정답/해설 공개 조건: 연습 즉시피드백 · 오답 모드 · 채점 완료
+  const reveal = showFeedback || mode === 'review' || isGraded;
 
   const handleSelect = useCallback((key: string) => {
+    if (isGraded) return; // 채점 후 선택 잠금
     if (mode === 'exam' || mode === 'practice') {
       let newSelected = [...selected];
       if (isMulti) {
@@ -66,7 +72,7 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
       }
       setAnswer(answerKey, newSelected);
     }
-  }, [mode, isMulti, question.answer.length, selected, answerKey, setAnswer]);
+  }, [mode, isGraded, isMulti, question.answer.length, selected, answerKey, setAnswer]);
 
   const isCorrect = () => {
     if (selected.length !== question.answer.length) return false;
@@ -101,11 +107,11 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
           const isCorrectAnswer = question.answer.map(a => a.toLowerCase()).includes(opt.key.toLowerCase());
           
           return (
-            <OptionItem 
+            <OptionItem
               key={opt.key}
               opt={opt}
               isSelected={isSelected}
-              showFeedback={showFeedback}
+              showFeedback={reveal}
               mode={mode}
               isCorrectAnswer={isCorrectAnswer}
               handleSelect={handleSelect}
@@ -114,7 +120,7 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
         })}
       </div>
 
-      {(showFeedback || mode === 'review') && (
+      {reveal && (
         <div id="feedback" className={`feedback-panel ${isCorrect() ? 'correct' : 'wrong'}`}>
           <div className="feedback-result">
             {isCorrect() ? '✅ 정답입니다' : '❌ 오답입니다'}

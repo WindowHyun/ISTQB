@@ -17,6 +17,7 @@ export interface QuizState {
   answers: Record<string, string[]>;
   histories: Record<string, ExamHistory>;
   reviewIds: Record<string, string[]>;
+  graded: Record<string, boolean>;
   elapsedSeconds: number;
   lastTick: number | null;
   startedAt: number | null;
@@ -30,6 +31,7 @@ export interface QuizState {
   setAnswer: (key: string, selected: string[]) => void;
   addHistory: (history: ExamHistory) => void;
   setReviewIds: (setId: string, ids: string[]) => void;
+  setGraded: (key: string, value: boolean) => void;
   clearAnswers: (setId: string, mode: QuizMode) => void;
   clearHistory: (setId: string, mode: QuizMode) => void;
   tickTimer: () => void;
@@ -47,6 +49,7 @@ export const useQuizStore = create<QuizState>((set) => ({
   answers: {},
   histories: {},
   reviewIds: {},
+  graded: {},
   elapsedSeconds: 0,
   lastTick: null,
   startedAt: null,
@@ -67,6 +70,9 @@ export const useQuizStore = create<QuizState>((set) => ({
   setReviewIds: (setId, ids) => set((state) => ({
     reviewIds: { ...state.reviewIds, [setId]: ids }
   })),
+  setGraded: (key, value) => set((state) => ({
+    graded: { ...state.graded, [key]: value }
+  })),
   clearAnswers: (setId, mode) => set((state) => {
     const nextAnswers = { ...state.answers };
     for (const key in nextAnswers) {
@@ -74,7 +80,8 @@ export const useQuizStore = create<QuizState>((set) => ({
         delete nextAnswers[key];
       }
     }
-    return { answers: nextAnswers };
+    // 해당 세트/모드의 채점 상태도 함께 초기화
+    return { answers: nextAnswers, graded: { ...state.graded, [`${setId}-${mode}`]: false } };
   }),
   clearHistory: (setId, mode) => set((state) => {
     const nextHistories = { ...state.histories };

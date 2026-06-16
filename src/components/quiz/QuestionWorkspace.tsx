@@ -1,11 +1,25 @@
 import React, { useEffect } from 'react';
 import { useQuizStore } from '../../store/useQuizStore';
-import { useQuestions } from '../../hooks/useQuestions';
+import { useQuestions, Question } from '../../hooks/useQuestions';
 import { flushPersist } from '../../utils/storage';
 import { QuestionCard } from './QuestionCard';
 
+function isAnswerCorrect(question: Question, selected: string[]): boolean {
+  if (selected.length !== question.answer.length) return false;
+  const expected = question.answer.map((a) => a.toLowerCase());
+  return selected.every((s) => expected.includes(s.toLowerCase()));
+}
+
+function formatTime(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+}
+
 export const QuestionWorkspace = () => {
-  const { index, setIndex, mode, tickTimer, startTimer } = useQuizStore();
+  const {
+    index, setIndex, mode, setId, answers, elapsedSeconds, graded,
+    tickTimer, startTimer, addHistory, setReviewIds, setGraded,
+  } = useQuizStore();
   const { currentQuestions } = useQuestions();
 
   useEffect(() => {
@@ -64,8 +78,44 @@ export const QuestionWorkspace = () => {
   const safeIndex = Math.min(Math.max(index, 0), currentQuestions.length - 1);
   const currentQuestion = currentQuestions[safeIndex];
 
+  const answerMode = mode === 'review' ? 'exam' : mode;
+  const answerKeyOf = (q: Question) => `${setId}-${answerMode}-${q.id || q.number}`;
+  const total = currentQuestions.length;
+  const answered = currentQuestions.filter((q) => (answers[answerKeyOf(q)] || []).length > 0).length;
+  const correctCount = currentQuestions.filter((q) => isAnswerCorrect(q, answers[answerKeyOf(q)] || [])).length;
+  const gradeKey = `${setId}-${mode}`;
+  const isGraded = Boolean(graded[gradeKey]);
+  const canGrade = (mode === 'exam' || mode === 'random') && !isGraded;
+
+  const handleGrade = () => {
+    const wrongIds = currentQuestions
+      .filter((q) => !isAnswerCorrect(q, answers[answerKeyOf(q)] || []))
+      .map((q) => q.id || `legacy-${q.number}`);
+    const gradedAnswers: Record<string, string[]> = {};
+    currentQuestions.forEach((q) => {
+      const k = answerKeyOf(q);
+      if (answers[k]) gradedAnswers[k] = answers[k];
+    });
+    addHistory({ id: Date.now().toString(), setId, mode, answers: gradedAnswers });
+    setReviewIds(setId, wrongIds);
+    setGraded(gradeKey, true);
+  };
+
   return (
     <div className="workspace">
+      <div className="workspace-header">
+        <span className="ws-stat" aria-live="polite">진행 {answered} / {total}</span>
+        <span className="ws-stat ws-timer">⏱ {formatTime(elapsedSeconds)}</span>
+        {canGrade && (
+          <button type="button" className="primary grade-btn" data-testid="grade-button" onClick={handleGrade}>
+            채점하기
+          </button>
+        )}
+        {(mode === 'exam' || mode === 'random') && isGraded && (
+          <span className="ws-score" data-testid="score" aria-live="polite">점수 {correctCount} / {total}</span>
+        )}
+      </div>
+
       <nav className="question-nav" aria-label="문제 번호">
         {currentQuestions.map((q, i) => (
           <button
