@@ -67,6 +67,10 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
         } else if (newSelected.length < question.answer.length) {
           newSelected.push(key);
         }
+        // 복수정답도 모든 보기를 고르면 연습 모드에서 즉시 피드백(#80).
+        if (mode === 'practice' && newSelected.length === question.answer.length) {
+          setShowFeedback(true);
+        }
       } else {
         newSelected = [key];
         if (mode === 'practice') setShowFeedback(true);
