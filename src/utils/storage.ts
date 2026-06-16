@@ -124,7 +124,7 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
   try {
     let uiState = {};
     let answers = {};
-    let histories = await loadHistoriesFromDB();
+    const histories = await loadHistoriesFromDB();
     
     // Legacy snapshot logic
     const snapshotRaw = localStorage.getItem(persistenceKey());

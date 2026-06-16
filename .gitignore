@@ -36,6 +36,9 @@ test-results/
 playwright-report/
 playwright/.cache/
 
+# 테스트 커버리지
+coverage/
+
 # 스크래치 / 감사 산출물 (#60)
 /prompt-dump.txt
 /report-dump.txt

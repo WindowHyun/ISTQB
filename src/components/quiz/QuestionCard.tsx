@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useQuizStore } from '../../store/useQuizStore';
 import { Question } from '../../hooks/useQuestions';
-// @ts-ignore
 import { RichText } from '../../utils/parser';
 
 interface OptionItemProps {
