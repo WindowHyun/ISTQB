@@ -322,7 +322,61 @@ ul { margin: 0; padding: 0; list-style: none; }
 .file-import { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
 .file-import input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .settings-section { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 14px; }
-.settings-section > label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.settings-open-btn {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+.settings-open-btn:hover { background: var(--surface-3); border-color: var(--primary); color: var(--primary); }
+
+/* 제품 배지(ISTQB/CSTS 구분) */
+.brand-text #productSubtitle { display: flex; align-items: center; gap: 6px; }
+.product-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+/* 설정 모달 본문 */
+.settings-body { display: flex; flex-direction: column; gap: 18px; }
+.settings-group { display: flex; flex-direction: column; gap: 8px; }
+.settings-group h4 { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 0; }
+.settings-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.settings-action {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 11px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.settings-action:hover { background: var(--surface-3); border-color: var(--primary); color: var(--primary); }
+.settings-action.danger { color: var(--danger); border-color: var(--danger-200); background: var(--danger-50); }
+.settings-action.danger:hover { background: #fee2e2; }
+.settings-action.file-import input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+/* 글자 크기 옵션(설정 → 글자 크기) — 전역 스케일 */
+body[data-qfont="small"] .question-stem { font-size: 15px; }
+body[data-qfont="small"] .option { font-size: 14px; }
+body[data-qfont="large"] .question-stem { font-size: 19.5px; }
+body[data-qfont="large"] .option { font-size: 17.5px; }
 
 /* ── 워크스페이스 ─────────────────────────────────────────────────────── */
 .workspace {

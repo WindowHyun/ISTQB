@@ -14,6 +14,14 @@ const MODE_LABELS: { mode: 'practice' | 'exam' | 'random' | 'review'; label: str
   { mode: 'review', label: '오답' },
 ];
 
+const FONT_SIZES: { value: 'small' | 'normal' | 'large'; label: string }[] = [
+  { value: 'small', label: '작게' },
+  { value: 'normal', label: '기본' },
+  { value: 'large', label: '크게' },
+];
+
+type FontSize = 'small' | 'normal' | 'large';
+
 export const Sidebar = () => {
   const {
     mode, setId, activeProduct, elapsedSeconds,
@@ -24,6 +32,16 @@ export const Sidebar = () => {
     handleGrade,
   } = useQuizSession();
   const [wrongNoteOpen, setWrongNoteOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [fontSize, setFontSize] = useState<FontSize>(
+    () => (localStorage.getItem('istqb-q-font') as FontSize) || 'normal',
+  );
+
+  // 글자 크기: body에 data 속성으로 반영(전역 CSS가 문제/선택지 폰트 스케일을 적용).
+  useEffect(() => {
+    document.body.dataset.qfont = fontSize;
+    localStorage.setItem('istqb-q-font', fontSize);
+  }, [fontSize]);
 
   // 현재 선택된 제품(ISTQB/CSTS)에 속한 세트만 노출.
   const sets = appData
@@ -58,13 +76,27 @@ export const Sidebar = () => {
     resetTimer();
   };
 
+  // 처음 화면(제품 선택)으로 이동 — ISTQB/CSTS 전환 진입점.
+  const handleHome = () => {
+    setSettingsOpen(false);
+    setMode('home');
+  };
+
   const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
     const success = await importUserData(e.target.files[0]);
     alert(success ? '백업 파일이 성공적으로 복원되었습니다.' : '파일 복원에 실패했습니다.');
   };
 
+  const handleResetMode = () => {
+    if (confirm('현재 모드의 모든 답안을 지우시겠습니까?')) {
+      clearAnswers(setId, mode);
+      clearHistory(setId, mode);
+    }
+  };
+
   const productSubtitle = activeProduct === 'istqb' ? 'ISTQB FL v4.0' : 'CSTS';
+  const productBadge = (activeProduct || '').toUpperCase();
   const showGradeSection = mode === 'exam' || mode === 'random';
 
   return (
@@ -72,8 +104,11 @@ export const Sidebar = () => {
       <aside className="sidebar" aria-label="시험 설정">
         <div className="brand">
           <img src={LOGO_SRC} alt="" />
-          <div>
-            <p id="productSubtitle">{productSubtitle}</p>
+          <div className="brand-text">
+            <p id="productSubtitle">
+              <span className="product-badge">{productBadge}</span>
+              {productSubtitle}
+            </p>
             <h1 id="productTitle">{currentSet?.title || '문제 풀이'}</h1>
           </div>
         </div>
@@ -150,27 +185,15 @@ export const Sidebar = () => {
             </div>
           </section>
 
-          <section className="settings-section panel">
-            <label>기록</label>
-            <div className="actions">
-              <button
-                type="button"
-                className="danger subtle"
-                onClick={() => {
-                  if (confirm('이 모드의 모든 답안을 지우시겠습니까?')) {
-                    clearAnswers(setId, mode);
-                    clearHistory(setId, mode);
-                  }
-                }}
-              >
-                선택 답안 초기화
-              </button>
-              <button type="button" className="subtle" onClick={exportUserData}>기록 내보내기</button>
-              <label className="file-import subtle">
-                <span>기록 가져오기</span>
-                <input type="file" accept=".json" aria-label="백업 파일 가져오기" onChange={handleFileImport} />
-              </label>
-            </div>
+          <section className="settings-section">
+            <button
+              type="button"
+              className="settings-open-btn"
+              aria-haspopup="dialog"
+              onClick={() => setSettingsOpen(true)}
+            >
+              ⚙ 설정
+            </button>
           </section>
         </div>
       </aside>
@@ -207,6 +230,68 @@ export const Sidebar = () => {
                   ))}
                 </ul>
               )}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {settingsOpen && (
+        <div className="modal-backdrop" onClick={() => setSettingsOpen(false)}>
+          <section
+            className="modal-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="설정"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <header className="modal-header">
+              <h3>설정</h3>
+              <button type="button" onClick={() => setSettingsOpen(false)}>닫기</button>
+            </header>
+            <div className="modal-body settings-body">
+              <section className="settings-group">
+                <h4>앱 이동</h4>
+                <button type="button" className="settings-action" onClick={handleHome}>
+                  처음 화면으로 (ISTQB/CSTS 선택)
+                </button>
+              </section>
+
+              <section className="settings-group">
+                <h4>글자 크기</h4>
+                <div className="segmented" role="group" aria-label="문제 글자 크기">
+                  {FONT_SIZES.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={fontSize === value ? 'active' : ''}
+                      aria-pressed={fontSize === value}
+                      onClick={() => setFontSize(value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="settings-group">
+                <h4>기록 관리</h4>
+                <div className="settings-actions">
+                  <button type="button" className="settings-action" onClick={exportUserData}>
+                    기록 내보내기
+                  </button>
+                  <label className="settings-action file-import">
+                    <span>기록 가져오기</span>
+                    <input type="file" accept=".json" aria-label="백업 파일 가져오기" onChange={handleFileImport} />
+                  </label>
+                </div>
+              </section>
+
+              <section className="settings-group">
+                <h4>초기화</h4>
+                <button type="button" className="settings-action danger" onClick={handleResetMode}>
+                  현재 모드 답안 초기화
+                </button>
+              </section>
             </div>
           </section>
         </div>
