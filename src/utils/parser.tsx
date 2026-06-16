@@ -1,13 +1,24 @@
-// @ts-nocheck
 import React, { useRef, useEffect } from 'react';
 
+// 파서가 다루는 콘텐츠 블록 (loosely-typed; PDF 추출 산출물).
+type ListItem = { marker: string; text: string };
+type Block = {
+  type: string;
+  text?: string;
+  items?: Array<ListItem | string>;
+  rows?: string[][];
+  lines?: string[];
+  src?: string;
+  marker?: string;
+};
+
 // === Extracted Vanilla Parsers ===
-function buildRichBlocks(text) {
+function buildRichBlocks(text: unknown): Block[] {
     if (Array.isArray(text)) {
       return text.flatMap((block) => normalizeQuestionBlock(block));
     }
     const cleaned = splitKnownSectionHeadings(
-      normalizeReadableCharacters(stripPdfNoise(text)),
+      normalizeReadableCharacters(stripPdfNoise(text as string)),
     );
     const formatted = normalizePseudoCodeBlocks(normalizeKnownTables(cleaned));
     const lines = formatted
@@ -21,8 +32,8 @@ function buildRichBlocks(text) {
       )
       .map((line) => line.trim())
       .filter(Boolean);
-    const blocks = [];
-    let pendingList = [];
+    const blocks: Block[] = [];
+    let pendingList: ListItem[] = [];
 
     const flushList = () => {
       if (pendingList.length > 0) {
@@ -59,7 +70,7 @@ function buildRichBlocks(text) {
     return blocks;
   }
 
-  function normalizeQuestionBlock(block) {
+  function normalizeQuestionBlock(block: Block): Block[] {
     if (!block || typeof block !== "object") return [];
     const type = block.type || "paragraph";
     if (type === "image" && block.src)
@@ -94,7 +105,7 @@ function buildRichBlocks(text) {
     return [{ type, text: value }];
   }
 
-  function parseStructuredItem(line) {
+  function parseStructuredItem(line: string): ListItem | null {
     const match = line.match(
       /^(\d+\.|\(\d+\)|[A-E]\.|[a-e]\)|(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s*(.+)$/i,
     );
@@ -102,7 +113,7 @@ function buildRichBlocks(text) {
     return { marker: match[1], text: match[2].trim() };
   }
 
-  function renderStructuredList(items) {
+  function renderStructuredList(items: ListItem[]): HTMLElement {
     const list = document.createElement("span");
     list.className = "structured-list";
     items.forEach((item) => {
@@ -119,14 +130,14 @@ function buildRichBlocks(text) {
     return list;
   }
 
-  function renderCodeBlock(lines) {
+  function renderCodeBlock(lines: string[]): HTMLElement {
     const block = document.createElement("span");
     block.className = "code-block";
     block.textContent = lines.join("\n");
     return block;
   }
 
-  function renderReferenceImage(src) {
+  function renderReferenceImage(src: string): HTMLElement {
     const frame = document.createElement("div");
     frame.className = "reference-image-frame";
     const image = document.createElement("img");
@@ -135,32 +146,32 @@ function buildRichBlocks(text) {
     image.alt = "문제 참고 이미지";
     image.loading = "lazy";
     image.draggable = false;
-    image.addEventListener("click", () => openFigureModal(src, image.alt));
+    image.addEventListener("click", () => openFigureModal(src));
     frame.appendChild(image);
     return frame;
   }
 
-  function isBulletMarker(marker) {
+  function isBulletMarker(marker: string): boolean {
     return /^[\u2022\uF06C\uF0A1\uF0A7\uF0B7]$/.test(marker);
   }
 
-  function renderDataTable(block) {
+  function renderDataTable(block: Block): HTMLElement {
     const wrapper = document.createElement("div");
     wrapper.className = "table-image-frame";
     const image = document.createElement("img");
     image.className = "table-image";
-    image.src = tableSvgDataUrl(block.rows);
+    image.src = tableSvgDataUrl(block.rows || []);
     image.alt = "문제 참고 표";
     image.loading = "lazy";
     image.draggable = false;
     image.addEventListener("click", () =>
-      openFigureModal(image.src, image.alt),
+      openFigureModal(image.src),
     );
     wrapper.appendChild(image);
     return wrapper;
   }
 
-  function tableSvgDataUrl(rows) {
+  function tableSvgDataUrl(rows: string[][]): string {
     const normalizedRows = rows.map((row) =>
       row.map((cell) => String(cell || "")),
     );
@@ -206,14 +217,14 @@ function buildRichBlocks(text) {
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   }
 
-  function visualLength(value) {
+  function visualLength(value: string): number {
     return Array.from(String(value || "")).reduce(
       (sum, char) => sum + (char.charCodeAt(0) > 255 ? 1.7 : 1),
       0,
     );
   }
 
-  function escapeSvg(value) {
+  function escapeSvg(value: string): string {
     return String(value || "")
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
@@ -221,7 +232,7 @@ function buildRichBlocks(text) {
       .replace(/"/g, "&quot;");
   }
 
-  function normalizeKnownTables(text) {
+  function normalizeKnownTables(text: string): string {
     return normalizePlanningPokerTable(
       normalizeSortLogTable(
         normalizeDecisionTable(
@@ -257,7 +268,7 @@ function buildRichBlocks(text) {
     );
   }
 
-  function normalizeCstsIpoTable(text) {
+  function normalizeCstsIpoTable(text: string): string {
     const pattern =
       /입력 인자\s+A\s+B\s+C\s+값\s+A1\s+B1\s+C1\s+A2\s+B2\s+C2\s+A3\s+-\s+C3\s+테스트 케이스\s+A\s+B\s+C\s+A1\s+B1\s+C1\s+A1\s+B2\s+C2\s+A2\s+B1\s+C3\s+A2\s+B2\s+C1\s+A3\s+B1\s+C2\s+A3\s+B2\s+C3\s+A1\s+-\s+C3\s+A2\s+-\s+C2\s+\(\s*\)\s+-\s+\(\s*\)/;
     const match = text.match(pattern);
@@ -282,7 +293,7 @@ function buildRichBlocks(text) {
     return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
   }
 
-  function normalizeTrainingDecisionTable(text) {
+  function normalizeTrainingDecisionTable(text: string): string {
     const pattern =
       /규칙\s+1\s+2\s+3\s+4\s+5\s+6\s+7\s+8\s+(?:조건|조\s+건)\s+B등급 이상\s+Y\s+Y\s+Y\s+Y\s+N\s+N\s+N\s+N\s+10년차 이상\s+Y\s+Y\s+N\s+N\s+Y\s+Y\s+N\s+N\s+공로상 수상\s+Y\s+N\s+Y\s+N\s+Y\s+N\s+Y\s+N\s+(?:행위|행\s+위)\s+프랑스\s+Y\s+Y\s+F\s+F\s+F\s+F\s+F\s+F\s+싱가포르\s+F\s+F\s+Y\s+Y\s+F\s+F\s+F\s+F\s+스페인\s+Y\s+F\s+Y\s+F\s+F\s+F\s+F\s+F/;
     const match = text.match(pattern);
@@ -309,7 +320,7 @@ function buildRichBlocks(text) {
     return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
   }
 
-  function normalizeChoiceClassTable(text) {
+  function normalizeChoiceClassTable(text: string): string {
     const pattern =
       /목적지\s+등급\s+좌석\s+파리\s+퍼스트\s+창가\s+런던\s+비즈니스\s+통로\s+(?:(시드니)\s+)?이코노미/;
     const match = text.match(pattern);
@@ -323,7 +334,7 @@ function buildRichBlocks(text) {
     return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
   }
 
-  function normalizeTruthTable(text) {
+  function normalizeTruthTable(text: string): string {
     const pattern =
       /테스트 케이스 ID\s+A\s+B\s+A or B\s+\(가\)\s+T\s+T\s+T\s+\(나\)\s+T\s+F\s+T\s+\(다\)\s+F\s+T\s+T\s+\(라\)\s+F\s+F\s+F/;
     const match = text.match(pattern);
@@ -338,7 +349,7 @@ function buildRichBlocks(text) {
     return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
   }
 
-  function normalizePseudoCodeBlocks(text) {
+  function normalizePseudoCodeBlocks(text: string): string {
     const pattern =
       /INPUT:\s*(.*?)\s+IF\s*\((.*?)\)\s+THEN\s+write\s+([“"][^”"]+[”"])\s+ELSE\s+write\s+([“"][^”"]+[”"])/i;
     const normalized = String(text || "").replace(
@@ -356,11 +367,11 @@ function buildRichBlocks(text) {
     return normalizeGenericCodeBlocks(normalized);
   }
 
-  function normalizeGenericCodeBlocks(text) {
+  function normalizeGenericCodeBlocks(text: string): string {
     const lines = String(text || "").split("\n");
-    const blocks = [];
-    let codeLines = [];
-    const isCodeLine = (line) => {
+    const blocks: string[] = [];
+    let codeLines: string[] = [];
+    const isCodeLine = (line: string) => {
       const value = String(line || "").trim();
       return (
         /^[{}]$/.test(value) ||
@@ -395,7 +406,7 @@ function buildRichBlocks(text) {
     return blocks.join("\n");
   }
 
-  function normalizePlanningPokerTable(text) {
+  function normalizePlanningPokerTable(text: string): string {
     const pattern =
       /(?:\ud300\uc6d0\ub4e4\uc758 \ucd94\uc815\s+)?1\s+\ub77c\uc6b4\ub4dc\s+((?:\d+\s+){6}\d+)\s+2\s+\ub77c\uc6b4\ub4dc\s+((?:\d+\s+){6}\d+)\s+3\s+\ub77c\uc6b4\ub4dc\s+((?:\d+\s+){6}\d+)/;
     const match = text.match(pattern);
@@ -418,7 +429,7 @@ function buildRichBlocks(text) {
     return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
   }
 
-  function normalizeExecutionHistoryTable(text) {
+  function normalizeExecutionHistoryTable(text: string): string {
     const pattern =
       /첫 번째 실행\s+두 번째 실행\s+세 번째 실행\s+TC1\s+\((\d+)\)\s+(합격|실패)\s+\((\d+)\)\s+(합격|실패)\s+\((\d+)\)\s+(합격|실패)\s+TC2\s+\((\d+)\)\s+(합격|실패)\s+\((\d+)\)\s+(합격|실패)\s+\((\d+)\)\s+(합격|실패)\s+TC3\s+\((\d+)\)\s+(합격|실패)\s+\((\d+)\)\s+(합격|실패)\s+\((\d+)\)\s+(합격|실패)/;
     const match = text.match(pattern);
@@ -439,7 +450,7 @@ function buildRichBlocks(text) {
     );
   }
 
-  function normalizeRestaurantPriorityTable(text) {
+  function normalizeRestaurantPriorityTable(text: string): string {
     const header = "번호 커버되는 테스트 컨디션 우선순위 논리적 종속성";
     const start = text.indexOf(header);
     if (start < 0) return text;
@@ -459,119 +470,74 @@ function buildRichBlocks(text) {
     return `${text.slice(0, start).trim()}\n${header}\n__TABLE__:${JSON.stringify(rows)}\n${tail.slice(consumed).trim()}`;
   }
 
-  function normalizeArteryDecisionTable(text) {
+  function normalizeArteryDecisionTable(text: string): string {
     const pattern =
       /규칙 1\s+규칙 2\s+규칙 3\s+규칙 4\s+규칙 5\s+조건\s+콜레스테롤\(mg\/dl\)\s+≤ 124\s+≤ 124\s+125 - 200\s+125-200\s+≥ 201\s+혈압\(mmHg\)\s+≤ 140\s+> 140\s+≤ 140\s+> 140\s+-\s+결과\s+위험 수준\s+매우 낮음\s+낮음\s+중간\s+높음\s+매우 높음/;
     const match = text.match(pattern);
     if (!match) return text;
-    const rows = [
-      ["항목", "규칙 1", "규칙 2", "규칙 3", "규칙 4", "규칙 5"],
-      ["콜레스테롤(mg/dl)", "≤ 124", "≤ 124", "125 - 200", "125-200", "≥ 201"],
-      ["혈압(mmHg)", "≤ 140", "> 140", "≤ 140", "> 140", "-"],
-      ["위험 수준", "매우 낮음", "낮음", "중간", "높음", "매우 높음"],
-    ];
     return text.replace(
       match[0],
       "\n__IMAGE__:source-visuals/B22-artery-table.png\n",
     );
   }
 
-  function normalizeClassificationDecisionTable(text) {
+  function normalizeClassificationDecisionTable(text: string): string {
     const pattern =
       /R1\s+R2\s+R3\s+R4\s+R5\s+R6\s+R7\s+C1:\s+나이\s+0-18\s+19-65\s+19-65\s+>65\s+0-18\s+19-65\s+>65\s+C2:\s+경험\s+-\s+0-4\s+>4\s+-\s+-\s+-\s+-\s+C3:\s+등록유무\s+NO\s+NO\s+NO\s+NO\s+YES\s+YES\s+YES\s+분류\s+A\s+A\s+B\s+B\s+B\s+D\s+C/;
     const match = text.match(pattern);
     if (!match) return text;
-    const rows = [
-      ["항목", "R1", "R2", "R3", "R4", "R5", "R6", "R7"],
-      ["C1: 나이", "0-18", "19-65", "19-65", ">65", "0-18", "19-65", ">65"],
-      ["C2: 경험", "-", "0-4", ">4", "-", "-", "-", "-"],
-      ["C3: 등록유무", "NO", "NO", "NO", "NO", "YES", "YES", "YES"],
-      ["분류", "A", "A", "B", "B", "B", "D", "C"],
-    ];
     return text.replace(
       match[0],
       "\n__IMAGE__:source-visuals/D22-classification-table.png\n",
     );
   }
 
-  function normalizeDrivingDecisionTable(text) {
+  function normalizeDrivingDecisionTable(text: string): string {
     const pattern =
       /R1\s+R2\s+R3\s+C1:\s+첫 시험 도전\?\s+-\s+-\s+F\s+C2:\s+이론 시험 합격\?\s+T\s+F\s+-\s+C3:\s+실기 시험 합격\?\s+T\s+-\s+F\s+운전 면허 발급\?\s+X\s+운전 강습 추가 요청\?\s+X\s+시험 재-응시 요청\?\s+X/;
     const match = text.match(pattern);
     if (!match) return text;
-    const rows = [
-      ["항목", "R1", "R2", "R3"],
-      ["C1: 첫 시험 도전?", "-", "-", "F"],
-      ["C2: 이론 시험 합격?", "T", "F", "-"],
-      ["C3: 실기 시험 합격?", "T", "-", "F"],
-      ["운전 면허 발급?", "X", "", ""],
-      ["운전 강습 추가 요청?", "", "X", ""],
-      ["시험 재-응시 요청?", "", "", "X"],
-    ];
     return text.replace(
       match[0],
       "\n__IMAGE__:source-visuals/C22-driving-table.png\n",
     );
   }
 
-  function normalizeHotelTransitionTable(text) {
+  function normalizeHotelTransitionTable(text: string): string {
     const pattern =
       /이벤트\s+상태\s+예약 가능\s+예약 불가\s+객실 변경\s+취소\s+결제\s+S1:\s+요청 중\s+S2\s+S3\s+S2:\s+확인됨\s+S1\s+S4\s+S4\s+S3:\s+대기자 명단\s+S2\s+S4\s+S4:\s+종료/;
     const match = text.match(pattern);
     if (!match) return text;
-    const rows = [
-      ["상태", "예약 가능", "예약 불가", "객실 변경", "취소", "결제"],
-      ["S1: 요청 중", "S2", "S3", "", "", ""],
-      ["S2: 확인됨", "", "", "S1", "S4", "S4"],
-      ["S3: 대기자 명단", "S2", "", "", "S4", ""],
-      ["S4: 종료", "", "", "", "", ""],
-    ];
     return text.replace(
       match[0],
       "\n__IMAGE__:source-visuals/D23-hotel-transition.png\n",
     );
   }
 
-  function normalizeTraceabilityMatrix(text) {
+  function normalizeTraceabilityMatrix(text: string): string {
     const pattern =
       /Req 1\s+Req 2\s+Req 3\s+Req 4\s+Req 5\s+Req 6\s+Req 7\s+TC1\s+X\s+X\s+X\s+X\s+TC2\s+X\s+X\s+X\s+TC3\s+X\s+X\s+TC4\s+X/;
     const match = text.match(pattern);
     if (!match) return text;
-    const rows = [
-      ["TC", "Req 1", "Req 2", "Req 3", "Req 4", "Req 5", "Req 6", "Req 7"],
-      ["TC1", "X", "", "X", "X", "", "", "X"],
-      ["TC2", "X", "", "", "", "X", "", "X"],
-      ["TC3", "", "", "", "X", "X", "", ""],
-      ["TC4", "", "X", "", "", "", "", ""],
-    ];
     return text.replace(
       match[0],
       "\n__IMAGE__:source-visuals/D32-traceability.png\n",
     );
   }
 
-  function normalizeDecisionTable(text) {
+  function normalizeDecisionTable(text: string): string {
     if (!/조건\s+R1\s+R2\s+R3\s+R4\s+R5\s+R6\s+R7\s+R8/.test(text)) return text;
     const pattern =
       /조건\s+R1\s+R2\s+R3\s+R4\s+R5\s+R6\s+R7\s+R8\s+회원\s+([TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF])\s+반납기한 경과\s+([TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF])\s+15회 대여\s+([TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF])\s+결과\s+20% 할인\s+([\sX]*?)\s+티셔츠 선물\s+([\sX]*?)(?=\s+고객 관리|\s+다음 중|$)/;
     const match = text.match(pattern);
     if (!match) return text;
-    const rules = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8"];
-    const rows = [
-      ["항목", ...rules],
-      ["회원", ...match[1].split(/\s+/)],
-      ["반납기한 경과", ...match[2].split(/\s+/)],
-      ["15회 대여", ...match[3].split(/\s+/)],
-      ["20% 할인", "", "X", "", "X", "", "", "", ""],
-      ["티셔츠 선물", "", "", "X", "X", "", "", "", "X"],
-    ];
     return text.replace(
       match[0],
       "\n__IMAGE__:source-visuals/A22-decision-table.png\n",
     );
   }
 
-  function normalizeTestPriorityTable(text) {
+  function normalizeTestPriorityTable(text: string): string {
     const header = "테스트 우선순위(1 = 가장 높은 우선순위)";
     const headerIndex = text.indexOf(header);
     if (headerIndex < 0) return text;
@@ -592,7 +558,7 @@ function buildRichBlocks(text) {
     return `${before.trim()}\n${header}\n__IMAGE__:source-visuals/B32-test-priority.png\n${after}`;
   }
 
-  function normalizeFinalGradeTable(text) {
+  function normalizeFinalGradeTable(text: string): string {
     const header = "최종 점수 최종 성적";
     const headerIndex = text.indexOf(header);
     if (headerIndex < 0) return text;
@@ -614,25 +580,18 @@ function buildRichBlocks(text) {
     return `${before.trim()}\n__IMAGE__:source-visuals/A21-final-grade.png\n${after}`;
   }
 
-  function normalizeProjectEffortTable(text) {
+  function normalizeProjectEffortTable(text: string): string {
     const pattern =
       /프로젝트 개발 노력\(\$\) 테스트 노력\(\$\)\s+P1\s+([\d,]+)\s+([\d,]+)\s+P2\s+([\d,]+)\s+([\d,]+)\s+P3\s+([\d,]+)\s+([\d,]+)\s+P4\s+([\d,]+)\s+([\d,]+)/;
     const match = text.match(pattern);
     if (!match) return text;
-    const rows = [
-      ["프로젝트", "개발 노력($)", "테스트 노력($)"],
-      ["P1", match[1], match[2]],
-      ["P2", match[3], match[4]],
-      ["P3", match[5], match[6]],
-      ["P4", match[7], match[8]],
-    ];
     return text.replace(
       match[0],
       "\n__IMAGE__:source-visuals/B31-project-effort.png\n",
     );
   }
 
-  function normalizeSortLogTable(text) {
+  function normalizeSortLogTable(text: string): string {
     if (!/테스트 실행 로그/.test(text) || !/TC1\s+실행/.test(text)) return text;
     const questionSplit = text.match(/([\s\S]*?)(다음 중[\s\S]*)$/);
     const mainText = questionSplit ? questionSplit[1] : text;
@@ -654,15 +613,10 @@ function buildRichBlocks(text) {
       ]);
     }
     if (rows.length === 1) return text;
-    const meta = logText
-      .replace(/TC1\s+실행[\s\S]*/, "")
-      .replace(/^환경 구성:\s*/, "")
-      .replace(/\s*,\s*/g, "\n")
-      .trim();
     return `${introSplit[0].trim()}\n__IMAGE__:source-visuals/B38-sort-log.png\n${questionText.trim()}`;
   }
 
-  function compactCell(text) {
+  function compactCell(text: string): string {
     return String(text || "")
       .replace(/\d{1,2}:\d{2}:\d{2}\.\d{3}/g, "")
       .replace(/\s+/g, " ")
@@ -671,7 +625,7 @@ function buildRichBlocks(text) {
 
   
 // PDF 추출 노이즈 제거 — parser.tsx 추출 시 누락되어 buildRichBlocks에서 ReferenceError를 유발했음(복원).
-function stripPdfNoise(text) {
+function stripPdfNoise(text: string): string {
   return String(text || "")
     .replace(/Korean Software Testing Qualifications Board[^\n]*/gi, "")
     .replace(/www\.kstqb\.org\s+I\s+info@kstqb\.org(?:\s+\d+\s+of\s+\d+)?/gi, "")
@@ -705,8 +659,8 @@ function stripPdfNoise(text) {
     .replace(/\s{2,}/g, " ");
 }
 
-function normalizeReadableCharacters(text) {
-  const roman = {
+function normalizeReadableCharacters(text: string): string {
+  const roman: Record<string, string> = {
     Ⅰ: "I", Ⅱ: "II", Ⅲ: "III", Ⅳ: "IV", Ⅴ: "V",
     Ⅵ: "VI", Ⅶ: "VII", Ⅷ: "VIII", Ⅸ: "IX", Ⅹ: "X",
     ⅰ: "i", ⅱ: "ii", ⅲ: "iii", ⅳ: "iv", ⅴ: "v",
@@ -718,7 +672,7 @@ function normalizeReadableCharacters(text) {
   );
 }
 
-function splitKnownSectionHeadings(text) {
+function splitKnownSectionHeadings(text: string): string {
   const headings = [
     "당신은 다음과 같이 테스트 케이스 세트를 도출했다:",
     "테스트 케이스로 달성한",
@@ -733,12 +687,12 @@ function splitKnownSectionHeadings(text) {
     "어떤 테스트 케이스가",
   ];
   return headings.reduce(
-    (value, heading) => value.replaceAll(heading, `\n${heading}`),
+    (value, heading) => value.split(heading).join(`\n${heading}`),
     text,
   );
 }
 
-function splitStructuralMarkers(text) {
+function splitStructuralMarkers(text: string): string {
   return String(text || "")
     .replace(
       /(^|\s)(?=(?:\d+\.|[A-E]\.|[가-차]\.|[•])\s)/g,
@@ -778,7 +732,7 @@ function splitStructuralMarkers(text) {
 
 // 그림/표 클릭 시 확대 — 레거시 모달 대신 새 탭으로 안전하게 폴백.
 // (이전엔 정의 없이 참조되어 클릭 시 ReferenceError가 발생했음)
-function openFigureModal(src) {
+function openFigureModal(src: string): void {
   try {
     window.open(src, "_blank", "noopener");
   } catch {
@@ -788,12 +742,12 @@ function openFigureModal(src) {
 
 // 블록 목록을 대상 DOM에 렌더한다. (RichText가 호출하나 parser.tsx 추출 시 누락되어
 // 'renderRichText is not defined' 런타임 크래시를 유발했음 — 복원)
-function renderRichText(target, text) {
+function renderRichText(target: HTMLElement, text: unknown): void {
   target.replaceChildren();
   const blocks = buildRichBlocks(text);
   blocks.forEach((block) => {
     if (block.type === "image") {
-      target.appendChild(renderReferenceImage(block.src));
+      target.appendChild(renderReferenceImage(block.src || ""));
       return;
     }
     if (block.type === "table") {
@@ -801,16 +755,16 @@ function renderRichText(target, text) {
       return;
     }
     if (block.type === "code") {
-      target.appendChild(renderCodeBlock(block.lines));
+      target.appendChild(renderCodeBlock(block.lines || []));
       return;
     }
     if (block.type === "list") {
-      target.appendChild(renderStructuredList(block.items));
+      target.appendChild(renderStructuredList((block.items || []) as ListItem[]));
       return;
     }
     const line = document.createElement("span");
     line.className = "text-line";
-    line.textContent = block.text;
+    line.textContent = block.text ?? "";
     target.appendChild(line);
   });
 }

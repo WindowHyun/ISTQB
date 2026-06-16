@@ -23,8 +23,6 @@ export default tseslint.config(
       'clean.js',
       'compare.js',
       'test-bug.js',
-      // parser.tsx는 #61(타입화)에서 정리하며 그때 린트에 포함한다.
-      'src/utils/parser.tsx',
       '*.config.js',
       '*.config.mjs',
       '*.config.ts',
