@@ -10,19 +10,25 @@ beforeAll(() => {
   (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-async function renderRichText(content: unknown): Promise<string> {
+async function renderRichTextEl(content: unknown): Promise<HTMLElement> {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   await act(async () => {
     root.render(React.createElement(RichText, { content }));
   });
-  const text = container.textContent ?? "";
+  // unmount는 호출자가 끝난 뒤 GC. 검증을 위해 DOM 스냅샷을 복제해 반환.
+  const clone = container.cloneNode(true) as HTMLElement;
   await act(async () => {
     root.unmount();
   });
   container.remove();
-  return text;
+  return clone;
+}
+
+async function renderRichText(content: unknown): Promise<string> {
+  const el = await renderRichTextEl(content);
+  return el.textContent ?? "";
 }
 
 describe("RichText (parser renderRichText 회귀 가드)", () => {
@@ -63,5 +69,30 @@ describe("RichText (parser renderRichText 회귀 가드)", () => {
       { type: "paragraph", text: "D) 접근법을 가장 잘 설명한 것은?" },
     ]);
     expect(text).toContain("(ATDD)");
+  });
+
+  // #1: prompt 타입으로 끊긴 조각("보여준"+"다.")도 이어붙인다.
+  it("prompt 타입 문장 조각도 이어붙인다", async () => {
+    const text = await renderRichText([
+      { type: "prompt", text: "결함의 상태별 누적 개수를 보여준" },
+      { type: "prompt", text: "다. 이에 대한 설명으로 올바르지 않은 것은?" },
+    ]);
+    expect(text).toContain("보여준다.");
+  });
+
+  // #2: 이미지 블록 src가 마크다운(![..](url))에 들어와도 <img>로 렌더한다.
+  it("마크다운 이미지 블록에서 src를 추출해 <img>로 렌더한다", async () => {
+    const el = await renderRichTextEl([
+      { type: "image", text: "![이미지](/images/questions/CSTS-FL-2402-030.png)" },
+    ]);
+    const img = el.querySelector("img");
+    expect(img).not.toBeNull();
+    expect(img?.getAttribute("src")).toBe("/images/questions/CSTS-FL-2402-030.png");
+  });
+
+  // #2: src가 없는 이미지 블록은 깨진 <img>를 만들지 않는다.
+  it("src가 없는 이미지 블록은 렌더하지 않는다", async () => {
+    const el = await renderRichTextEl([{ type: "image", text: "" }]);
+    expect(el.querySelector("img")).toBeNull();
   });
 });

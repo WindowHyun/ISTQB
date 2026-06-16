@@ -1,6 +1,6 @@
 import { useQuizStore } from '../store/useQuizStore';
 import { useQuestions, Question } from './useQuestions';
-import { isAnswerCorrect } from '../utils/answer';
+import { isQuestionCorrect } from '../utils/answer';
 
 // 사이드바(통계·채점·진행률)와 워크스페이스(문항·네비)가 공유하는 파생 상태/액션.
 // 레거시 레이아웃은 채점 버튼·진행률을 사이드바에, 문항을 워크스페이스에 두므로
@@ -9,16 +9,15 @@ export function useQuizSession() {
   const { mode, setId, answers, graded, addHistory, setReviewIds, setGraded } = useQuizStore();
   const { appData, currentQuestions } = useQuestions();
 
-  // 오답(review) 모드는 시험(exam) 답안을 읽고 판정한다.
-  const answerMode = mode === 'review' ? 'exam' : mode;
-  const answerKeyOf = (q: Question) => `${setId}-${answerMode}-${q.id || q.number}`;
+  // 각 모드는 자체 답안 네임스페이스를 사용한다(오답 모드는 재풀이용 별도 기록).
+  const answerKeyOf = (q: Question) => `${setId}-${mode}-${q.id || q.number}`;
 
   const total = currentQuestions.length;
   const answered = currentQuestions.filter(
     (q) => (answers[answerKeyOf(q)] || []).length > 0
   ).length;
   const correctCount = currentQuestions.filter(
-    (q) => isAnswerCorrect(q.answer, answers[answerKeyOf(q)] || [])
+    (q) => isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type)
   ).length;
 
   const gradeKey = `${setId}-${mode}`;
@@ -29,11 +28,11 @@ export function useQuizSession() {
   // 채점된 시험/랜덤 또는 오답 모드에서 틀린 문항 목록(오답노트·네비 표시용).
   const wrongQuestions = currentQuestions
     .map((q, i) => ({ q, i }))
-    .filter(({ q }) => !isAnswerCorrect(q.answer, answers[answerKeyOf(q)] || []));
+    .filter(({ q }) => !isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type));
 
   const handleGrade = () => {
     const wrongIds = currentQuestions
-      .filter((q) => !isAnswerCorrect(q.answer, answers[answerKeyOf(q)] || []))
+      .filter((q) => !isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type))
       .map((q) => q.id || `legacy-${q.number}`);
     const gradedAnswers: Record<string, string[]> = {};
     currentQuestions.forEach((q) => {
@@ -48,7 +47,6 @@ export function useQuizSession() {
   return {
     appData,
     currentQuestions,
-    answerMode,
     answerKeyOf,
     total,
     answered,

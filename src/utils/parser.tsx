@@ -70,11 +70,22 @@ function buildRichBlocks(text: unknown): Block[] {
     return blocks;
   }
 
+  // 이미지 블록의 src는 src 필드 또는 text의 마크다운(![..](url))에 들어올 수 있다.
+  function extractImageSrc(block: Block): string {
+    if (block.src) return String(block.src);
+    const text = String(block.text || "");
+    const md = text.match(/!\[[^\]]*\]\(([^)]+)\)/);
+    if (md) return md[1].trim();
+    return "";
+  }
+
   function normalizeQuestionBlock(block: Block): Block[] {
     if (!block || typeof block !== "object") return [];
     const type = block.type || "paragraph";
-    if (type === "image" && block.src)
-      return [{ type: "image", src: block.src }];
+    if (type === "image") {
+      const src = extractImageSrc(block);
+      return src ? [{ type: "image", src }] : [];
+    }
     if (type === "table" && Array.isArray(block.rows)) {
       return [{ type: "table", rows: block.rows }];
     }
@@ -750,17 +761,17 @@ function mergeTextContinuations(blocks: Block[]): Block[] {
   const TERMINAL = /[.?!…。」』:)\]]$/;
   // 새 항목의 시작으로 볼 수 있는 마커(Ⓐ-Ⓩ, ①-⑳, (가), (1) 등)면 합치지 않는다.
   const ITEM_MARKER = /^(\(?[Ⓐ-ⓩ]\)?|[①-⑳]|\([가-힣]\)|\(\d+\))/;
+  // 텍스트 계열 블록(데이터에 paragraph/prompt/text 등으로 들어옴)만 병합 대상.
+  const isTextLike = (b: Block | undefined): boolean =>
+    !!b && typeof b.text === "string" && ["text", "prompt", "paragraph"].includes(b.type || "");
   const out: Block[] = [];
   for (const block of blocks) {
     const prev = out[out.length - 1];
     if (
-      block.type === "text" &&
-      typeof block.text === "string" &&
-      prev &&
-      prev.type === "text" &&
-      typeof prev.text === "string" &&
-      !TERMINAL.test(prev.text.trim()) &&
-      !ITEM_MARKER.test(block.text.trim())
+      isTextLike(block) &&
+      isTextLike(prev) &&
+      !TERMINAL.test((prev.text as string).trim()) &&
+      !ITEM_MARKER.test((block.text as string).trim())
     ) {
       // 직전 블록이 종결부호 없이 끊겼고 현재가 새 항목 마커가 아니면 이어붙인다.
       prev.text = `${prev.text}${block.text}`;
@@ -778,7 +789,7 @@ function renderRichText(target: HTMLElement, text: unknown): void {
   const blocks = mergeTextContinuations(buildRichBlocks(text));
   blocks.forEach((block) => {
     if (block.type === "image") {
-      target.appendChild(renderReferenceImage(block.src || ""));
+      if (block.src) target.appendChild(renderReferenceImage(block.src));
       return;
     }
     if (block.type === "table") {

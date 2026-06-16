@@ -11,15 +11,10 @@ export const App = () => {
   const [isRestored, setIsRestored] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem("istqb-fl-v4-sample-last-product");
-    const lastProduct = stored === 'istqb' || stored === 'csts' ? stored : null;
-    if (lastProduct) {
-      setActiveProduct(lastProduct);
-      restorePersistentSnapshot(lastProduct).then(() => setIsRestored(true));
-    } else {
-      setIsRestored(true); // show home
-    }
-  }, [setActiveProduct]);
+    // 진입 시 항상 제품 선택 화면(게이트)을 먼저 보여준다(#5).
+    // 저장된 답안/진행 상태는 제품을 선택하는 순간 복원한다(handleProductSelect).
+    setIsRestored(true);
+  }, []);
 
   const handleProductSelect = async (product: 'istqb' | 'csts') => {
     localStorage.setItem("istqb-fl-v4-sample-last-product", product);

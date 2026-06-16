@@ -70,7 +70,9 @@ export const Sidebar = () => {
   };
 
   const handleRetryWrong = () => {
-    // 오답 다시 풀기: 오답(review) 모드로 전환해 틀린 문항만 다시 본다.
+    // 오답 다시 풀기: 이전 재풀이 답안을 비우고 오답(review) 모드로 전환해
+    // 틀린 문항만 새로 푼다. (review는 자체 네임스페이스 + 즉시 피드백)
+    clearAnswers(setId, 'review');
     setMode('review');
     setIndex(0);
     resetTimer();
