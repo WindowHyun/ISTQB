@@ -5,7 +5,7 @@ test("React 앱: 시험 모드에서 답 선택 후 채점하면 점수가 표�
   const pageErrors: string[] = [];
   page.on("pageerror", (e) => pageErrors.push(String(e)));
 
-  await page.goto("/index.vite.html");
+  await page.goto("/");
   await page.getByRole("button", { name: "ISTQB" }).click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 
