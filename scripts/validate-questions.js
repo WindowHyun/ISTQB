@@ -89,6 +89,21 @@ function validateQuestion(q, filePath, allIds, allNumbers) {
     }
   }
 
+  // true_false / short_answer 정답 검증 (#73 — MC 외 타입의 정답도 검사)
+  if (q.type === 'true_false') {
+    const ans = Array.isArray(q.answer) ? q.answer[0] : q.answer;
+    if (!ans || !/^[ox]$/i.test(String(ans).trim())) {
+      log('ERROR', filePath, qId, `true_false 정답이 o/x가 아님: '${ans}'`);
+    }
+  }
+
+  if (q.type === 'short_answer') {
+    const ans = Array.isArray(q.answer) ? q.answer[0] : q.answer;
+    if (!ans || String(ans).trim() === '') {
+      log('ERROR', filePath, qId, `short_answer 정답이 비어 있음`);
+    }
+  }
+
   if (q.figure) {
     const figPath = q.figure.startsWith('/') ? q.figure.substring(1) : q.figure;
     const candidates = [

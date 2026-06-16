@@ -222,13 +222,19 @@
         try {
           const { basePath, catalog } = await loadQuestionCatalog();
           const items = Array.isArray(catalog.sets) ? catalog.sets : [];
-          const loadedSets = await Promise.all(
+          const loadedSets = await Promise.allSettled(
             items.map(async (item) => ({
               item,
               payload: await fetchQuestionJson(`${basePath}${item.path.replace(/^\.\//, "")}`),
             })),
           );
-          loadedSets.forEach(({ item, payload }) => {
+          loadedSets.forEach((result) => {
+            // 세트 1개 실패가 다른 세트/제품을 막지 않도록 격리한다. (#72)
+            if (result.status !== "fulfilled") {
+              appLogStore.add("error", ["question set load failed", result.reason]);
+              return;
+            }
+            const { item, payload } = result.value;
             const product = String(item.certification || "").toLowerCase();
             if (!productData[product]) return;
             const set = normalizeSetPayload(payload, item);
