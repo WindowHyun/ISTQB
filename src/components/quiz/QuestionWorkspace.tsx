@@ -87,6 +87,14 @@ export const QuestionWorkspace = () => {
   const isGraded = Boolean(graded[gradeKey]);
   const canGrade = (mode === 'exam' || mode === 'random') && !isGraded;
 
+  // 오답노트: 채점된 시험/랜덤 또는 오답 모드에서 틀린 문항을 한눈에 보고 이동.
+  const showWrongNote = (isGraded && (mode === 'exam' || mode === 'random')) || mode === 'review';
+  const wrongQuestions = showWrongNote
+    ? currentQuestions
+        .map((q, i) => ({ q, i }))
+        .filter(({ q }) => !isAnswerCorrect(q, answers[answerKeyOf(q)] || []))
+    : [];
+
   const handleGrade = () => {
     const wrongIds = currentQuestions
       .filter((q) => !isAnswerCorrect(q, answers[answerKeyOf(q)] || []))
@@ -153,6 +161,26 @@ export const QuestionWorkspace = () => {
           다음
         </button>
       </div>
+
+      {showWrongNote && wrongQuestions.length > 0 && (
+        <details className="wrong-note" data-testid="wrong-note">
+          <summary>오답노트 ({wrongQuestions.length})</summary>
+          <ul className="wrong-note-list">
+            {wrongQuestions.map(({ q, i }) => {
+              const mine = (answers[answerKeyOf(q)] || []).map((s) => s.toUpperCase()).join(', ') || '-';
+              const correct = q.answer.map((s) => s.toUpperCase()).join(', ');
+              return (
+                <li key={q.id || i}>
+                  <button type="button" className="wrong-note-jump" onClick={() => setIndex(i)}>
+                    문제 {q.number}
+                  </button>
+                  <span className="wrong-note-ans">내 답 {mine} · 정답 {correct}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </details>
+      )}
     </div>
   );
 };

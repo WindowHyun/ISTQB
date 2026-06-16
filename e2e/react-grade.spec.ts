@@ -21,5 +21,8 @@ test("React 앱: 시험 모드에서 답 선택 후 채점하면 점수가 표�
   await expect(page.getByTestId("score")).toBeVisible({ timeout: 10_000 });
   await expect(page.getByTestId("score")).toContainText("점수");
 
+  // 오답노트 패널이 나타나는지 (미응답 문항 다수 → 오답 존재)
+  await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 10_000 });
+
   expect(pageErrors, `page errors: ${pageErrors.join(" | ")}`).toEqual([]);
 });

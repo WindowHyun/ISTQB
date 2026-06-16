@@ -2155,3 +2155,44 @@
   cursor: pointer;
 }
 .grade-btn:hover { filter: brightness(1.05); }
+
+/* === 오답노트 패널 — #75 후속 === */
+.wrong-note {
+  margin-top: 14px;
+  border: 1px solid var(--line, #d0d7de);
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: var(--card, #fff);
+}
+.wrong-note > summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--accent, #166064);
+}
+.wrong-note-list {
+  list-style: none;
+  margin: 10px 0 2px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wrong-note-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.88rem;
+}
+.wrong-note-jump {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--accent, #166064);
+  background: transparent;
+  color: var(--accent, #166064);
+  font-weight: 600;
+  cursor: pointer;
+}
+.wrong-note-jump:hover { background: var(--accent, #166064); color: #fff; }
+.wrong-note-ans { color: var(--muted, #57606a); }
