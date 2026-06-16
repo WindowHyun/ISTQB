@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useQuizStore } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
-import { isAnswerCorrect } from '../../utils/answer';
+import { isQuestionCorrect } from '../../utils/answer';
 import { flushPersist } from '../../utils/storage';
 import { QuestionCard } from './QuestionCard';
 
@@ -113,7 +113,7 @@ export const QuestionWorkspace = () => {
           const selected = answers[answerKeyOf(q)] || [];
           const classes: string[] = [];
           if (i === safeIndex) classes.push('current');
-          if (isGraded) classes.push(isAnswerCorrect(q.answer, selected) ? 'correct' : 'missed');
+          if (isGraded) classes.push(isQuestionCorrect(q.answer, selected, q.type) ? 'correct' : 'missed');
           else classes.push(selected.length > 0 ? 'answered' : 'unanswered');
           return (
             <button

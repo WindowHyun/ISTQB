@@ -1,15 +1,15 @@
 import React, { useState, useCallback } from 'react';
 import { useQuizStore } from '../../store/useQuizStore';
 import { Question } from '../../hooks/useQuestions';
-import { isAnswerCorrect } from '../../utils/answer';
+import { isQuestionCorrect } from '../../utils/answer';
 import { RichText } from '../../utils/parser';
 
 interface OptionItemProps {
   opt: { key: string; text: string };
   isSelected: boolean;
   showFeedback: boolean;
-  mode: string;
   isCorrectAnswer: boolean;
+  locked: boolean;
   handleSelect: (key: string) => void;
 }
 
@@ -17,22 +17,23 @@ const OptionItem = React.memo(({
   opt,
   isSelected,
   showFeedback,
-  mode,
   isCorrectAnswer,
-  handleSelect
+  locked,
+  handleSelect,
 }: OptionItemProps) => {
   let className = "option";
   if (isSelected) className += " selected";
-  if (showFeedback || mode === 'review') {
+  if (showFeedback) {
     if (isCorrectAnswer) className += " correct";
     else if (isSelected) className += " wrong";
   }
 
   return (
-    <button 
+    <button
       type="button"
       className={className}
       aria-pressed={isSelected}
+      disabled={locked}
       aria-label={`선택지 ${opt.key}${isSelected ? ", 선택됨" : ""}`}
       onClick={() => handleSelect(opt.key)}
     >
@@ -44,42 +45,63 @@ const OptionItem = React.memo(({
   );
 });
 
+const TF_OPTIONS = [
+  { key: 'o', text: 'O (맞다 / 참)' },
+  { key: 'x', text: 'X (틀리다 / 거짓)' },
+];
+
 export const QuestionCard = React.memo(({ question }: { question: Question }) => {
   const { mode, setId, answers, setAnswer, graded } = useQuizStore();
   const [showFeedback, setShowFeedback] = useState(false);
 
-  // 오답(review) 모드는 시험(exam) 답안을 읽고/판정한다.
-  const answerMode = mode === 'review' ? 'exam' : mode;
-  const answerKey = `${setId}-${answerMode}-${question.id || question.number}`;
+  const answerKey = `${setId}-${mode}-${question.id || question.number}`;
   const selected = answers[answerKey] || [];
-  const isMulti = question.answer.length > 1;
-  const isGraded = Boolean(graded[`${setId}-${answerMode}`]);
-  // 정답/해설 공개 조건: 연습 즉시피드백 · 오답 모드 · 채점 완료
-  const reveal = showFeedback || mode === 'review' || isGraded;
+
+  const hasOptions = question.options.length > 0;
+  const isTrueFalse = !hasOptions && question.type === 'true_false';
+  const isShort = !hasOptions && question.type === 'short_answer';
+  const displayOptions = hasOptions
+    ? question.options
+    : isTrueFalse
+      ? TF_OPTIONS
+      : [];
+
+  const isMulti = hasOptions && question.answer.length > 1;
+  const isGraded = Boolean(graded[`${setId}-${mode}`]);
+  // 연습·오답 모드는 즉시 피드백, 시험·랜덤은 채점 후 공개.
+  const immediate = mode === 'practice' || mode === 'review';
+  const reveal = showFeedback || isGraded;
+  const locked = isGraded; // 채점 후 잠금(연습/오답은 잠그지 않음)
 
   const handleSelect = useCallback((key: string) => {
-    if (isGraded) return; // 채점 후 선택 잠금
-    if (mode === 'exam' || mode === 'practice') {
-      let newSelected = [...selected];
-      if (isMulti) {
-        if (newSelected.includes(key)) {
-          newSelected = newSelected.filter(k => k !== key);
-        } else if (newSelected.length < question.answer.length) {
-          newSelected.push(key);
-        }
-        // 복수정답도 모든 보기를 고르면 연습 모드에서 즉시 피드백(#80).
-        if (mode === 'practice' && newSelected.length === question.answer.length) {
-          setShowFeedback(true);
-        }
-      } else {
-        newSelected = [key];
-        if (mode === 'practice') setShowFeedback(true);
+    if (isGraded) return;
+    let newSelected = [...selected];
+    if (isMulti) {
+      if (newSelected.includes(key)) {
+        newSelected = newSelected.filter((k) => k !== key);
+      } else if (newSelected.length < question.answer.length) {
+        newSelected.push(key);
       }
-      setAnswer(answerKey, newSelected);
+      if (immediate && newSelected.length === question.answer.length) setShowFeedback(true);
+    } else {
+      newSelected = [key];
+      if (immediate) setShowFeedback(true);
     }
-  }, [mode, isGraded, isMulti, question.answer.length, selected, answerKey, setAnswer]);
+    setAnswer(answerKey, newSelected);
+  }, [isGraded, isMulti, immediate, question.answer.length, selected, answerKey, setAnswer]);
 
-  const isCorrect = () => isAnswerCorrect(question.answer, selected);
+  const handleShortInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAnswer(answerKey, e.target.value ? [e.target.value] : []);
+  };
+
+  const correct = isQuestionCorrect(question.answer, selected, question.type);
+  const answerDisplay = isShort || isTrueFalse
+    ? question.answer.join(', ').toUpperCase()
+    : question.answer.join(', ').toUpperCase();
+
+  // figure 필드와 stem 내 이미지가 같은 파일을 가리키면 중복 렌더 방지(#2).
+  const stemHasFigure =
+    !!question.figure && JSON.stringify(question.stem ?? '').includes(question.figure);
 
   return (
     <>
@@ -87,9 +109,9 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
         <RichText content={question.stem} />
       </div>
 
-      {question.figure && (
+      {question.figure && !stemHasFigure && (
         <div id="questionFigure" className="question-figure">
-          <img src={question.figure} alt="Reference figure" />
+          <img src={question.figure} alt="문제 참고 이미지" />
         </div>
       )}
 
@@ -100,28 +122,50 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
           </div>
         )}
 
-        {question.options.map((opt) => {
+        {displayOptions.map((opt) => {
           const isSelected = selected.includes(opt.key);
-          const isCorrectAnswer = question.answer.map(a => a.toLowerCase()).includes(opt.key.toLowerCase());
-          
+          const isCorrectAnswer = question.answer.map((a) => a.toLowerCase()).includes(opt.key.toLowerCase());
           return (
             <OptionItem
               key={opt.key}
               opt={opt}
               isSelected={isSelected}
               showFeedback={reveal}
-              mode={mode}
               isCorrectAnswer={isCorrectAnswer}
+              locked={locked}
               handleSelect={handleSelect}
             />
           );
         })}
+
+        {isShort && (
+          <div className="short-answer">
+            <input
+              type="text"
+              className="short-answer-input"
+              value={selected[0] || ''}
+              disabled={locked}
+              placeholder="정답을 입력하세요"
+              aria-label="단답형 정답 입력"
+              onChange={handleShortInput}
+            />
+            {immediate && !reveal && (
+              <button
+                type="button"
+                className="short-answer-check"
+                onClick={() => setShowFeedback(true)}
+              >
+                정답 확인
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {reveal && (
-        <div id="feedback" className={`feedback ${isCorrect() ? 'correct' : 'wrong'}`}>
+        <div id="feedback" className={`feedback ${correct ? 'correct' : 'wrong'}`}>
           <strong>
-            {isCorrect() ? '✅ 정답입니다' : '❌ 오답입니다'} · 정답 {question.answer.join(', ').toUpperCase()}
+            {correct ? '✅ 정답입니다' : '❌ 오답입니다'} · 정답 {answerDisplay}
           </strong>
           <div className="feedback-body">
             <RichText content={question.explanation || '해설이 없습니다.'} />

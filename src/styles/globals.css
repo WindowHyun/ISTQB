@@ -482,6 +482,31 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 .option.wrong { border-color: var(--danger); background: var(--danger-50); box-shadow: 0 0 0 1px var(--danger) inset; }
 .option.wrong .option-key { background: var(--danger); color: #fff; }
 
+/* 단답형 입력 */
+.short-answer { display: flex; gap: 10px; flex-wrap: wrap; }
+.short-answer-input {
+  flex: 1 1 240px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 16px;
+  color: var(--text);
+}
+.short-answer-input:focus { border-color: var(--primary); }
+.short-answer-input:disabled { background: var(--surface-3); color: var(--muted); }
+.short-answer-check {
+  flex: none;
+  padding: 0 20px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+.short-answer-check:hover { background: var(--primary-600); }
+
 /* 피드백/해설 */
 .feedback {
   display: flex;
