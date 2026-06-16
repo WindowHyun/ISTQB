@@ -15,5 +15,6 @@
   { "code": "R14", "issue": 70, "title": "[Bug] 세트/모드 전환 시 index 미초기화 → 범위 밖 접근 크래시", "file": "R14_index-not-reset-on-set-mode-change.md", "severity": "Medium", "labels": "bug" },
   { "code": "R15", "issue": 71, "title": "[Improvement] 타이머 동작 중 localStorage 초당 기록", "file": "R15_timer-localstorage-churn.md", "severity": "Low", "labels": "enhancement" },
   { "code": "R16", "issue": 72, "title": "[Bug] 데이터 로딩 all-or-nothing (Promise.all) — 세트 1개 실패가 전체 장애로 증폭", "file": "R16_data-load-all-or-nothing.md", "severity": "Medium", "labels": "bug" },
-  { "code": "R17", "issue": 73, "title": "[Test] validate-questions.js가 true_false/short_answer 정답 미검증", "file": "R17_validator-shortanswer-gap.md", "severity": "Medium", "labels": "enhancement" }
+  { "code": "R17", "issue": 73, "title": "[Test] validate-questions.js가 true_false/short_answer 정답 미검증", "file": "R17_validator-shortanswer-gap.md", "severity": "Medium", "labels": "enhancement" },
+  { "code": "R18", "issue": 74, "title": "[Bug] parser.tsx에 renderRichText 등 함수 누락 — React 문항 렌더 크래시", "file": "R18_parser-missing-functions.md", "severity": "Critical", "labels": "bug" }
 ]
