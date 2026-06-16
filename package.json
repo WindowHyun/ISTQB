@@ -11,6 +11,7 @@
     "build": "tsc && vite build",
     "preserve": "node scripts/sync-assets.js",
     "serve": "node local-server.js",
+    "preview": "vite preview --port 4173 --strictPort",
     "precap:sync": "node scripts/sync-assets.js",
     "validate:questions": "node scripts/validate-questions.js",
     "verify": "node scripts/verify.js",
