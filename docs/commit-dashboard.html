@@ -140,6 +140,22 @@
 <script>
 // ── 커밋 데이터 (git log 기준, 최신순) ──────────────────────────────
 const COMMITS = [
+  {hash:"a8f41fa",author:"AI Bot",date:"2026-06-16",subject:"fix: 남은 표/도형 이미지 14건 영역 정밀 추출 (#95)"},
+  {hash:"55ea6c2",author:"AI Bot",date:"2026-06-16",subject:"fix: 문제 이미지 35건 다이어그램 영역만으로 재추출 (#94)"},
+  {hash:"826507d",author:"AI Bot",date:"2026-06-16",subject:"fix: 줄바꿈 근본 대응 — 파싱 전 조각 병합 + 괄호/빈칸 규칙 (#93)"},
+  {hash:"61942ea",author:"AI Bot",date:"2026-06-16",subject:"fix: 줄 병합 과병합 해소 — AC1/AC2/AC3 분리 유지 (#90)"},
+  {hash:"c0dd48f",author:"AI Bot",date:"2026-06-16",subject:"fix: 오크롭된 문제 이미지 3건 재추출 (#89)"},
+  {hash:"5b34bd5",author:"AI Bot",date:"2026-06-16",subject:"fix: 단답/진위 입력·이미지 중복·진입 게이트·오답 재풀이 (#88)"},
+  {hash:"2960b2e",author:"AI Bot",date:"2026-06-16",subject:"fix: 보기/지문 렌더 교정 및 설정(앱 이동·글자 크기) 복원 (#87)"},
+  {hash:"b034410",author:"AI Bot",date:"2026-06-16",subject:"feat: CBT 문제풀이 사이트 신규 디자인 (기능·데이터·정답 불변) (#86)"},
+  {hash:"9ea4d6c",author:"AI Bot",date:"2026-06-16",subject:"feat: React 앱 UI를 레거시 디자인과 파리티 맞춤 (#85)"},
+  {hash:"9d75705",author:"AI Bot",date:"2026-06-16",subject:"fix: Vercel framework를 vite로 명시 — 배포 오류 해소 (#84)"},
+  {hash:"c37fd1c",author:"AI Bot",date:"2026-06-16",subject:"fix: 레거시 서비스워커 자가 해제(tombstone) — 배포 전환 캐시 해소 (#83)"},
+  {hash:"1daa336",author:"AI Bot",date:"2026-06-16",subject:"deploy: Vercel 운영 배포를 React(Vite dist) 앱으로 전환 (#82)"},
+  {hash:"24bafb4",author:"AI Bot",date:"2026-06-16",subject:"fix: 연습 모드 피드백 상태 누수 및 복수정답 즉시 피드백 (#81)"},
+  {hash:"ea73d83",author:"AI Bot",date:"2026-06-16",subject:"chore: 불필요한 파일·리포트 정리 및 README 갱신 (#78)"},
+  {hash:"d61f299",author:"AI Bot",date:"2026-06-16",subject:"Merge #69: Phase 4 — React 기능 완성 + CI 전문화 + 데이터 PDF 검증"},
+
   {hash:"6c8e006",author:"AI Bot",date:"2026-06-16",subject:"fix(ui): UI 이슈 수정 (#37, #38, #39, #41, #42, #44, #51)"},
   {hash:"3578122",author:"AI Bot",date:"2026-06-16",subject:"fix(data): C31 그래프·CSTS-2018 자료흐름도 이미지 복원 (#48, #50 완료)"},
   {hash:"564f936",author:"AI Bot",date:"2026-06-16",subject:"fix(data): 보류했던 표/그래프/코드 문항 복원 (#46 잔여, #48, #50)"},
@@ -408,7 +424,11 @@ const ISSUES = [
   {n:74,state:"CLOSED",labels:["bug"],created:"2026-06-16",closed:"2026-06-16",title:"[Bug][Critical] parser.tsx에 renderRichText 등 함수 누락 — React 문항 렌더 시 ReferenceError 크래시"},
   {n:75,state:"CLOSED",labels:["enhancement"],created:"2026-06-16",closed:"2026-06-16",title:"[Feature][High] React 앱 핵심 퀴즈 기능 미완성 — 채점/review/타이머·진행률·오답노트 미배선"},
   {n:76,state:"CLOSED",labels:["enhancement"],created:"2026-06-16",closed:"2026-06-16",title:"[Test][Medium] 테스트 깊이 부족 — E2E 렌더-온리 + 핵심 로직 유닛 테스트 부재"},
-  {n:77,state:"CLOSED",labels:["bug"],created:"2026-06-16",closed:"2026-06-16",title:"[Data] PDF 대조 감사 잔여 결함 — D-34 list 오염, CSTS-2402-68/2405-63 잘림, 2405-33 malformed image"}
+  {n:77,state:"CLOSED",labels:["bug"],created:"2026-06-16",closed:"2026-06-16",title:"[Data] PDF 대조 감사 잔여 결함 — D-34 list 오염, CSTS-2402-68/2405-63 잘림, 2405-33 malformed image"},
+  {n:79,state:"CLOSED",labels:["bug"],created:"2026-06-16",closed:"2026-06-16",title:"[React][High] QuestionCard에 key 부재 → showFeedback 상태가 문항·모드 간 누수"},
+  {n:80,state:"CLOSED",labels:["bug"],created:"2026-06-16",closed:"2026-06-16",title:"[React][Medium] 연습 모드에서 복수정답 문항은 즉시 피드백이 표시되지 않음"},
+  {n:91,state:"CLOSED",labels:["bug"],created:"2026-06-16",closed:"2026-06-16",title:"[Render] 문제/보기 줄바꿈 — 영문 분할·~다 어미·AC 인수조건 (수정 완료)"},
+  {n:92,state:"OPEN",labels:["bug"],created:"2026-06-16",closed:null,title:"[Data][Image] 다수 문제 이미지가 다이어그램이 아닌 문제 전체를 캡처(과캡처) — 잔여 1건"}
 ];
 const REPO = "https://github.com/WindowHyun/ISTQB/issues/";
 const LBL_COLORS = { bug:"#d73a4a", enhancement:"#a371f7", documentation:"#0969da", "data-issue":"#9a6700", "(없음)":"var(--muted)" };
