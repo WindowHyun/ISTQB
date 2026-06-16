@@ -83,10 +83,6 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
 
   return (
     <>
-      <h2 id="questionTitle" className="question-title">
-        문제 {question.number} {isMulti ? " · 복수정답" : ""}
-      </h2>
-
       <div id="questionStem" className="question-stem">
         <RichText content={question.stem} />
       </div>
@@ -123,14 +119,11 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
       </div>
 
       {reveal && (
-        <div id="feedback" className={`feedback-panel ${isCorrect() ? 'correct' : 'wrong'}`}>
-          <div className="feedback-result">
-            {isCorrect() ? '✅ 정답입니다' : '❌ 오답입니다'}
-            <span className="correct-answer-text">
-              정답: {question.answer.join(', ').toUpperCase()}
-            </span>
-          </div>
-          <div className="feedback-explanation">
+        <div id="feedback" className={`feedback ${isCorrect() ? 'correct' : 'wrong'}`}>
+          <strong>
+            {isCorrect() ? '✅ 정답입니다' : '❌ 오답입니다'} · 정답 {question.answer.join(', ').toUpperCase()}
+          </strong>
+          <div className="feedback-body">
             <RichText content={question.explanation || '해설이 없습니다.'} />
           </div>
         </div>
