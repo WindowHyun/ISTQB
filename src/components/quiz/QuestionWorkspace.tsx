@@ -135,7 +135,12 @@ export const QuestionWorkspace = () => {
       </nav>
 
       <div className="question-container">
-        <QuestionCard question={currentQuestion} />
+        {/* mode+문항을 key로 묶어 카드를 remount → showFeedback 등 로컬 상태가
+            문항 이동·모드 전환 간 누수되지 않게 한다(#79). */}
+        <QuestionCard
+          key={`${mode}-${currentQuestion.id || currentQuestion.number}`}
+          question={currentQuestion}
+        />
       </div>
 
       <div className="nav-actions">
