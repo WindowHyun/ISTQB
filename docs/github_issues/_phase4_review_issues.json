@@ -16,5 +16,7 @@
   { "code": "R15", "issue": 71, "title": "[Improvement] 타이머 동작 중 localStorage 초당 기록", "file": "R15_timer-localstorage-churn.md", "severity": "Low", "labels": "enhancement" },
   { "code": "R16", "issue": 72, "title": "[Bug] 데이터 로딩 all-or-nothing (Promise.all) — 세트 1개 실패가 전체 장애로 증폭", "file": "R16_data-load-all-or-nothing.md", "severity": "Medium", "labels": "bug" },
   { "code": "R17", "issue": 73, "title": "[Test] validate-questions.js가 true_false/short_answer 정답 미검증", "file": "R17_validator-shortanswer-gap.md", "severity": "Medium", "labels": "enhancement" },
-  { "code": "R18", "issue": 74, "title": "[Bug] parser.tsx에 renderRichText 등 함수 누락 — React 문항 렌더 크래시", "file": "R18_parser-missing-functions.md", "severity": "Critical", "labels": "bug" }
+  { "code": "R18", "issue": 74, "title": "[Bug] parser.tsx에 renderRichText 등 함수 누락 — React 문항 렌더 크래시", "file": "R18_parser-missing-functions.md", "severity": "Critical", "labels": "bug" },
+  { "code": "R19", "issue": 75, "title": "[Feature] React 앱 핵심 퀴즈 기능 미완성 — 채점/review/타이머/오답노트", "file": "R19_react-feature-completeness.md", "severity": "High", "labels": "enhancement" },
+  { "code": "R20", "issue": 76, "title": "[Test] 테스트 깊이 부족 — E2E 렌더-온리 + 핵심 로직 유닛 부재", "file": "R20_test-depth.md", "severity": "Medium", "labels": "enhancement" }
 ]
