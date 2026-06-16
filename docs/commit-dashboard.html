@@ -375,7 +375,7 @@ const ISSUES = [
   {n:40,state:"CLOSED",labels:["bug"],created:"2026-06-15",closed:"2026-06-15",title:"[Bug] 랜덤 모드 40문항 하드코딩 (40개 미만 시 무한 재셔플 위험)"},
   {n:41,state:"CLOSED",labels:["enhancement"],created:"2026-06-15",closed:"2026-06-15",title:"[Improvement] 복수 정답 문항 초과 선택 제한 없음"},
   {n:42,state:"CLOSED",labels:["enhancement"],created:"2026-06-15",closed:"2026-06-15",title:"[Improvement] 다크모드 색상 변수 누락 + 고아 CSS 정리"},
-  {n:43,state:"OPEN",labels:["enhancement"],created:"2026-06-15",closed:null,title:"[Improvement] CSTS 관련 dead code 정리"},
+  {n:43,state:"CLOSED",labels:["enhancement"],created:"2026-06-15",closed:"2026-06-15",title:"[Improvement] CSTS 관련 dead code 정리"},
   {n:44,state:"CLOSED",labels:["enhancement"],created:"2026-06-15",closed:"2026-06-15",title:"[Improvement] questionNav 현재 문제 버튼 자동 스크롤 추가"},
   {n:45,state:"CLOSED",labels:["bug"],created:"2026-06-15",closed:"2026-06-15",title:"[Bug] sanitizeHistories가 잘못된 review mode history를 정화하지 않음"},
   {n:46,state:"CLOSED",labels:["bug","data-issue"],created:"2026-06-15",closed:"2026-06-15",title:"[Critical][Data] 문항 지문(stem)이 다른 문제 내용으로 오염됨 (ISTQB-D/EXTRA, CSTS-2404)"},
@@ -384,8 +384,27 @@ const ISSUES = [
   {n:49,state:"CLOSED",labels:["bug","data-issue"],created:"2026-06-15",closed:"2026-06-15",title:"[Bug][Data] 문항 끝에 섹션/정답표 헤더 텍스트 잔류 (ISTQB-A 40, CSTS-2019 70)"},
   {n:50,state:"CLOSED",labels:["bug","data-issue"],created:"2026-06-15",closed:"2026-06-15",title:"[Critical][Data] CSTS-2018 코드 블록 위치 뒤바뀜(12↔15) 및 그림 자산 누락"},
   {n:51,state:"CLOSED",labels:["enhancement"],created:"2026-06-15",closed:"2026-06-15",title:"[Improvement][UI] 표/그림 문항 figure 필드 불일치 및 렌더링 규약 통일 (수정 보류)"},
-  {n:52,state:"OPEN",labels:["bug","data-issue"],created:"2026-06-15",closed:null,title:"[Critical][Data] 문제 데이터가 www/public/dist 3곳에 분기되어 동기화 안 됨 (웹은 뒤처진 public/data 사용)"},
-  {n:53,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[High][Arch] script.js·style.css가 루트/www에 중복 분기되어 동기화 안 됨"}
+  {n:52,state:"CLOSED",labels:["bug","data-issue"],created:"2026-06-15",closed:"2026-06-15",title:"[Critical][Data] 문제 데이터가 www/public/dist 3곳에 분기되어 동기화 안 됨 (웹은 뒤처진 public/data 사용)"},
+  {n:53,state:"CLOSED",labels:["bug"],created:"2026-06-15",closed:"2026-06-15",title:"[High][Arch] script.js·style.css가 루트/www에 중복 분기되어 동기화 안 됨"},
+  {n:54,state:"CLOSED",labels:["bug"],created:"2026-06-15",closed:"2026-06-15",title:"[Bug] figure 이미지가 웹(루트 서빙)에서 404 — 루트에 images 폴더 부재"},
+  {n:55,state:"OPEN",labels:["enhancement"],created:"2026-06-15",closed:null,title:"[Arch] index.html 구조 통일 후 style.css 단일 정본 통합 (#53 후속)"},
+  {n:56,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug][Critical] React 앱(useQuestions)이 실제 데이터 스키마와 불일치하여 렌더 불가/크래시"},
+  {n:57,state:"OPEN",labels:["enhancement"],created:"2026-06-15",closed:null,title:"[Arch][High] src/ 내 이중 구현(useQuestions vs features/quiz)과 미사용 컴포넌트 8개"},
+  {n:58,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug][High] React Error Boundary 부재로 렌더 예외 시 화면 백지"},
+  {n:59,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug][High] 백업 가져오기(importUserData) debounce 저장-복원 레이스"},
+  {n:60,state:"OPEN",labels:["enhancement"],created:"2026-06-15",closed:null,title:"[Chore][High] 스크래치/디버그 산출물이 git에 추적됨 (리포 위생)"},
+  {n:61,state:"OPEN",labels:["enhancement"],created:"2026-06-15",closed:null,title:"[Improvement][Medium] TypeScript strict 우회(@ts-nocheck/@ts-ignore/any)"},
+  {n:62,state:"CLOSED",labels:["bug"],created:"2026-06-15",closed:"2026-06-15",title:"[Bug][Medium] 랜덤 모드 셔플 편향(sort 비교자에 Math.random)"},
+  {n:63,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug][Medium] 타이머 백그라운드 시간 과다 집계 + 이중 타이머 모델"},
+  {n:64,state:"CLOSED",labels:["enhancement"],created:"2026-06-15",closed:"2026-06-15",title:"[Improvement][Medium] 서비스워커 이중 전략 + PWA manifest 아이콘 빈 배열"},
+  {n:65,state:"CLOSED",labels:["bug"],created:"2026-06-15",closed:"2026-06-15",title:"[Bug][Medium] 외부 입력 무검증(last-product, 백업 JSON)"},
+  {n:66,state:"CLOSED",labels:["enhancement"],created:"2026-06-15",closed:"2026-06-15",title:"[Improvement][Medium] React 측 접근성 회귀(ARIA/포커스/라벨 누락)"},
+  {n:67,state:"CLOSED",labels:["enhancement"],created:"2026-06-15",closed:"2026-06-15",title:"[Chore][Low] 빌드 전용 패키지가 dependencies에 분류됨"},
+  {n:68,state:"OPEN",labels:["enhancement"],created:"2026-06-15",closed:null,title:"[Test][High] React 앱 E2E 스모크 추가 (#56/#57 해결 후) — 런타임 크래시 검출 계층"},
+  {n:70,state:"OPEN",labels:["bug"],created:"2026-06-15",closed:null,title:"[Bug][Medium] 세트/모드 전환 시 index 미초기화 → 범위 밖 접근 크래시 (wired 경로)"},
+  {n:71,state:"OPEN",labels:["enhancement"],created:"2026-06-15",closed:null,title:"[Improvement][Low] 타이머 동작 중 localStorage 초당 기록(과다 쓰기)"},
+  {n:72,state:"OPEN",labels:["bug"],created:"2026-06-16",closed:null,title:"[Bug][Medium] 데이터 로딩 all-or-nothing — 세트 1개 실패가 전체(양 제품) 장애로 증폭 (Promise.all)"},
+  {n:73,state:"OPEN",labels:["enhancement"],created:"2026-06-16",closed:null,title:"[Test][Medium] validate-questions.js가 true_false/short_answer 정답을 검증하지 않음"}
 ];
 const REPO = "https://github.com/WindowHyun/ISTQB/issues/";
 const LBL_COLORS = { bug:"#d73a4a", enhancement:"#a371f7", documentation:"#0969da", "data-issue":"#9a6700", "(없음)":"var(--muted)" };
