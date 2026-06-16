@@ -95,4 +95,28 @@ describe("RichText (parser renderRichText 회귀 가드)", () => {
     const el = await renderRichTextEl([{ type: "image", text: "" }]);
     expect(el.querySelector("img")).toBeNull();
   });
+
+  // #4: AC1/AC2/AC3 인수 조건은 각각 별도 줄로 분리되어야 하며 다시 합쳐지면 안 된다.
+  it("AC 인수 조건은 줄마다 분리된다(과병합 금지)", async () => {
+    const el = await renderRichTextEl([
+      {
+        type: "paragraph",
+        text: "인수 조건: AC1: 일반 사용자는 1~3층에 출입할 수 있다 AC2: 4층은 특별 사용자만 출입할 수 있다 AC3: 특별 사용자는 모든 권한을 가진다",
+      },
+    ]);
+    const lines = Array.from(el.querySelectorAll(".text-line")).map((n) => n.textContent || "");
+    expect(lines.some((l) => l.startsWith("AC1:"))).toBe(true);
+    expect(lines.some((l) => l.startsWith("AC2:"))).toBe(true);
+    expect(lines.some((l) => l.startsWith("AC3:"))).toBe(true);
+  });
+
+  // "다음"처럼 "다" 뒤에 음절이 붙는 경우는 이전 줄과 합치면 안 된다(과병합 금지).
+  it("'다음…'으로 시작하는 줄은 이전 줄과 합치지 않는다", async () => {
+    const el = await renderRichTextEl([
+      { type: "paragraph", text: "특별 사용자는 모든 권한을 가진다" },
+      { type: "prompt", text: "다음 중 AC3을 테스트하는 데 가장 합리적인 테스트 케이스는?" },
+    ]);
+    const lines = Array.from(el.querySelectorAll(".text-line")).map((n) => n.textContent || "");
+    expect(lines.some((l) => l.startsWith("다음 중 AC3"))).toBe(true);
+  });
 });
