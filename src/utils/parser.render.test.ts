@@ -90,10 +90,29 @@ describe("RichText (parser renderRichText 회귀 가드)", () => {
     expect(img?.getAttribute("src")).toBe("/images/questions/CSTS-FL-2402-030.png");
   });
 
-  // #2: src가 없는 이미지 블록은 깨진 <img>를 만들지 않는다.
+  // #2: src가 없는 이미지 블록은 렌더하지 않는다.
   it("src가 없는 이미지 블록은 렌더하지 않는다", async () => {
     const el = await renderRichTextEl([{ type: "image", text: "" }]);
     expect(el.querySelector("img")).toBeNull();
+  });
+
+  // 가/나/다/라 항목에서 "다."가 직전 "나." 항목에 잘못 흡수되지 않는다(항목 보존).
+  it("한글 항목 마커(가/나/다/라)는 '다.' 어미 병합으로 사라지지 않는다", async () => {
+    const text = await renderRichText([
+      { type: "paragraph", text: "나. 변경이 올바르게 되었는지를 검사하기 위한 테스트" },
+      { type: "paragraph", text: "다. 빌드가 테스트할만한 수준인지를 확인하는 테스트" },
+    ]);
+    expect(text).toContain("다. 빌드가 테스트할만한");
+  });
+
+  // 보기/지문의 마크다운 파이프 표가 실제 <table>로 렌더된다(raw "|" 노출 금지).
+  it("마크다운 파이프 표를 <table>로 렌더한다", async () => {
+    const md = "| step# | 상태 | 입력 |\n|---|---|---|\n| 1 | 노선 예약됨 | 결제 |\n| 2 | 결제됨 | 발권 |";
+    const el = await renderRichTextEl(md);
+    const table = el.querySelector("table.data-table");
+    expect(table).not.toBeNull();
+    expect(table?.querySelectorAll("tr").length).toBe(3); // 헤더 + 2행(구분행 제외)
+    expect(el.textContent).not.toContain("|---|");
   });
 
   // #4: AC1/AC2/AC3 인수 조건은 각각 별도 줄로 분리되어야 하며 다시 합쳐지면 안 된다.
