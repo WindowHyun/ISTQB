@@ -23,3 +23,26 @@ android/local.properties
 .DS_Store
 Thumbs.db
 *.log
+.vercel
+
+# Temp / scratch
+tmp/
+
+# Vite 빌드 산출물 (prebuild에서 sync-assets로 재생성; 정본은 www/ + public/)
+dist/
+
+# Playwright E2E 산출물
+test-results/
+playwright-report/
+playwright/.cache/
+
+# 테스트 커버리지
+coverage/
+
+# 스크래치 / 감사 산출물 (#60)
+/prompt-dump.txt
+/report-dump.txt
+/test-bug.js
+/anomalies.json
+/qa_1000_audit_result.json
+/validation_report.json

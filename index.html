@@ -38,41 +38,7 @@
       </div>
     </section>
 
-    <section
-      id="cstsPage"
-      class="csts-page is-product-hidden"
-      aria-labelledby="cstsTitle"
-      hidden
-    >
-      <div class="csts-shell">
-        <header class="csts-header">
-          <div>
-            <p class="product-eyebrow">CSTS</p>
-            <h1 id="cstsTitle">CSTS 문제풀이</h1>
-          </div>
-          <button id="cstsBackBtn" class="subtle" type="button">
-            처음으로
-          </button>
-        </header>
-        <section class="csts-browser" aria-label="CSTS 추출 문제 미리보기">
-          <div class="csts-controls">
-            <label for="cstsSetSelect">문제 세트</label>
-            <select id="cstsSetSelect"></select>
-          </div>
-          <div id="cstsSummary" class="csts-summary" aria-live="polite"></div>
-          <article class="question-card csts-question-card">
-            <div class="question-meta" id="cstsQuestionMeta"></div>
-            <h2 id="cstsQuestionTitle">CSTS 문제</h2>
-            <div id="cstsQuestionStem" class="stem"></div>
-            <div id="cstsQuestionFigure" class="figure-wrap"></div>
-            <div id="cstsOptions" class="options"></div>
-            <div id="cstsAnswer" class="feedback" aria-live="polite"></div>
-          </article>
-          <div class="csts-actions">
-            <button id="cstsPrevBtn" class="secondary" type="button">이전</button>
-            <button id="cstsNextBtn" class="primary" type="button">다음</button>
-          </div>
-        </section>
+    
       </div>
     </section>
 
@@ -175,75 +141,7 @@
             >
               설정
             </button>
-            <div id="settingsPanel" class="settings-content" hidden>
-              <section class="action-section app-navigation-section">
-                <h3>앱 이동</h3>
-                <div class="record-actions">
-                  <button
-                    id="productHomeBtn"
-                    class="subtle text-action"
-                    type="button"
-                    aria-label="처음 화면으로 이동"
-                  >
-                    처음
-                  </button>
-                </div>
-              </section>
-
-              <section class="panel">
-                <label>글자 크기</label>
-                <div
-                  class="segmented compact"
-                  role="group"
-                  aria-label="문제 글자 크기"
-                >
-                  <button type="button" data-font-size="small">작게</button>
-                  <button class="active" type="button" data-font-size="normal">
-                    기본
-                  </button>
-                  <button type="button" data-font-size="large">크게</button>
-                </div>
-              </section>
-
-              <section class="action-section record-section">
-                <h3>기록 관리</h3>
-                <div class="record-actions">
-                  <button id="exportBackupBtn" type="button">기록 내보내기</button>
-                  <button id="importBackupBtn" type="button">기록 가져오기</button>
-                </div>
-                <p id="backupStatus" class="backup-status" aria-live="polite">
-                  내보내기 후 파일명과 확인 위치가 여기에 표시됩니다.
-                </p>
-                <input
-                  id="backupFileInput"
-                  type="file"
-                  accept="application/json,.json"
-                  hidden
-                />
-              </section>
-
-              <section class="action-section log-section">
-                <h3>진단</h3>
-                <div class="record-actions">
-                  <button id="consoleLogBtn" type="button">Console 확인</button>
-                </div>
-                <p class="backup-status">
-                  에러 발생 시 최근 로그를 확인하거나 복사/저장할 수 있습니다.
-                </p>
-              </section>
-
-              <section class="action-section">
-                <h3>초기화</h3>
-                <div class="danger-actions">
-                  <button id="resetBtn" class="danger" type="button">
-                    현재 모드 풀이 초기화
-                  </button>
-                  <button id="resetAllBtn" class="danger" type="button">
-                    현재 세트 기록 전체 삭제
-                  </button>
-                </div>
-              </section>
-            </div>
+            
           </section>
         </div>
       </aside>
@@ -313,7 +211,8 @@
       >
         <header class="modal-header">
           <h3 id="wrongNoteTitle">오답 노트</h3>
-          <button id="wrongNoteCloseBtn" type="button">닫기</button>
+          <button id="clearWrongNoteBtn" class="danger subtle" type="button" style="margin-right:8px; padding:4px 8px; font-size:13px;">비우기</button>
+            <button id="wrongNoteCloseBtn" type="button">닫기</button>
         </header>
         <div id="wrongNoteBody" class="modal-body"></div>
       </section>
@@ -362,8 +261,75 @@
       </section>
     </div>
 
-    <script src="./questions.js"></script>
-    <script src="./csts-questions.js"></script>
     <script src="./script.js"></script>
+  <div id="settingsPanel" class="settings-content" hidden>
+              <section class="action-section app-navigation-section">
+                <h3>앱 이동</h3>
+                <div class="record-actions">
+                  <button
+                    id="productHomeBtn"
+                    class="subtle text-action"
+                    type="button"
+                    aria-label="처음 화면으로 이동"
+                  >
+                    처음
+                  </button>
+                </div>
+              </section>
+
+              <section class="panel">
+                <label>글자 크기</label>
+                <div
+                  class="segmented compact"
+                  role="group"
+                  aria-label="문제 글자 크기"
+                >
+                  <button type="button" data-font-size="small">작게</button>
+                  <button class="active" type="button" data-font-size="normal">
+                    기본
+                  </button>
+                  <button type="button" data-font-size="large">크게</button>
+                </div>
+              </section>
+
+              <section class="action-section record-section">
+                <h3>기록 관리</h3>
+                <div class="record-actions">
+                  <button id="exportBackupBtn" type="button">기록 내보내기</button>
+                  <button id="importBackupBtn" type="button">기록 가져오기</button>
+                </div>
+                <p id="backupStatus" class="backup-status" aria-live="polite">
+                  내보내기 후 파일명과 확인 위치가 여기에 표시됩니다.
+                </p>
+                <input
+                  id="backupFileInput"
+                  type="file"
+                  accept="application/json,.json"
+                  hidden
+                />
+              </section>
+
+              <section class="action-section log-section">
+                <h3>진단</h3>
+                <div class="record-actions">
+                  <button id="consoleLogBtn" type="button">Console 확인</button>
+                </div>
+                <p class="backup-status">
+                  에러 발생 시 최근 로그를 확인하거나 복사/저장할 수 있습니다.
+                </p>
+              </section>
+
+              <section class="action-section">
+                <h3>초기화</h3>
+                <div class="danger-actions">
+                  <button id="resetBtn" class="danger" type="button">
+                    현재 모드 풀이 초기화
+                  </button>
+                  <button id="resetAllBtn" class="danger" type="button">
+                    현재 세트 기록 전체 삭제
+                  </button>
+                </div>
+              </section>
+            </div>
   </body>
 </html>

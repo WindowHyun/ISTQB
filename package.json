@@ -4,18 +4,60 @@
   "private": true,
   "description": "Android wrapper project for the ISTQB FL tablet app.",
   "scripts": {
-    "serve": "node server.js",
+    "sync:assets": "node scripts/sync-assets.js",
+    "predev": "node scripts/sync-assets.js",
+    "dev": "vite --host 0.0.0.0",
+    "prebuild": "node scripts/sync-assets.js",
+    "build": "tsc && vite build",
+    "preserve": "node scripts/sync-assets.js",
+    "serve": "node local-server.js",
+    "preview": "vite preview --port 4173 --strictPort",
+    "precap:sync": "node scripts/sync-assets.js",
+    "validate:questions": "node scripts/validate-questions.js",
     "verify": "node scripts/verify.js",
     "cap:init": "npx cap init \"ISTQB FL\" \"com.local.istqbfl\" --web-dir www",
     "cap:add:android": "npx cap add android",
     "cap:sync": "npx cap sync android",
     "android:open": "npx cap open android",
-    "android:release": "cd android && gradlew.bat assembleRelease"
+    "android:release": "cd android && gradlew.bat assembleRelease",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:cov": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "fix:questions": "node scripts/fix-questions.js"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",
     "@capacitor/cli": "^7.0.0",
-    "@capacitor/core": "^7.0.0"
+    "@capacitor/core": "^7.0.0",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.2",
+    "lodash-es": "^4.18.1",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "react-window": "^2.2.7",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.7",
+    "zustand": "^5.0.14"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@playwright/test": "^1.61.0",
+    "@types/lodash-es": "^4.17.12",
+    "@vitest/coverage-v8": "^4.1.9",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^16.5.0",
+    "jsdom": "^29.1.1",
+    "pdfjs-dist": "^2.16.105",
+    "playwright": "^1.61.0",
+    "typescript-eslint": "^8.61.1",
+    "vite-plugin-pwa": "^1.3.0",
+    "vitest": "^4.1.9"
+  },
+  "optionalDependencies": {
+    "canvas": "^3.2.3"
+  }
 }

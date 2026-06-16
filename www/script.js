@@ -1,3 +1,4 @@
+(async () => {
       const appLogStore = (() => {
         const maxEntries = 200;
         const entries = [];
@@ -75,26 +76,212 @@
       })();
       window.ISTQB_LOGGER = appLogStore;
 
-      const istqbData = window.ISTQB_DATA;
-      const cstsData =
-        window.CSTS_DATA && Array.isArray(window.CSTS_DATA.sets)
-          ? window.CSTS_DATA
-          : { source: "", sets: [] };
-      const istqbDataError =
-        !istqbData ||
-        !Array.isArray(istqbData.sets) ||
-        istqbData.sets.length === 0
-          ? "Question data is missing or empty."
-          : "";
+      const questionDataErrors = {};
       const productData = {
-        istqb: istqbDataError ? { source: "", sets: [] } : istqbData,
-        csts: cstsData,
+        istqb: { source: "", sets: [] },
+        csts: { source: "", sets: [] },
       };
       const productLabels = {
         istqb: "ISTQB FL",
         csts: "CSTS FL",
       };
-      let activeProduct = "istqb";
+
+      function formatQuestionForUi(rawQuestion) {
+        const q = JSON.parse(JSON.stringify(rawQuestion));
+
+        if (q.type !== "multiple_choice") {
+          return q;
+        }
+
+        const optionRegexes = [
+          /(?<![가-힣A-Za-z0-9])([가-라][\-\.])\s+(.*?)(?=(?:(?<![가-힣A-Za-z0-9])[가-라][\-\.])\s+|$)/gs,
+          /([1-4]\))\s*(.*?)(?=(?:[1-4]\))|$)/gs,
+          /([①-④])\s*(.*?)(?=(?:[①-④])|$)/gs,
+          /([A-D][\.\)])\s*(.*?)(?=(?:[A-D][\.\)])|$)/gs,
+        ];
+
+        const trySplitOptions = (text) => {
+          for (const regex of optionRegexes) {
+            const matches = [...text.matchAll(regex)];
+            if (matches.length >= 2 && matches.length <= 5) {
+              return matches.map((m) => ({ label: m[1], text: m[2].trim() }));
+            }
+          }
+          return null;
+        };
+
+        const extractFromStem = () => {
+          if (!q.stem || q.stem.length === 0) return false;
+          const lastBlock = q.stem[q.stem.length - 1];
+          if (lastBlock.type !== "paragraph" && lastBlock.type !== "prompt") return false;
+
+          const text = lastBlock.text;
+          const match = text.match(/(?<![가-힣A-Za-z0-9])([가-라][\-\.]\s+|[1-4]\)|[①-④]|[A-D][\.\)])\s*/);
+          if (match) {
+            const index = match.index;
+            const potentialQuestion = text.substring(0, index).trim();
+            const potentialOptions = text.substring(index);
+
+            const extracted = trySplitOptions(potentialOptions);
+            if (extracted && extracted.length >= 2) {
+              lastBlock.text = potentialQuestion;
+              if (lastBlock.text === "") q.stem.pop();
+              q.options = extracted.map((ext, i) => ({
+                key: String.fromCharCode(97 + i),
+                text: `${ext.label} ${ext.text}`,
+              }));
+              return true;
+            }
+          }
+          return false;
+        };
+
+        const extractFromOptions = () => {
+          if (q.options && q.options.length === 1) {
+            const extracted = trySplitOptions(q.options[0].text);
+            if (extracted && extracted.length >= 2) {
+              q.options = extracted.map((ext, i) => ({
+                key: String.fromCharCode(97 + i),
+                text: `${ext.label} ${ext.text}`,
+              }));
+              return true;
+            }
+          }
+          return false;
+        };
+
+        if (!q.options || q.options.length <= 1) {
+          let extracted = extractFromOptions();
+          if (!extracted) extractFromStem();
+        }
+
+        if (Array.isArray(q.options)) {
+          q.options = q.options.map((opt) => {
+            if (typeof opt.text === "string") {
+              opt.text = opt.text.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n").replace(/\r\n/g, "\n").trim();
+            }
+            return opt;
+          });
+        }
+
+        return q;
+      }
+
+      function normalizeSetPayload(payload, catalogItem) {
+        const meta = payload?.meta || {};
+        const certification = String(
+          meta.certification || catalogItem.certification || "",
+        ).toLowerCase();
+        return {
+          id: meta.id || catalogItem.id,
+          legacySetId: meta.legacySetId || catalogItem.legacySetId || meta.setId,
+          title: meta.title || catalogItem.title || catalogItem.id,
+          questionPdf: meta.questionPdf || "",
+          answerPdf: meta.answerPdf || "",
+          questions: Array.isArray(payload?.questions)
+            ? payload.questions.map((rawQuestion) => {
+                const question = formatQuestionForUi(rawQuestion);
+                return {
+                  ...question,
+                  setId: meta.id || catalogItem.id,
+                  legacySetId: meta.legacySetId || catalogItem.legacySetId || meta.setId,
+                  setTitle: meta.title || catalogItem.title || catalogItem.id,
+                  certification,
+                };
+              })
+            : [],
+        };
+      }
+
+      async function fetchQuestionJson(path) {
+        const response = await fetch(path, { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`Failed to load ${path}: ${response.status}`);
+        }
+        return response.json();
+      }
+
+      async function loadQuestionCatalog() {
+        const candidates = ["./data/index.json", "./public/data/index.json"];
+        let lastError = null;
+        for (const indexPath of candidates) {
+          try {
+            const catalog = await fetchQuestionJson(indexPath);
+            return {
+              basePath: indexPath.replace(/index\.json$/, ""),
+              catalog,
+            };
+          } catch (error) {
+            lastError = error;
+          }
+        }
+        throw lastError || new Error("Question catalog is missing.");
+      }
+
+      async function loadQuestionProductData() {
+        try {
+          const { basePath, catalog } = await loadQuestionCatalog();
+          const items = Array.isArray(catalog.sets) ? catalog.sets : [];
+          const loadedSets = await Promise.allSettled(
+            items.map(async (item) => ({
+              item,
+              payload: await fetchQuestionJson(`${basePath}${item.path.replace(/^\.\//, "")}`),
+            })),
+          );
+          loadedSets.forEach((result) => {
+            // 세트 1개 실패가 다른 세트/제품을 막지 않도록 격리한다. (#72)
+            if (result.status !== "fulfilled") {
+              appLogStore.add("error", ["question set load failed", result.reason]);
+              return;
+            }
+            const { item, payload } = result.value;
+            const product = String(item.certification || "").toLowerCase();
+            if (!productData[product]) return;
+            const set = normalizeSetPayload(payload, item);
+            productData[product].sets.push(set);
+            productData[product].source ||= payload?.meta?.source || "";
+          });
+          Object.entries(productData).forEach(([product, value]) => {
+            if (value.sets.length === 0) {
+              questionDataErrors[product] = `${productLabels[product]} question data is empty.`;
+            }
+          });
+        } catch (error) {
+          questionDataErrors.istqb = "Question data is missing or empty.";
+          questionDataErrors.csts = "CSTS data is missing or empty.";
+          appLogStore.add("error", ["question data load failed", error]);
+        }
+      }
+
+      await loadQuestionProductData();
+      const istqbDataError = questionDataErrors.istqb || "";
+      const lastProductStorageKey = "istqb-csts-last-product";
+
+      function loadLastProduct() {
+        try {
+          const product = localStorage.getItem(lastProductStorageKey);
+          return productData[product] ? product : "";
+        } catch {
+          return "";
+        }
+      }
+
+      function saveLastProduct() {
+        try {
+          localStorage.setItem(lastProductStorageKey, activeProduct);
+        } catch {
+        }
+      }
+
+      function clearLastProduct() {
+        try {
+          localStorage.removeItem(lastProductStorageKey);
+        } catch {
+        }
+      }
+
+      const lastProduct = loadLastProduct();
+      let activeProduct = lastProduct || "istqb";
       let data = productData[activeProduct];
       function persistenceKey() {
         return activeProduct === "csts"
@@ -117,9 +304,12 @@
         navCollapsed: Boolean(savedUiState.navCollapsed),
         sidebarCollapsed: savedUiState.sidebarCollapsed !== false,
         fontSize: validFontSize(savedUiState.fontSize),
-        startedAt: Number.isFinite(savedUiState.startedAt)
-          ? savedUiState.startedAt
-          : Date.now(),
+        elapsedSeconds: Number.isFinite(savedUiState.elapsedSeconds)
+          ? savedUiState.elapsedSeconds
+          : Number.isFinite(savedUiState.startedAt)
+            ? Math.max(0, (Date.now() - savedUiState.startedAt) / 1000)
+            : 0,
+        lastTick: Date.now(),
         answers: loadAnswers(),
         histories: sanitizeHistories(savedUiState.histories),
       };
@@ -128,22 +318,11 @@
       let dbPromise = null;
 
       const productGate = document.querySelector("#productGate");
-      const cstsPage = document.querySelector("#cstsPage");
       const appShell = document.querySelector(".app-shell");
       const openIstqbBtn = document.querySelector("#openIstqbBtn");
       const openCstsBtn = document.querySelector("#openCstsBtn");
-      const cstsBackBtn = document.querySelector("#cstsBackBtn");
-      const cstsSetSelect = document.querySelector("#cstsSetSelect");
-      const cstsSummary = document.querySelector("#cstsSummary");
-      const cstsQuestionMeta = document.querySelector("#cstsQuestionMeta");
-      const cstsQuestionTitle = document.querySelector("#cstsQuestionTitle");
-      const cstsQuestionStem = document.querySelector("#cstsQuestionStem");
-      const cstsQuestionFigure = document.querySelector("#cstsQuestionFigure");
-      const cstsOptions = document.querySelector("#cstsOptions");
-      const cstsAnswer = document.querySelector("#cstsAnswer");
-      const cstsPrevBtn = document.querySelector("#cstsPrevBtn");
-      const cstsNextBtn = document.querySelector("#cstsNextBtn");
       const productHomeBtn = document.querySelector("#productHomeBtn");
+      const topbarHomeBtn = document.querySelector("#topbarHomeBtn");
       const productSubtitle = document.querySelector("#productSubtitle");
       const productTitle = document.querySelector("#productTitle");
       const sidebar = document.querySelector(".sidebar");
@@ -191,6 +370,7 @@
       const wrongNoteModal = document.querySelector("#wrongNoteModal");
       const wrongNoteBody = document.querySelector("#wrongNoteBody");
       const wrongNoteCloseBtn = document.querySelector("#wrongNoteCloseBtn");
+      const clearWrongNoteBtn = document.querySelector("#clearWrongNoteBtn");
       const backupImportModal = document.querySelector("#backupImportModal");
       const backupImportBody = document.querySelector("#backupImportBody");
       const backupImportCloseBtn = document.querySelector(
@@ -215,10 +395,6 @@
       let wrongNoteFilter = "all";
       let lastRenderedQuestionKey = "";
       let lastModalTrigger = null;
-      const cstsState = {
-        setId: cstsData.sets[0]?.id || "",
-        index: 0,
-      };
 
       const emptySet = {
         id: "",
@@ -282,9 +458,13 @@
         return copy;
       }
 
+      function randomQuestionCount() {
+        return Math.min(40, allQuestions().length);
+      }
+
       function generateRandomRefs() {
         state.randomRefs = shuffle(allQuestions())
-          .slice(0, 40)
+          .slice(0, randomQuestionCount())
           .map((question) => ({
             setId: question.setId,
             number: question.number,
@@ -292,7 +472,8 @@
       }
 
       function randomQuestions() {
-        if (state.randomRefs.length !== 40) generateRandomRefs();
+        if (state.randomRefs.length !== randomQuestionCount() && !isReviewRetake())
+          generateRandomRefs();
         return state.randomRefs
           .map((ref) => {
             const set = data.sets.find((item) => item.id === ref.setId);
@@ -335,7 +516,8 @@
             navCollapsed: state.navCollapsed,
             sidebarCollapsed: state.sidebarCollapsed,
             fontSize: state.fontSize,
-            startedAt: state.startedAt,
+            elapsedSeconds: state.elapsedSeconds,
+            lastTick: state.lastTick,
           },
         };
       }
@@ -370,9 +552,12 @@
         state.navCollapsed = Boolean(uiState.navCollapsed);
         state.sidebarCollapsed = uiState.sidebarCollapsed !== false;
         state.fontSize = validFontSize(uiState.fontSize);
-        state.startedAt = Number.isFinite(uiState.startedAt)
-          ? uiState.startedAt
-          : Date.now();
+        state.elapsedSeconds = Number.isFinite(uiState.elapsedSeconds)
+          ? uiState.elapsedSeconds
+          : Number.isFinite(uiState.startedAt)
+            ? Math.max(0, (Date.now() - uiState.startedAt) / 1000)
+            : 0;
+        state.lastTick = Date.now();
         state.answers = loadAnswers();
         state.histories = sanitizeHistories(uiState.histories);
       }
@@ -383,6 +568,7 @@
         saveUiState();
         activeProduct = product;
         data = productData[activeProduct];
+        saveLastProduct();
         applyUiState(loadUiState());
         state.setId = validSetId(state.setId);
         lastRenderedQuestionKey = "";
@@ -423,15 +609,13 @@
       }
 
       function currentDataError() {
-        if (activeProduct === "istqb") return istqbDataError;
-        return data.sets.length === 0 ? "CSTS data is missing or empty." : "";
+        return questionDataErrors[activeProduct] || "";
       }
 
       function saveAnswers() {
         try {
           localStorage.setItem(storageKey(), JSON.stringify(state.answers));
         } catch {
-          // Some tablet browsers block localStorage for file:// pages. Keep the in-memory answers usable.
         }
         savePersistentSnapshot();
       }
@@ -441,7 +625,6 @@
         try {
           localStorage.setItem(uiStorageKey(), JSON.stringify(uiState));
         } catch {
-          // Returning from background still works while the page remains alive.
         }
         savePersistentSnapshot();
       }
@@ -465,7 +648,6 @@
         try {
           localStorage.setItem(persistenceKey(), JSON.stringify(snapshot));
         } catch {
-          // IndexedDB below is the fallback for browsers with small or blocked localStorage.
         }
         const db = await openPersistenceDb();
         if (!db) return;
@@ -473,7 +655,6 @@
           const transaction = db.transaction("snapshots", "readwrite");
           transaction.objectStore("snapshots").put(snapshot, "latest");
         } catch {
-          // Losing persistence should not interrupt answering a question.
         }
       }
 
@@ -498,7 +679,6 @@
               request.onerror = () => resolve(snapshot);
             });
           } catch {
-            // Keep whatever localStorage already restored.
           }
         }
         if (!snapshot || typeof snapshot !== "object") return;
@@ -598,140 +778,30 @@
         );
       }
 
-      function currentCstsSet() {
-        return (
-          cstsData.sets.find((set) => set.id === cstsState.setId) ||
-          cstsData.sets[0] || { id: "", title: "", questions: [] }
-        );
-      }
-
-      function summaryPill(text) {
-        const pill = document.createElement("span");
-        pill.textContent = text;
-        return pill;
-      }
-
-      function renderCstsSelect() {
-        if (!cstsSetSelect) return;
-        const fragment = document.createDocumentFragment();
-        cstsData.sets.forEach((set) => {
-          const option = document.createElement("option");
-          option.value = set.id;
-          option.textContent = `${set.title} (${set.questions.length}문항)`;
-          fragment.appendChild(option);
-        });
-        cstsSetSelect.replaceChildren(fragment);
-        cstsSetSelect.value = currentCstsSet().id;
-      }
-
-      function renderCstsFigure(question) {
-        cstsQuestionFigure.replaceChildren();
-        if (!question.figure) return;
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "figure-button";
-        button.setAttribute("aria-label", `CSTS 문제 ${question.number} 그림 확대`);
-        const image = document.createElement("img");
-        image.src = question.figure;
-        image.alt = `CSTS 문제 ${question.number} 참고 그림`;
-        button.appendChild(image);
-        button.addEventListener("click", () => openFigureModal(question, button));
-        cstsQuestionFigure.appendChild(button);
-      }
-
-      function renderCstsOptions(question) {
-        cstsOptions.replaceChildren();
-        if (!question.options.length) {
-          cstsOptions.textContent = "단답형 문제입니다.";
-          return;
-        }
-
-        question.options.forEach((option) => {
-          const row = document.createElement("div");
-          row.className = question.answer.includes(option.key)
-            ? "option correct"
-            : "option";
-          const key = document.createElement("span");
-          key.className = "option-key";
-          key.textContent = option.key.toUpperCase();
-          const text = document.createElement("span");
-          text.className = "option-text";
-          renderRichText(text, option.text, { plainContent: true });
-          row.append(key, text);
-          cstsOptions.appendChild(row);
-        });
-      }
-
-      function renderCstsPage() {
-        const set = currentCstsSet();
-        const questions = set.questions || [];
-        if (!questions.length) {
-          cstsSummary.replaceChildren();
-          cstsQuestionMeta.textContent = "CSTS";
-          cstsQuestionTitle.textContent = "추출된 문제가 없습니다";
-          cstsQuestionStem.textContent =
-            "CSTS PDF 추출 결과를 찾지 못했습니다. csts-questions.js 로드 여부를 확인하세요.";
-          cstsQuestionFigure.replaceChildren();
-          cstsOptions.replaceChildren();
-          cstsAnswer.textContent = "";
-          cstsPrevBtn.disabled = true;
-          cstsNextBtn.disabled = true;
-          return;
-        }
-
-        cstsState.index = Math.max(0, Math.min(cstsState.index, questions.length - 1));
-        const question = questions[cstsState.index];
-        const typeLabel = {
-          multiple_choice: "4지선다",
-          true_false: "O/X",
-          short_answer: "단답형",
-        }[question.type] || question.type;
-        const figureCount = questions.filter((item) => item.figure).length;
-        cstsSummary.replaceChildren(
-          summaryPill(`${questions.length}문항`),
-          summaryPill(`${figureCount}개 이미지 추출`),
-          summaryPill(typeLabel),
-        );
-        cstsQuestionMeta.textContent = set.title;
-        cstsQuestionTitle.textContent = `문제 ${cstsState.index + 1} / ${questions.length}`;
-        renderRichText(cstsQuestionStem, question.stem, { plainContent: true });
-        renderCstsFigure(question);
-        renderCstsOptions(question);
-        cstsAnswer.textContent = `정답: ${question.answerText || question.answer.join(", ")}`;
-        cstsPrevBtn.disabled = cstsState.index === 0;
-        cstsNextBtn.disabled = cstsState.index >= questions.length - 1;
-      }
 
       function showProductGate() {
+        saveAnswers();
+        saveUiState();
+        clearLastProduct();
         productGate?.classList.remove("is-product-hidden");
         productGate?.removeAttribute("hidden");
-        cstsPage?.classList.add("is-product-hidden");
-        cstsPage?.setAttribute("hidden", "");
         appShell?.classList.add("is-product-hidden");
         sidebarBackdrop?.classList.remove("visible");
         document.body.style.overflow = "";
         openIstqbBtn?.focus();
       }
 
-      function openIstqbApp() {
-        startProduct("istqb");
+      function showActiveProductApp() {
         productGate?.classList.add("is-product-hidden");
         productGate?.setAttribute("hidden", "");
-        cstsPage?.classList.add("is-product-hidden");
-        cstsPage?.setAttribute("hidden", "");
         appShell?.classList.remove("is-product-hidden");
+      }
+      function openProductApp(productId) {
+        startProduct(productId);
+        showActiveProductApp();
         questionTitle?.focus?.();
       }
 
-      function openCstsApp() {
-        startProduct("csts");
-        productGate?.classList.add("is-product-hidden");
-        productGate?.setAttribute("hidden", "");
-        cstsPage?.classList.add("is-product-hidden");
-        cstsPage?.setAttribute("hidden", "");
-        appShell?.classList.remove("is-product-hidden");
-        questionTitle?.focus?.();
-      }
 
       function backupExportMessage(fileName, method) {
         if (method === "share") {
@@ -1103,9 +1173,14 @@
         return value
           .filter((history) => isPlainObject(history))
           .map((history) => {
-            const mode = ["exam", "random", "review"].includes(history.mode)
+            // Histories only ever carry answer keys built with answerMode()
+            // ("exam" or "random"; review grades into "exam"). Normalize any
+            // legacy "review" history to "exam" so the saved keys match what
+            // historyWrongNoteItems looks up via answerKey(question, history.mode).
+            const rawMode = ["exam", "random", "review"].includes(history.mode)
               ? history.mode
               : "exam";
+            const mode = rawMode === "review" ? "exam" : rawMode;
             const setId =
               mode === "random" ? "random" : validSetId(history.setId);
             const timestamp = Number.isFinite(history.timestamp)
@@ -1184,9 +1259,12 @@
         state.navCollapsed = Boolean(uiState.navCollapsed);
         state.sidebarCollapsed = uiState.sidebarCollapsed !== false;
         state.fontSize = validFontSize(uiState.fontSize);
-        state.startedAt = Number.isFinite(uiState.startedAt)
-          ? uiState.startedAt
-          : Date.now();
+        state.elapsedSeconds = Number.isFinite(uiState.elapsedSeconds)
+          ? uiState.elapsedSeconds
+          : Number.isFinite(uiState.startedAt)
+            ? Math.max(0, (Date.now() - uiState.startedAt) / 1000)
+            : 0;
+        state.lastTick = Date.now();
       }
 
       async function importBackup(file) {
@@ -1276,7 +1354,12 @@
       }
 
       function answerKey(question, mode = answerMode()) {
-        const setId = question.setId || state.setId;
+        if (question.id) return `${question.id}-${mode}`;
+        return legacyAnswerKey(question, mode);
+      }
+
+      function legacyAnswerKey(question, mode = answerMode()) {
+        const setId = question.legacySetId || question.setId || state.setId;
         return `${setId}-${mode}-${question.number}`;
       }
 
@@ -1285,7 +1368,9 @@
       }
 
       function selectedFor(question, mode = answerMode()) {
-        return state.answers[answerKey(question, mode)] || [];
+        const current = answerKey(question, mode);
+        const legacy = legacyAnswerKey(question, mode);
+        return state.answers[current] || state.answers[legacy] || [];
       }
 
       function sameChoices(left, right) {
@@ -1326,18 +1411,23 @@
       }
 
       function isReviewRetake() {
+        if (state.mode === "random") return Boolean(state.reviewRetake["random"]);
         return Boolean(state.reviewRetake[state.setId]);
       }
 
       function setReviewRetake(value) {
-        state.reviewRetake[state.setId] = value;
+        if (state.mode === "random") state.reviewRetake["random"] = value;
+        else state.reviewRetake[state.setId] = value;
       }
 
       function resetAnswersFor(mode) {
         const questions =
           mode === "random" ? randomQuestions() : currentSet().questions;
         questions.forEach(
-          (question) => delete state.answers[answerKey(question, mode)],
+          (question) => {
+            delete state.answers[answerKey(question, mode)];
+            delete state.answers[legacyAnswerKey(question, mode)];
+          },
         );
       }
 
@@ -1369,7 +1459,8 @@
       function figureFor(question) {
         if (question.figure) return question.figure;
         const setId = question.setId || state.setId;
-        const key = `${setId}${question.number}`;
+        const sampleCode = String(setId || "").split("-").pop();
+        const key = `${sampleCode}${question.number}`;
         const figures = {
           A23: "figures/A23.png",
           B23: "figures/B23.png",
@@ -1393,8 +1484,6 @@
         image.loading = "lazy";
         image.draggable = false;
         image.addEventListener("click", () => openFigureModal(src, image.alt));
-
-        // 확대 힌트 버튼 (#4)
         const zoomBtn = document.createElement("button");
         zoomBtn.type = "button";
         zoomBtn.className = "figure-zoom-btn";
@@ -1404,7 +1493,11 @@
           openFigureModal(src, image.alt),
         );
 
-        questionFigure.append(image, zoomBtn);
+        const wrapper = document.createElement("div");
+        wrapper.className = "figure-scroll-wrapper";
+        wrapper.appendChild(image);
+
+        questionFigure.append(wrapper, zoomBtn);
       }
 
       function openFigureModal(src, alt) {
@@ -1509,7 +1602,14 @@
             target.appendChild(renderReferenceImage(block.src));
             return;
           }
-          if (block.type === "table") {
+          if (block.type === "note") {
+          const noteNode = document.createElement("span");
+          noteNode.className = "text-line note-line";
+          noteNode.textContent = block.text;
+          target.appendChild(noteNode);
+          return;
+        }
+        if (block.type === "table") {
             target.appendChild(renderDataTable(block));
             return;
           }
@@ -1554,7 +1654,8 @@
           return;
         }
         appendPlainLine(target, block.text, {
-          markPrompt: target.id === "questionStem",
+          markPrompt: target.id === "questionStem" || block.type === "prompt",
+          className: "",
         });
       }
 
@@ -1572,6 +1673,7 @@
         splitDenseQuestionText(text).flatMap(splitFormulaIntro).forEach((part) => {
           const lineNode = document.createElement("span");
           lineNode.className = "text-line";
+          if (options.className) lineNode.classList.add(options.className);
           if (options.markPrompt && isQuestionPromptLine(part)) {
             lineNode.classList.add("prompt-line");
           }
@@ -1635,8 +1737,9 @@
       function isQuestionPromptLine(text) {
         const value = String(text || "").trim();
         return (
-          /[?？]$/.test(value) ||
-          /^(다음 중|어느|어떤|가장|최소|최대)/.test(value)
+          /[?？](?:\s*\([^)]*\))?$/.test(value) ||
+          /고르시오\.$/.test(value) ||
+          /^(다음 중|다음 예시 중|어느|어떤|가장|최소|최대)/.test(value)
         );
       }
 
@@ -1655,23 +1758,23 @@
       function splitStructuralMarkers(text) {
         return String(text || "")
           .replace(
-            /(^|\s)(?=(?:\d+\.|[A-E]\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s)/g,
+            /(^|\s)(?=(?:\d+\.|[A-E]\.|[가-차]\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s)/g,
             "$1\n",
           )
           .replace(/\s*(?=\b(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.\s)/gi, "\n")
           .replace(/\s*(?=(?:Given:|When:|Then:|And:)\s)/g, "\n")
           .replace(
-            /\s*\|\s*(?=(?:제목:|심각도:|우선순위:|환경:|설명:|재현 절차:|기대 결과:|실제 결과:|첨부파일:)\s*)/g,
+            /\s*\|\s*(?=(?:제목:|심각도:|우선순위:|환경:|설명:|재현 절차:|첨부파일:)\s*)/g,
             "\n",
           )
-          .replace(/\s+(?=다음 중\s)/g, "\n")
+          .replace(/\s+(?=(?:다음 중\s|다음 중이\s|다음 중에서\s|다음 예시 중\s))/g, "\n")
           .replace(/\s+(?=다음 테스트\s)/g, "\n")
           .replace(/\s+(?=그래프는\s)/g, "\n")
           .replace(/\s+(?=테스트 스위트에 이미\s)/g, "\n")
           .replace(/\s+(?=3점 추정 기법을\s)/g, "\n")
           .replace(/\s+(?=(?:인수 조건:|AC\d+:)\s*)/g, "\n")
           .replace(
-            /\s+(?=(?:결함 ID:|제목:|애플리케이션:|결함:|재현 절차:|기대 결과:|실제 결과:|심각도:|우선순위:|환경:|설명:|첨부파일:)\s*)/g,
+            /\s+(?=(?:결함 ID:|제목:|애플리케이션:|결함:|재현 절차:|심각도:|우선순위:|환경:|설명:|첨부파일:)\s*)/g,
             "\n",
           )
           .replace(/(^|\s)([a-e]\))\s+/g, "$1\n$2 ")
@@ -1680,7 +1783,7 @@
             "\n",
           )
           .replace(
-            /\s*(?=(?:리뷰 활동은 다음과 같다:|그리고 다음과 같은 완화 활동이 있다\.|다음 중 위|다음 중 분석한))/g,
+            /\s*(?=(?:리뷰 활동은 다음과 같다:|그리고 다음과 같은 완화 활동이 있다\.|다음 중 위|그리고 다음과 같은 완화 활동이 있다\\.|다음 중 위|다음 중 분석한|테스트 도구 분류는 다음과 같다:|구현된 기능은 다음과 같다:|사전 조건은 다음과 같다:))/g,
             "\n",
           )
           .replace(/\s+(?=그리고 다음과 같은 설명이 있다:)/g, "\n")
@@ -1779,7 +1882,27 @@
           .replace(/\s{2,}/g, " ");
       }
 
+      function plainQuestionText(value) {
+        if (!Array.isArray(value)) return String(value || "");
+        return value
+          .map((block) => {
+            if (!block || typeof block !== "object") return "";
+            if (Array.isArray(block.items)) {
+              return block.items
+                .map((item) => (typeof item === "string" ? item : item.text || ""))
+                .join(" ");
+            }
+            if (Array.isArray(block.lines)) return block.lines.join(" ");
+            return block.text || "";
+          })
+          .filter(Boolean)
+          .join(" ");
+      }
+
       function buildRichBlocks(text) {
+        if (Array.isArray(text)) {
+          return text.flatMap((block) => normalizeQuestionBlock(block));
+        }
         const cleaned = splitKnownSectionHeadings(
           normalizeReadableCharacters(stripPdfNoise(text)),
         );
@@ -1825,6 +1948,13 @@
           }
           const listItem = parseStructuredItem(line);
           if (listItem) {
+            if (pendingList.length > 0) {
+              const prev = markerInfo(pendingList[pendingList.length - 1].marker);
+              const cur = markerInfo(listItem.marker);
+              if (prev.kind !== cur.kind || (cur.kind !== "bullet" && cur.order <= prev.order)) {
+                flushList();
+              }
+            }
             pendingList.push(listItem);
             return;
           }
@@ -1835,12 +1965,59 @@
         return blocks;
       }
 
+      function normalizeQuestionBlock(block) {
+        if (!block || typeof block !== "object") return [];
+        const type = block.type || "paragraph";
+        if (type === "image" && block.src) return [{ type: "image", src: block.src }];
+        if (type === "table" && Array.isArray(block.rows)) {
+          return [{ type: "table", rows: block.rows }];
+        }
+        if (type === "code") {
+          const lines = Array.isArray(block.lines)
+            ? block.lines
+            : String(block.text || "").split("\n");
+          return [{ type: "code", lines: lines.map(String).filter(Boolean) }];
+        }
+        if (type === "list" && Array.isArray(block.items)) {
+          return [
+            {
+              type: "list",
+              items: block.items.map((item) => {
+                if (typeof item === "string") {
+                  const parsed = parseStructuredItem(item);
+                  return parsed ? parsed : { marker: "•", text: item };
+                }
+                return { marker: item.marker || "•", text: item.text || "" };
+              }),
+            },
+          ];
+        }
+        const value = String(block.text || "").trim();
+        if (!value) return [];
+        if (["paragraph", "formula"].includes(type)) return buildRichBlocks(value);
+        return [{ type, text: value }];
+      }
+
       function parseStructuredItem(line) {
         const match = line.match(
-          /^(\d+\.|\(\d+\)|[A-E]\.|[a-e]\)|(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s*(.+)$/i,
+          /^(\d+\.(?!\d)|\(\d+\)|[A-E]\.|[a-e]\)|[가-차]\.|(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s*(.+)$/i,
         );
         if (!match) return null;
         return { marker: match[1], text: match[2].trim() };
+      }
+
+      function markerInfo(marker) {
+        const m = String(marker).trim();
+        if (/^\d+\.$/.test(m)) return { kind: "num", order: parseInt(m, 10) };
+        if (/^\(\d+\)$/.test(m)) return { kind: "paren", order: parseInt(m.replace(/\D/g, ""), 10) };
+        if (/^[A-Ea-e]\.$/.test(m)) return { kind: "alphadot", order: m.toLowerCase().charCodeAt(0) };
+        if (/^[a-e]\)$/.test(m)) return { kind: "alphaparen", order: m.toLowerCase().charCodeAt(0) };
+        if (/^[가-차]\.$/.test(m)) return { kind: "hangul", order: m.charCodeAt(0) };
+        if (/^(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.$/i.test(m)) {
+          const map = { i: 1, ii: 2, iii: 3, iv: 4, v: 5, vi: 6, vii: 7, viii: 8, ix: 9, x: 10 };
+          return { kind: "roman", order: map[m.replace(".", "").toLowerCase()] || 0 };
+        }
+        return { kind: "bullet", order: 0 };
       }
 
       function renderStructuredList(items) {
@@ -2392,7 +2569,7 @@
           showAppStatus(
             "error",
             "문제 데이터를 불러오지 못했습니다.",
-            "questions.js가 로드되지 않았거나 window.ISTQB_DATA 구조가 비어 있습니다. 정적 배포 경로와 파일 포함 여부를 확인하세요.",
+            "data/index.json 또는 세트별 문제 JSON을 로드하지 못했습니다. 정적 배포 경로와 파일 포함 여부를 확인하세요.",
             "다시 확인",
             () => window.location.reload(),
           );
@@ -2401,6 +2578,8 @@
           questionFigure.hidden = true;
           options.replaceChildren();
           feedback.hidden = true;
+          prevBtn.disabled = true;
+          nextBtn.disabled = true;
           renderNav([]);
           renderStats();
           renderActionHint([]);
@@ -2417,11 +2596,9 @@
           state.mode === "review" && isReviewRetake()
             ? "오답 재채점"
             : "채점하기";
-        retryWrongBtn.hidden =
-          state.mode !== "review" ||
-          !isExamGraded() ||
-          isReviewRetake() ||
-          missedExamQuestions().length === 0;
+        const canRetryExam = state.mode === "review" && isExamGraded() && !isReviewRetake() && missedExamQuestions().length > 0;
+        const canRetryRandom = state.mode === "random" && isRandomGraded() && !isReviewRetake() && missedRandomQuestions().length > 0;
+        retryWrongBtn.hidden = !(canRetryExam || canRetryRandom);
         wrongNoteBtn.disabled = !hasWrongNoteItems();
         const navPosition =
           questions.length > 0
@@ -2450,7 +2627,7 @@
           );
           setMeta.textContent =
             state.mode === "random"
-              ? "전체 랜덤 40문항"
+              ? `전체 랜덤 ${randomQuestions().length}문항`
               : `${set.title} · ${set.questions.length}문항`;
           questionTitle.textContent = "오답 없음";
           questionStem.textContent = isExamGraded()
@@ -2469,6 +2646,8 @@
         }
         if (state.index >= questions.length) state.index = questions.length - 1;
         if (state.index < 0) state.index = 0;
+        prevBtn.disabled = state.index === 0;
+        nextBtn.disabled = state.index >= questions.length - 1;
         saveUiState();
         const question = questions[state.index];
         const questionKey = `${state.mode}:${question.setId || state.setId}:${question.number}:${state.index}`;
@@ -2487,14 +2666,10 @@
         renderRichText(questionStem, question.stem, { plainContent: true });
         renderFigure(question);
         navSummary.textContent = `현재 ${state.index + 1} / ${questions.length}`;
-
-        // 긴 지문 접기/펼치기 기능 제거됨
         document.querySelector(".stem-toggle-btn")?.remove();
         questionStem.classList.remove("stem-collapsed");
 
         options.replaceChildren();
-
-        // 복수정답 배지 (#3)
         if (multi) {
           const badge = document.createElement("div");
           badge.className = "multi-answer-badge";
@@ -2533,7 +2708,7 @@
           key.textContent = option.key;
           const text = document.createElement("span");
           text.className = "option-text";
-          renderRichText(text, option.text, { plainContent: true });
+          renderRichText(text, option.text);
           button.draggable = false;
           button.append(key, text);
           button.addEventListener("click", () =>
@@ -2608,6 +2783,12 @@
           fragment.appendChild(button);
         });
         questionNav.appendChild(fragment);
+        setTimeout(() => {
+          const currentBtn = questionNav.querySelector(".current");
+          if (currentBtn) {
+            currentBtn.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+          }
+        }, 10);
       }
 
       function renderStats() {
@@ -2681,7 +2862,7 @@
         }
         
         questions.forEach((question) => {
-           const ansKey = `${question.setId || history.setId}-${history.mode}-${question.number}`;
+           const ansKey = answerKey(question, history.mode);
            const selected = history.answers[ansKey] || [];
            const isCor =
              question.type === "short_answer"
@@ -2788,7 +2969,7 @@
             meta.textContent = `${source}문제 ${question.number} · 내 답 ${formatChoice(question.historySelected) || "-"} · 정답 ${formatChoice(question.answer)}`;
             const text = document.createElement("p");
             text.className = "wrong-note-text";
-            text.textContent = stripPdfNoise(question.stem).split("\n")[0];
+            text.textContent = stripPdfNoise(plainQuestionText(question.stem)).split("\n")[0];
             const go = document.createElement("button");
             go.type = "button";
             go.textContent = "문제 보기";
@@ -2899,6 +3080,10 @@
         feedbackExpanded = false;
         const current = new Set(selectedFor(question));
         if (question.answer.length > 1) {
+          if (!current.has(key) && current.size >= question.answer.length) {
+            window.alert(`정답을 ${question.answer.length}개까지만 선택할 수 있습니다.`);
+            return;
+          }
           current.has(key) ? current.delete(key) : current.add(key);
         } else {
           current.clear();
@@ -2911,8 +3096,15 @@
       }
 
       function move(delta) {
+        const questions = currentQuestions();
+        if (!questions.length) return;
+        const nextIndex = Math.max(
+          0,
+          Math.min(state.index + delta, questions.length - 1),
+        );
+        if (nextIndex === state.index) return;
         feedbackExpanded = false;
-        state.index += delta;
+        state.index = nextIndex;
         saveUiState();
         render();
       }
@@ -2942,7 +3134,8 @@
           setReviewRetake(false);
           state.reviewIds[state.setId] = [];
         }
-        state.startedAt = Date.now();
+        state.elapsedSeconds = 0;
+        state.lastTick = Date.now();
         saveAnswers();
         saveUiState();
         render();
@@ -2976,11 +3169,23 @@
           generateRandomRefs();
           setRandomGraded(false);
         }
-        state.startedAt = Date.now();
+        state.elapsedSeconds = 0; state.lastTick = Date.now();
       }
 
       function updateTimer() {
-        const seconds = Math.floor((Date.now() - state.startedAt) / 1000);
+        // Stop accumulating once the current mode is graded (or in review mode).
+        // Refresh lastTick before returning so the paused span is never added in
+        // one jump when timing later resumes (e.g. retry-wrong / new set).
+        if (isExamGraded() || isRandomGraded() || state.mode === 'review') {
+          state.lastTick = Date.now();
+          return;
+        }
+        const now = Date.now();
+        if (state.lastTick) {
+          state.elapsedSeconds = (state.elapsedSeconds || 0) + (now - state.lastTick) / 1000;
+        }
+        state.lastTick = now;
+        const seconds = Math.floor(state.elapsedSeconds || 0);
         const minutes = String(Math.floor(seconds / 60)).padStart(2, "0");
         const remainder = String(seconds % 60).padStart(2, "0");
         timerText.textContent = `${minutes}:${remainder}`;
@@ -3002,7 +3207,7 @@
         resetModeStart(state.mode);
         state.setId = examSelect.value;
         state.index = 0;
-        state.startedAt = Date.now();
+        state.elapsedSeconds = 0; state.lastTick = Date.now();
         saveUiState();
         render();
       });
@@ -3091,7 +3296,7 @@
           
           const historyAnswers = {};
           Object.keys(state.answers).forEach(key => {
-            if (key.includes(`-${targetMode}-`)) {
+            if (key.endsWith(`-${targetMode}`) || key.includes(`-${targetMode}-`)) {
                historyAnswers[key] = state.answers[key];
             }
           });
@@ -3099,10 +3304,13 @@
           state.histories.push({
             id: timestamp.toString(),
             timestamp,
-            mode: state.mode,
+            // Store the mode actually used to build the answer keys (exam/random),
+            // not state.mode, so historyWrongNoteItems' answerKey(question, history.mode)
+            // matches the keys saved in historyAnswers. (review grades into "exam".)
+            mode: targetMode,
             setId: targetSetId,
             answers: historyAnswers,
-            randomRefs: state.mode === "random" ? [...state.randomRefs] : null
+            randomRefs: targetMode === "random" ? [...state.randomRefs] : null
           });
         }
 
@@ -3114,25 +3322,66 @@
       });
 
       retryWrongBtn.addEventListener("click", () => {
-        const missed = missedExamQuestions();
-        if (missed.length === 0) return;
-        state.reviewIds[state.setId] = missed.map(
-          (question) => question.number,
-        );
-        missed.forEach(
-          (question) => delete state.answers[answerKey(question, "exam")],
-        );
+        if (state.mode === "random") {
+          const missed = missedRandomQuestions();
+          if (missed.length === 0) return;
+          state.randomRefs = missed.map(q => ({ setId: q.setId, number: q.number }));
+          missed.forEach(q => delete state.answers[answerKey(q, "random")]);
+        } else {
+          const missed = missedExamQuestions();
+          if (missed.length === 0) return;
+          state.reviewIds[state.setId] = missed.map(
+            (question) => question.number,
+          );
+          missed.forEach(
+            (question) => delete state.answers[answerKey(question, "exam")],
+          );
+        }
         setReviewRetake(true);
         state.index = 0;
-        state.startedAt = Date.now();
+        state.elapsedSeconds = 0; state.lastTick = Date.now();
         saveAnswers();
         saveUiState();
         render();
       });
 
       exportBackupBtn.addEventListener("click", exportBackup);
+      const settingsBackdrop = document.createElement("div");
+      settingsBackdrop.className = "settings-backdrop";
+      document.body.appendChild(settingsBackdrop);
+      settingsBackdrop.addEventListener("click", () => {
+        if (settingsPanelToggleBtn.getAttribute("aria-expanded") === "true") {
+          settingsPanelToggleBtn.click();
+        }
+      });
+      const settingsObserver = new MutationObserver(() => {
+        const isOpen = !settingsPanel.hidden;
+        settingsBackdrop.classList.toggle("active", isOpen);
+      });
+      settingsObserver.observe(settingsPanel, { attributes: true, attributeFilter: ["hidden"] });
 
-      consoleLogBtn.addEventListener("click", openConsoleLog);
+      consoleLogBtn.addEventListener("click", () => {
+        if (window.VConsole) return;
+        
+        consoleLogBtn.textContent = "vConsole 로딩 중...";
+        consoleLogBtn.disabled = true;
+        
+        const script = document.createElement("script");
+        script.src = "https://unpkg.com/vconsole@latest/dist/vconsole.min.js";
+        script.onload = () => {
+          window.vConsole = new window.VConsole();
+          consoleLogBtn.textContent = "vConsole 활성화됨";
+          
+          if (settingsPanelToggleBtn.getAttribute("aria-expanded") === "true") {
+            settingsPanelToggleBtn.click();
+          }
+        };
+        script.onerror = () => {
+          consoleLogBtn.textContent = "로딩 실패";
+          consoleLogBtn.disabled = false;
+        };
+        document.body.appendChild(script);
+      });
       copyConsoleLogBtn.addEventListener("click", copyConsoleLog);
       exportConsoleLogBtn.addEventListener("click", exportConsoleLog);
       clearConsoleLogBtn.addEventListener("click", clearConsoleLog);
@@ -3170,7 +3419,7 @@
         setReviewRetake(false);
         state.reviewIds[state.setId] = [];
         state.index = 0;
-        state.startedAt = Date.now();
+        state.elapsedSeconds = 0; state.lastTick = Date.now();
         saveAnswers();
         saveUiState();
         render();
@@ -3183,23 +3432,10 @@
 
       const sidebarBackdrop = document.querySelector("#sidebarBackdrop");
 
-      openIstqbBtn?.addEventListener("click", openIstqbApp);
-      openCstsBtn?.addEventListener("click", openCstsApp);
-      cstsBackBtn?.addEventListener("click", showProductGate);
+      openIstqbBtn?.addEventListener("click", () => openProductApp("istqb"));
+      openCstsBtn?.addEventListener("click", () => openProductApp("csts"));
       productHomeBtn?.addEventListener("click", showProductGate);
-      cstsSetSelect?.addEventListener("change", () => {
-        cstsState.setId = cstsSetSelect.value;
-        cstsState.index = 0;
-        renderCstsPage();
-      });
-      cstsPrevBtn?.addEventListener("click", () => {
-        cstsState.index -= 1;
-        renderCstsPage();
-      });
-      cstsNextBtn?.addEventListener("click", () => {
-        cstsState.index += 1;
-        renderCstsPage();
-      });
+      topbarHomeBtn?.addEventListener("click", showProductGate);
 
       function isMobileLayout() {
         return window.innerWidth <= 900;
@@ -3209,7 +3445,6 @@
         if (!sidebarBackdrop) return;
         const showBackdrop = isMobileLayout() && !state.sidebarCollapsed;
         sidebarBackdrop.classList.toggle("visible", showBackdrop);
-        // 배경 스크롤 잠금
         document.body.style.overflow = showBackdrop ? "hidden" : "";
       }
 
@@ -3236,6 +3471,15 @@
         if (event.target === figureModal) closeFigureModal();
       });
       wrongNoteCloseBtn.addEventListener("click", closeWrongNote);
+      if (clearWrongNoteBtn) {
+        clearWrongNoteBtn.addEventListener("click", () => {
+          if (confirm("정말로 모든 오답 기록을 비우시겠습니까?")) {
+            state.histories = [];
+            savePersistentSnapshot();
+            renderWrongNote();
+          }
+        });
+      }
       wrongNoteModal.addEventListener("click", (event) => {
         if (event.target === wrongNoteModal) closeWrongNote();
       });
@@ -3311,6 +3555,10 @@
         saveUiState();
       });
 
+      if (lastProduct) {
+        showActiveProductApp();
+      }
+
       renderExamSelect();
       renderMode();
       render();
@@ -3331,3 +3579,4 @@
             });
         });
       }
+      })();

@@ -1,43 +1,95 @@
-# ISTQB FL 문제 풀이 앱
+# ISTQB / CSTS 문제 풀이 앱
 
-ISTQB Foundation Level v4.0 한국어 샘플 문제를 태블릿과 Android APK에서 풀 수 있도록 만든 오프라인 문제 풀이 앱입니다.
+ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 문제를 태블릿·Android APK·웹에서 풀 수 있도록 만든 오프라인 문제 풀이 앱입니다.
 
 ## 현재 포함된 문제
 
-- 샘플문제 A: 40문항
-- 샘플문제 B: 40문항
-- 샘플문제 C: 40문항
-- 샘플문제 D: 40문항
-- 추가 샘플문제: 26문항
+데이터는 `www/data/index.json`을 통해 세트 단위로 관리됩니다. (`schemaVersion: 1`)
 
-총 186문항이 포함되어 있습니다.
+### ISTQB FL v4.0 (5세트 · 186문항)
+
+| 세트 | 문항 수 |
+|------|---------|
+| 샘플문제 A | 40 |
+| 샘플문제 B | 40 |
+| 샘플문제 C | 40 |
+| 샘플문제 D | 40 |
+| 샘플문제 모음(EXTRA) | 26 |
+
+### CSTS (7세트 · 440문항)
+
+| 세트 | 문항 수 |
+|------|---------|
+| CSTS 2402FL (공개답안) | 70 |
+| CSTS 2403FL (공개답안) | 70 |
+| CSTS 2404FL (공개답안) | 70 |
+| CSTS 2405FL (공개답안) | 70 |
+| 2018년도 예제(일반등급) | 20 |
+| 2019년도 예제(일반등급) | 70 |
+| SW 테스트 전문가 예제(정답포함) | 70 |
+
+**총 12세트 · 626문항**이 포함되어 있습니다.
 
 ## 주요 기능
 
+- ISTQB / CSTS 자격증 선택 → 세트 선택 → 풀이로 이어지는 진입 흐름
 - 연습 모드, 시험 모드, 랜덤 모드, 오답 모드 지원
 - 연습 모드에서는 답 선택 후 즉시 정답/해설 확인
 - 시험/랜덤/오답 모드에서는 채점 후 결과 확인
 - 오답 모드에서 `오답 다시풀기`를 누르기 전까지 기존 오답 기록 보호
 - 문제 풀이 중 문제 세트나 모드 변경 시 확인 알림 표시
-- 앱을 껐다 켜도 풀이 상태를 복원할 수 있도록 localStorage와 IndexedDB에 저장
-- 풀이 기록을 JSON 파일로 내보내기/가져오기 지원
-- PDF에서 추출한 표, 줄바꿈, 목록, 그림 표시 보정
-- 정답률 영역 제거
-- 반응형 레이아웃 및 태블릿 사용성 개선
+- 앱을 껐다 켜도 풀이 상태를 복원할 수 있도록 localStorage / IndexedDB에 저장
+- 풀이 기록을 JSON 파일로 내보내기 / 가져오기 지원
+- PDF에서 추출한 표·그림·코드 블록·목록을 이미지/구조화 블록으로 렌더링
+- 다크모드 및 반응형(태블릿) 레이아웃 지원
+- 문제 데이터 검증 스크립트(`scripts/validate-questions.js`) 제공
 
-## 주요 파일
+## 프로젝트 구조
 
-- `index.html`: 루트 미리보기용 앱 HTML
-- `www/index.html`: Capacitor APK에 포함되는 앱 HTML
-- `questions.json`, `www/questions.json`: 문제 데이터 원본
-- `questions.js`, `www/questions.js`: `file://` 미리보기 호환용 데이터 래퍼
+이 저장소에는 **현재 운영 중인 바닐라 JS 앱**과 **진행 중인 React 마이그레이션**이 함께 존재합니다.
+
+### 데이터 (공통)
+
+- `www/data/index.json`: 세트 목록·메타 인덱스 (세트별 JSON 파일 경로 포함)
+- `www/data/istqb/*.json`: ISTQB 세트별 문제 데이터
+- `www/data/csts/*.json`: CSTS 세트별 문제 데이터
+- `www/figures/`, `figures/`, `csts-figures/`: 문제에 필요한 그림 이미지
+- 공통 스키마: 문제 식별자(`id`) 기반, `stem` / `options` / `explanation` 블록 구조
+
+> 과거의 단일 `questions.json` / `questions.js` 구조는 제거되었습니다(Phase 2). 데이터는 위 세트별 JSON으로 분리되어 관리됩니다.
+
+### ① 바닐라 JS 앱 (운영 / APK·Vercel 배포)
+
+- `www/index.html`: Capacitor APK 및 정적 배포에 포함되는 앱 HTML
+- `www/script.js`, `www/style.css`: 앱 로직 / 스타일
 - `service-worker.js`, `www/service-worker.js`: 오프라인 캐시 설정
-- `figures/`, `www/figures/`: 문제에 필요한 그림 이미지
-- `server.js`: 로컬 미리보기 서버
+- `index.html`: 루트 미리보기용 HTML
+- `local-server.js`: 로컬 미리보기 서버
+- `vercel.json`: Vercel 정적 배포 설정
+
+### ② React 마이그레이션 (진행 중)
+
+- `index.vite.html`: Vite 엔트리 HTML (`#root`)
+- `src/main.tsx`, `src/app/App.tsx`: React 진입점
+- `src/components/`, `src/features/`, `src/store/`, `src/hooks/`, `src/utils/`: 컴포넌트·상태·로더
+- 스택: React 19 + TypeScript + Zustand + Vite + PWA(`vite-plugin-pwa`)
+- `vite.config.ts`, `tsconfig.json`: 빌드 / 타입 설정
+
+### Android / Capacitor
+
 - `android/`: Capacitor Android 프로젝트
 - `capacitor.config.json`: Capacitor 설정
 
+### 문서
+
+- `docs/PROJECT_STATUS_REPORT.md`: 프로젝트 현황 · QA 재검증 리포트
+- `docs/commit-dashboard.html`: 커밋 · GitHub 이슈 대시보드
+- `docs/github_issues/`: 등록된 이슈 본문
+- `QA_REPORT.md`, `APK_BUILD.md`: 기존 QA / 빌드 메모
+
 ## 로컬 미리보기
+
+### 바닐라 JS 앱
 
 ```powershell
 npm install
@@ -51,6 +103,33 @@ http://127.0.0.1:8080/
 ```
 
 단순 확인은 `www/index.html`을 직접 열어도 가능하지만, 최종 동작 확인은 로컬 서버에서 보는 것을 권장합니다.
+
+### React 앱 (개발 서버)
+
+```powershell
+npm install
+npm run dev
+```
+
+Vite 개발 서버가 실행되며 `index.vite.html` 기준으로 React 앱을 미리볼 수 있습니다.
+
+## 데이터 검증
+
+문제 데이터(중복 id, 정답 유효성, 그림 파일 실존 등)를 검증합니다.
+
+```powershell
+npm run validate:questions
+```
+
+## 웹 빌드 (React / Vite)
+
+```powershell
+npm run build
+```
+
+`tsc` 타입 검사 후 `index.vite.html`을 엔트리로 `dist/`에 정적 빌드가 생성됩니다. 이는 진행 중인 React 마이그레이션의 산출물입니다.
+
+> **배포 참고**: 현재 Vercel 운영 배포는 별도 빌드 없이(`buildCommand: ""`) 저장소 루트(`outputDirectory: "."`)를 그대로 정적 서빙합니다. 즉 실제 운영 진입점은 루트 `index.html`(바닐라 JS 앱)이며, `dist/`(React)는 아직 운영 배포 경로가 아닙니다.
 
 ## APK 빌드
 
@@ -110,19 +189,6 @@ sdk.dir=C\:\\Users\\PC\\AppData\\Local\\Android\\Sdk
 
 `android/local.properties`는 로컬 환경 전용 파일이라 Git에는 포함하지 않습니다.
 
-## 검증 기준
-
-최근 빌드 기준으로 다음 항목을 확인했습니다.
-
-- 앱 로딩 시 콘솔 오류 없음
-- 문제 세트 5개 표시 확인
-- 추가 샘플문제 26문항 표시 확인
-- 연습 모드에서 `채점하기` 버튼 숨김 확인
-- 추가 샘플문제 20번의 플래닝 포커 표 렌더링 확인
-- A23 등 그림 문제 이미지 표시 확인
-- APK 내부에 `assets/public/index.html`과 `assets/public/figures/*.png` 포함 확인
-- Gradle `assembleDebug` 빌드 성공
-
 ## Git 주의사항
 
 APK, Gradle 빌드 결과물, Android SDK 로컬 설정은 Git에 포함하지 않습니다.
@@ -136,5 +202,7 @@ android/local.properties
 *.jks
 *.keystore
 ```
+
+> 참고: Vite 빌드 산출물 `dist/`는 현재 저장소에 커밋되어 있습니다(Vercel이 루트를 서빙하므로 배포에 필수는 아님). 빌드 산출물 추적을 정리하려면 `.gitignore`에 `dist/` 추가 후 `git rm -r --cached dist/`를 검토하세요.
 
 앱 변경 후 APK를 다시 만들 때는 `www/`와 루트 파일이 동기화되어 있는지 확인한 뒤 `npm run cap:sync`를 실행하세요.

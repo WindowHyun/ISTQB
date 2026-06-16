@@ -1,13 +1,22 @@
-const CACHE_NAME = "istqb-fl-v4-tablet-pwa-v29";
+const CACHE_NAME = "istqb-fl-v4-tablet-pwa-v34";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./style.css",
   "./script.js",
-  "./questions.json",
-  "./questions.js",
-  "./csts-questions.json",
-  "./csts-questions.js",
+  "./public/data/index.json",
+  "./public/data/istqb/sample-a.json",
+  "./public/data/istqb/sample-b.json",
+  "./public/data/istqb/sample-c.json",
+  "./public/data/istqb/sample-d.json",
+  "./public/data/istqb/sample-extra.json",
+  "./public/data/csts/csts-2402-fl.json",
+  "./public/data/csts/csts-2403-fl.json",
+  "./public/data/csts/csts-2404-fl.json",
+  "./public/data/csts/csts-2405-fl.json",
+  "./public/data/csts/csts-2018-general.json",
+  "./public/data/csts/csts-2019-general.json",
+  "./public/data/csts/csts-example-answer-included.json",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
@@ -29,7 +38,22 @@ const APP_SHELL = [
   "./source-visuals/C22-driving-table.png",
   "./source-visuals/D22-classification-table.png",
   "./source-visuals/D23-hotel-transition.png",
-  "./source-visuals/D32-traceability.png"
+  "./source-visuals/D32-traceability.png",
+  "./csts-figures/2402FL-27.png",
+  "./csts-figures/2402FL-27-2.png",
+  "./csts-figures/2402FL-27-3.png",
+  "./csts-figures/2402FL-27-4.png",
+  "./csts-figures/2403FL-2.png",
+  "./csts-figures/2403FL-11.png",
+  "./csts-figures/2403FL-11-2.png",
+  "./csts-figures/2403FL-11-3.png",
+  "./csts-figures/2403FL-11-4.png",
+  "./csts-figures/2403FL-60.png",
+  "./csts-figures/2405FL-30.png",
+  "./csts-figures/2405FL-30-2.png",
+  "./csts-figures/2405FL-30-3.png",
+  "./csts-figures/2405FL-30-4.png",
+  "./csts-figures/SW-CSTS-7.png"
 ];
 
 self.addEventListener("install", (event) => {

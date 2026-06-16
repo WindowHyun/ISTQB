@@ -1,0 +1,170 @@
+[
+  {
+    "code": "R1",
+    "issue": 56,
+    "title": "[Bug] React 앱(useQuestions)이 실제 데이터 스키마와 불일치하여 렌더 불가/크래시",
+    "file": "R1_react-data-schema-mismatch.md",
+    "severity": "Critical",
+    "labels": "bug"
+  },
+  {
+    "code": "R2",
+    "issue": 57,
+    "title": "[Arch] src/ 내 이중 구현(useQuestions vs features/quiz)과 미사용 컴포넌트 8개",
+    "file": "R2_dual-implementation-dead-code.md",
+    "severity": "High",
+    "labels": "enhancement"
+  },
+  {
+    "code": "R3",
+    "issue": 58,
+    "title": "[Bug] React Error Boundary 부재로 렌더 예외 시 화면 백지",
+    "file": "R3_no-error-boundary.md",
+    "severity": "High",
+    "labels": "bug"
+  },
+  {
+    "code": "R4",
+    "issue": 59,
+    "title": "[Bug] 백업 가져오기(importUserData) debounce 저장-복원 레이스",
+    "file": "R4_import-backup-race.md",
+    "severity": "High",
+    "labels": "bug"
+  },
+  {
+    "code": "R5",
+    "issue": 60,
+    "title": "[Chore] 스크래치/디버그 산출물이 git에 추적됨(리포 위생)",
+    "file": "R5_repo-hygiene-scratch-artifacts.md",
+    "severity": "High",
+    "labels": "enhancement"
+  },
+  {
+    "code": "R6",
+    "issue": 61,
+    "title": "[Improvement] TypeScript strict 우회(@ts-nocheck/@ts-ignore/any)",
+    "file": "R6_typescript-strict-bypass.md",
+    "severity": "Medium",
+    "labels": "enhancement"
+  },
+  {
+    "code": "R7",
+    "issue": 62,
+    "title": "[Bug] 랜덤 모드 셔플 편향(sort 비교자에 Math.random)",
+    "file": "R7_random-shuffle-bias.md",
+    "severity": "Medium",
+    "labels": "bug"
+  },
+  {
+    "code": "R8",
+    "issue": 63,
+    "title": "[Bug] 타이머 백그라운드 시간 과다 집계 + 이중 타이머 모델",
+    "file": "R8_timer-overcount-dual-model.md",
+    "severity": "Medium",
+    "labels": "bug"
+  },
+  {
+    "code": "R9",
+    "issue": 64,
+    "title": "[Improvement] 서비스워커 이중 전략 + PWA manifest 아이콘 빈 배열",
+    "file": "R9_service-worker-dual-strategy.md",
+    "severity": "Medium",
+    "labels": "enhancement"
+  },
+  {
+    "code": "R10",
+    "issue": 65,
+    "title": "[Bug] 외부 입력 무검증(last-product, 백업 JSON)",
+    "file": "R10_missing-input-validation.md",
+    "severity": "Medium",
+    "labels": "bug"
+  },
+  {
+    "code": "R11",
+    "issue": 66,
+    "title": "[Improvement] React 측 접근성 회귀(ARIA/포커스/라벨 누락)",
+    "file": "R11_react-accessibility-regression.md",
+    "severity": "Medium",
+    "labels": "enhancement"
+  },
+  {
+    "code": "R12",
+    "issue": 67,
+    "title": "[Chore] 빌드 전용 패키지가 dependencies에 분류됨",
+    "file": "R12_dependency-classification.md",
+    "severity": "Low",
+    "labels": "enhancement"
+  },
+  {
+    "code": "R13",
+    "issue": 68,
+    "title": "[Test] React 앱 E2E 스모크 추가 (#56/#57 해결 후)",
+    "file": "R13_react-e2e-smoke.md",
+    "severity": "High",
+    "labels": "enhancement"
+  },
+  {
+    "code": "R14",
+    "issue": 70,
+    "title": "[Bug] 세트/모드 전환 시 index 미초기화 → 범위 밖 접근 크래시",
+    "file": "R14_index-not-reset-on-set-mode-change.md",
+    "severity": "Medium",
+    "labels": "bug"
+  },
+  {
+    "code": "R15",
+    "issue": 71,
+    "title": "[Improvement] 타이머 동작 중 localStorage 초당 기록",
+    "file": "R15_timer-localstorage-churn.md",
+    "severity": "Low",
+    "labels": "enhancement"
+  },
+  {
+    "code": "R16",
+    "issue": 72,
+    "title": "[Bug] 데이터 로딩 all-or-nothing (Promise.all) — 세트 1개 실패가 전체 장애로 증폭",
+    "file": "R16_data-load-all-or-nothing.md",
+    "severity": "Medium",
+    "labels": "bug"
+  },
+  {
+    "code": "R17",
+    "issue": 73,
+    "title": "[Test] validate-questions.js가 true_false/short_answer 정답 미검증",
+    "file": "R17_validator-shortanswer-gap.md",
+    "severity": "Medium",
+    "labels": "enhancement"
+  },
+  {
+    "code": "R18",
+    "issue": 74,
+    "title": "[Bug] parser.tsx에 renderRichText 등 함수 누락 — React 문항 렌더 크래시",
+    "file": "R18_parser-missing-functions.md",
+    "severity": "Critical",
+    "labels": "bug"
+  },
+  {
+    "code": "R19",
+    "issue": 75,
+    "title": "[Feature] React 앱 핵심 퀴즈 기능 미완성 — 채점/review/타이머/오답노트",
+    "file": "R19_react-feature-completeness.md",
+    "severity": "High",
+    "labels": "enhancement"
+  },
+  {
+    "code": "R20",
+    "issue": 76,
+    "title": "[Test] 테스트 깊이 부족 — E2E 렌더-온리 + 핵심 로직 유닛 부재",
+    "file": "R20_test-depth.md",
+    "severity": "Medium",
+    "labels": "enhancement"
+  },
+  {
+    "code": "R21",
+    "issue": 77,
+    "title": "[Data] PDF 대조 감사 잔여 결함 — D-34/2402-68/2405-63/2405-33",
+    "file": "R21_pdf-audit-residual.md",
+    "severity": "Medium",
+    "labels": "bug"
+  }
+]
