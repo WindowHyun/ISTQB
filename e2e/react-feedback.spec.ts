@@ -11,8 +11,8 @@ test("React 앱: 연습 모드 피드백이 다음 문항으로 누수되지 않
   await page.getByRole("button", { name: "ISTQB" }).click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 
-  // 기본(PRACTICE) 모드 보장
-  await page.getByRole("button", { name: "PRACTICE", exact: true }).click();
+  // 기본(연습) 모드 보장
+  await page.getByRole("button", { name: "연습", exact: true }).click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 
   // Q1: 보기 하나 선택 → 피드백 패널 노출
