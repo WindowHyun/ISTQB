@@ -1,6 +1,7 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { useQuizStore } from '../store/useQuizStore';
 import { restorePersistentSnapshot } from '../utils/storage';
+import { ErrorBoundary } from '../components/common/ErrorBoundary';
 
 const Sidebar = React.lazy(() => import('../components/layout/Sidebar').then(module => ({ default: module.Sidebar })));
 const QuestionWorkspace = React.lazy(() => import('../components/quiz/QuestionWorkspace').then(module => ({ default: module.QuestionWorkspace })));
@@ -58,10 +59,12 @@ export const App = () => {
 
   return (
     <main className="app-shell" aria-label={`${activeProduct.toUpperCase()} 문제풀이 앱`}>
-      <Suspense fallback={<div className="loading">워크스페이스 로딩 중...</div>}>
-        <Sidebar />
-        <QuestionWorkspace />
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<div className="loading">워크스페이스 로딩 중...</div>}>
+          <Sidebar />
+          <QuestionWorkspace />
+        </Suspense>
+      </ErrorBoundary>
     </main>
   );
 };

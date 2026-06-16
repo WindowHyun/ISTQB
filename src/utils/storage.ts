@@ -217,6 +217,16 @@ export async function exportUserData() {
   URL.revokeObjectURL(url);
 }
 
+// 현재 상태(경과 시간 포함)를 즉시 영속화한다(숨김/언마운트 시점 저장, #71).
+export function flushPersist() {
+  const state = useQuizStore.getState();
+  if (!state.activeProduct) return;
+  saveUiState(state);
+  saveAnswers(state.answers);
+  saveUiState.flush();
+  saveAnswers.flush();
+}
+
 export async function importUserData(file: File): Promise<boolean> {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -224,17 +234,30 @@ export async function importUserData(file: File): Promise<boolean> {
       try {
         const text = e.target?.result as string;
         const data = JSON.parse(text);
-        
-        if (data.state) saveUiState(data.state);
-        if (data.answers) saveAnswers(data.answers);
+        const product = getActiveProduct();
+
+        // activeProduct를 함께 넣어 saveUiState의 early-return을 피하고, 즉시 flush로 디바운스 우회(#59).
+        if (data.state) {
+          saveUiState({ ...data.state, activeProduct: product });
+          saveUiState.flush();
+        }
+        if (data.answers) {
+          saveAnswers(data.answers);
+          saveAnswers.flush();
+        }
         if (data.histories) {
           const db = await getDb();
           const tx = db.transaction(STORE_NAME, "readwrite");
           const store = tx.objectStore(STORE_NAME);
           (Object.values(data.histories) as ExamHistory[]).forEach((h) => store.put(h));
+          // 복원이 DB를 읽기 전에 트랜잭션 커밋을 기다린다.
+          await new Promise<void>((res) => {
+            tx.oncomplete = () => res();
+            tx.onerror = () => res();
+          });
         }
-        
-        await restorePersistentSnapshot(getActiveProduct());
+
+        await restorePersistentSnapshot(product);
         resolve(true);
       } catch (err) {
         console.error("Import failed", err);
@@ -249,10 +272,11 @@ useQuizStore.subscribe((state, prevState) => {
   if (!state.activeProduct) return;
   
   if (
+    // elapsedSeconds는 매 초 바뀌므로 제외(초당 localStorage 쓰기 방지, #71).
+    // 경과 시간은 다른 상태 변경 시점과 flushPersist(숨김/언마운트)에 함께 저장된다.
     state.mode !== prevState.mode ||
     state.setId !== prevState.setId ||
     state.index !== prevState.index ||
-    state.elapsedSeconds !== prevState.elapsedSeconds ||
     state.reviewIds !== prevState.reviewIds ||
     state.navCollapsed !== prevState.navCollapsed
   ) {

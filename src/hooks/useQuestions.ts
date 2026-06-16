@@ -11,28 +11,34 @@ function shuffleQuestions<T>(items: T[]): T[] {
   return copy;
 }
 
+// stem/explanation은 ContentBlock[] 또는 문자열일 수 있다(RichText가 둘 다 처리).
 export interface Question {
   id?: string;
   number: number;
   type?: string;
-  stem: string;
+  stem: unknown;
   options: { key: string; text: string }[];
   answer: string[];
-  explanation?: string;
-  figure?: string;
+  explanation?: unknown;
+  figure?: string | null;
 }
 
-export interface SetData {
+// index.json의 세트 요약(평면 배열, certification 포함).
+export interface SetSummary {
   id: string;
+  certification: string;
   title: string;
-  file: string;
-  questions?: Question[];
+  path: string;
+  legacySetId?: string;
 }
 
 export interface AppData {
-  istqb: { sets: SetData[] };
-  csts: { sets: SetData[] };
+  schemaVersion?: number;
+  sets: SetSummary[];
 }
+
+// setId별 로드된 문항 캐시(appData 객체를 변형하지 않음).
+const questionCache: Record<string, Question[]> = {};
 
 export function useQuestions() {
   const [appData, setAppData] = useState<AppData | null>(null);
@@ -49,26 +55,8 @@ export function useQuestions() {
   useEffect(() => {
     if (!appData || !setId) return;
 
-    let targetSet: SetData | undefined;
-    if (setId.startsWith('csts')) {
-      targetSet = appData.csts.sets.find((s) => s.id === setId);
-    } else {
-      targetSet = appData.istqb.sets.find((s) => s.id === setId);
-    }
-
+    const targetSet = appData.sets.find((s) => s.id === setId);
     if (!targetSet) return;
-
-    if (targetSet.questions) {
-      applyMode(targetSet.questions);
-    } else {
-      fetch(`data/${targetSet.file}`)
-        .then((res) => res.json())
-        .then((data) => {
-          targetSet!.questions = data;
-          applyMode(data);
-        })
-        .catch((err) => console.error('Failed to load set', err));
-    }
 
     function applyMode(questions: Question[]) {
       if (mode === 'random') {
@@ -83,6 +71,22 @@ export function useQuestions() {
         setCurrentQuestions(questions);
       }
     }
+
+    if (questionCache[setId]) {
+      applyMode(questionCache[setId]);
+      return;
+    }
+
+    const path = targetSet.path.replace(/^\.\//, '');
+    fetch(`data/${path}`)
+      .then((res) => res.json())
+      .then((data) => {
+        // 세트 파일은 { meta, questions: [...] } 형태(혹은 배열 자체).
+        const questions: Question[] = Array.isArray(data) ? data : data?.questions || [];
+        questionCache[setId] = questions;
+        applyMode(questions);
+      })
+      .catch((err) => console.error('Failed to load set', err));
   }, [appData, setId, mode, reviewIds]);
 
   return { appData, currentQuestions };

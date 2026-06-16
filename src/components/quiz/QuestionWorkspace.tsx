@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useQuizStore } from '../../store/useQuizStore';
 import { useQuestions } from '../../hooks/useQuestions';
+import { flushPersist } from '../../utils/storage';
 import { QuestionCard } from './QuestionCard';
 
 export const QuestionWorkspace = () => {
@@ -14,6 +15,7 @@ export const QuestionWorkspace = () => {
       if (document.hidden) {
         // 숨김 직전까지만 누적하고 멈춘다. (백그라운드 체류 시간은 제외)
         tickTimer();
+        flushPersist(); // 경과 시간을 이 시점에 저장(#71)
         clearInterval(interval);
       } else {
         // 복귀 시 기준 시각을 now로 재설정해 백그라운드 간격이 합산되지 않게 한다.
@@ -27,9 +29,18 @@ export const QuestionWorkspace = () => {
 
     return () => {
       clearInterval(interval);
+      flushPersist(); // 언마운트 시 경과 시간 저장(#71)
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [mode, startTimer, tickTimer]);
+
+  // index가 현재 목록 범위를 벗어나면 보정(세트/모드 전환 잔여 index 방어, #70)
+  useEffect(() => {
+    const total = currentQuestions.length;
+    if (total && (index < 0 || index >= total)) {
+      setIndex(Math.min(Math.max(index, 0), total - 1));
+    }
+  }, [currentQuestions.length, index, setIndex]);
 
   // 키보드 좌우 화살표로 문항 이동 (입력 필드 포커스 시 제외)
   useEffect(() => {
@@ -50,7 +61,8 @@ export const QuestionWorkspace = () => {
     return <div className="workspace">문제를 불러오는 중이거나 문제가 없습니다.</div>;
   }
 
-  const currentQuestion = currentQuestions[index];
+  const safeIndex = Math.min(Math.max(index, 0), currentQuestions.length - 1);
+  const currentQuestion = currentQuestions[safeIndex];
 
   return (
     <div className="workspace">

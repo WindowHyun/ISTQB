@@ -1,20 +1,34 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useQuizStore } from '../../store/useQuizStore';
 import { useQuestions } from '../../hooks/useQuestions';
 import { exportUserData, importUserData } from '../../utils/storage';
 
 export const Sidebar = () => {
-  const { mode, setId, setMode, setSetId, resetTimer, clearAnswers, clearHistory, answers } = useQuizStore();
-  const { appData, currentQuestions } = useQuestions();
+  const { mode, setId, activeProduct, setMode, setSetId, setIndex, resetTimer, clearAnswers, clearHistory } = useQuizStore();
+  const { appData } = useQuestions();
+
+  // 현재 선택된 제품(ISTQB/CSTS)에 속한 세트만 노출.
+  const sets = appData
+    ? appData.sets.filter((s) => s.certification.toLowerCase() === activeProduct)
+    : [];
+
+  // 제품 선택 후 세트가 미선택(또는 다른 제품 세트)이면 첫 세트를 자동 선택해 문항을 로드.
+  useEffect(() => {
+    if (sets.length && !sets.some((s) => s.id === setId)) {
+      setSetId(sets[0].id);
+    }
+  }, [appData, activeProduct, setId, setSetId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSetId(e.target.value);
     setMode('practice');
+    setIndex(0); // 세트 변경 시 index 초기화(범위 밖 접근 방지, #70)
     resetTimer();
   };
 
   const handleModeChange = (newMode: typeof mode) => {
     setMode(newMode);
+    setIndex(0); // 모드 변경 시 index 초기화(#70)
     resetTimer();
   };
 
@@ -38,10 +52,7 @@ export const Sidebar = () => {
         <section className="panel">
           <label htmlFor="setSelect">문제 세트</label>
           <select id="setSelect" value={setId} onChange={handleSetChange}>
-            {appData?.istqb.sets.map((set) => (
-              <option key={set.id} value={set.id}>{set.title}</option>
-            ))}
-            {appData?.csts.sets.map((set) => (
+            {sets.map((set) => (
               <option key={set.id} value={set.id}>{set.title}</option>
             ))}
           </select>
