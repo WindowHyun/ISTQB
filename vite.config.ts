@@ -2,6 +2,24 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from 'vite-plugin-pwa';
 
+// 빌드 엔트리는 레거시 루트 index.html과의 충돌을 피하려고 index.vite.html을 쓴다.
+// 하지만 정적 호스팅(Vercel)·PWA navigateFallback은 dist/index.html을 기대하므로,
+// 산출물 파일명만 index.html로 바꿔 emit한다(소스 파일명은 그대로 유지).
+function emitIndexHtml() {
+  return {
+    name: 'emit-index-html',
+    enforce: 'post' as const,
+    generateBundle(_options: unknown, bundle: Record<string, { fileName: string }>) {
+      const entry = bundle['index.vite.html'];
+      if (entry) {
+        entry.fileName = 'index.html';
+        bundle['index.html'] = entry;
+        delete bundle['index.vite.html'];
+      }
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     react(),
@@ -24,7 +42,8 @@ export default defineConfig({
           { src: 'icons/icon-512.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
         ]
       }
-    })
+    }),
+    emitIndexHtml(),
   ],
   publicDir: "public",
   build: {

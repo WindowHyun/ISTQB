@@ -1,11 +1,11 @@
 {
   "name": "istqb-fl-tablet",
-  "buildCommand": "",
-  "outputDirectory": ".",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "trailingSlash": false,
   "headers": [
     {
-      "source": "/service-worker.js",
+      "source": "/sw.js",
       "headers": [
         {
           "key": "Cache-Control",
@@ -14,7 +14,7 @@
       ]
     },
     {
-      "source": "/www/service-worker.js",
+      "source": "/registerSW.js",
       "headers": [
         {
           "key": "Cache-Control",
@@ -23,16 +23,7 @@
       ]
     },
     {
-      "source": "/manifest.json",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/manifest+json; charset=utf-8"
-        }
-      ]
-    },
-    {
-      "source": "/www/manifest.json",
+      "source": "/manifest.webmanifest",
       "headers": [
         {
           "key": "Content-Type",

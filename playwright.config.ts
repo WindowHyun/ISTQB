@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 // 두 앱을 각각 검증한다:
 //  - legacy: 실제 배포되는 루트 index.html + script.js (local-server, 커밋된 자산 사용 = 운영과 동일)
-//  - react : Vite 빌드 산출물(dist/index.vite.html)을 vite preview로 서빙 (#56 수정 런타임 검증, #68)
+//  - react : Vite 빌드 산출물(dist/index.html)을 vite preview로 서빙 (#56 수정 런타임 검증, #68)
 const LEGACY_URL = "http://localhost:8080";
 const REACT_URL = "http://localhost:4173";
 
@@ -38,7 +38,7 @@ export default defineConfig({
     {
       // React: 빌드(prebuild에서 자산 동기화 1회) 후 dist/를 preview로 서빙.
       command: "npm run build && npm run preview",
-      url: `${REACT_URL}/index.vite.html`,
+      url: `${REACT_URL}/`,
       timeout: 180_000,
       reuseExistingServer: !process.env.CI,
     },

@@ -134,9 +134,11 @@ npm run validate:questions
 npm run build
 ```
 
-`tsc` 타입 검사 후 `index.vite.html`을 엔트리로 `dist/`에 정적 빌드가 생성됩니다. 이는 진행 중인 React 마이그레이션의 산출물입니다.
+`tsc` 타입 검사 후 `index.vite.html`을 엔트리로 `dist/`에 정적 빌드가 생성됩니다. 빌드 단계에서 산출물 HTML은 정적 호스팅 기본 라우팅과 PWA navigateFallback에 맞춰 `dist/index.html`로 emit됩니다(소스 파일명 `index.vite.html`은 유지).
 
-> **배포 참고**: 현재 Vercel 운영 배포는 별도 빌드 없이(`buildCommand: ""`) 저장소 루트(`outputDirectory: "."`)를 그대로 정적 서빙합니다. 즉 실제 운영 진입점은 루트 `index.html`(바닐라 JS 앱)이며, `dist/`(React)는 아직 운영 배포 경로가 아닙니다.
+> **배포 참고**: Vercel 운영 배포는 `buildCommand: "npm run build"`로 빌드 후 `outputDirectory: "dist"`(React 앱)를 서빙합니다. 즉 실제 운영 진입점은 `dist/index.html`(React 앱)입니다.
+>
+> 루트 `index.html` + `script.js`(바닐라 JS 앱)는 더 이상 Vercel 운영 진입점은 아니며, Capacitor APK(`www/`)·로컬 미리보기(`npm run serve`)·레거시 E2E 용도로 저장소에 유지됩니다.
 
 ## APK 빌드
 
@@ -210,6 +212,6 @@ android/local.properties
 *.keystore
 ```
 
-> 참고: Vite 빌드 산출물 `dist/`는 현재 저장소에 커밋되어 있습니다(Vercel이 루트를 서빙하므로 배포에 필수는 아님). 빌드 산출물 추적을 정리하려면 `.gitignore`에 `dist/` 추가 후 `git rm -r --cached dist/`를 검토하세요.
+> 참고: Vite 빌드 산출물 `dist/`는 `.gitignore`로 추적하지 않습니다. Vercel이 배포 시 `npm run build`로 직접 생성하므로 저장소에 커밋할 필요가 없습니다.
 
 앱 변경 후 APK를 다시 만들 때는 `www/`와 루트 파일이 동기화되어 있는지 확인한 뒤 `npm run cap:sync`를 실행하세요.

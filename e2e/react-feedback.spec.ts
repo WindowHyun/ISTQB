@@ -7,7 +7,7 @@ test("React 앱: 연습 모드 피드백이 다음 문항으로 누수되지 않
   const pageErrors: string[] = [];
   page.on("pageerror", (e) => pageErrors.push(String(e)));
 
-  await page.goto("/index.vite.html");
+  await page.goto("/");
   await page.getByRole("button", { name: "ISTQB" }).click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 

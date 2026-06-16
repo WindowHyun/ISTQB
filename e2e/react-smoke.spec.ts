@@ -6,7 +6,7 @@ test("React 앱: ISTQB 선택 시 문항이 렌더된다", async ({ page }) => {
   const pageErrors: string[] = [];
   page.on("pageerror", (e) => pageErrors.push(String(e)));
 
-  await page.goto("/index.vite.html");
+  await page.goto("/");
 
   const istqb = page.getByRole("button", { name: "ISTQB" });
   await expect(istqb).toBeVisible({ timeout: 20_000 });
