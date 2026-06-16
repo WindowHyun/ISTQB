@@ -174,80 +174,22 @@ function buildRichBlocks(text: unknown): Block[] {
   }
 
   function renderDataTable(block: Block): HTMLElement {
+    // SVG 이미지(고정 폭, 줄바꿈 불가 → 긴 셀 겹침/잘림) 대신 실제 HTML 표로 렌더.
     const wrapper = document.createElement("div");
-    wrapper.className = "table-image-frame";
-    const image = document.createElement("img");
-    image.className = "table-image";
-    image.src = tableSvgDataUrl(block.rows || []);
-    image.alt = "문제 참고 표";
-    image.loading = "lazy";
-    image.draggable = false;
-    image.addEventListener("click", () =>
-      openFigureModal(image.src),
-    );
-    wrapper.appendChild(image);
-    return wrapper;
-  }
-
-  function tableSvgDataUrl(rows: string[][]): string {
-    const normalizedRows = rows.map((row) =>
-      row.map((cell) => String(cell || "")),
-    );
-    const columnCount = Math.max(...normalizedRows.map((row) => row.length), 1);
-    const columns = Array.from({ length: columnCount }, (_, columnIndex) => {
-      const longest = Math.max(
-        ...normalizedRows.map((row) => visualLength(row[columnIndex] || "")),
-        4,
-      );
-      return Math.min(Math.max(longest * 10 + 30, 78), 210);
+    wrapper.className = "data-table-wrap";
+    const table = document.createElement("table");
+    table.className = "data-table";
+    (block.rows || []).forEach((row, rowIndex) => {
+      const tr = document.createElement("tr");
+      (row || []).forEach((cell) => {
+        const el = document.createElement(rowIndex === 0 ? "th" : "td");
+        el.textContent = String(cell ?? "");
+        tr.appendChild(el);
+      });
+      table.appendChild(tr);
     });
-    const rowHeight = 42;
-    const width = columns.reduce((sum, value) => sum + value, 0) + 2;
-    const height = normalizedRows.length * rowHeight + 2;
-    let y = 1;
-    const body = normalizedRows
-      .map((row, rowIndex) => {
-        let x = 1;
-        const cells = columns
-          .map((columnWidth, columnIndex) => {
-            const value = escapeSvg(row[columnIndex] || "");
-            const fill =
-              rowIndex === 0 ? "#e8efe7" : rowIndex % 2 ? "#ffffff" : "#fbfcfa";
-            const weight = rowIndex === 0 ? 700 : 500;
-            const cell = `
-                  <rect x="${x}" y="${y}" width="${columnWidth}" height="${rowHeight}" fill="${fill}" stroke="#b9c6b8"/>
-                  <text x="${x + columnWidth / 2}" y="${y + 26}" text-anchor="middle" font-size="15" font-weight="${weight}" fill="#1f2d24">${value}</text>
-                `;
-            x += columnWidth;
-            return cell;
-          })
-          .join("");
-        y += rowHeight;
-        return cells;
-      })
-      .join("");
-    const svg = `
-          <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-            <rect width="100%" height="100%" fill="#ffffff"/>
-            ${body}
-          </svg>
-        `;
-    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  }
-
-  function visualLength(value: string): number {
-    return Array.from(String(value || "")).reduce(
-      (sum, char) => sum + (char.charCodeAt(0) > 255 ? 1.7 : 1),
-      0,
-    );
-  }
-
-  function escapeSvg(value: string): string {
-    return String(value || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
+    wrapper.appendChild(table);
+    return wrapper;
   }
 
   function normalizeKnownTables(text: string): string {
