@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useQuizStore } from '../../store/useQuizStore';
 import { Question } from '../../hooks/useQuestions';
+import { isAnswerCorrect } from '../../utils/answer';
 import { RichText } from '../../utils/parser';
 
 interface OptionItemProps {
@@ -74,10 +75,7 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
     }
   }, [mode, isGraded, isMulti, question.answer.length, selected, answerKey, setAnswer]);
 
-  const isCorrect = () => {
-    if (selected.length !== question.answer.length) return false;
-    return selected.every(s => question.answer.map(a => a.toLowerCase()).includes(s.toLowerCase()));
-  };
+  const isCorrect = () => isAnswerCorrect(question.answer, selected);
 
   return (
     <>

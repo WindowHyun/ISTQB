@@ -2,13 +2,8 @@ import React, { useEffect } from 'react';
 import { useQuizStore } from '../../store/useQuizStore';
 import { useQuestions, Question } from '../../hooks/useQuestions';
 import { flushPersist } from '../../utils/storage';
+import { isAnswerCorrect } from '../../utils/answer';
 import { QuestionCard } from './QuestionCard';
-
-function isAnswerCorrect(question: Question, selected: string[]): boolean {
-  if (selected.length !== question.answer.length) return false;
-  const expected = question.answer.map((a) => a.toLowerCase());
-  return selected.every((s) => expected.includes(s.toLowerCase()));
-}
 
 function formatTime(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds));
@@ -82,7 +77,7 @@ export const QuestionWorkspace = () => {
   const answerKeyOf = (q: Question) => `${setId}-${answerMode}-${q.id || q.number}`;
   const total = currentQuestions.length;
   const answered = currentQuestions.filter((q) => (answers[answerKeyOf(q)] || []).length > 0).length;
-  const correctCount = currentQuestions.filter((q) => isAnswerCorrect(q, answers[answerKeyOf(q)] || [])).length;
+  const correctCount = currentQuestions.filter((q) => isAnswerCorrect(q.answer, answers[answerKeyOf(q)] || [])).length;
   const gradeKey = `${setId}-${mode}`;
   const isGraded = Boolean(graded[gradeKey]);
   const canGrade = (mode === 'exam' || mode === 'random') && !isGraded;
@@ -92,12 +87,12 @@ export const QuestionWorkspace = () => {
   const wrongQuestions = showWrongNote
     ? currentQuestions
         .map((q, i) => ({ q, i }))
-        .filter(({ q }) => !isAnswerCorrect(q, answers[answerKeyOf(q)] || []))
+        .filter(({ q }) => !isAnswerCorrect(q.answer, answers[answerKeyOf(q)] || []))
     : [];
 
   const handleGrade = () => {
     const wrongIds = currentQuestions
-      .filter((q) => !isAnswerCorrect(q, answers[answerKeyOf(q)] || []))
+      .filter((q) => !isAnswerCorrect(q.answer, answers[answerKeyOf(q)] || []))
       .map((q) => q.id || `legacy-${q.number}`);
     const gradedAnswers: Record<string, string[]> = {};
     currentQuestions.forEach((q) => {
