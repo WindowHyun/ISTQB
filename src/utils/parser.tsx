@@ -757,25 +757,30 @@ function openFigureModal(src: string): void {
 // "…개발(ATD"+"D) 접근법…")를 표시 단계에서 다시 이어붙인다.
 // ※ 데이터 파일(문제 내용·정답)은 일절 수정하지 않으며, 렌더 시점에만 합친다.
 function mergeTextContinuations(blocks: Block[]): Block[] {
-  // 문장이 정상 종료됐는지: 종결부호로 끝나면 완결된 것으로 본다.
   const TERMINAL = /[.?!…。」』:)\]]$/;
-  // 새 항목의 시작으로 볼 수 있는 마커(Ⓐ-Ⓩ, ①-⑳, (가), (1) 등)면 합치지 않는다.
-  const ITEM_MARKER = /^(\(?[Ⓐ-ⓩ]\)?|[①-⑳]|\([가-힣]\)|\(\d+\))/;
+  // 떨어져 나온 한국어 종결 어미만 매칭("~다." / "~다 " / "~다," / "~다)").
+  // "다음"처럼 뒤에 다른 음절이 붙는 경우는 제외해 과병합을 막는다.
+  const KO_TAIL = /^다(?:[\s.,)\]]|$)/;
   // 텍스트 계열 블록(데이터에 paragraph/prompt/text 등으로 들어옴)만 병합 대상.
   const isTextLike = (b: Block | undefined): boolean =>
     !!b && typeof b.text === "string" && ["text", "prompt", "paragraph"].includes(b.type || "");
   const out: Block[] = [];
   for (const block of blocks) {
     const prev = out[out.length - 1];
-    if (
-      isTextLike(block) &&
-      isTextLike(prev) &&
-      !TERMINAL.test((prev.text as string).trim()) &&
-      !ITEM_MARKER.test((block.text as string).trim())
-    ) {
-      // 직전 블록이 종결부호 없이 끊겼고 현재가 새 항목 마커가 아니면 이어붙인다.
-      prev.text = `${prev.text}${block.text}`;
-      continue;
+    if (isTextLike(block) && isTextLike(prev)) {
+      const p = (prev.text as string).trim();
+      const c = (block.text as string).trim();
+      // (A) 한국어 어미가 떨어져 나온 경우: "…한" + "다." → "…한다."
+      const koTail = !TERMINAL.test(p) && KO_TAIL.test(c);
+      // (B) 영문 단어가 괄호 안에서 쪼개진 경우: "…(ATD" + "D)" → "…(ATDD)"
+      const latinSplit =
+        /[A-Za-z]$/.test(p) &&
+        /^[A-Za-z]/.test(c) &&
+        p.split("(").length > p.split(")").length;
+      if (koTail || latinSplit) {
+        prev.text = `${prev.text}${block.text}`;
+        continue;
+      }
     }
     out.push(block);
   }
