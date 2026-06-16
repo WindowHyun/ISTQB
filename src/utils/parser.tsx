@@ -90,7 +90,9 @@ function buildRichBlocks(text: unknown): Block[] {
           type: "list",
           items: block.items.map((item, index) =>
             typeof item === "string"
-              ? { marker: `${index + 1}.`, text: item }
+              ? // 문자열 항목이 이미 마커("1.", "A.", "(가)" 등)를 가지면 그대로 살리고,
+                // 없을 때만 순번을 부여한다. (마커 이중 표기 "1. A." 방지 — 데이터 불변)
+                parseStructuredItem(item) || { marker: `${index + 1}.`, text: item }
               : {
                   marker: item.marker || `${index + 1}.`,
                   text: item.text || "",
@@ -740,11 +742,40 @@ function openFigureModal(src: string): void {
   }
 }
 
+// PDF 추출 과정에서 한 문장이 여러 블록으로 쪼개진 경우(예: "…테스트한"+"다.",
+// "…개발(ATD"+"D) 접근법…")를 표시 단계에서 다시 이어붙인다.
+// ※ 데이터 파일(문제 내용·정답)은 일절 수정하지 않으며, 렌더 시점에만 합친다.
+function mergeTextContinuations(blocks: Block[]): Block[] {
+  // 문장이 정상 종료됐는지: 종결부호로 끝나면 완결된 것으로 본다.
+  const TERMINAL = /[.?!…。」』:)\]]$/;
+  // 새 항목의 시작으로 볼 수 있는 마커(Ⓐ-Ⓩ, ①-⑳, (가), (1) 등)면 합치지 않는다.
+  const ITEM_MARKER = /^(\(?[Ⓐ-ⓩ]\)?|[①-⑳]|\([가-힣]\)|\(\d+\))/;
+  const out: Block[] = [];
+  for (const block of blocks) {
+    const prev = out[out.length - 1];
+    if (
+      block.type === "text" &&
+      typeof block.text === "string" &&
+      prev &&
+      prev.type === "text" &&
+      typeof prev.text === "string" &&
+      !TERMINAL.test(prev.text.trim()) &&
+      !ITEM_MARKER.test(block.text.trim())
+    ) {
+      // 직전 블록이 종결부호 없이 끊겼고 현재가 새 항목 마커가 아니면 이어붙인다.
+      prev.text = `${prev.text}${block.text}`;
+      continue;
+    }
+    out.push(block);
+  }
+  return out;
+}
+
 // 블록 목록을 대상 DOM에 렌더한다. (RichText가 호출하나 parser.tsx 추출 시 누락되어
 // 'renderRichText is not defined' 런타임 크래시를 유발했음 — 복원)
 function renderRichText(target: HTMLElement, text: unknown): void {
   target.replaceChildren();
-  const blocks = buildRichBlocks(text);
+  const blocks = mergeTextContinuations(buildRichBlocks(text));
   blocks.forEach((block) => {
     if (block.type === "image") {
       target.appendChild(renderReferenceImage(block.src || ""));
