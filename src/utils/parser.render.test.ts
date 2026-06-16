@@ -110,6 +110,34 @@ describe("RichText (parser renderRichText 회귀 가드)", () => {
     expect(lines.some((l) => l.startsWith("AC3:"))).toBe(true);
   });
 
+  // #1: 괄호 안에서 쪼개진 영문 약어(QA)도 이어붙인다.
+  it("괄호 안에서 쪼개진 QA 약어를 이어붙인다", async () => {
+    const text = await renderRichText([
+      { type: "paragraph", text: "테스트 부서를 품질 보증(Q" },
+      { type: "paragraph", text: "A) 부서라고 한" },
+      { type: "paragraph", text: "다." },
+    ]);
+    expect(text).toContain("품질 보증(QA) 부서라고 한다.");
+  });
+
+  // #2: 괄호 안 O/X 표기가 쪼개진 경우도 이어붙인다.
+  it("괄호 안 O/X 표기 분할을 이어붙인다", async () => {
+    const text = await renderRichText([
+      { type: "paragraph", text: "정적 테스트 방법이다. (" },
+      { type: "paragraph", text: "○ / X )" },
+    ]);
+    expect(text).toContain("(○ / X )");
+  });
+
+  // 빈칸 참조 기호(①)가 떨어져 나온 경우 이어붙인다.
+  it("빈칸+①… 분할을 이어붙인다", async () => {
+    const text = await renderRichText([
+      { type: "paragraph", text: "아래 빈칸" },
+      { type: "prompt", text: "①에 공통으로 들어갈 알맞은 용어는?" },
+    ]);
+    expect(text).toContain("빈칸①에");
+  });
+
   // "다음"처럼 "다" 뒤에 음절이 붙는 경우는 이전 줄과 합치면 안 된다(과병합 금지).
   it("'다음…'으로 시작하는 줄은 이전 줄과 합치지 않는다", async () => {
     const el = await renderRichTextEl([
