@@ -77,7 +77,7 @@ function isPlainObject(value: unknown): value is UnknownRecord {
 }
 
 // 외부(localStorage/백업 파일) 값을 신뢰하지 않고 정제한다.
-function sanitizeAnswers(value: unknown): Record<string, string[]> {
+export function sanitizeAnswers(value: unknown): Record<string, string[]> {
   const result: Record<string, string[]> = {};
   if (!isPlainObject(value)) return result;
   for (const [key, choices] of Object.entries(value)) {
@@ -91,7 +91,7 @@ function sanitizeAnswers(value: unknown): Record<string, string[]> {
 
 const VALID_MODES = ["home", "exam", "practice", "random", "review"];
 
-function sanitizeUiState(value: unknown): Partial<QuizState> {
+export function sanitizeUiState(value: unknown): Partial<QuizState> {
   if (!isPlainObject(value)) return {};
   const out: Partial<QuizState> = {};
   if (typeof value.mode === "string" && VALID_MODES.includes(value.mode)) {
