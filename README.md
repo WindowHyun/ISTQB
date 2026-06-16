@@ -80,12 +80,19 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 문제를
 - `android/`: Capacitor Android 프로젝트
 - `capacitor.config.json`: Capacitor 설정
 
+### CI / 테스트
+
+- `.github/workflows/ci.yml`: GitHub Actions CI (lint · 데이터 검증 · 유닛 테스트 · 빌드 · E2E)
+- `eslint.config.mjs`: ESLint(flat config) 규칙 — `npm run lint`
+- `vitest.config.ts`: 유닛 테스트(node·jsdom) — `npm test`, 커버리지 `npm run test:cov`
+- `playwright.config.ts`: E2E(legacy·react) — `npm run test:e2e`
+
 ### 문서
 
-- `docs/PROJECT_STATUS_REPORT.md`: 프로젝트 현황 · QA 재검증 리포트
 - `docs/commit-dashboard.html`: 커밋 · GitHub 이슈 대시보드
-- `docs/github_issues/`: 등록된 이슈 본문
-- `QA_REPORT.md`, `APK_BUILD.md`: 기존 QA / 빌드 메모
+- `docs/harness/`: 작업 하니스 관련 메모
+- `APK_BUILD.md`: APK 빌드 메모
+- `AGENTS.md`: 에이전트/기여 가이드
 
 ## 로컬 미리보기
 
