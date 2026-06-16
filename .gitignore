@@ -35,3 +35,11 @@ dist/
 test-results/
 playwright-report/
 playwright/.cache/
+
+# 스크래치 / 감사 산출물 (#60)
+/prompt-dump.txt
+/report-dump.txt
+/test-bug.js
+/anomalies.json
+/qa_1000_audit_result.json
+/validation_report.json
