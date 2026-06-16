@@ -15,7 +15,12 @@ type Block = {
 // === Extracted Vanilla Parsers ===
 function buildRichBlocks(text: unknown): Block[] {
     if (Array.isArray(text)) {
-      return text.flatMap((block) => normalizeQuestionBlock(block));
+      // 파싱(보기 마커 인식 등) 전에 PDF 분할 조각을 먼저 이어붙인다.
+      // 예: "…보증(Q"+"A) 부서라고 한"+"다." → "…보증(QA) 부서라고 한다." (한 문장)
+      // 이렇게 해야 "A)"가 줄머리로 보기 항목으로 오분류되는 것을 막는다.
+      return mergeTextContinuations(text as Block[]).flatMap((block) =>
+        normalizeQuestionBlock(block),
+      );
     }
     const cleaned = splitKnownSectionHeadings(
       normalizeReadableCharacters(stripPdfNoise(text as string)),
@@ -772,17 +777,18 @@ function mergeTextContinuations(blocks: Block[]): Block[] {
       const c = (block.text as string).trim();
       // (A) 한국어 어미가 떨어져 나온 경우: "…한" + "다." → "…한다."
       const koTail = !TERMINAL.test(p) && KO_TAIL.test(c);
-      // (B) 영문 단어가 괄호 안에서 쪼개진 경우: "…(ATD" + "D)" → "…(ATDD)"
-      const latinSplit =
-        /[A-Za-z]$/.test(p) &&
-        /^[A-Za-z]/.test(c) &&
-        p.split("(").length > p.split(")").length;
-      if (koTail || latinSplit) {
+      // (B) 괄호가 열린 채 끊긴 경우(괄호 내용이 다음 블록으로 이어짐):
+      //     "…품질 보증(Q"+"A) …" / "…개발(ATD"+"D) …" / "…인가?("+"단 …)" / "…이다.("+"○/X)"
+      const openParen = p.split("(").length - p.split(")").length > 0;
+      // (C) "빈칸"+"①…"처럼 빈칸 참조 기호가 떨어져 나온 경우.
+      const blankRef = /빈\s?칸$/.test(p) && /^[①-⑳]/.test(c);
+      if (koTail || openParen || blankRef) {
+        // prev는 복사본이므로 변형해도 원본 데이터(stem 배열)를 건드리지 않는다.
         prev.text = `${prev.text}${block.text}`;
         continue;
       }
     }
-    out.push(block);
+    out.push({ ...block });
   }
   return out;
 }
