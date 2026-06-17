@@ -28,6 +28,14 @@ export interface QuizState {
   startedAt: number | null;
   navCollapsed: boolean;
 
+  // UI 오버레이/드로어 상태(영속화하지 않음 — 새로고침 시 닫힘).
+  drawerOpen: boolean;
+  settingsOpen: boolean;
+  statsOpen: boolean;
+  wrongNoteOpen: boolean;
+  resultOpen: boolean;
+  paletteOpen: boolean;
+
   // Actions
   setActiveProduct: (product: 'istqb' | 'csts') => void;
   setMode: (mode: QuizMode) => void;
@@ -44,6 +52,13 @@ export interface QuizState {
   startTimer: () => void;
   resetTimer: () => void;
   setNavCollapsed: (collapsed: boolean) => void;
+  setDrawerOpen: (open: boolean) => void;
+  setSettingsOpen: (open: boolean) => void;
+  setStatsOpen: (open: boolean) => void;
+  setWrongNoteOpen: (open: boolean) => void;
+  setResultOpen: (open: boolean) => void;
+  setPaletteOpen: (open: boolean) => void;
+  resetToGate: () => void;
   hydrate: (state: Partial<QuizState>) => void;
 }
 
@@ -60,6 +75,13 @@ export const useQuizStore = create<QuizState>((set) => ({
   lastTick: null,
   startedAt: null,
   navCollapsed: false,
+
+  drawerOpen: false,
+  settingsOpen: false,
+  statsOpen: false,
+  wrongNoteOpen: false,
+  resultOpen: false,
+  paletteOpen: false,
 
   setActiveProduct: (activeProduct) => set({ activeProduct }),
   setMode: (mode) => set({ mode }),
@@ -111,5 +133,17 @@ export const useQuizStore = create<QuizState>((set) => ({
   startTimer: () => set({ startedAt: Date.now(), lastTick: Date.now() }),
   resetTimer: () => set({ elapsedSeconds: 0, lastTick: Date.now() }),
   setNavCollapsed: (navCollapsed) => set({ navCollapsed }),
+  setDrawerOpen: (drawerOpen) => set({ drawerOpen }),
+  setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+  setStatsOpen: (statsOpen) => set({ statsOpen }),
+  setWrongNoteOpen: (wrongNoteOpen) => set({ wrongNoteOpen }),
+  setResultOpen: (resultOpen) => set({ resultOpen }),
+  setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
+  // 진입/캐시 복원 시 항상 최초 화면(제품 선택 게이트)으로 — 오버레이도 모두 닫는다.
+  resetToGate: () => set({
+    mode: 'home', activeProduct: null,
+    drawerOpen: false, settingsOpen: false, statsOpen: false,
+    wrongNoteOpen: false, resultOpen: false, paletteOpen: false,
+  }),
   hydrate: (hydratedState) => set((state) => ({ ...state, ...hydratedState })),
 }));

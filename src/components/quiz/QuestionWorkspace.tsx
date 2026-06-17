@@ -1,13 +1,18 @@
 import { useEffect } from 'react';
 import { useQuizStore } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
-import { isQuestionCorrect } from '../../utils/answer';
 import { flushPersist } from '../../utils/storage';
 import { QuestionCard } from './QuestionCard';
+import { QuestionPalette } from './QuestionPalette';
 
 export const QuestionWorkspace = () => {
-  const { index, setId, mode, answers, setIndex, tickTimer, startTimer } = useQuizStore();
-  const { appData, currentQuestions, answerKeyOf, isGraded } = useQuizSession();
+  const {
+    index, setId, mode, setIndex, tickTimer, startTimer,
+    navCollapsed, setNavCollapsed, setPaletteOpen, setResultOpen,
+  } = useQuizStore();
+  const {
+    appData, currentQuestions, answered, isGraded, canGrade, gradeAndShow,
+  } = useQuizSession();
 
   useEffect(() => {
     startTimer();
@@ -70,6 +75,9 @@ export const QuestionWorkspace = () => {
   const isMulti = currentQuestion.answer.length > 1;
   const setTitle = appData?.sets.find((s) => s.id === setId)?.title || '';
 
+  const goPrev = () => setIndex((i) => Math.max(0, i - 1));
+  const goNext = () => setIndex((i) => Math.min(total - 1, i + 1));
+
   return (
     <section className="workspace" aria-label="문제 풀이 영역">
       <header className="topbar">
@@ -78,24 +86,8 @@ export const QuestionWorkspace = () => {
           <h2 id="questionTitle">문제 {currentQuestion.number}{isMulti ? ' · 복수정답' : ''}</h2>
         </div>
         <div className="topbar-actions">
-          <button
-            id="prevBtn"
-            type="button"
-            aria-label="이전 문제"
-            disabled={safeIndex === 0}
-            onClick={() => setIndex((i) => Math.max(0, i - 1))}
-          >
-            ‹
-          </button>
-          <button
-            id="nextBtn"
-            type="button"
-            aria-label="다음 문제"
-            disabled={safeIndex === total - 1}
-            onClick={() => setIndex((i) => Math.min(total - 1, i + 1))}
-          >
-            ›
-          </button>
+          <button id="prevBtn" type="button" aria-label="이전 문제" disabled={safeIndex === 0} onClick={goPrev}>‹</button>
+          <button id="nextBtn" type="button" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
         </div>
       </header>
 
@@ -108,26 +100,45 @@ export const QuestionWorkspace = () => {
         />
       </article>
 
-      <nav id="questionNav" className="question-nav" aria-label="문제 번호">
-        {currentQuestions.map((q, i) => {
-          const selected = answers[answerKeyOf(q)] || [];
-          const classes: string[] = [];
-          if (i === safeIndex) classes.push('current');
-          if (isGraded) classes.push(isQuestionCorrect(q.answer, selected, q.type) ? 'correct' : 'missed');
-          else classes.push(selected.length > 0 ? 'answered' : 'unanswered');
-          return (
+      {/* 데스크톱 인라인 팔레트(접이식). 모바일에선 CSS로 숨기고 하단바/점프핀으로 대체. */}
+      <section className="palette-block">
+        <div className="palette-head">
+          <div className="palette-summary">
+            문항 목록 <small>{safeIndex + 1} / {total} · 답함 {answered}</small>
+          </div>
+          <div className="palette-actions">
             <button
-              key={q.id || i}
               type="button"
-              className={classes.join(' ')}
-              aria-label={`문제 ${i + 1}${i === safeIndex ? ', 현재 문제' : ''}`}
-              aria-current={i === safeIndex ? 'true' : undefined}
-              onClick={() => setIndex(i)}
+              className="pill"
+              aria-expanded={!navCollapsed}
+              data-testid="palette-toggle"
+              onClick={() => setNavCollapsed(!navCollapsed)}
             >
-              {i + 1}
+              {navCollapsed ? '▸ 펼치기' : '▾ 접기'}
             </button>
-          );
-        })}
+            <button type="button" className="pill accent" data-testid="palette-jump-btn" onClick={() => setPaletteOpen(true)}>
+              ⤢ 문항 이동
+            </button>
+          </div>
+        </div>
+        {!navCollapsed && <QuestionPalette withId />}
+      </section>
+
+      {/* 모바일 전용: 하단 고정 액션바 + 플로팅 점프핀(CSS로 ≤880px만 노출) */}
+      <button type="button" className="jump-pin" data-testid="jump-pin" aria-label="문항 이동" onClick={() => setPaletteOpen(true)}>
+        <span className="jp-dot" aria-hidden="true" />{safeIndex + 1} / {total}
+      </button>
+
+      <nav className="mobile-actionbar" aria-label="문항 이동·채점">
+        <button type="button" className="ab-nav" aria-label="이전 문제" disabled={safeIndex === 0} onClick={goPrev}>‹</button>
+        {canGrade ? (
+          <button type="button" className="ab-main" data-testid="grade-button-m" onClick={gradeAndShow}>채점하기</button>
+        ) : isGraded ? (
+          <button type="button" className="ab-main subtle" onClick={() => setResultOpen(true)}>결과 요약</button>
+        ) : (
+          <button type="button" className="ab-main subtle" onClick={() => setPaletteOpen(true)}>문항 이동</button>
+        )}
+        <button type="button" className="ab-nav" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
       </nav>
     </section>
   );
