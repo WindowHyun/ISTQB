@@ -46,7 +46,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 문제를
 
 ## 프로젝트 구조
 
-이 저장소에는 **현재 운영 중인 바닐라 JS 앱**과 **진행 중인 React 마이그레이션**이 함께 존재합니다.
+이 저장소에는 **웹 운영 중인 React 앱**과 **APK·로컬·레거시 E2E 용도로 유지되는 바닐라 JS 앱**이 함께 존재합니다.
 
 ### 데이터 (공통)
 
@@ -58,22 +58,24 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 문제를
 
 > 과거의 단일 `questions.json` / `questions.js` 구조는 제거되었습니다(Phase 2). 데이터는 위 세트별 JSON으로 분리되어 관리됩니다.
 
-### ① 바닐라 JS 앱 (운영 / APK·Vercel 배포)
+### ① React 앱 (운영 · Vercel 배포)
 
-- `www/index.html`: Capacitor APK 및 정적 배포에 포함되는 앱 HTML
-- `www/script.js`, `www/style.css`: 앱 로직 / 스타일
-- `service-worker.js`, `www/service-worker.js`: 오프라인 캐시 설정
-- `index.html`: 루트 미리보기용 HTML
-- `local-server.js`: 로컬 미리보기 서버
-- `vercel.json`: Vercel 정적 배포 설정
-
-### ② React 마이그레이션 (진행 중)
-
-- `index.vite.html`: Vite 엔트리 HTML (`#root`)
+- 현재 **웹 운영 진입점**입니다. CBT(시험) 스타일 신규 디자인 적용.
+- `index.vite.html`: Vite 엔트리 HTML (`#root`) — 빌드 시 산출물은 `dist/index.html`로 emit
 - `src/main.tsx`, `src/app/App.tsx`: React 진입점
 - `src/components/`, `src/features/`, `src/store/`, `src/hooks/`, `src/utils/`: 컴포넌트·상태·로더
 - 스택: React 19 + TypeScript + Zustand + Vite + PWA(`vite-plugin-pwa`)
 - `vite.config.ts`, `tsconfig.json`: 빌드 / 타입 설정
+- `vercel.json`: Vercel 배포 설정(`framework: vite`, `buildCommand: npm run build`, `outputDirectory: dist`)
+
+### ② 바닐라 JS 앱 (APK · 로컬 미리보기 · 레거시 E2E)
+
+- 더 이상 웹 운영 진입점은 아니며, Capacitor APK·로컬 미리보기·레거시 E2E 용도로 유지됩니다.
+- `www/index.html`: Capacitor APK용 앱 HTML
+- `www/script.js`, `www/style.css`: 앱 로직 / 스타일
+- `service-worker.js`, `www/service-worker.js`: 오프라인 캐시 설정 (루트 `service-worker.js`는 구 SW 자가 해제 tombstone)
+- `index.html`: 루트 미리보기용 HTML
+- `local-server.js`: 로컬 미리보기 서버
 
 ### Android / Capacitor
 
@@ -84,12 +86,13 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 문제를
 
 - `.github/workflows/ci.yml`: GitHub Actions CI (lint · 데이터 검증 · 유닛 테스트 · 빌드 · E2E)
 - `eslint.config.mjs`: ESLint(flat config) 규칙 — `npm run lint`
-- `vitest.config.ts`: 유닛 테스트(node·jsdom) — `npm test`, 커버리지 `npm run test:cov`
-- `playwright.config.ts`: E2E(legacy·react) — `npm run test:e2e`
+- `vitest.config.ts`: 유닛 테스트(node·jsdom, 37개) — `npm test`, 커버리지 `npm run test:cov`
+- `playwright.config.ts`: E2E(legacy·react) — `npm run test:e2e` (React 기능 E2E 70개)
 
 ### 문서
 
 - `docs/commit-dashboard.html`: 커밋 · GitHub 이슈 대시보드
+- `docs/e2e-test-scenarios.md`: React E2E 70개 시나리오(전제·행위·기대) 정리
 - `docs/harness/`: 작업 하니스 관련 메모
 - `APK_BUILD.md`: APK 빌드 메모
 - `AGENTS.md`: 에이전트/기여 가이드
