@@ -84,7 +84,19 @@
 - 데이터/QA 자동화: **Python + pymupdf**(PDF 추출·대조), 컨택트시트 검수
 - CI/CD: GitHub Actions, Vercel
 
-## 9. 데모 자료 (스크린샷)
+## 9. 데모 자료 (GIF · 스크린샷)
+
+### 기능 동작 GIF
+| 기능 | GIF |
+|------|-----|
+| 연습 풀이(즉시 피드백·문항 이동) | ![연습](gifs/01-practice.gif) |
+| 시험 채점(점수·정답 공개) | ![채점](gifs/02-grade.gif) |
+| 오답노트(목록·해당 문항 이동) | ![오답노트](gifs/03-wrongnote.gif) |
+| 설정(글자 크기 변경) | ![설정](gifs/04-settings.gif) |
+| 모드 전환·번호 팔레트·키보드 네비 | ![네비](gifs/05-nav.gif) |
+| 단답형 입력·정답 확인 | ![단답형](gifs/06-shortanswer.gif) |
+
+### 정적 스크린샷
 | 화면 | 파일 |
 |------|------|
 | 제품 선택(게이트) | `docs/screenshots/01-gate.png` |

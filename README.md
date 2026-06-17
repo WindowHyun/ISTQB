@@ -15,9 +15,15 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 문제를
 - **데이터 정합성 검증**: 626문항 정답·이미지·스키마를 `npm run verify` 로 자동 점검 + 전 문항 렌더 스윕(404·예외·깨진 이미지 0).
 - **결함 RCA & 회귀 방지**: PDF 원본 ↔ 앱 렌더를 전수 대조해 결함을 찾고, 반복 결함의 근본원인을 분석해 클래스 단위로 차단(회귀 테스트 추가).
 - **CI 품질 게이트**: GitHub Actions 5-job(lint·verify·unit·build·e2e) 통과 시에만 머지.
-- 자세한 내용(QA 직무 정리)은 [`docs/PORTFOLIO.md`](docs/PORTFOLIO.md), 화면은 [`docs/screenshots/`](docs/screenshots/).
+- 자세한 내용(QA 직무 정리)은 [`docs/PORTFOLIO.md`](docs/PORTFOLIO.md), 화면·동작은 [`docs/screenshots/`](docs/screenshots/) · [`docs/gifs/`](docs/gifs/).
 
-![채점 결과 화면](docs/screenshots/03-graded.png)
+### 기능 데모
+
+| 시험 채점 | 오답노트 |
+|-----------|----------|
+| ![채점](docs/gifs/02-grade.gif) | ![오답노트](docs/gifs/03-wrongnote.gif) |
+
+> 더 많은 동작 GIF(연습·설정·네비·단답형)는 [`docs/gifs/`](docs/gifs/), 정적 화면은 [`docs/screenshots/`](docs/screenshots/).
 
 ## 현재 포함된 문제
 
