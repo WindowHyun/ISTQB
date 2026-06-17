@@ -7,7 +7,7 @@ import { saveHistoryToDB } from '../utils/storage';
 // 레거시 레이아웃은 채점 버튼·진행률을 사이드바에, 문항을 워크스페이스에 두므로
 // 두 컴포넌트가 동일한 세션 계산을 필요로 한다 — 한 곳에 모아 중복을 제거한다.
 export function useQuizSession() {
-  const { mode, setId, answers, graded, elapsedSeconds, addHistory, setReviewIds, setGraded } = useQuizStore();
+  const { mode, setId, answers, graded, elapsedSeconds, addHistory, setReviewIds, setGraded, setResultOpen } = useQuizStore();
   const { appData, currentQuestions } = useQuestions();
 
   // 각 모드는 자체 답안 네임스페이스를 사용한다(오답 모드는 재풀이용 별도 기록).
@@ -57,6 +57,12 @@ export function useQuizSession() {
     setGraded(gradeKey, true);
   };
 
+  // 채점 후 결과 요약 모달을 자동으로 띄운다(사이드바·모바일 하단바 공용).
+  const gradeAndShow = () => {
+    handleGrade();
+    setResultOpen(true);
+  };
+
   return {
     appData,
     currentQuestions,
@@ -68,6 +74,8 @@ export function useQuizSession() {
     canGrade,
     progressPercent,
     wrongQuestions,
+    elapsedSeconds,
     handleGrade,
+    gradeAndShow,
   };
 }

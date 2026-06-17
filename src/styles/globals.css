@@ -668,16 +668,139 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
   padding: 16px 18px;
 }
 
+/* ── 접이식 문항 팔레트 블록(데스크톱 인라인) ─────────────────────────── */
+.palette-block {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 14px 16px;
+}
+.palette-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.palette-summary { font-size: 14px; font-weight: 800; }
+.palette-summary small { color: var(--muted); font-weight: 600; margin-left: 6px; }
+.palette-actions { display: flex; gap: 8px; }
+.pill {
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text-2);
+}
+.pill:hover { background: var(--surface-3); }
+.pill.accent { background: var(--primary-50); border-color: var(--primary-100); color: var(--primary-700); }
+.palette-block .question-nav { margin-top: 14px; box-shadow: none; border: 0; padding: 0; background: transparent; }
+
+/* ── 모바일 전용 요소(기본 숨김, ≤880px에서 노출) ───────────────────── */
+.mobile-topbar { display: none; }
+.drawer-backdrop { display: none; }
+.jump-pin { display: none; }
+.mobile-actionbar { display: none; }
+
 /* ── 반응형 ──────────────────────────────────────────────────────────── */
 @media (max-width: 880px) {
+  /* 상단 컴팩트 헤더(상시 모드·진행·시간) */
+  .mobile-topbar {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    padding: 11px 14px;
+  }
+  .mtb-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .mtb-brand { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .mtb-brand img { width: 28px; height: 28px; border-radius: 9px; flex: none; }
+  .mtb-brand small { display: block; font-size: 11px; font-weight: 800; color: var(--primary); line-height: 1.1; }
+  .mtb-brand b { display: block; font-size: 13.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60vw; }
+  .mtb-menu { width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--line-strong); background: var(--surface); font-size: 16px; color: var(--text-2); flex: none; }
+  .mtb-info { display: flex; align-items: center; gap: 9px; }
+  .mtb-chip { background: var(--primary); color: #fff; font-weight: 800; font-size: 12px; padding: 4px 12px; border-radius: 999px; }
+  .mtb-meta { font-size: 12.5px; color: var(--muted); font-weight: 800; }
+  .mtb-bar { flex: 1; height: 5px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+  .mtb-bar i { display: block; height: 100%; background: var(--primary); }
+
+  /* 한 칸 레이아웃 + 문제가 첫 화면(사이드바는 드로어로) */
   .app-shell {
     grid-template-columns: 1fr;
-    padding: 12px;
+    padding: 12px 12px 84px;
     gap: 14px;
   }
-  .sidebar { position: static; }
   .topbar #questionTitle { font-size: 19px; }
-  .question-nav { grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); }
+
+  /* 사이드바 → 좌측 오프캔버스 드로어 */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: min(320px, 86vw);
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+    overflow-y: auto;
+    transform: translateX(-104%);
+    transition: transform 0.24s ease;
+    z-index: 60;
+  }
+  .app-shell[data-drawer="open"] .sidebar { transform: translateX(0); }
+  .drawer-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(2px);
+    z-index: 55;
+  }
+
+  /* 인라인 팔레트는 숨기고 점프핀/하단바로 대체 */
+  .palette-block { display: none; }
+
+  .jump-pin {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: fixed;
+    right: 16px;
+    bottom: 74px;
+    z-index: 40;
+    background: var(--text);
+    color: var(--surface);
+    border: 0;
+    border-radius: 999px;
+    padding: 11px 16px;
+    font-size: 13px;
+    font-weight: 800;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.3);
+  }
+  .jump-pin .jp-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
+
+  .mobile-actionbar {
+    display: flex;
+    gap: 9px;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 45;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -3px 10px rgba(15, 23, 42, 0.07);
+  }
+  .mobile-actionbar .ab-nav {
+    width: 54px; flex: none;
+    border: 1px solid var(--line-strong); background: var(--surface);
+    border-radius: 13px; font-size: 20px; color: var(--text-2);
+  }
+  .mobile-actionbar .ab-nav:disabled { opacity: 0.4; }
+  .mobile-actionbar .ab-main {
+    flex: 1; border: 0; border-radius: 13px;
+    background: var(--primary); color: #fff; font-size: 15px; font-weight: 800;
+  }
+  .mobile-actionbar .ab-main.subtle { background: var(--surface-3); color: var(--text-2); }
 }
 
 @media (max-width: 520px) {

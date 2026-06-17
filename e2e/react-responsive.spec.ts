@@ -12,23 +12,28 @@ test.describe("반응형", () => {
       await expect(page.locator("#options .option").first()).toBeVisible();
     });
 
-    test("사이드바와 워크스페이스가 모두 보인다(세로 스택)", async ({ page }) => {
+    test("상단바와 워크스페이스가 보인다(컨트롤은 드로어)", async ({ page }) => {
       await openProduct(page, "ISTQB");
-      await expect(page.locator(".sidebar")).toBeVisible();
+      await expect(page.locator(".mobile-topbar")).toBeVisible();
       await expect(page.locator(".workspace")).toBeVisible();
     });
 
-    test("문제 번호 팔레트로 이동할 수 있다", async ({ page }) => {
+    test("점프핀→문항 이동 시트로 문항을 옮길 수 있다", async ({ page }) => {
       await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-      await page.locator('#questionNav button:has-text("3")').first().click();
-      await expect(page.locator("#questionNav button.current")).toHaveText("3");
+      await page.getByTestId("jump-pin").click();
+      const sheet = page.getByTestId("palette-jump");
+      await expect(sheet).toBeVisible();
+      await sheet.locator("button", { hasText: /^3$/ }).click();
+      await expect(page.getByTestId("jump-pin")).toContainText("3 /");
     });
 
-    test("채점 흐름이 동작한다", async ({ page }) => {
+    test("하단 액션바 채점 흐름이 동작한다", async ({ page }) => {
       await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+      // 모드 변경은 드로어에서
+      await page.getByTestId("drawer-open").click();
       await modeBtn(page, "시험").click();
       await page.locator("#options .option").first().click();
-      await page.getByTestId("grade-button").click();
+      await page.getByTestId("grade-button-m").click();
       await expect(page.getByTestId("score")).toContainText("점수", { timeout: 8_000 });
     });
 
@@ -38,8 +43,9 @@ test.describe("반응형", () => {
       await expect(page.getByRole("button", { name: "CSTS" })).toBeVisible();
     });
 
-    test("설정 모달이 열리고 닫힌다", async ({ page }) => {
+    test("드로어에서 설정 모달이 열리고 닫힌다", async ({ page }) => {
       await openProduct(page, "ISTQB");
+      await page.getByTestId("drawer-open").click();
       await page.getByRole("button", { name: /설정/ }).click();
       const dialog = page.getByRole("dialog", { name: "설정" });
       await expect(dialog).toBeVisible();
