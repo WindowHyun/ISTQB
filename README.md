@@ -1,6 +1,23 @@
 # ISTQB / CSTS 문제 풀이 앱
 
+![CI](https://github.com/WindowHyun/ISTQB/actions/workflows/ci.yml/badge.svg)
+![tests](https://img.shields.io/badge/tests-37%20unit%20%2B%2070%20e2e-brightgreen)
+![License](https://img.shields.io/badge/License-MIT%20(code)-yellow)
+![stack](https://img.shields.io/badge/React%2019-TypeScript-blue)
+
 ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 문제를 태블릿·Android APK·웹에서 풀 수 있도록 만든 오프라인 문제 풀이 앱입니다.
+
+## 하이라이트 (Quality Engineering)
+
+> 1인 개발 프로젝트지만 **품질 보증(QA)** 에 무게를 둔 점이 특징입니다.
+
+- **테스트 자동화 107개**: Vitest 유닛 37 + Playwright **E2E 70**(모드·문항유형·네비·설정·영속성·엣지·반응형·접근성). 전체 시나리오는 [`docs/e2e-test-scenarios.md`](docs/e2e-test-scenarios.md).
+- **데이터 정합성 검증**: 626문항 정답·이미지·스키마를 `npm run verify` 로 자동 점검 + 전 문항 렌더 스윕(404·예외·깨진 이미지 0).
+- **결함 RCA & 회귀 방지**: PDF 원본 ↔ 앱 렌더를 전수 대조해 결함을 찾고, 반복 결함의 근본원인을 분석해 클래스 단위로 차단(회귀 테스트 추가).
+- **CI 품질 게이트**: GitHub Actions 5-job(lint·verify·unit·build·e2e) 통과 시에만 머지.
+- 자세한 내용(QA 직무 정리)은 [`docs/PORTFOLIO.md`](docs/PORTFOLIO.md), 화면은 [`docs/screenshots/`](docs/screenshots/).
+
+![채점 결과 화면](docs/screenshots/03-graded.png)
 
 ## 현재 포함된 문제
 
@@ -43,6 +60,32 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 문제를
 - PDF에서 추출한 표·그림·코드 블록·목록을 이미지/구조화 블록으로 렌더링
 - 다크모드 및 반응형(태블릿) 레이아웃 지원
 - 문제 데이터 검증 스크립트(`scripts/validate-questions.js`) 제공
+
+## 아키텍처
+
+데이터 정본(`www/`)을 동기화로 배포 경로에 복사하고, 웹은 React(`dist`)·APK는 바닐라 JS(`www`)로 서빙하는 **이중 런타임** 구조입니다.
+
+```mermaid
+flowchart LR
+  PDF["원본 PDF (DATA/)"] -->|pymupdf 추출·정제| SRC["정본 데이터 www/ (index.json + 세트별 JSON, 이미지)"]
+  SRC -->|sync-assets| PUB["public/ · dist/ · root"]
+  SRC -->|cap:sync| WWW["APK 자산 (www/)"]
+
+  subgraph 웹_운영["웹 운영 (Vercel)"]
+    REACT["React 19 + Vite → dist/index.html"]
+  end
+  subgraph APK["Android (Capacitor)"]
+    VANILLA["바닐라 JS (www/index.html)"]
+  end
+  PUB --> REACT
+  WWW --> VANILLA
+
+  subgraph 품질["품질 게이트 (GitHub Actions)"]
+    CI["lint · verify · unit(37) · build · e2e(70)"]
+  end
+  REACT -.검증.-> CI
+  SRC -.정합성 verify.-> CI
+```
 
 ## 프로젝트 구조
 
@@ -216,5 +259,21 @@ android/local.properties
 ```
 
 > 참고: Vite 빌드 산출물 `dist/`는 `.gitignore`로 추적하지 않습니다. Vercel이 배포 시 `npm run build`로 직접 생성하므로 저장소에 커밋할 필요가 없습니다.
+
+## 라이선스 및 데이터 저작권
+
+- **소스 코드**: MIT 라이선스 — [`LICENSE`](LICENSE).
+- **문제(시험) 콘텐츠**: `DATA/`, `www/data/`, `public/data/` 및 figure 이미지는 **제3자 저작권물**입니다.
+  - ISTQB® Foundation Level v4.0 샘플문제 — © ISTQB®
+  - CSTS / SW 테스트 전문가 기출 — © 한국정보통신기술협회(TTA)
+  - 개인 학습 목적 포함이며 **재배포·상업적 이용은 허용되지 않습니다.**
+
+### 데모 / 배포 정책
+시험 콘텐츠 저작권상 **전체 콘텐츠를 공개 라이브로 호스팅하지 않습니다.** 포트폴리오 데모는 다음으로 대체합니다(안전 순):
+1. **스크린샷** — [`docs/screenshots/`](docs/screenshots/) (권장)
+2. **로컬/비공개 데모** — `npm run serve`(로컬) 또는 암호 보호 호스팅
+3. **모의문항 데모** — 데이터를 자작 샘플 문항으로 교체 시 공개 라이브도 가능
+
+포트폴리오 정리는 [`docs/PORTFOLIO.md`](docs/PORTFOLIO.md)(QA 직무 중심) 참고.
 
 앱 변경 후 APK를 다시 만들 때는 `www/`와 루트 파일이 동기화되어 있는지 확인한 뒤 `npm run cap:sync`를 실행하세요.
