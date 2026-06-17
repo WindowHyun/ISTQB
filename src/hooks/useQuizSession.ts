@@ -1,12 +1,13 @@
 import { useQuizStore } from '../store/useQuizStore';
 import { useQuestions, Question } from './useQuestions';
 import { isQuestionCorrect } from '../utils/answer';
+import { saveHistoryToDB } from '../utils/storage';
 
 // 사이드바(통계·채점·진행률)와 워크스페이스(문항·네비)가 공유하는 파생 상태/액션.
 // 레거시 레이아웃은 채점 버튼·진행률을 사이드바에, 문항을 워크스페이스에 두므로
 // 두 컴포넌트가 동일한 세션 계산을 필요로 한다 — 한 곳에 모아 중복을 제거한다.
 export function useQuizSession() {
-  const { mode, setId, answers, graded, addHistory, setReviewIds, setGraded } = useQuizStore();
+  const { mode, setId, answers, graded, elapsedSeconds, addHistory, setReviewIds, setGraded } = useQuizStore();
   const { appData, currentQuestions } = useQuestions();
 
   // 각 모드는 자체 답안 네임스페이스를 사용한다(오답 모드는 재풀이용 별도 기록).
@@ -39,7 +40,19 @@ export function useQuizSession() {
       const k = answerKeyOf(q);
       if (answers[k]) gradedAnswers[k] = answers[k];
     });
-    addHistory({ id: Date.now().toString(), setId, mode, answers: gradedAnswers });
+    const history = {
+      id: Date.now().toString(),
+      setId,
+      mode,
+      answers: gradedAnswers,
+      correct: total - wrongIds.length,
+      total,
+      elapsedSeconds: Math.round(elapsedSeconds),
+      createdAt: Date.now(),
+    };
+    addHistory(history);
+    // 채점 이력을 IndexedDB에 영속화(새로고침 후 통계 대시보드에서 조회).
+    saveHistoryToDB(history);
     setReviewIds(setId, wrongIds);
     setGraded(gradeKey, true);
   };

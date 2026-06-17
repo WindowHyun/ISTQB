@@ -70,6 +70,20 @@ export async function loadHistoriesFromDB(): Promise<Record<string, ExamHistory>
   }
 }
 
+export async function clearHistoriesFromDB() {
+  try {
+    const db = await getDb();
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).clear();
+    await new Promise<void>((res) => {
+      tx.oncomplete = () => res();
+      tx.onerror = () => res();
+    });
+  } catch (err) {
+    console.error("IndexedDB clear failed", err);
+  }
+}
+
 type UnknownRecord = Record<string, unknown>;
 
 function isPlainObject(value: unknown): value is UnknownRecord {

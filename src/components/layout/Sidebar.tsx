@@ -1,8 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useQuizStore } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
-import { exportUserData, importUserData } from '../../utils/storage';
+import { useTheme, ThemePref } from '../../hooks/useTheme';
+import { useSetCounts } from '../../hooks/useSetCounts';
+import { exportUserData, importUserData, clearHistoriesFromDB } from '../../utils/storage';
 import { formatClock } from '../../utils/time';
+import { Modal } from '../common/Modal';
+import { StatsDashboard } from '../stats/StatsDashboard';
+import { ResultSummary } from '../quiz/ResultSummary';
 
 const LOGO_SRC =
   'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%20role%3D%22img%22%20aria-label%3D%22Quiz%20mark%22%3E%0A%20%20%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%23166064%22/%3E%0A%20%20%3Cpath%20d%3D%22M18%2018h28v28H18z%22%20fill%3D%22%23f5f7f2%22/%3E%0A%20%20%3Cpath%20d%3D%22M24%2030l5%205%2011-13%22%20fill%3D%22none%22%20stroke%3D%22%23b55c3c%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%0A%20%20%3Cpath%20d%3D%22M22%2047h25%22%20stroke%3D%22%23f5f7f2%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22/%3E%0A%3C/svg%3E%0A';
@@ -22,17 +27,26 @@ const FONT_SIZES: { value: 'small' | 'normal' | 'large'; label: string }[] = [
 
 type FontSize = 'small' | 'normal' | 'large';
 
+const THEMES: { value: ThemePref; label: string }[] = [
+  { value: 'system', label: '시스템' },
+  { value: 'light', label: '라이트' },
+  { value: 'dark', label: '다크' },
+];
+
 export const Sidebar = () => {
   const {
-    mode, setId, activeProduct, elapsedSeconds,
-    setMode, setSetId, setIndex, resetTimer, clearAnswers, clearHistory,
+    mode, setId, activeProduct, elapsedSeconds, histories,
+    setMode, setSetId, setIndex, resetTimer, clearAnswers, clearHistory, clearHistories,
   } = useQuizStore();
   const {
     appData, total, answered, correctCount, isGraded, canGrade, progressPercent, wrongQuestions,
     handleGrade,
   } = useQuizSession();
+  const { pref: themePref, setPref: setThemePref } = useTheme();
   const [wrongNoteOpen, setWrongNoteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
+  const [resultOpen, setResultOpen] = useState(false);
   const [fontSize, setFontSize] = useState<FontSize>(
     () => (localStorage.getItem('istqb-q-font') as FontSize) || 'normal',
   );
@@ -48,6 +62,7 @@ export const Sidebar = () => {
     ? appData.sets.filter((s) => s.certification.toLowerCase() === activeProduct)
     : [];
   const currentSet = sets.find((s) => s.id === setId);
+  const setCounts = useSetCounts(sets);
 
   // 제품 선택 후 세트가 미선택(또는 다른 제품 세트)이면 첫 세트를 자동 선택해 문항을 로드.
   useEffect(() => {
@@ -90,6 +105,17 @@ export const Sidebar = () => {
     alert(success ? '백업 파일이 성공적으로 복원되었습니다.' : '파일 복원에 실패했습니다.');
   };
 
+  // 채점 후 결과 요약 모달을 자동으로 띄운다.
+  const handleGradeAndShow = () => {
+    handleGrade();
+    setResultOpen(true);
+  };
+
+  const handleClearHistories = () => {
+    clearHistories();
+    clearHistoriesFromDB();
+  };
+
   const handleResetMode = () => {
     if (confirm('현재 모드의 모든 답안을 지우시겠습니까?')) {
       clearAnswers(setId, mode);
@@ -123,9 +149,19 @@ export const Sidebar = () => {
                   type="button"
                   className="primary"
                   data-testid="grade-button"
-                  onClick={handleGrade}
+                  onClick={handleGradeAndShow}
                 >
                   채점하기
+                </button>
+              )}
+              {isGraded && (
+                <button
+                  type="button"
+                  className="subtle"
+                  data-testid="result-open"
+                  onClick={() => setResultOpen(true)}
+                >
+                  결과 요약
                 </button>
               )}
             </div>
@@ -140,7 +176,9 @@ export const Sidebar = () => {
             <label htmlFor="examSelect">문제 세트</label>
             <select id="examSelect" value={setId} onChange={handleSetChange}>
               {sets.map((set) => (
-                <option key={set.id} value={set.id}>{set.title}</option>
+                <option key={set.id} value={set.id}>
+                  {set.title}{setCounts[set.id] != null ? ` (${setCounts[set.id]}문항)` : ''}
+                </option>
               ))}
             </select>
           </section>
@@ -192,6 +230,15 @@ export const Sidebar = () => {
               type="button"
               className="settings-open-btn"
               aria-haspopup="dialog"
+              data-testid="stats-open"
+              onClick={() => setStatsOpen(true)}
+            >
+              📊 학습 통계
+            </button>
+            <button
+              type="button"
+              className="settings-open-btn"
+              aria-haspopup="dialog"
               onClick={() => setSettingsOpen(true)}
             >
               ⚙ 설정
@@ -201,56 +248,51 @@ export const Sidebar = () => {
       </aside>
 
       {wrongNoteOpen && (
-        <div className="modal-backdrop" onClick={() => setWrongNoteOpen(false)}>
-          <section
-            className="modal-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-label="오답 노트"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <header className="modal-header">
-              <h3>오답 노트</h3>
-              <button type="button" onClick={() => setWrongNoteOpen(false)}>닫기</button>
-            </header>
-            <div className="modal-body" data-testid="wrong-note">
-              {wrongQuestions.length === 0 ? (
-                <p>틀린 문항이 없습니다.</p>
-              ) : (
-                <ul className="wrong-note-list">
-                  {wrongQuestions.map(({ q, i }) => (
-                    <li key={q.id || i}>
-                      <button
-                        type="button"
-                        className="wrong-note-jump"
-                        onClick={() => { setIndex(i); setWrongNoteOpen(false); }}
-                      >
-                        문제 {q.number}
-                      </button>
-                      <span className="wrong-note-ans">정답 {q.answer.map((s) => s.toUpperCase()).join(', ')}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </section>
-        </div>
+        <Modal title="오답 노트" onClose={() => setWrongNoteOpen(false)}>
+          <div className="modal-body" data-testid="wrong-note">
+            {wrongQuestions.length === 0 ? (
+              <p>틀린 문항이 없습니다.</p>
+            ) : (
+              <ul className="wrong-note-list">
+                {wrongQuestions.map(({ q, i }) => (
+                  <li key={q.id || i}>
+                    <button
+                      type="button"
+                      className="wrong-note-jump"
+                      onClick={() => { setIndex(i); setWrongNoteOpen(false); }}
+                    >
+                      문제 {q.number}
+                    </button>
+                    <span className="wrong-note-ans">정답 {q.answer.map((s) => s.toUpperCase()).join(', ')}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </Modal>
       )}
 
       {settingsOpen && (
-        <div className="modal-backdrop" onClick={() => setSettingsOpen(false)}>
-          <section
-            className="modal-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-label="설정"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <header className="modal-header">
-              <h3>설정</h3>
-              <button type="button" onClick={() => setSettingsOpen(false)}>닫기</button>
-            </header>
+        <Modal title="설정" onClose={() => setSettingsOpen(false)}>
             <div className="modal-body settings-body">
+              <section className="settings-group">
+                <h4>테마</h4>
+                <div className="segmented" role="group" aria-label="테마">
+                  {THEMES.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={themePref === value ? 'active' : ''}
+                      aria-pressed={themePref === value}
+                      data-theme-option={value}
+                      onClick={() => setThemePref(value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
               <section className="settings-group">
                 <h4>앱 이동</h4>
                 <button type="button" className="settings-action" onClick={handleHome}>
@@ -295,8 +337,27 @@ export const Sidebar = () => {
                 </button>
               </section>
             </div>
-          </section>
-        </div>
+        </Modal>
+      )}
+
+      {statsOpen && (
+        <StatsDashboard
+          histories={histories}
+          sets={sets}
+          onClose={() => setStatsOpen(false)}
+          onClear={handleClearHistories}
+        />
+      )}
+
+      {resultOpen && (
+        <ResultSummary
+          setTitle={currentSet?.title || ''}
+          correct={correctCount}
+          total={total}
+          elapsedSeconds={elapsedSeconds}
+          onClose={() => setResultOpen(false)}
+          onOpenWrongNote={() => { setResultOpen(false); setWrongNoteOpen(true); }}
+        />
       )}
     </>
   );
