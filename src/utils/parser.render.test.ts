@@ -105,6 +105,15 @@ describe("RichText (parser renderRichText 회귀 가드)", () => {
     expect(text).toContain("다. 빌드가 테스트할만한");
   });
 
+  // 항목 마커(나.) 뒤라도 내용 없는 "다."(어미)는 합쳐야 한다("만족한다.").
+  it("항목 뒤 내용 없는 '다.' 어미는 이전 줄과 합친다", async () => {
+    const text = await renderRichText([
+      { type: "paragraph", text: "나. 문장 커버리지를 만족하는 테스트 케이스 집합은 항상 조건 커버리지를 만족한" },
+      { type: "paragraph", text: "다." },
+    ]);
+    expect(text).toContain("만족한다.");
+  });
+
   // 보기/지문의 마크다운 파이프 표가 실제 <table>로 렌더된다(raw "|" 노출 금지).
   it("마크다운 파이프 표를 <table>로 렌더한다", async () => {
     const md = "| step# | 상태 | 입력 |\n|---|---|---|\n| 1 | 노선 예약됨 | 결제 |\n| 2 | 결제됨 | 발권 |";

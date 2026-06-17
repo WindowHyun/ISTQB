@@ -1015,11 +1015,7 @@
         },
         {
           "type": "note",
-          "text": "※ McCabe Cyclomatic Complexity 계산법은 아래와 같"
-        },
-        {
-          "type": "note",
-          "text": "다. (단, Program 값은 1)"
+          "text": "※ McCabe Cyclomatic Complexity 계산법은 아래와 같다. (단, Program 값은 1)"
         },
         {
           "type": "paragraph",

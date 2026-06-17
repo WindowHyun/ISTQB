@@ -1079,30 +1079,6 @@
         {
           "type": "note",
           "text": "<보기>"
-        },
-        {
-          "type": "note",
-          "text": "1: a = input()"
-        },
-        {
-          "type": "note",
-          "text": "2: if (a > 200):"
-        },
-        {
-          "type": "note",
-          "text": "3:    print(\"High\")"
-        },
-        {
-          "type": "note",
-          "text": "4: else:"
-        },
-        {
-          "type": "note",
-          "text": "5:    print(\"Low\")"
-        },
-        {
-          "type": "note",
-          "text": "6: end"
         }
       ],
       "options": [

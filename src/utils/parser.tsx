@@ -728,8 +728,10 @@ function mergeTextContinuations(blocks: Block[]): Block[] {
   // 떨어져 나온 한국어 종결 어미만 매칭("~다." / "~다 " / "~다," / "~다)").
   // "다음"처럼 뒤에 다른 음절이 붙는 경우는 제외해 과병합을 막는다.
   const KO_TAIL = /^다(?:[\s.,)\]]|$)/;
+  // 뒤에 내용이 없는 "다."(어미만 떨어져 나온 조각). 항목 마커 뒤라도 합쳐야 함.
+  const KO_BARE_TAIL = /^다[\s.,)\]]*$/;
   // 한글 항목 마커("가. ", "나. ", "(가)", "①" 등) — 이런 줄은 새 항목이므로,
-  // 직전 줄이 이런 항목이면 다음 "다. …"를 어미로 보고 합치지 않는다(가/나/다/라 보존).
+  // 직전 줄이 이런 항목이면 내용이 있는 "다. …"는 다음 항목으로 보고 합치지 않는다.
   const KO_ENUM = /^(\([가-힣]\)|[가-힣]\.|[①-⑳]|[ⓐ-ⓩ])\s/;
   // 텍스트 계열 블록(데이터에 paragraph/prompt/text 등으로 들어옴)만 병합 대상.
   const isTextLike = (b: Block | undefined): boolean =>
@@ -741,8 +743,12 @@ function mergeTextContinuations(blocks: Block[]): Block[] {
       const p = (prev.text as string).trim();
       const c = (block.text as string).trim();
       // (A) 한국어 어미가 떨어져 나온 경우: "…한" + "다." → "…한다."
-      //     단, 직전 줄이 한글 항목 마커(가./나./…)면 "다."는 다음 항목이므로 합치지 않음.
-      const koTail = !TERMINAL.test(p) && KO_TAIL.test(c) && !KO_ENUM.test(p);
+      //     직전 줄이 한글 항목 마커여도, cur이 내용 없는 "다."(어미)면 합친다.
+      //     내용이 있는 "다. …"는 다음 항목일 수 있으므로 항목 마커 뒤에서는 합치지 않는다.
+      const koTail =
+        !TERMINAL.test(p) &&
+        KO_TAIL.test(c) &&
+        (KO_BARE_TAIL.test(c) || !KO_ENUM.test(p));
       // (B) 괄호가 열린 채 끊긴 경우(괄호 내용이 다음 블록으로 이어짐):
       //     "…품질 보증(Q"+"A) …" / "…개발(ATD"+"D) …" / "…인가?("+"단 …)" / "…이다.("+"○/X)"
       const openParen = p.split("(").length - p.split(")").length > 0;

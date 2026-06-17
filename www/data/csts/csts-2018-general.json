@@ -435,22 +435,6 @@
           "text": "[보기]"
         },
         {
-          "type": "paragraph",
-          "text": "소프트웨어 테스트를 위한 테스트 환경을 구축하고자 한"
-        },
-        {
-          "type": "paragraph",
-          "text": "다. 필요한 환경은 Windows 7, Windows 8, Windows 10 3가지 운영체제와 admin계정, user 계정이 필요하"
-        },
-        {
-          "type": "paragraph",
-          "text": "다. 또한, Internet Explorer 9, 10, 11 3가지 브라우저 버전이 필요하"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
-        },
-        {
           "type": "image",
           "text": "![이미지](/images/questions/CSTS-EL-2018-009.png)"
         }
