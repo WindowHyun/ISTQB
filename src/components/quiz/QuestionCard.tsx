@@ -3,6 +3,7 @@ import { useQuizStore } from '../../store/useQuizStore';
 import { Question } from '../../hooks/useQuestions';
 import { isQuestionCorrect } from '../../utils/answer';
 import { RichText } from '../../utils/parser';
+import { openImageLightbox } from '../../utils/lightbox';
 
 interface OptionItemProps {
   opt: { key: string; text: string };
@@ -111,7 +112,19 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
 
       {question.figure && !stemHasFigure && (
         <div id="questionFigure" className="question-figure">
-          <img src={question.figure} alt="문제 참고 이미지" />
+          <img
+            src={question.figure}
+            alt="문제 참고 이미지 (클릭하면 확대)"
+            role="button"
+            tabIndex={0}
+            onClick={() => openImageLightbox(question.figure as string)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openImageLightbox(question.figure as string);
+              }
+            }}
+          />
         </div>
       )}
 

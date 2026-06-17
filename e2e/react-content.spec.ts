@@ -12,6 +12,19 @@ test.describe("콘텐츠 렌더링", () => {
     expect(ok).toBe(true);
   });
 
+  test("그림 클릭 시 새 탭이 아니라 앱 내 라이트박스가 열린다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await gotoQuestion(page, 23);
+    const before = page.context().pages().length;
+    await page.locator("#questionFigure img, #questionStem img").first().click();
+    await expect(page.getByTestId("figure-lightbox")).toBeVisible({ timeout: 5_000 });
+    // 새 페이지(탭)가 열리지 않았는지 확인
+    expect(page.context().pages().length).toBe(before);
+    // Esc로 닫힘
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("figure-lightbox")).toHaveCount(0);
+  });
+
   test("보기의 마크다운 표가 HTML <table>로 렌더된다", async ({ page }) => {
     await openSet(page, "CSTS", "CSTS-FL-2404");
     await gotoQuestion(page, 33);

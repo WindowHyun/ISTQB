@@ -635,6 +635,41 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
   max-width: 100%;
 }
 .reference-image, .table-image { max-width: 100%; height: auto; border-radius: 6px; }
+.question-figure img { cursor: zoom-in; }
+
+/* 이미지 확대 라이트박스(앱 내 — 새 탭 이탈 방지) */
+.figure-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(2px);
+  cursor: zoom-out;
+}
+.figure-lightbox-img {
+  max-width: 96vw;
+  max-height: 92vh;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  background: #fff;
+}
+.figure-lightbox-close {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+}
+.figure-lightbox-close:hover { background: rgba(255, 255, 255, 0.3); }
 
 /* 데이터 표(HTML) — SVG 대신 줄바꿈 가능한 실제 표 */
 .data-table-wrap { overflow-x: auto; }
