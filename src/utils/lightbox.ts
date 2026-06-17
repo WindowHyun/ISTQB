@@ -41,7 +41,9 @@ export function openImageLightbox(src: string): void {
   };
 
   const onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') { e.stopPropagation(); close(); }
+    if (e.key === 'Escape') { e.stopPropagation(); close(); return; }
+    // 포커스 트랩: 닫기 버튼이 유일한 포커스 대상이므로 Tab은 항상 닫기 버튼에 머문다.
+    if (e.key === 'Tab') { e.preventDefault(); closeBtn.focus(); }
   };
 
   overlay.addEventListener('click', close); // 배경/이미지 탭하면 닫힘
@@ -51,5 +53,5 @@ export function openImageLightbox(src: string): void {
   document.body.style.overflow = 'hidden';
   document.body.appendChild(overlay);
   activeOverlay = overlay;
-  overlay.focus();
+  closeBtn.focus(); // 공용 Modal과 동일하게 첫 포커스를 모달 내부로 이동
 }

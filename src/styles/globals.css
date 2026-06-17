@@ -671,6 +671,80 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 }
 .figure-lightbox-close:hover { background: rgba(255, 255, 255, 0.3); }
 
+/* 그림을 항상 흰 배경 위에 — 다크모드에서 흰 PNG가 떠 보이지 않도록 일관 처리(#6) */
+.question-figure img,
+.reference-image-frame,
+.table-image-frame {
+  background: #fff;
+}
+.question-figure img { padding: 8px; border: 1px solid var(--line); border-radius: var(--radius); }
+body[data-theme="dark"] .question-figure img,
+body[data-theme="dark"] .reference-image-frame,
+body[data-theme="dark"] .table-image-frame {
+  border-color: #cbd5e1;
+}
+
+/* 채점 확인 모달(#2) */
+.confirm-body p { font-size: 15px; line-height: 1.7; color: var(--text-2); }
+.confirm-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.confirm-actions button {
+  padding: 10px 18px; border-radius: var(--radius-sm); font-weight: 700;
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--text-2);
+}
+.confirm-actions button.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* 토스트(#4) */
+.toast-host {
+  position: fixed; left: 0; right: 0; bottom: 24px;
+  z-index: 120; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  max-width: min(92vw, 420px);
+  padding: 12px 18px; border-radius: 999px;
+  font-size: 14px; font-weight: 700; color: #fff;
+  background: var(--text);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.3);
+  opacity: 0; transform: translateY(10px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  cursor: pointer;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast-success { background: var(--success); }
+.toast-error { background: var(--danger); }
+
+/* 로딩 스켈레톤(#5) */
+.skeleton-card { gap: 14px; }
+.skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--surface-3) 25%, var(--surface-2) 37%, var(--surface-3) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+.skeleton-line { height: 16px; }
+.skeleton-line.lg { height: 26px; width: 45%; }
+.skeleton-line.md { width: 92%; }
+.skeleton-option { height: 56px; border-radius: var(--radius); }
+@keyframes skeleton-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+
+/* 색각 대비: 팔레트 상태를 색 외에 글리프로도 구분(#7) */
+.question-nav button { position: relative; }
+.question-nav button.answered::after,
+.question-nav button.correct::after,
+.question-nav button.missed::after {
+  position: absolute; top: 2px; right: 3px;
+  font-size: 9px; font-weight: 900; line-height: 1;
+}
+.question-nav button.answered::after { content: "•"; color: var(--primary-700); }
+.question-nav button.correct::after { content: "✓"; color: var(--success); }
+.question-nav button.missed::after { content: "✕"; color: var(--danger); }
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+  .toast { transition: none; }
+}
+
 /* 데이터 표(HTML) — SVG 대신 줄바꿈 가능한 실제 표 */
 .data-table-wrap { overflow-x: auto; }
 .data-table {

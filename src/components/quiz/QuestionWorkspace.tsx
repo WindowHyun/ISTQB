@@ -11,7 +11,7 @@ export const QuestionWorkspace = () => {
     navCollapsed, setNavCollapsed, setPaletteOpen, setResultOpen,
   } = useQuizStore();
   const {
-    appData, currentQuestions, answered, isGraded, canGrade, gradeAndShow,
+    appData, currentQuestions, answered, isGraded, canGrade, requestGrade,
   } = useQuizSession();
 
   useEffect(() => {
@@ -60,11 +60,25 @@ export const QuestionWorkspace = () => {
   }, [setIndex, currentQuestions.length]);
 
   if (!currentQuestions.length) {
+    // 오답 모드에서 비어 있으면 "틀린 문항 없음", 그 외엔 로딩 스켈레톤.
+    const isEmptyReview = mode === 'review';
     return (
       <section className="workspace" aria-label="문제 풀이 영역">
-        <article className="question-card">
-          <p className="nav-summary">문제를 불러오는 중이거나 표시할 문제가 없습니다.</p>
-        </article>
+        {isEmptyReview ? (
+          <article className="question-card">
+            <p className="nav-summary">표시할 오답 문항이 없습니다.</p>
+          </article>
+        ) : (
+          <article className="question-card skeleton-card" aria-busy="true" aria-label="문제 불러오는 중" data-testid="skeleton">
+            <div className="skeleton skeleton-line lg" />
+            <div className="skeleton skeleton-line md" />
+            <div className="skeleton skeleton-line md" />
+            <div className="skeleton skeleton-option" />
+            <div className="skeleton skeleton-option" />
+            <div className="skeleton skeleton-option" />
+            <div className="skeleton skeleton-option" />
+          </article>
+        )}
       </section>
     );
   }
@@ -132,7 +146,7 @@ export const QuestionWorkspace = () => {
       <nav className="mobile-actionbar" aria-label="문항 이동·채점">
         <button type="button" className="ab-nav" aria-label="이전 문제" disabled={safeIndex === 0} onClick={goPrev}>‹</button>
         {canGrade ? (
-          <button type="button" className="ab-main" data-testid="grade-button-m" onClick={gradeAndShow}>채점하기</button>
+          <button type="button" className="ab-main" data-testid="grade-button-m" onClick={requestGrade}>채점하기</button>
         ) : isGraded ? (
           <button type="button" className="ab-main subtle" onClick={() => setResultOpen(true)}>결과 요약</button>
         ) : (

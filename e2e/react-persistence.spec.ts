@@ -70,15 +70,12 @@ test.describe("영속성/백업", () => {
     expect(await page.locator("#questionNav button.answered").count()).toBeGreaterThanOrEqual(1);
   });
 
-  test("잘못된 파일 가져오기는 실패 알림을 띄운다", async ({ page }) => {
-    const messages: string[] = [];
-    page.on("dialog", (d) => { messages.push(d.message()); d.accept(); });
+  test("잘못된 파일 가져오기는 실패 토스트를 띄운다", async ({ page }) => {
     await openProduct(page, "ISTQB");
     await page.getByRole("button", { name: /설정/ }).click();
     const bad = { name: "bad.json", mimeType: "application/json", buffer: Buffer.from("{not valid json", "utf-8") };
     await page.locator('input[type="file"][accept=".json"]').setInputFiles(bad);
-    await page.waitForTimeout(800);
-    expect(messages.join(" ")).toContain("실패");
+    await expect(page.getByTestId("toast")).toContainText("실패", { timeout: 5_000 });
   });
 
   test("시험 모드 답안도 새로고침 후 복원된다", async ({ page }) => {

@@ -18,6 +18,14 @@ export async function openSet(page: Page, product: "ISTQB" | "CSTS", setId: stri
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 15_000 });
 }
 
+// 채점: 채점 버튼 클릭 후 미응답 경고 모달이 뜨면 확인까지 처리한다.
+export async function submitGrade(page: Page, testid = "grade-button") {
+  await page.getByTestId(testid).click();
+  const confirm = page.getByTestId("confirm-grade");
+  await confirm.waitFor({ state: "visible", timeout: 2000 }).catch(() => {});
+  if (await confirm.count()) await confirm.click();
+}
+
 // 문제 번호 팔레트로 특정 문항 이동.
 export async function gotoQuestion(page: Page, num: number) {
   const nav = page.locator("#questionNav button");

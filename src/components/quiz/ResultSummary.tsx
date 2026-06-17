@@ -1,11 +1,10 @@
 import { Modal } from '../common/Modal';
 import { formatClock } from '../../utils/time';
-
-// 합격선은 정보용 기준선(ISTQB FL 권장 65%)이며 통과/미통과는 참고 표시일 뿐이다.
-const PASS_RATE = 65;
+import { evaluatePass, Certification } from '../../utils/scoring';
 
 interface ResultSummaryProps {
   setTitle: string;
+  certification: Certification;
   correct: number;
   total: number;
   elapsedSeconds: number;
@@ -15,14 +14,14 @@ interface ResultSummaryProps {
 
 export const ResultSummary = ({
   setTitle,
+  certification,
   correct,
   total,
   elapsedSeconds,
   onClose,
   onOpenWrongNote,
 }: ResultSummaryProps) => {
-  const rate = total ? Math.round((correct / total) * 100) : 0;
-  const passed = rate >= PASS_RATE;
+  const { passed, ratePercent, criterionLabel, scoreLabel } = evaluatePass(certification, correct, total);
   const wrong = total - correct;
 
   return (
@@ -31,15 +30,15 @@ export const ResultSummary = ({
         <p className="result-set">{setTitle}</p>
 
         <div className={`result-score ${passed ? 'pass' : 'fail'}`}>
-          <strong data-testid="result-rate">{rate}%</strong>
+          <strong data-testid="result-rate">{ratePercent}%</strong>
           <span className="result-badge">{passed ? '합격 기준 충족' : '합격 기준 미달'}</span>
         </div>
 
         <dl className="result-metrics">
-          <div><dt>점수</dt><dd>{correct} / {total}</dd></div>
+          <div><dt>점수</dt><dd data-testid="result-score">{scoreLabel}</dd></div>
           <div><dt>오답</dt><dd>{wrong}개</dd></div>
           <div><dt>소요 시간</dt><dd>{formatClock(elapsedSeconds)}</dd></div>
-          <div><dt>합격 기준(참고)</dt><dd>{PASS_RATE}%</dd></div>
+          <div><dt>합격 기준</dt><dd className="result-criterion">{criterionLabel}</dd></div>
         </dl>
 
         <div className="result-actions">

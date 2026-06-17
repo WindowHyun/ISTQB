@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openProduct, openSet, modeBtn } from "./helpers";
+import { openProduct, openSet, modeBtn, submitGrade } from "./helpers";
 
 // 반응형(모바일/태블릿 뷰포트)에서 핵심 동작.
 test.describe("반응형", () => {
@@ -33,7 +33,7 @@ test.describe("반응형", () => {
       await page.getByTestId("drawer-open").click();
       await modeBtn(page, "시험").click();
       await page.locator("#options .option").first().click();
-      await page.getByTestId("grade-button-m").click();
+      await submitGrade(page, "grade-button-m");
       await expect(page.getByTestId("score")).toContainText("점수", { timeout: 8_000 });
     });
 

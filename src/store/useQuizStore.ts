@@ -35,6 +35,7 @@ export interface QuizState {
   wrongNoteOpen: boolean;
   resultOpen: boolean;
   paletteOpen: boolean;
+  confirmGradeOpen: boolean;
 
   // Actions
   setActiveProduct: (product: 'istqb' | 'csts') => void;
@@ -58,6 +59,7 @@ export interface QuizState {
   setWrongNoteOpen: (open: boolean) => void;
   setResultOpen: (open: boolean) => void;
   setPaletteOpen: (open: boolean) => void;
+  setConfirmGradeOpen: (open: boolean) => void;
   resetToGate: () => void;
   hydrate: (state: Partial<QuizState>) => void;
 }
@@ -82,6 +84,7 @@ export const useQuizStore = create<QuizState>((set) => ({
   wrongNoteOpen: false,
   resultOpen: false,
   paletteOpen: false,
+  confirmGradeOpen: false,
 
   setActiveProduct: (activeProduct) => set({ activeProduct }),
   setMode: (mode) => set({ mode }),
@@ -139,11 +142,12 @@ export const useQuizStore = create<QuizState>((set) => ({
   setWrongNoteOpen: (wrongNoteOpen) => set({ wrongNoteOpen }),
   setResultOpen: (resultOpen) => set({ resultOpen }),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
+  setConfirmGradeOpen: (confirmGradeOpen) => set({ confirmGradeOpen }),
   // 진입/캐시 복원 시 항상 최초 화면(제품 선택 게이트)으로 — 오버레이도 모두 닫는다.
   resetToGate: () => set({
     mode: 'home', activeProduct: null,
     drawerOpen: false, settingsOpen: false, statsOpen: false,
-    wrongNoteOpen: false, resultOpen: false, paletteOpen: false,
+    wrongNoteOpen: false, resultOpen: false, paletteOpen: false, confirmGradeOpen: false,
   }),
   hydrate: (hydratedState) => set((state) => ({ ...state, ...hydratedState })),
 }));
