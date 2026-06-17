@@ -684,3 +684,118 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
   .product-actions { grid-template-columns: 1fr; }
   .option { padding: 14px; font-size: 15px; }
 }
+
+/* ── 다크 테마 ───────────────────────────────────────────────────────────
+   색 토큰만 덮어써 전체 UI가 동일 구조로 다크 모드에 대응한다. */
+body[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b1220;
+  --surface: #131c2b;
+  --surface-2: #1a2436;
+  --surface-3: #222e44;
+  --text: #e6edf6;
+  --text-2: #c2cede;
+  --muted: #8a99ad;
+  --line: #2a3852;
+  --line-strong: #3a4a66;
+
+  --primary: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #93c5fd;
+  --primary-50: #16243c;
+  --primary-100: #1d3158;
+
+  --success: #4ade80;
+  --success-50: #11241a;
+  --success-200: #1f5135;
+  --danger: #f87171;
+  --danger-50: #2a1414;
+  --danger-200: #5b2020;
+  --warning: #fbbf24;
+  --warning-50: #2a2110;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 20px 45px rgba(0, 0, 0, 0.6);
+}
+
+/* ── 학습 통계 대시보드 ──────────────────────────────────────────────── */
+.modal-header-actions { display: flex; align-items: center; gap: 8px; }
+
+.stats-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.stats-summary div {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  text-align: center;
+}
+.stats-summary span { display: block; font-size: 12px; color: var(--muted); font-weight: 600; }
+.stats-summary strong { font-size: 20px; font-weight: 800; color: var(--text); }
+
+.stats-list { display: flex; flex-direction: column; gap: 8px; }
+.stats-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.stats-row-main { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.stats-set { font-weight: 700; color: var(--text); font-size: 14px; }
+.stats-mode {
+  font-size: 12px;
+  color: var(--primary-700);
+  background: var(--primary-50);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.stats-row-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.stats-score { color: var(--text-2); }
+
+/* ── 채점 결과 요약 ─────────────────────────────────────────────────── */
+.result-set { color: var(--muted); font-weight: 600; font-size: 13px; margin: 0 0 10px; text-align: center; }
+.result-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+}
+.result-score strong { font-size: 44px; font-weight: 800; line-height: 1; }
+.result-score.pass { background: var(--success-50); color: var(--success); }
+.result-score.fail { background: var(--danger-50); color: var(--danger); }
+.result-badge { font-size: 13px; font-weight: 700; }
+.result-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 16px; }
+.result-metrics > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.result-metrics dt { color: var(--muted); font-size: 13px; font-weight: 600; }
+.result-metrics dd { margin: 0; font-weight: 800; color: var(--text); font-size: 14px; }
+.result-actions { display: flex; gap: 10px; justify-content: center; }
+.result-actions button {
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--text-2);
+}
+.result-actions button.primary { background: var(--primary); color: #fff; border-color: var(--primary); }

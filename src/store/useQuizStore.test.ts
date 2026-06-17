@@ -22,6 +22,25 @@ describe("useQuizStore 채점 관련 액션", () => {
     expect(useQuizStore.getState().histories["1"].setId).toBe("S");
   });
 
+  it("addHistory는 채점 요약 메타(정답수·소요시간)를 함께 저장한다", () => {
+    useQuizStore.getState().addHistory({
+      id: "2", setId: "S", mode: "exam", answers: {},
+      correct: 7, total: 10, elapsedSeconds: 123, createdAt: 1700000000000,
+    });
+    const h = useQuizStore.getState().histories["2"];
+    expect(h.correct).toBe(7);
+    expect(h.total).toBe(10);
+    expect(h.elapsedSeconds).toBe(123);
+  });
+
+  it("clearHistories는 모든 이력을 비운다", () => {
+    useQuizStore.getState().addHistory({ id: "a", setId: "S", mode: "exam", answers: {} });
+    useQuizStore.getState().addHistory({ id: "b", setId: "T", mode: "random", answers: {} });
+    expect(Object.keys(useQuizStore.getState().histories)).toHaveLength(2);
+    useQuizStore.getState().clearHistories();
+    expect(useQuizStore.getState().histories).toEqual({});
+  });
+
   it("setReviewIds는 세트별 오답 id를 저장한다", () => {
     useQuizStore.getState().setReviewIds("S", ["S-2", "S-3"]);
     expect(useQuizStore.getState().reviewIds["S"]).toEqual(["S-2", "S-3"]);

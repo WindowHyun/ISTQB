@@ -54,6 +54,8 @@ test.describe("모드", () => {
     await page.locator("#options .option").first().click();
     await page.getByTestId("grade-button").click();
     await expect(page.getByTestId("score")).toBeVisible({ timeout: 8_000 });
+    // 채점 시 자동으로 뜨는 결과 요약 모달을 닫는다.
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
     // 오답 다시풀기
     await page.getByRole("button", { name: "오답 다시 풀기" }).click();
     await page.waitForTimeout(400);

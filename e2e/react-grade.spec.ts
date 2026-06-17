@@ -21,6 +21,9 @@ test("React 앱: 시험 모드에서 답 선택 후 채점하면 점수가 표�
   await expect(page.getByTestId("score")).toBeVisible({ timeout: 10_000 });
   await expect(page.getByTestId("score")).toContainText("점수");
 
+  // 채점 시 자동으로 뜨는 결과 요약 모달을 닫는다.
+  await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+
   // 오답노트 모달 열기 → 내용 표시 (미응답 문항 다수 → 오답 존재)
   await page.getByRole("button", { name: "오답 노트" }).click();
   await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 10_000 });

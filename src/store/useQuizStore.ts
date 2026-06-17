@@ -7,6 +7,11 @@ export interface ExamHistory {
   setId: string;
   mode: QuizMode;
   answers: Record<string, string[]>;
+  // 채점 시점에 기록되는 요약 메타(통계 대시보드용). 과거 기록은 없을 수 있다.
+  correct?: number;
+  total?: number;
+  elapsedSeconds?: number;
+  createdAt?: number;
 }
 
 export interface QuizState {
@@ -34,6 +39,7 @@ export interface QuizState {
   setGraded: (key: string, value: boolean) => void;
   clearAnswers: (setId: string, mode: QuizMode) => void;
   clearHistory: (setId: string, mode: QuizMode) => void;
+  clearHistories: () => void;
   tickTimer: () => void;
   startTimer: () => void;
   resetTimer: () => void;
@@ -93,6 +99,7 @@ export const useQuizStore = create<QuizState>((set) => ({
     }
     return { histories: nextHistories };
   }),
+  clearHistories: () => set({ histories: {} }),
   tickTimer: () => set((state) => {
     if (!state.lastTick) return state;
     const now = Date.now();

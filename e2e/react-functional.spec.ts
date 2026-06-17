@@ -53,6 +53,8 @@ test("시험: 채점 전 피드백 없음 → 채점 → 점수/공개 + 오답�
   await page.getByTestId("grade-button").click();
   await expect(page.getByTestId("score")).toContainText("점수", { timeout: 8_000 });
   await expect(page.locator("#feedback").first()).toBeVisible();
+  // 채점 시 자동으로 뜨는 결과 요약 모달을 닫는다.
+  await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
   await page.getByRole("button", { name: "오답 노트" }).click();
   await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 5_000 });
 });
