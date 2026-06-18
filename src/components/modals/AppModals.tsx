@@ -4,6 +4,7 @@ import { useQuizSession } from '../../hooks/useQuizSession';
 import { useTheme, ThemePref } from '../../hooks/useTheme';
 import { exportUserData, importUserData, clearHistoriesFromDB } from '../../utils/storage';
 import { showToast } from '../../utils/toast';
+import { isDebugEnabled, setDebugEnabled } from '../../utils/debugLog';
 import { Modal } from '../common/Modal';
 import { StatsDashboard } from '../stats/StatsDashboard';
 import { ResultSummary } from '../quiz/ResultSummary';
@@ -37,6 +38,7 @@ export const AppModals = () => {
   const [fontSize, setFontSize] = useState<FontSize>(
     () => (localStorage.getItem('istqb-q-font') as FontSize) || 'normal',
   );
+  const [debugOn, setDebugOn] = useState(() => isDebugEnabled());
 
   useEffect(() => {
     document.body.dataset.qfont = fontSize;
@@ -179,6 +181,20 @@ export const AppModals = () => {
               <button type="button" className="settings-action danger" onClick={handleResetMode}>
                 현재 모드 답안 초기화
               </button>
+            </section>
+
+            <section className="settings-group">
+              <h4>개발자</h4>
+              <label className="settings-toggle">
+                <span>화면 콘솔 표시</span>
+                <input
+                  type="checkbox"
+                  data-testid="debug-toggle"
+                  checked={debugOn}
+                  onChange={(e) => { setDebugEnabled(e.target.checked); setDebugOn(e.target.checked); }}
+                />
+              </label>
+              <p className="settings-hint">콘솔 로그·오류를 화면 우하단 버튼에서 확인합니다. (주소에 <code>?debug</code>로도 켤 수 있음)</p>
             </section>
           </div>
         </Modal>
