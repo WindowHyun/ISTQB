@@ -140,6 +140,10 @@
 <script>
 // ── 커밋 데이터 (git log 기준, 최신순) ──────────────────────────────
 const COMMITS = [
+  {hash:"d4a92c8",author:"AI Bot",date:"2026-06-18",subject:"feat(mobile): 문항 이동 B안 정리 + 하단 액션바 확대 (#112)"},
+  {hash:"df27689",author:"AI Bot",date:"2026-06-18",subject:"build(android): APK에 React 앱 번들 + Firebase App Distribution CI/가이드 (#111)"},
+  {hash:"be4491d",author:"AI Bot",date:"2026-06-18",subject:"feat(pwa): 새 버전 감지 시 앱 내 업데이트 배너 (#110)"},
+  {hash:"d4a620f",author:"AI Bot",date:"2026-06-18",subject:"docs: 테스트 수·기능 최신화 (유닛 51 / E2E 221) (#109)"},
   {hash:"ecbed2c",author:"AI Bot",date:"2026-06-18",subject:"fix(lint): 엣지 스펙 미사용 import 제거 (#108)"},
   {hash:"f285b7b",author:"AI Bot",date:"2026-06-18",subject:"test: 대용량 import + 특정 표/그림 문항 엣지 21개 (총 221) (#107)"},
   {hash:"635be10",author:"AI Bot",date:"2026-06-18",subject:"test: 엣지케이스 E2E 97개 추가 (총 200) (#106)"},
@@ -377,7 +381,7 @@ document.getElementById("cards").innerHTML = cardsData.map(c =>
 
 // ── GitHub 이슈 데이터 (open + closed, gh issue list 기준) ───────
 const ISSUES = [
-  {n:104,state:"OPEN",labels:["data-integrity","content"],created:"2026-06-18",closed:null,title:"[데이터 정합성] CSTS-EL 3세트 해설이 실제 PDF 해설 대신 플레이스홀더로 노출됨 (159문항)"},
+  {n:104,state:"CLOSED",labels:["data-integrity","content"],created:"2026-06-18",closed:"2026-06-18",title:"[데이터 정합성] CSTS-EL 3세트 해설이 실제 PDF 해설 대신 플레이스홀더로 노출됨 (159문항)"},
   {n:1,state:"CLOSED",labels:["bug"],created:"2026-05-14",closed:"2026-06-01",title:"(Issue)ERROR RangeError: Maximum call stack size exceeded: RangeError: Maximum call stack size exceeded at restartTimer"},
   {n:10,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-14",title:"[Feature] Phase 1. 긴급 기능 버그 수정"},
   {n:11,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-01",title:"[Sub-Issue][Phase 1] 마지막 문제에서 다음 버튼 클릭 시 문제 번호가 전체 문제 수를 초과하지 않도록 수정"},
@@ -422,7 +426,7 @@ const ISSUES = [
   {n:52,state:"CLOSED",labels:["bug","data-issue"],created:"2026-06-15",closed:"2026-06-15",title:"[Critical][Data] 문제 데이터가 www/public/dist 3곳에 분기되어 동기화 안 됨 (웹은 뒤처진 public/data 사용)"},
   {n:53,state:"CLOSED",labels:["bug"],created:"2026-06-15",closed:"2026-06-15",title:"[High][Arch] script.js·style.css가 루트/www에 중복 분기되어 동기화 안 됨"},
   {n:54,state:"CLOSED",labels:["bug"],created:"2026-06-15",closed:"2026-06-15",title:"[Bug] figure 이미지가 웹(루트 서빙)에서 404 — 루트에 images 폴더 부재"},
-  {n:55,state:"OPEN",labels:["enhancement"],created:"2026-06-15",closed:null,title:"[Arch] index.html 구조 통일 후 style.css 단일 정본 통합 (#53 후속)"},
+  {n:55,state:"CLOSED",labels:["enhancement"],created:"2026-06-15",closed:"2026-06-18",title:"[Arch] index.html 구조 통일 후 style.css 단일 정본 통합 (#53 후속)"},
   {n:56,state:"CLOSED",labels:["bug"],created:"2026-06-15",closed:"2026-06-16",title:"[Bug][Critical] React 앱(useQuestions)이 실제 데이터 스키마와 불일치하여 렌더 불가/크래시"},
   {n:57,state:"CLOSED",labels:["enhancement"],created:"2026-06-15",closed:"2026-06-16",title:"[Arch][High] src/ 내 이중 구현(useQuestions vs features/quiz)과 미사용 컴포넌트 8개"},
   {n:58,state:"CLOSED",labels:["bug"],created:"2026-06-15",closed:"2026-06-16",title:"[Bug][High] React Error Boundary 부재로 렌더 예외 시 화면 백지"},
@@ -447,7 +451,7 @@ const ISSUES = [
   {n:79,state:"CLOSED",labels:["bug"],created:"2026-06-16",closed:"2026-06-16",title:"[React][High] QuestionCard에 key 부재 → showFeedback 상태가 문항·모드 간 누수"},
   {n:80,state:"CLOSED",labels:["bug"],created:"2026-06-16",closed:"2026-06-16",title:"[React][Medium] 연습 모드에서 복수정답 문항은 즉시 피드백이 표시되지 않음"},
   {n:91,state:"CLOSED",labels:["bug"],created:"2026-06-16",closed:"2026-06-16",title:"[Render] 문제/보기 줄바꿈 — 영문 분할·~다 어미·AC 인수조건 (수정 완료)"},
-  {n:92,state:"OPEN",labels:["bug"],created:"2026-06-16",closed:null,title:"[Data][Image] 다수 문제 이미지가 다이어그램이 아닌 문제 전체를 캡처(과캡처) — 잔여 1건"}
+  {n:92,state:"CLOSED",labels:["bug"],created:"2026-06-16",closed:"2026-06-18",title:"[Data][Image] 다수 문제 이미지가 다이어그램이 아닌 문제 전체를 캡처(과캡처) — 잔여 1건"}
 ];
 const REPO = "https://github.com/WindowHyun/ISTQB/issues/";
 const LBL_COLORS = { bug:"#d73a4a", enhancement:"#a371f7", documentation:"#0969da", "data-issue":"#9a6700", "(없음)":"var(--muted)" };
