@@ -140,6 +140,13 @@
 <script>
 // ── 커밋 데이터 (git log 기준, 최신순) ──────────────────────────────
 const COMMITS = [
+  {hash:"ecbed2c",author:"AI Bot",date:"2026-06-18",subject:"fix(lint): 엣지 스펙 미사용 import 제거 (#108)"},
+  {hash:"f285b7b",author:"AI Bot",date:"2026-06-18",subject:"test: 대용량 import + 특정 표/그림 문항 엣지 21개 (총 221) (#107)"},
+  {hash:"635be10",author:"AI Bot",date:"2026-06-18",subject:"test: 엣지케이스 E2E 97개 추가 (총 200) (#106)"},
+  {hash:"5729427",author:"AI Bot",date:"2026-06-18",subject:"feat: 화면 내(in-app) 콘솔 — DevTools 없이 로그·오류 확인 (#105)"},
+  {hash:"c24a988",author:"AI Bot",date:"2026-06-17",subject:"feat: 그림 라이트박스 + 컷스코어·미응답확인·토스트·스켈레톤·a11y (#103)"},
+  {hash:"587d22a",author:"AI Bot",date:"2026-06-17",subject:"feat: 하이브리드 반응형 리디자인 + 진입 시 게이트 복귀 (#102)"},
+  {hash:"ac983cc",author:"AI Bot",date:"2026-06-17",subject:"feat: 다크모드·모달 접근성·학습 통계·문항 수·채점 결과 요약 (#101)"},
   {hash:"c0ce6ce",author:"AI Bot",date:"2026-06-17",subject:"docs: README/AGENTS 최신화 (React 운영 배포·E2E 70개 반영)"},
   {hash:"fcbaf3d",author:"AI Bot",date:"2026-06-17",subject:"test(e2e): React 기능 E2E 40→70개로 확대 + 시나리오 문서화"},
   {hash:"84bbd9b",author:"AI Bot",date:"2026-06-17",subject:"test(e2e): React 기능 E2E 10→40개로 상세화"},
@@ -370,6 +377,7 @@ document.getElementById("cards").innerHTML = cardsData.map(c =>
 
 // ── GitHub 이슈 데이터 (open + closed, gh issue list 기준) ───────
 const ISSUES = [
+  {n:104,state:"OPEN",labels:["data-integrity","content"],created:"2026-06-18",closed:null,title:"[데이터 정합성] CSTS-EL 3세트 해설이 실제 PDF 해설 대신 플레이스홀더로 노출됨 (159문항)"},
   {n:1,state:"CLOSED",labels:["bug"],created:"2026-05-14",closed:"2026-06-01",title:"(Issue)ERROR RangeError: Maximum call stack size exceeded: RangeError: Maximum call stack size exceeded at restartTimer"},
   {n:10,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-14",title:"[Feature] Phase 1. 긴급 기능 버그 수정"},
   {n:11,state:"CLOSED",labels:["bug","documentation"],created:"2026-06-01",closed:"2026-06-01",title:"[Sub-Issue][Phase 1] 마지막 문제에서 다음 버튼 클릭 시 문제 번호가 전체 문제 수를 초과하지 않도록 수정"},
