@@ -1,9 +1,41 @@
-# React E2E 테스트 시나리오 (70개)
+# React E2E 테스트 시나리오 (221개)
 
 > 대상: React 앱(`index.vite.html` → Vercel `dist` 배포본). Playwright로 자동화.
 > 실행: CI `react` 프로젝트(`testMatch: /react-.*\.spec\.ts/`) — `npm run test:e2e`.
-> 공용 헬퍼: `e2e/helpers.ts` (`openProduct`, `openSet`, `modeBtn`, `gotoQuestion`).
+> 공용 헬퍼: `e2e/helpers.ts` (`openProduct`, `openSet`, `modeBtn`, `gotoQuestion`, `submitGrade`).
 > 표기: G(전제) / W(행위) / T(기대).
+
+---
+
+## 스펙 파일 인덱스 (총 221)
+
+| 스펙 파일 | 개수 | 영역 |
+|-----------|------|------|
+| `react-smoke / react-grade / react-feedback / react-functional` | 10 | 스모크·핵심 흐름 |
+| `react-modes` | 5 | 풀이 모드 |
+| `react-navigation` | 6 | 네비게이션 |
+| `react-settings` | 6 | 설정 |
+| `react-qtypes` | 6 | 문항 유형(진위형·단답형·복수정답) |
+| `react-content` | 8 | 콘텐츠 렌더링·라이트박스 |
+| `react-persistence` | 7 | 영속성/백업 |
+| `react-edge` | 7 | 엣지(빈 오답·경계·rapid) |
+| `react-responsive` | 7 | 반응형(모바일·태블릿) |
+| `react-a11y` | 9 | 접근성(ARIA·키보드) |
+| `react-layout` | 4 | 하이브리드 레이아웃(팔레트·드로어) |
+| `react-features` | 7 | 다크모드·결과요약·통계·미응답확인·라이트박스 포커스 |
+| `react-debug` | 3 | 화면 콘솔(`?debug`) |
+| `react-final` | 18 | 최종점검 회귀 |
+| `react-edge-nav` | 14 | 엣지: 경계 네비게이션 |
+| `react-edge-modes` | 14 | 엣지: 모드 격리·리셋·잠금 |
+| `react-edge-grade` | 16 | 엣지: 미응답 확인·컷스코어·복수정답·진위형·단답형 |
+| `react-edge-persist` | 14 | 엣지: 복원·가져오기·테마/콘솔 지속 |
+| `react-edge-modal` | 14 | 엣지: 모달 Esc/백드롭·통계·토글 |
+| `react-edge-content` | 13 | 엣지: 라이트박스·표·콘솔·토스트 |
+| `react-edge-responsive` | 12 | 엣지: 드로어·점프핀·하단바·320px·768px |
+| `react-edge-figtable` | 13 | 엣지: 특정 표/그림 문항 |
+| `react-edge-import` | 8 | 엣지: 대용량/비정상 import 견고성 |
+
+> 아래는 초기 핵심 70개의 상세 G·W·T이며, 이후 엣지·확장 151개는 위 인덱스의 각 스펙 파일에 동일한 G·W·T 구조로 구현되어 있습니다.
 
 ---
 
