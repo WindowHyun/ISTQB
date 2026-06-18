@@ -143,15 +143,15 @@ export const QuestionWorkspace = () => {
         <span className="jp-dot" aria-hidden="true" />{safeIndex + 1} / {total}
       </button>
 
+      {/* B안: 순차 이동(‹ ›)·채점은 하단 액션바, 랜덤 점프는 우하단 핀으로 역할 분리.
+          연습/오답 모드(채점 없음)에서는 중앙을 비워 ‹ ›가 넓게 차지한다. */}
       <nav className="mobile-actionbar" aria-label="문항 이동·채점">
         <button type="button" className="ab-nav" aria-label="이전 문제" disabled={safeIndex === 0} onClick={goPrev}>‹</button>
         {canGrade ? (
           <button type="button" className="ab-main" data-testid="grade-button-m" onClick={requestGrade}>채점하기</button>
         ) : isGraded ? (
           <button type="button" className="ab-main subtle" onClick={() => setResultOpen(true)}>결과 요약</button>
-        ) : (
-          <button type="button" className="ab-main subtle" onClick={() => setPaletteOpen(true)}>문항 이동</button>
-        )}
+        ) : null}
         <button type="button" className="ab-nav" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
       </nav>
     </section>
