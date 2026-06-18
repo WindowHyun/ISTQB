@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import { openImageLightbox } from './lightbox';
 
 // 파서가 다루는 콘텐츠 블록 (loosely-typed; PDF 추출 산출물).
 type ListItem = { marker: string; text: string };
@@ -710,14 +711,9 @@ function splitStructuralMarkers(text: string): string {
     .trim();
 }
 
-// 그림/표 클릭 시 확대 — 레거시 모달 대신 새 탭으로 안전하게 폴백.
-// (이전엔 정의 없이 참조되어 클릭 시 ReferenceError가 발생했음)
+// 그림/표 클릭 시 앱 내 라이트박스로 확대(새 탭으로 이탈하지 않음).
 function openFigureModal(src: string): void {
-  try {
-    window.open(src, "_blank", "noopener");
-  } catch {
-    // 모달/팝업이 불가한 환경에서는 조용히 무시
-  }
+  openImageLightbox(src);
 }
 
 // PDF 추출 과정에서 한 문장이 여러 블록으로 쪼개진 경우(예: "…테스트한"+"다.",

@@ -3,6 +3,7 @@ import { useQuizStore } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { useTheme, ThemePref } from '../../hooks/useTheme';
 import { exportUserData, importUserData, clearHistoriesFromDB } from '../../utils/storage';
+import { showToast } from '../../utils/toast';
 import { Modal } from '../common/Modal';
 import { StatsDashboard } from '../stats/StatsDashboard';
 import { ResultSummary } from '../quiz/ResultSummary';
@@ -27,11 +28,11 @@ type FontSize = 'small' | 'normal' | 'large';
 export const AppModals = () => {
   const {
     setId, mode, activeProduct, elapsedSeconds, histories,
-    settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen,
-    setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen,
+    settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen,
+    setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
     setMode, setIndex, clearAnswers, clearHistory, clearHistories,
   } = useQuizStore();
-  const { appData, total, correctCount, wrongQuestions } = useQuizSession();
+  const { appData, total, answered, correctCount, wrongQuestions, gradeAndShow } = useQuizSession();
   const { pref: themePref, setPref: setThemePref } = useTheme();
   const [fontSize, setFontSize] = useState<FontSize>(
     () => (localStorage.getItem('istqb-q-font') as FontSize) || 'normal',
@@ -56,7 +57,16 @@ export const AppModals = () => {
   const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
     const success = await importUserData(e.target.files[0]);
-    alert(success ? '백업 파일이 성공적으로 복원되었습니다.' : '파일 복원에 실패했습니다.');
+    showToast(
+      success ? '백업 파일을 복원했습니다.' : '파일 복원에 실패했습니다.',
+      success ? 'success' : 'error',
+    );
+  };
+
+  const unanswered = total - answered;
+  const confirmGrade = () => {
+    setConfirmGradeOpen(false);
+    gradeAndShow();
   };
 
   const handleClearHistories = () => {
@@ -183,9 +193,27 @@ export const AppModals = () => {
         />
       )}
 
+      {confirmGradeOpen && (
+        <Modal title="채점 확인" onClose={() => setConfirmGradeOpen(false)}>
+          <div className="modal-body confirm-body" data-testid="confirm-grade-modal">
+            <p>
+              아직 답하지 않은 문항이 <strong>{unanswered}개</strong> 있습니다.
+              그대로 채점할까요? (미응답은 오답 처리됩니다)
+            </p>
+            <div className="confirm-actions">
+              <button type="button" onClick={() => setConfirmGradeOpen(false)}>계속 풀기</button>
+              <button type="button" className="primary" data-testid="confirm-grade" onClick={confirmGrade}>
+                채점하기
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {resultOpen && (
         <ResultSummary
           setTitle={currentSet?.title || ''}
+          certification={activeProduct}
           correct={correctCount}
           total={total}
           elapsedSeconds={elapsedSeconds}

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openSet, modeBtn, gotoQuestion } from "./helpers";
+import { openSet, modeBtn, gotoQuestion, submitGrade } from "./helpers";
 
 // 엣지 케이스(빈 오답/마지막 문항/제품 전환/연속 조작 등) — 크래시 없이 견고한지.
 test.describe("엣지 케이스", () => {
@@ -19,7 +19,7 @@ test.describe("엣지 케이스", () => {
     const total = await page.locator("#questionNav button").count();
     await gotoQuestion(page, total);
     await page.locator("#options .option").first().click();
-    await page.getByTestId("grade-button").click();
+    await submitGrade(page);
     await expect(page.getByTestId("score")).toContainText("점수", { timeout: 8_000 });
   });
 

@@ -22,7 +22,7 @@ export const Sidebar = () => {
   } = useQuizStore();
   const {
     appData, total, answered, correctCount, isGraded, canGrade, progressPercent,
-    gradeAndShow,
+    requestGrade,
   } = useQuizSession();
 
   // 현재 선택된 제품(ISTQB/CSTS)에 속한 세트만 노출.
@@ -91,7 +91,7 @@ export const Sidebar = () => {
                 type="button"
                 className="primary"
                 data-testid="grade-button"
-                onClick={gradeAndShow}
+                onClick={requestGrade}
               >
                 채점하기
               </button>

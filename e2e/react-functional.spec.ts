@@ -1,4 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
+import { submitGrade } from "./helpers";
 
 // React 앱 기능 전수 회귀 스펙 — 게이트·모드·채점·오답노트·설정·진위/단답 UI.
 // (Playwright 전수조사에서 도출: 626문항 렌더/404/예외 0, 기능 플로우 정상)
@@ -50,7 +51,7 @@ test("시험: 채점 전 피드백 없음 → 채점 → 점수/공개 + 오답�
   await modeBtn(page, "시험").click();
   await page.locator("#options .option").first().click();
   await expect(page.locator("#feedback")).toHaveCount(0);
-  await page.getByTestId("grade-button").click();
+  await submitGrade(page);
   await expect(page.getByTestId("score")).toContainText("점수", { timeout: 8_000 });
   await expect(page.locator("#feedback").first()).toBeVisible();
   // 채점 시 자동으로 뜨는 결과 요약 모달을 닫는다.
