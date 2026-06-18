@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openSet, openProduct, modeBtn, submitGrade } from "./helpers";
+import { openSet, openProduct, modeBtn } from "./helpers";
 
 // 엣지: 영속성·복원·가져오기/내보내기·테마/콘솔 지속.
 test.describe("엣지-영속성", () => {

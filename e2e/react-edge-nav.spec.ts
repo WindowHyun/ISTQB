@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openSet, modeBtn, gotoQuestion } from "./helpers";
+import { openSet, gotoQuestion } from "./helpers";
 
 // 엣지: 경계 네비게이션(첫/끝 문항, 키보드, 팔레트, 입력 포커스).
 test.describe("엣지-네비게이션", () => {

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openSet, modeBtn, gotoQuestion } from "./helpers";
+import { openSet, gotoQuestion } from "./helpers";
 
 const figureImg = "#questionFigure img, #questionStem img";
 
