@@ -1,0 +1,97 @@
+# React 웹빌드 → Capacitor sync → APK 빌드 → Firebase App Distribution 업로드
+#
+# 실행: 저장소 Actions 탭에서 "Run workflow"(수동) 또는 v* 태그 푸시 시.
+# 필요한 Secrets (Settings → Secrets and variables → Actions):
+#   FIREBASE_ANDROID_APP_ID        : Firebase 안드로이드 앱 ID (예: 1:1234567890:android:abcdef)
+#   FIREBASE_SERVICE_ACCOUNT_JSON  : "Firebase App Distribution Admin" 권한 서비스계정 키(JSON 전체 내용)
+#   (선택, release 서명 시)
+#   ANDROID_KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD
+#
+# 기본은 debug APK를 빌드해 업로드한다(서명 키 불필요, App Distribution 테스터 배포엔 충분).
+
+name: Android → Firebase App Distribution
+
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "릴리스 노트(테스터에게 표시)"
+        required: false
+        default: "새 빌드"
+      groups:
+        description: "배포 대상 테스터 그룹(쉼표 구분)"
+        required: false
+        default: "testers"
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-distribute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build web (React → dist)
+        run: npm run build
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Capacitor sync (dist → android)
+        run: npx cap sync android
+
+      - name: Build debug APK
+        run: |
+          chmod +x android/gradlew
+          cd android && ./gradlew assembleDebug --no-daemon
+
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          groups: ${{ github.event.inputs.groups || 'testers' }}
+          releaseNotes: ${{ github.event.inputs.notes || github.ref_name }}
+          file: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload APK artifact (백업)
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+# ── (선택) release 서명 APK 변형 ───────────────────────────────────────
+# debug 대신 서명된 release APK를 배포하려면 위 "Build debug APK" 단계를
+# 아래로 교체하고 keystore Secrets를 등록한다:
+#
+#   - name: Decode keystore
+#     run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/release.jks
+#     env: { ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }} }
+#   - name: Build release APK
+#     run: |
+#       chmod +x android/gradlew
+#       cd android && ./gradlew assembleRelease --no-daemon
+#     env:
+#       ISTQB_RELEASE_STORE_FILE: release.jks
+#       ISTQB_RELEASE_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+#       ISTQB_RELEASE_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+#       ISTQB_RELEASE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+#   # file 경로: android/app/build/outputs/apk/release/app-release.apk
