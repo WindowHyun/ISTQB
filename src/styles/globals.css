@@ -838,7 +838,7 @@ body[data-theme="dark"] .table-image-frame {
   /* 한 칸 레이아웃 + 문제가 첫 화면(사이드바는 드로어로) */
   .app-shell {
     grid-template-columns: 1fr;
-    padding: 12px 12px 84px;
+    padding: 12px 12px 96px;
     gap: 14px;
   }
   .topbar #questionTitle { font-size: 19px; }
@@ -875,7 +875,7 @@ body[data-theme="dark"] .table-image-frame {
     gap: 8px;
     position: fixed;
     right: 16px;
-    bottom: 74px;
+    bottom: 88px;
     z-index: 40;
     background: var(--text);
     color: var(--surface);
@@ -888,26 +888,30 @@ body[data-theme="dark"] .table-image-frame {
   }
   .jump-pin .jp-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
 
+  /* B안: 모바일 순차 이동은 하단 액션바로 일원화 → 상단 카드의 ‹›는 숨긴다. */
+  .topbar-actions { display: none; }
+
   .mobile-actionbar {
     display: flex;
-    gap: 9px;
+    gap: 10px;
     position: fixed;
     left: 0; right: 0; bottom: 0;
     z-index: 45;
-    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
     background: var(--surface);
     border-top: 1px solid var(--line);
-    box-shadow: 0 -3px 10px rgba(15, 23, 42, 0.07);
+    box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.08);
   }
+  /* 주 조작 영역 → 터치 타깃을 키운다(높이 54, 화살표는 양옆 넓게 차지). */
   .mobile-actionbar .ab-nav {
-    width: 54px; flex: none;
+    flex: 1; min-width: 60px; height: 54px;
     border: 1px solid var(--line-strong); background: var(--surface);
-    border-radius: 13px; font-size: 20px; color: var(--text-2);
+    border-radius: 14px; font-size: 24px; line-height: 1; color: var(--text-2);
   }
   .mobile-actionbar .ab-nav:disabled { opacity: 0.4; }
   .mobile-actionbar .ab-main {
-    flex: 1; border: 0; border-radius: 13px;
-    background: var(--primary); color: #fff; font-size: 15px; font-weight: 800;
+    flex: 2; height: 54px; border: 0; border-radius: 14px;
+    background: var(--primary); color: #fff; font-size: 16px; font-weight: 800;
   }
   .mobile-actionbar .ab-main.subtle { background: var(--surface-3); color: var(--text-2); }
 }
