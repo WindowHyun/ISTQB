@@ -27,9 +27,13 @@ export default defineConfig({
     // 루트/www의 수기 service-worker.js는 레거시 정적 앱(Vercel 루트 서빙) 전용으로,
     // 두 SW는 서로 다른 배포 산출물에 속하므로 스코프가 겹치지 않는다.
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt': 새 SW를 자동 활성화하지 않고 onNeedRefresh로 알린다.
+      // 앱 내 업데이트 배너(UpdatePrompt)가 사용자 1탭으로 갱신을 처리한다.
+      registerType: 'prompt',
+      injectRegister: false, // 등록은 useRegisterSW(React 훅)에서 직접 수행
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,json}']
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+        cleanupOutdatedCaches: true,
       },
       manifest: {
         name: 'ISTQB/CSTS Practice App',
