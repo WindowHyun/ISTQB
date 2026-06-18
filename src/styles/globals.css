@@ -1088,3 +1088,49 @@ body[data-theme="dark"] {
 .dc-row.dc-warn .dc-tag, .dc-row.dc-warn .dc-text { color: #fbbf24; }
 .dc-row.dc-info .dc-tag { color: #60a5fa; }
 .dc-row.dc-debug .dc-tag { color: #a78bfa; }
+
+/* ── PWA 업데이트 배너 ──────────────────────────────────────────────── */
+.update-prompt {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 140;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(92vw, 460px);
+  padding: 12px 14px 12px 18px;
+  border-radius: 14px;
+  background: var(--text);
+  color: var(--surface);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.35);
+  font-size: 14px;
+  font-weight: 700;
+}
+.update-prompt .up-text { flex: 1; }
+.update-prompt .up-reload {
+  border: 0;
+  border-radius: 10px;
+  padding: 8px 14px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.update-prompt .up-dismiss {
+  border: 0;
+  background: transparent;
+  color: var(--surface);
+  opacity: 0.7;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 4px;
+}
+.update-prompt .up-dismiss:hover { opacity: 1; }
+
+/* 화면 콘솔 FAB가 있으면 배너가 가리지 않도록 살짝 위로(모바일) */
+@media (max-width: 880px) {
+  .update-prompt { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+}
