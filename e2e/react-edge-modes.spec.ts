@@ -17,6 +17,8 @@ test.describe("엣지-모드", () => {
     await modeBtn(page, "시험").click();
     await page.locator("#options .option").first().click();
     await modeBtn(page, "연습").click();
+    // 시험 진행 중이므로 확인 모달이 뜬다 → '이동'으로 전환을 진행한다.
+    await page.getByTestId("mode-change-go").click();
     await expect(page.locator("#progressText")).toHaveText("0 / 40");
   });
 
@@ -118,5 +120,69 @@ test.describe("엣지-모드", () => {
     await modeBtn(page, "시험").click();
     await expect(page.locator('.segmented button[data-mode="exam"]')).toHaveAttribute("aria-pressed", "true");
     await expect(page.locator('.segmented button[data-mode="practice"]')).toHaveAttribute("aria-pressed", "false");
+  });
+});
+
+// 시험 모드 진행 중 다른 모드 전환 가드.
+test.describe("시험 모드 전환 가드", () => {
+  test("시험 진행 중 다른 모드 클릭 시 경고 모달이 노출된다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click();
+    await modeBtn(page, "연습").click();
+    await expect(page.getByTestId("mode-change-modal")).toBeVisible();
+    await expect(page.getByTestId("mode-change-go")).toBeVisible();
+    await expect(page.getByTestId("mode-change-back")).toBeVisible();
+  });
+
+  test("'이동' 선택 시 클릭한 모드로 전환된다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click();
+    await modeBtn(page, "랜덤").click();
+    await page.getByTestId("mode-change-go").click();
+    await expect(page.getByTestId("mode-change-modal")).toHaveCount(0);
+    await expect(page.locator('.segmented button[data-mode="random"]')).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("'뒤로가기' 선택 시 시험 모드에 그대로 머문다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click();
+    await modeBtn(page, "연습").click();
+    await page.getByTestId("mode-change-back").click();
+    await expect(page.getByTestId("mode-change-modal")).toHaveCount(0);
+    await expect(page.locator('.segmented button[data-mode="exam"]')).toHaveAttribute("aria-pressed", "true");
+    // 답안도 유지된다.
+    await expect(page.locator("#progressText")).toHaveText("1 / 40");
+  });
+
+  test("답안이 없으면 시험에서 다른 모드로 경고 없이 전환된다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    await modeBtn(page, "연습").click();
+    await expect(page.getByTestId("mode-change-modal")).toHaveCount(0);
+    await expect(page.locator('.segmented button[data-mode="practice"]')).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("채점 후에는 경고 없이 다른 모드로 전환된다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+    await modeBtn(page, "연습").click();
+    await expect(page.getByTestId("mode-change-modal")).toHaveCount(0);
+    await expect(page.locator('.segmented button[data-mode="practice"]')).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("CSTS 시험 모드에서도 동일하게 경고 모달이 노출된다", async ({ page }) => {
+    await openSet(page, "CSTS", "CSTS-FL-2402");
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click();
+    await modeBtn(page, "연습").click();
+    await expect(page.getByTestId("mode-change-modal")).toBeVisible();
+    await page.getByTestId("mode-change-go").click();
+    await expect(page.locator('.segmented button[data-mode="practice"]')).toHaveAttribute("aria-pressed", "true");
   });
 });
