@@ -24,14 +24,21 @@ const THEMES: { value: ThemePref; label: string }[] = [
 
 type FontSize = 'small' | 'normal' | 'large';
 
+const MODE_LABEL: Record<string, string> = {
+  practice: '연습',
+  exam: '시험',
+  random: '랜덤',
+  review: '오답',
+};
+
 // 앱 루트에 렌더되는 모든 오버레이(설정·통계·오답노트·결과·문항이동).
 // 드로어(transform)의 자식이 아니어서 position:fixed 오버레이가 정상 동작한다.
 export const AppModals = () => {
   const {
     setId, mode, activeProduct, elapsedSeconds, histories,
-    settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen,
+    settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, pendingMode,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
-    setMode, setIndex, clearAnswers, clearHistory, clearHistories,
+    setMode, setIndex, resetTimer, clearAnswers, clearHistory, clearHistories, setPendingMode,
   } = useQuizStore();
   const { appData, total, answered, correctCount, wrongQuestions, gradeAndShow } = useQuizSession();
   const { pref: themePref, setPref: setThemePref } = useTheme();
@@ -69,6 +76,16 @@ export const AppModals = () => {
   const confirmGrade = () => {
     setConfirmGradeOpen(false);
     gradeAndShow();
+  };
+
+  // 시험 모드 전환 확인: '이동'이면 목표 모드로 전환, '뒤로가기'면 취소(시험 유지).
+  const confirmModeChange = () => {
+    if (!pendingMode) return;
+    const target = pendingMode;
+    setPendingMode(null);
+    setMode(target);
+    setIndex(0);
+    resetTimer();
   };
 
   const handleClearHistories = () => {
@@ -220,6 +237,25 @@ export const AppModals = () => {
               <button type="button" onClick={() => setConfirmGradeOpen(false)}>계속 풀기</button>
               <button type="button" className="primary" data-testid="confirm-grade" onClick={confirmGrade}>
                 채점하기
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {pendingMode && (
+        <Modal title="시험 진행 중" onClose={() => setPendingMode(null)}>
+          <div className="modal-body confirm-body" data-testid="mode-change-modal">
+            <p>
+              시험 모드를 진행 중입니다. <strong>{MODE_LABEL[pendingMode] ?? pendingMode}</strong> 모드로 이동하면
+              현재 시험 진행 상태(타이머)가 초기화됩니다. 이동할까요?
+            </p>
+            <div className="confirm-actions">
+              <button type="button" data-testid="mode-change-back" onClick={() => setPendingMode(null)}>
+                뒤로가기
+              </button>
+              <button type="button" className="primary" data-testid="mode-change-go" onClick={confirmModeChange}>
+                이동
               </button>
             </div>
           </div>

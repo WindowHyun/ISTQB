@@ -36,6 +36,8 @@ export interface QuizState {
   resultOpen: boolean;
   paletteOpen: boolean;
   confirmGradeOpen: boolean;
+  // 시험 모드 진행 중 다른 모드로 전환 시도 시, 확인 대기 중인 목표 모드(null이면 대기 없음).
+  pendingMode: QuizMode | null;
 
   // Actions
   setActiveProduct: (product: 'istqb' | 'csts') => void;
@@ -60,6 +62,7 @@ export interface QuizState {
   setResultOpen: (open: boolean) => void;
   setPaletteOpen: (open: boolean) => void;
   setConfirmGradeOpen: (open: boolean) => void;
+  setPendingMode: (mode: QuizMode | null) => void;
   resetToGate: () => void;
   hydrate: (state: Partial<QuizState>) => void;
 }
@@ -85,6 +88,7 @@ export const useQuizStore = create<QuizState>((set) => ({
   resultOpen: false,
   paletteOpen: false,
   confirmGradeOpen: false,
+  pendingMode: null,
 
   setActiveProduct: (activeProduct) => set({ activeProduct }),
   setMode: (mode) => set({ mode }),
@@ -143,11 +147,13 @@ export const useQuizStore = create<QuizState>((set) => ({
   setResultOpen: (resultOpen) => set({ resultOpen }),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
   setConfirmGradeOpen: (confirmGradeOpen) => set({ confirmGradeOpen }),
+  setPendingMode: (pendingMode) => set({ pendingMode }),
   // 진입/캐시 복원 시 항상 최초 화면(제품 선택 게이트)으로 — 오버레이도 모두 닫는다.
   resetToGate: () => set({
     mode: 'home', activeProduct: null,
     drawerOpen: false, settingsOpen: false, statsOpen: false,
     wrongNoteOpen: false, resultOpen: false, paletteOpen: false, confirmGradeOpen: false,
+    pendingMode: null,
   }),
   hydrate: (hydratedState) => set((state) => ({ ...state, ...hydratedState })),
 }));

@@ -19,6 +19,7 @@ export const Sidebar = () => {
     mode, setId, activeProduct, elapsedSeconds,
     setMode, setSetId, setIndex, resetTimer, clearAnswers,
     setStatsOpen, setSettingsOpen, setWrongNoteOpen, setResultOpen, setDrawerOpen,
+    setPendingMode,
   } = useQuizStore();
   const {
     appData, total, answered, correctCount, isGraded, canGrade, progressPercent,
@@ -51,6 +52,13 @@ export const Sidebar = () => {
   };
 
   const handleModeChange = (newMode: typeof mode) => {
+    // 시험 모드 진행 중(답안 작성 + 미채점)에 다른 모드로 전환을 시도하면
+    // 곧바로 전환하지 않고 확인 모달을 띄운다(이동/뒤로가기 선택).
+    if (mode === 'exam' && !isGraded && answered > 0 && newMode !== mode) {
+      closeDrawer();
+      setPendingMode(newMode);
+      return;
+    }
     setMode(newMode);
     setIndex(0);
     resetTimer();
