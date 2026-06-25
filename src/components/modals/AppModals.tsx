@@ -9,6 +9,7 @@ import { Modal } from '../common/Modal';
 import { StatsDashboard } from '../stats/StatsDashboard';
 import { ResultSummary } from '../quiz/ResultSummary';
 import { QuestionPalette } from '../quiz/QuestionPalette';
+import { RichText } from '../../utils/parser';
 
 const FONT_SIZES: { value: 'small' | 'normal' | 'large'; label: string }[] = [
   { value: 'small', label: '작게' },
@@ -119,14 +120,19 @@ export const AppModals = () => {
               <ul className="wrong-note-list">
                 {wrongQuestions.map(({ q, i }) => (
                   <li key={q.id || i}>
-                    <button
-                      type="button"
-                      className="wrong-note-jump"
-                      onClick={() => { setIndex(i); setWrongNoteOpen(false); }}
-                    >
-                      문제 {q.number}
-                    </button>
-                    <span className="wrong-note-ans">정답 {q.answer.map((s) => s.toUpperCase()).join(', ')}</span>
+                    <div className="wrong-note-row">
+                      <button
+                        type="button"
+                        className="wrong-note-jump"
+                        onClick={() => { setIndex(i); setWrongNoteOpen(false); }}
+                      >
+                        문제 {q.number}
+                      </button>
+                      <span className="wrong-note-ans">정답 {q.answer.map((s) => s.toUpperCase()).join(', ')}</span>
+                    </div>
+                    <div className="wrong-note-explain">
+                      <RichText content={q.explanation || '해설이 없습니다.'} />
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -227,12 +233,16 @@ export const AppModals = () => {
       )}
 
       {confirmGradeOpen && (
-        <Modal title="채점 확인" onClose={() => setConfirmGradeOpen(false)}>
+        <Modal title="제출 전 검토" onClose={() => setConfirmGradeOpen(false)}>
           <div className="modal-body confirm-body" data-testid="confirm-grade-modal">
             <p>
               아직 답하지 않은 문항이 <strong>{unanswered}개</strong> 있습니다.
               그대로 채점할까요? (미응답은 오답 처리됩니다)
             </p>
+            <p className="review-hint">아래에서 미응답(빈 칸) 문항을 눌러 이동해 마저 풀 수 있습니다.</p>
+            <div className="review-palette" data-testid="review-palette">
+              <QuestionPalette onJump={() => setConfirmGradeOpen(false)} />
+            </div>
             <div className="confirm-actions">
               <button type="button" onClick={() => setConfirmGradeOpen(false)}>계속 풀기</button>
               <button type="button" className="primary" data-testid="confirm-grade" onClick={confirmGrade}>

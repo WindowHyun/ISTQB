@@ -154,12 +154,15 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
       if (answersRaw) answers = JSON.parse(answersRaw);
     }
     
+    const restoredUi = sanitizeUiState(uiState);
     useQuizStore.getState().hydrate({
-      ...sanitizeUiState(uiState),
+      ...restoredUi,
       answers: sanitizeAnswers(answers),
       histories,
       activeProduct, // ensure it's set
     });
+    // 첫 문항이 아닌 위치에서 복원되면 "이어풀기" 안내를 띄운다(#A).
+    useQuizStore.getState().setResumeNotice((restoredUi.index ?? 0) > 0);
   } catch (e) {
     console.error("Failed to restore snapshot:", e);
   }
