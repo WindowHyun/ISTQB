@@ -228,6 +228,23 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId("resume-prompt-modal")).toHaveCount(0);
   });
+
+  test("다른 세트로 바꿔서 이전 답안이 있으면 선택 모달이 뜬다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click(); // A 답
+    // C로 전환(답안 없음 → 모달 없음)
+    await page.locator("#examSelect").selectOption("ISTQB-FL-V4-C");
+    await expect(page.locator("#questionStem")).toBeVisible();
+    await expect(page.getByTestId("resume-prompt-modal")).toHaveCount(0);
+    await page.locator("#options .option").first().click(); // C 답
+    // 다시 A로 전환 → A에 답안 있음 → 모달
+    await page.locator("#examSelect").selectOption("ISTQB-FL-V4-A");
+    await expect(page.getByTestId("resume-prompt-modal")).toBeVisible();
+    // 새로 풀기 → A 초기화
+    await page.getByTestId("resume-fresh").click();
+    await expect(page.locator("#progressText")).toHaveText("0 / 40");
+  });
 });
 
 test.describe("학습 UX — 피드백 접근성(I)", () => {
