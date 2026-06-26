@@ -9,7 +9,6 @@ import { Modal } from '../common/Modal';
 import { StatsDashboard } from '../stats/StatsDashboard';
 import { ResultSummary } from '../quiz/ResultSummary';
 import { QuestionPalette } from '../quiz/QuestionPalette';
-import { RichText } from '../../utils/parser';
 
 const FONT_SIZES: { value: 'small' | 'normal' | 'large'; label: string }[] = [
   { value: 'small', label: '작게' },
@@ -41,7 +40,7 @@ export const AppModals = () => {
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
     setMode, setIndex, resetTimer, clearAnswers, clearHistory, clearHistories, setPendingMode,
   } = useQuizStore();
-  const { appData, total, answered, correctCount, wrongQuestions, gradeAndShow } = useQuizSession();
+  const { appData, total, answered, correctCount, gradeAndShow } = useQuizSession();
   const { pref: themePref, setPref: setThemePref } = useTheme();
   const [fontSize, setFontSize] = useState<FontSize>(
     () => (localStorage.getItem('istqb-q-font') as FontSize) || 'normal',
@@ -57,6 +56,14 @@ export const AppModals = () => {
     ? appData.sets.filter((s) => s.certification.toLowerCase() === activeProduct)
     : [];
   const currentSet = sets.find((s) => s.id === setId);
+
+  // 오답 노트: 현재 제품의 채점 이력(회차)을 최신순으로 모아 보여준다(#4, 읽기 전용).
+  const productSetIds = new Set(sets.map((s) => s.id));
+  const fmtAns = (arr: string[]) =>
+    arr.length ? arr.map((s) => s.toUpperCase()).join(', ') : '미응답';
+  const wrongNoteGroups = Object.values(histories)
+    .filter((h) => productSetIds.has(h.setId) && (h.wrongItems?.length ?? 0) > 0)
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
   const handleHome = () => {
     setSettingsOpen(false);
@@ -114,28 +121,30 @@ export const AppModals = () => {
       {wrongNoteOpen && (
         <Modal title="오답 노트" onClose={() => setWrongNoteOpen(false)}>
           <div className="modal-body" data-testid="wrong-note">
-            {wrongQuestions.length === 0 ? (
-              <p>틀린 문항이 없습니다.</p>
+            {wrongNoteGroups.length === 0 ? (
+              <p>표시할 오답이 없습니다. (시험·랜덤 모드에서 채점하면 기록됩니다)</p>
             ) : (
-              <ul className="wrong-note-list">
-                {wrongQuestions.map(({ q, i }) => (
-                  <li key={q.id || i}>
-                    <div className="wrong-note-row">
-                      <button
-                        type="button"
-                        className="wrong-note-jump"
-                        onClick={() => { setIndex(i); setWrongNoteOpen(false); }}
-                      >
-                        문제 {q.number}
-                      </button>
-                      <span className="wrong-note-ans">정답 {q.answer.map((s) => s.toUpperCase()).join(', ')}</span>
-                    </div>
-                    <div className="wrong-note-explain">
-                      <RichText content={q.explanation || '해설이 없습니다.'} />
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              wrongNoteGroups.map((h) => (
+                <section className="wrong-note-group" data-testid="wrong-note-group" key={h.id}>
+                  <h4 className="wrong-note-set">
+                    {h.setTitle || h.setId}
+                    <small>
+                      {MODE_LABEL[h.mode] || h.mode} · 오답 {h.wrongItems?.length ?? 0}
+                      {h.total != null ? ` / ${h.total}` : ''}
+                      {h.createdAt ? ` · ${new Date(h.createdAt).toLocaleDateString('ko-KR')}` : ''}
+                    </small>
+                  </h4>
+                  <ul className="wrong-note-list">
+                    {(h.wrongItems ?? []).map((it, idx) => (
+                      <li className="wrong-note-item" key={`${it.number}-${idx}`}>
+                        <span className="wn-num">문제 {it.number}</span>
+                        <span className="wn-mine">내 답 {fmtAns(it.myAnswer)}</span>
+                        <span className="wn-correct">정답 {fmtAns(it.correctAnswer)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))
             )}
           </div>
         </Modal>

@@ -32,9 +32,16 @@ export function useQuizSession() {
     .filter(({ q }) => !isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type));
 
   const handleGrade = () => {
-    const wrongIds = currentQuestions
-      .filter((q) => !isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type))
-      .map((q) => q.id || `legacy-${q.number}`);
+    const wrongQs = currentQuestions
+      .filter((q) => !isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type));
+    const wrongIds = wrongQs.map((q) => q.id || `legacy-${q.number}`);
+    // 오답 노트(세트 전체 회차 리스트)용 상세를 채점 시점에 함께 저장한다(4A).
+    const wrongItems = wrongQs.map((q) => ({
+      number: q.number,
+      myAnswer: answers[answerKeyOf(q)] || [],
+      correctAnswer: q.answer,
+    }));
+    const setTitle = appData?.sets.find((s) => s.id === setId)?.title;
     const gradedAnswers: Record<string, string[]> = {};
     currentQuestions.forEach((q) => {
       const k = answerKeyOf(q);
@@ -49,6 +56,8 @@ export function useQuizSession() {
       total,
       elapsedSeconds: Math.round(elapsedSeconds),
       createdAt: Date.now(),
+      setTitle,
+      wrongItems,
     };
     addHistory(history);
     // 채점 이력을 IndexedDB에 영속화(새로고침 후 통계 대시보드에서 조회).
