@@ -36,7 +36,7 @@ test.describe("엣지-영속성", () => {
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-    await modeBtn(page, "시험").click();
+    await page.getByTestId("resume-keep").click(); // 이어풀기 선택(답안 유지)
     await expect(page.locator("#questionNav button.answered")).toHaveCount(1);
   });
 

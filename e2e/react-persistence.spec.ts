@@ -86,7 +86,7 @@ test.describe("영속성/백업", () => {
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-    await modeBtn(page, "시험").click();
+    await page.getByTestId("resume-keep").click(); // 이어풀기 선택(답안 유지)
     await page.waitForTimeout(400);
     expect(await page.locator("#questionNav button.answered").count()).toBeGreaterThanOrEqual(1);
   });

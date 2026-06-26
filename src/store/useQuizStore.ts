@@ -43,6 +43,8 @@ export interface QuizState {
   pendingMode: QuizMode | null;
   // 저장된 진행을 중간 위치에서 복원했을 때 "이어풀기" 안내 배너를 띄울지 여부.
   resumeNotice: boolean;
+  // 시험/랜덤 모드로 복원했고 이전 답안이 있을 때 "이어풀기/새로 풀기" 선택 모달을 띄울지 여부.
+  resumePrompt: boolean;
 
   // Actions
   setActiveProduct: (product: 'istqb' | 'csts') => void;
@@ -69,6 +71,7 @@ export interface QuizState {
   setConfirmGradeOpen: (open: boolean) => void;
   setPendingMode: (mode: QuizMode | null) => void;
   setResumeNotice: (show: boolean) => void;
+  setResumePrompt: (show: boolean) => void;
   resetToGate: () => void;
   hydrate: (state: Partial<QuizState>) => void;
 }
@@ -96,6 +99,7 @@ export const useQuizStore = create<QuizState>((set) => ({
   confirmGradeOpen: false,
   pendingMode: null,
   resumeNotice: false,
+  resumePrompt: false,
 
   setActiveProduct: (activeProduct) => set({ activeProduct }),
   setMode: (mode) => set({ mode }),
@@ -156,12 +160,13 @@ export const useQuizStore = create<QuizState>((set) => ({
   setConfirmGradeOpen: (confirmGradeOpen) => set({ confirmGradeOpen }),
   setPendingMode: (pendingMode) => set({ pendingMode }),
   setResumeNotice: (resumeNotice) => set({ resumeNotice }),
+  setResumePrompt: (resumePrompt) => set({ resumePrompt }),
   // 진입/캐시 복원 시 항상 최초 화면(제품 선택 게이트)으로 — 오버레이도 모두 닫는다.
   resetToGate: () => set({
     mode: 'home', activeProduct: null,
     drawerOpen: false, settingsOpen: false, statsOpen: false,
     wrongNoteOpen: false, resultOpen: false, paletteOpen: false, confirmGradeOpen: false,
-    pendingMode: null, resumeNotice: false,
+    pendingMode: null, resumeNotice: false, resumePrompt: false,
   }),
   hydrate: (hydratedState) => set((state) => ({ ...state, ...hydratedState })),
 }));

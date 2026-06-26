@@ -36,9 +36,9 @@ const MODE_LABEL: Record<string, string> = {
 export const AppModals = () => {
   const {
     setId, mode, activeProduct, elapsedSeconds, histories,
-    settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, pendingMode,
+    settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, pendingMode, resumePrompt,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
-    setMode, setIndex, resetTimer, clearAnswers, clearHistory, clearHistories, setPendingMode,
+    setMode, setIndex, resetTimer, clearAnswers, clearHistory, clearHistories, setPendingMode, setResumePrompt,
   } = useQuizStore();
   const { appData, total, answered, correctCount, gradeAndShow } = useQuizSession();
   const { pref: themePref, setPref: setThemePref } = useTheme();
@@ -122,6 +122,39 @@ export const AppModals = () => {
 
   return (
     <>
+      {resumePrompt && (
+        <Modal title="이어풀기" onClose={() => setResumePrompt(false)}>
+          <div className="modal-body confirm-body" data-testid="resume-prompt-modal">
+            <p>
+              이전에 풀던 <strong>{MODE_LABEL[mode] ?? mode}</strong> 기록이 남아 있습니다.
+              이어서 풀까요, 아니면 처음부터 새로 풀까요?
+            </p>
+            <div className="confirm-actions">
+              <button
+                type="button"
+                data-testid="resume-fresh"
+                onClick={() => {
+                  clearAnswers(setId, mode);
+                  setIndex(0);
+                  resetTimer();
+                  setResumePrompt(false);
+                }}
+              >
+                새로 풀기
+              </button>
+              <button
+                type="button"
+                className="primary"
+                data-testid="resume-keep"
+                onClick={() => setResumePrompt(false)}
+              >
+                이어풀기
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {paletteOpen && (
         <Modal title="문항 이동" onClose={() => setPaletteOpen(false)}>
           <div className="modal-body" data-testid="palette-jump">
