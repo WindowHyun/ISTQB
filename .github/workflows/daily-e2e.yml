@@ -1,0 +1,100 @@
+name: Daily E2E
+
+# 매일 예약 시각에 Playwright E2E 회귀를 자동 실행한다.
+# - schedule: cron 은 UTC 기준. 17 0 * * * = 00:17 UTC = KST 09:17.
+#   (정시 :00 은 러너 혼잡으로 지연이 크므로 분을 비워둠)
+# - workflow_dispatch: 필요 시 수동 실행.
+# 예약 트리거는 기본 브랜치(main)의 이 파일을 기준으로 동작한다.
+on:
+  schedule:
+    - cron: "17 0 * * *"
+  workflow_dispatch:
+
+# 예약/수동 실행이 서로를 취소하지 않도록 CI 와 별도 그룹을 쓴다.
+concurrency:
+  group: daily-e2e-${{ github.ref }}
+  cancel-in-progress: false
+
+# 실패 시 이슈 생성/코멘트를 위해 issues:write 가 필요하다.
+permissions:
+  contents: read
+  issues: write
+
+env:
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+
+jobs:
+  e2e:
+    name: Daily E2E (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+      - name: Install Playwright (chromium + system deps)
+        run: npx playwright install --with-deps chromium
+      - name: Run E2E
+        run: npm run test:e2e
+      - name: Upload Playwright report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-daily
+          path: playwright-report/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      # 실패 시 알림: 'daily-e2e-failure' 라벨의 열린 이슈가 있으면 코멘트, 없으면 새로 생성.
+      # (매일 새 이슈가 쌓이지 않도록 하나의 추적 이슈를 재사용한다.)
+      - name: Notify on failure (open/append issue)
+        if: ${{ failure() && github.event_name == 'schedule' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const label = 'daily-e2e-failure';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              `🔴 예약 E2E 실행이 실패했습니다.`,
+              ``,
+              `- 실행 로그: ${runUrl}`,
+              `- 커밋: ${context.sha}`,
+              `- 시각(UTC): ${new Date().toISOString()}`,
+            ].join('\n');
+
+            // 라벨이 없으면 생성(이미 있으면 무시).
+            try {
+              await github.rest.issues.getLabel({ ...context.repo, name: label });
+            } catch (e) {
+              await github.rest.issues.createLabel({ ...context.repo, name: label, color: 'd73a4a' });
+            }
+
+            const existing = await github.rest.issues.listForRepo({
+              ...context.repo, state: 'open', labels: label, per_page: 1,
+            });
+
+            if (existing.data.length) {
+              await github.rest.issues.createComment({
+                ...context.repo, issue_number: existing.data[0].number, body,
+              });
+            } else {
+              await github.rest.issues.create({
+                ...context.repo,
+                title: '🔴 Daily E2E 실패 추적',
+                labels: [label],
+                body: `${body}\n\n> 원인 해결 후 이 이슈를 닫아주세요. 다음 실패 시 새 코멘트가 이 이슈에 추가됩니다.`,
+              });
+            }
