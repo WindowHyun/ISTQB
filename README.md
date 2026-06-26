@@ -1,13 +1,13 @@
 # ISTQB / CSTS 문제 풀이 앱 — 기능 & QA 포트폴리오
 
 ![CI](https://github.com/WindowHyun/ISTQB/actions/workflows/ci.yml/badge.svg)
-![tests](https://img.shields.io/badge/tests-51%20unit%20%2B%20243%20e2e-brightgreen)
+![tests](https://img.shields.io/badge/tests-51%20unit%20%2B%20247%20e2e-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT%20(code)-yellow)
 ![stack](https://img.shields.io/badge/React%2019-TypeScript-blue)
 
 ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **12세트·626문항**을 푸는 오프라인 CBT 문제 풀이 앱입니다.
 
-> **한 줄 요약** — 단순 기능 구현을 넘어 **테스트 자동화(유닛 51 + E2E 243) · 데이터 정합성 검증 ·
+> **한 줄 요약** — 단순 기능 구현을 넘어 **테스트 자동화(유닛 51 + E2E 247) · 데이터 정합성 검증 ·
 > 결함 근본원인 분석(RCA) · CI 품질 게이트**로 품질을 책임진 1인 프로젝트입니다.
 > "무엇을 만들었는가"보다 **"품질을 어떻게 보장했는가"** 를 보여주는 사례입니다.
 
@@ -24,7 +24,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 - [주요 기능](#주요-기능)
 - [데모 자료 (GIF · 스크린샷)](#데모-자료-gif--스크린샷)
 - [테스트 전략](#테스트-전략)
-- [테스트 자동화 상세 (E2E 243)](#테스트-자동화-상세-e2e-243)
+- [테스트 자동화 상세 (E2E 247)](#테스트-자동화-상세-e2e-247)
 - [결함 발견 & 근본원인 분석](#결함-발견--근본원인-분석-case-studies)
 - [CI 품질 게이트](#ci-품질-게이트)
 - [품질 지표](#품질-지표-metrics)
@@ -39,7 +39,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 
 ## 하이라이트 (Quality Engineering)
 
-- **테스트 자동화 294개** — Vitest 유닛 51 + Playwright **E2E 243**(스모크·모드·문항유형·네비·설정·영속성·엣지·반응형·접근성·**대용량 import**·**표/그림 문항**·**라이트박스/콘솔**). 전체 시나리오: [`docs/e2e-test-scenarios.md`](docs/e2e-test-scenarios.md).
+- **테스트 자동화 298개** — Vitest 유닛 51 + Playwright **E2E 247**(스모크·모드·문항유형·네비·설정·영속성·엣지·반응형·접근성·**대용량 import**·**표/그림 문항**·**라이트박스/콘솔**). 전체 시나리오: [`docs/e2e-test-scenarios.md`](docs/e2e-test-scenarios.md).
 - **PDF ↔ 데이터 전수 정합성 검증** — 626문항 정답·보기·stem을 **공식 PDF와 1:1 대조**(대조 가능 600문항 불일치 0). 더해 `npm run verify`로 정답·이미지·스키마 자동 점검 + 전 문항 렌더 스윕(404·예외·깨진 이미지 0).
 - **자격증별 컷스코어·접근성** — ISTQB 65% / CSTS 환산 52.5점 합격 판정, 색각 대비 글리프·포커스 트랩·reduced-motion 등 a11y 반영.
 - **결함 RCA & 회귀 방지** — PDF 원본 ↔ 앱 렌더를 전수 대조해 결함을 찾고, 반복 결함의 근본원인을 분석해 **클래스 단위**로 차단(케이스별 회귀 테스트 추가).
@@ -49,7 +49,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 
 | QA 역량 | 본 프로젝트에서 한 일 | 근거 |
 |---------|----------------------|------|
-| 테스트 자동화 | Playwright **E2E 243개** + Vitest **유닛 51개** 작성·CI 연동 | `e2e/`, `src/**/*.test.ts` |
+| 테스트 자동화 | Playwright **E2E 247개** + Vitest **유닛 51개** 작성·CI 연동 | `e2e/`, `src/**/*.test.ts` |
 | 테스트 설계 | 모드·문항유형·네비·설정·영속성·엣지(경계·격리·복원·대용량 import)·표/그림·반응형·접근성으로 시나리오 분해 | [`docs/e2e-test-scenarios.md`](docs/e2e-test-scenarios.md) |
 | 회귀 방지 | 결함 수정마다 회귀 테스트 추가, CI 머지 게이트 | 파서 회귀 케이스, 5-job CI |
 | 결함 발견·RCA | **PDF 원본 ↔ 앱 렌더 전수 대조**로 결함 식별, 반복 결함 근본원인 분석 | 아래 [Case Studies](#결함-발견--근본원인-분석-case-studies) |
@@ -107,7 +107,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 ## 테스트 전략
 
 ```
-        ▲  E2E (Playwright) — 243개: 사용자 플로우·엣지·크로스뷰포트·A11y
+        ▲  E2E (Playwright) — 247개: 사용자 플로우·엣지·크로스뷰포트·A11y
        ───
       ─────  통합/렌더 — jsdom 렌더 테스트(파서·RichText)
      ───────  유닛 (Vitest) — 51개: 정답판정·파서·컷스코어·저장·콘솔 로직
@@ -117,7 +117,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 - **계층별 역할 분리**: 로직은 유닛, 화면 흐름은 E2E, 데이터는 정합성 스크립트로 검증.
 - **환경 제약 대응**: 로컬 브라우저 다운로드가 막힌 상황에서 **CI를 신뢰 검증 계층**으로 활용하고, jsdom 렌더 테스트로 정적 검사(tsc/lint)가 못 잡는 런타임 크래시까지 검출.
 
-## 테스트 자동화 상세 (E2E 243)
+## 테스트 자동화 상세 (E2E 247)
 
 - **카테고리**: 스모크 · 모드 · 네비게이션 · 설정 · 문항유형 · 콘텐츠 · **영속성/백업** · **엣지(경계·격리·복원·모달·반응형)** · **대용량/비정상 import** · **특정 표/그림 문항** · **라이트박스/화면 콘솔** · **접근성**.
 - **특징**: headless 실행, 결정적 타게팅(특정 세트·문항 고정), 공용 헬퍼(`e2e/helpers.ts`)로 중복 제거, 실제 qid로 백업을 생성해 import 복원까지 검증.
@@ -151,7 +151,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 
 ## 품질 지표 (Metrics)
 
-- 자동화 테스트: **유닛 51 + E2E 243 = 294** (전 문항 626 렌더 스윕 별도).
+- 자동화 테스트: **유닛 51 + E2E 247 = 298** (전 문항 626 렌더 스윕 별도).
 - 유닛 커버리지(src): **Stmts ~55% · Branch ~54% · Funcs ~60%** (핵심 로직 파서/정답판정/저장 집중).
 - 데이터 무결성: 626문항 정답·이미지·스키마 `verify` 통과, 전수 스윕 결과 **404·예외·깨진 이미지 0**.
 - 번들: main JS **205KB(gzip 65KB)**, CSS 17KB(gzip 4KB).
@@ -176,7 +176,7 @@ flowchart LR
   WWW --> VANILLA
 
   subgraph 품질["품질 게이트 (GitHub Actions)"]
-    CI["lint · verify · unit(51) · build · e2e(243)"]
+    CI["lint · verify · unit(51) · build · e2e(247)"]
   end
   REACT -.검증.-> CI
   SRC -.정합성 verify.-> CI
@@ -203,10 +203,10 @@ flowchart LR
 
 | 세트 | 문항 수 |
 |------|---------|
-| CSTS 2432FL (공개답안) | 70 |
-| CSTS 2433FL (공개답안) | 70 |
-| CSTS 2434FL (공개답안) | 70 |
-| CSTS 2435FL (공개답안) | 70 |
+| CSTS 2472FL (공개답안) | 70 |
+| CSTS 2473FL (공개답안) | 70 |
+| CSTS 2474FL (공개답안) | 70 |
+| CSTS 2475FL (공개답안) | 70 |
 | 2018년도 예제(일반등급) | 20 |
 | 2019년도 예제(일반등급) | 70 |
 | SW 테스트 전문가 예제(정답포함) | 70 |

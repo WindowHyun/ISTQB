@@ -156,14 +156,23 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
     }
     
     const restoredUi = sanitizeUiState(uiState);
+    const sanitizedAnswers = sanitizeAnswers(answers);
     useQuizStore.getState().hydrate({
       ...restoredUi,
-      answers: sanitizeAnswers(answers),
+      answers: sanitizedAnswers,
       histories,
       activeProduct, // ensure it's set
     });
-    // 첫 문항이 아닌 위치에서 복원되면 "이어풀기" 안내를 띄운다(#A).
-    useQuizStore.getState().setResumeNotice((restoredUi.index ?? 0) > 0);
+    // 시험/랜덤 모드로 복원했고 이전 답안이 남아 있으면 "이어풀기/새로 풀기" 선택 모달을 띄운다.
+    const sid = restoredUi.setId ?? '';
+    const m = restoredUi.mode;
+    const hasExamProgress =
+      (m === 'exam' || m === 'random') &&
+      Object.keys(sanitizedAnswers).some((k) => k.startsWith(`${sid}-${m}-`));
+    const store = useQuizStore.getState();
+    store.setResumePrompt(hasExamProgress);
+    // 선택 모달이 뜨는 경우엔 위치 배너는 띄우지 않는다(중복 방지). 그 외엔 첫 문항이 아니면 배너(#A).
+    store.setResumeNotice(!hasExamProgress && (restoredUi.index ?? 0) > 0);
   } catch (e) {
     console.error("Failed to restore snapshot:", e);
   }

@@ -136,6 +136,7 @@ test.describe("학습 UX — 시험 모드 이어풀기/유지(#1·#2·#6)", () 
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    await page.getByTestId("resume-keep").click(); // 이어풀기
     await expect(page.locator('.segmented button[data-mode="exam"]')).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -171,8 +172,61 @@ test.describe("학습 UX — 시험 모드 이어풀기/유지(#1·#2·#6)", () 
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    await page.getByTestId("resume-keep").click(); // 이어풀기
     await expect(page.locator('.segmented button[data-mode="exam"]')).toHaveAttribute("aria-pressed", "true");
     await expect(page.locator("#options .option").first()).toBeEnabled(); // 잠금 미유지
+  });
+});
+
+test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", () => {
+  test("시험 답안이 있으면 재접속 시 선택 모달이 뜬다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click();
+    await page.waitForTimeout(800);
+    await page.reload();
+    await page.getByRole("button", { name: "ISTQB" }).click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("resume-prompt-modal")).toBeVisible();
+    await expect(page.getByTestId("resume-keep")).toBeVisible();
+    await expect(page.getByTestId("resume-fresh")).toBeVisible();
+  });
+
+  test("'이어풀기'를 고르면 이전 답안이 유지된다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click();
+    await page.waitForTimeout(800);
+    await page.reload();
+    await page.getByRole("button", { name: "ISTQB" }).click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    await page.getByTestId("resume-keep").click();
+    await expect(page.getByTestId("resume-prompt-modal")).toHaveCount(0);
+    await expect(page.locator("#progressText")).toHaveText("1 / 40");
+  });
+
+  test("'새로 풀기'를 고르면 이전 답안이 초기화된다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click();
+    await page.waitForTimeout(800);
+    await page.reload();
+    await page.getByRole("button", { name: "ISTQB" }).click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    await page.getByTestId("resume-fresh").click();
+    await expect(page.getByTestId("resume-prompt-modal")).toHaveCount(0);
+    await expect(page.locator("#progressText")).toHaveText("0 / 40");
+    await expect(page.locator('.segmented button[data-mode="exam"]')).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("연습 모드 재접속은 선택 모달 없이 복원된다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A"); // 연습 모드
+    await page.locator("#options .option").first().click();
+    await page.waitForTimeout(800);
+    await page.reload();
+    await page.getByRole("button", { name: "ISTQB" }).click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("resume-prompt-modal")).toHaveCount(0);
   });
 });
 
