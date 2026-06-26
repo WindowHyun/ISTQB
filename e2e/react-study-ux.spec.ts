@@ -78,8 +78,8 @@ test.describe("학습 UX — 제출 전 검토(E)", () => {
   });
 });
 
-test.describe("학습 UX — 오답 해설(F)", () => {
-  test("오답 노트에 해설이 함께 표시되고 점프도 동작한다", async ({ page }) => {
+test.describe("학습 UX — 오답 노트 재설계(세트명·내 답·정답)", () => {
+  test("오답 노트 항목에 문제번호·내 답·정답이 표시된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await modeBtn(page, "시험").click();
     await page.locator("#options .option").first().click();
@@ -89,11 +89,64 @@ test.describe("학습 UX — 오답 해설(F)", () => {
     await page.getByRole("button", { name: "오답 노트" }).click();
     const wn = page.getByTestId("wrong-note");
     await expect(wn).toBeVisible();
-    await expect(wn.locator(".wrong-note-explain").first()).toBeVisible();
+    await expect(wn).toContainText("샘플문제 A"); // 세트명
+    const item = wn.locator(".wrong-note-item").first();
+    await expect(item.locator(".wn-num")).toContainText("문제");
+    await expect(item.locator(".wn-mine")).toContainText("내 답");
+    await expect(item.locator(".wn-correct")).toContainText("정답");
+  });
 
-    // 점프 버튼은 그대로 동작한다.
-    await wn.locator(".wrong-note-jump").first().click();
-    await expect(wn).toHaveCount(0);
+  test("오답 노트가 여러 세트의 채점 회차를 모아 보여준다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+
+    // 다른 세트로 전환 후 채점 → 회차 2건
+    await page.locator("#examSelect").selectOption("ISTQB-FL-V4-C");
+    await expect(page.locator("#questionStem")).toBeVisible();
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+
+    await page.getByRole("button", { name: "오답 노트" }).click();
+    await expect(page.getByTestId("wrong-note-group")).toHaveCount(2);
+  });
+
+  test("채점 전에는 빈 안내를 보여준다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await page.getByRole("button", { name: "오답 노트" }).click();
+    await expect(page.getByTestId("wrong-note")).toContainText("표시할 오답이 없습니다");
+  });
+});
+
+test.describe("학습 UX — 시험 모드 이어풀기/유지(#1·#2)", () => {
+  test("재접속 시 시험 모드가 유지된다(연습으로 바뀌지 않음)", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click();
+    await page.waitForTimeout(800);
+    await page.reload();
+    await page.getByRole("button", { name: "ISTQB" }).click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('.segmented button[data-mode="exam"]')).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("채점한 시험 결과(잠금)가 재접속 후에도 유지된다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+    await expect(page.locator("#options .option").first()).toBeDisabled(); // 채점 잠금
+    await page.waitForTimeout(800);
+    await page.reload();
+    await page.getByRole("button", { name: "ISTQB" }).click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('.segmented button[data-mode="exam"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator("#options .option").first()).toBeDisabled(); // 잠금 유지
   });
 });
 

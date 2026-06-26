@@ -12,6 +12,9 @@ export interface ExamHistory {
   total?: number;
   elapsedSeconds?: number;
   createdAt?: number;
+  // 오답 노트(세트 전체 회차 리스트)용으로 채점 시점에 함께 저장하는 상세(4A). 과거 기록엔 없을 수 있다.
+  setTitle?: string;
+  wrongItems?: { number: number; myAnswer: string[]; correctAnswer: string[] }[];
 }
 
 export interface QuizState {

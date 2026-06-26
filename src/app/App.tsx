@@ -39,7 +39,9 @@ export const App = () => {
     localStorage.setItem("istqb-fl-v4-sample-last-product", product);
     setActiveProduct(product);
     await restorePersistentSnapshot(product);
-    setMode('practice');
+    // 저장된 모드(시험 등)를 그대로 이어간다. 게이트 모드('home')/무효면 연습으로 폴백(#1).
+    const restoredMode = useQuizStore.getState().mode;
+    setMode(restoredMode && restoredMode !== 'home' ? restoredMode : 'practice');
   };
 
   if (!isRestored) {

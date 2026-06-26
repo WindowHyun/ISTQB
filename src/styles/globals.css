@@ -595,46 +595,38 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 .modal-header button:hover { background: var(--surface-3); }
 .modal-header button.danger { color: var(--danger); border-color: var(--danger-200); background: var(--danger-50); }
 .modal-body { padding: 18px 20px; overflow-y: auto; }
-.wrong-note-list { display: flex; flex-direction: column; gap: 8px; }
-.wrong-note-list li {
+/* ── 오답 노트(세트 회차별 리스트, 읽기 전용)(#3·#4) ──────────────────── */
+.wrong-note-group { margin-bottom: 18px; }
+.wrong-note-group:last-child { margin-bottom: 0; }
+.wrong-note-set {
   display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+}
+.wrong-note-set small { font-size: 12px; font-weight: 600; color: var(--muted); }
+.wrong-note-list { display: flex; flex-direction: column; gap: 8px; }
+.wrong-note-item {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface-2);
-}
-.wrong-note-jump {
-  border: 0;
-  background: var(--primary-50);
-  color: var(--primary-700);
-  font-weight: 800;
-  font-size: 14px;
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-}
-.wrong-note-jump:hover { background: var(--primary-100); }
-.wrong-note-list li {
-  /* 해설을 포함하도록 세로 배치로 전환(#F). */
-  flex-direction: column;
-  align-items: stretch;
-}
-.wrong-note-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.wrong-note-ans { font-size: 13px; color: var(--muted); font-weight: 600; }
-.wrong-note-explain {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed var(--line);
   font-size: 13px;
-  line-height: 1.6;
-  color: var(--text-2);
+}
+.wn-num { font-weight: 800; color: var(--text); }
+.wn-mine { color: var(--danger); font-weight: 600; }
+.wn-correct { color: var(--success); font-weight: 700; text-align: right; }
+@media (max-width: 560px) {
+  .wrong-note-item { grid-template-columns: 1fr; gap: 4px; }
+  .wn-correct { text-align: left; }
 }
 
 /* ── 제출 전 검토(채점 확인) 팔레트(#E) ─────────────────────────────── */
