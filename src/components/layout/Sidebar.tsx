@@ -16,10 +16,10 @@ const MODE_LABELS: { mode: 'practice' | 'exam' | 'random' | 'review'; label: str
 
 export const Sidebar = () => {
   const {
-    mode, setId, activeProduct, elapsedSeconds, graded,
+    mode, setId, activeProduct, elapsedSeconds, graded, answers,
     setMode, setSetId, setIndex, resetTimer, clearAnswers,
     setStatsOpen, setSettingsOpen, setWrongNoteOpen, setResultOpen, setDrawerOpen,
-    setPendingMode,
+    setPendingMode, setResumePrompt,
   } = useQuizStore();
   const {
     appData, total, answered, correctCount, isGraded, canGrade, progressPercent,
@@ -45,10 +45,18 @@ export const Sidebar = () => {
 
   const handleSetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     // 세트를 바꿔도 현재 모드는 유지한다(연습으로 초기화하지 않음, #2).
-    setSetId(e.target.value);
+    const newSetId = e.target.value;
+    setSetId(newSetId);
     setIndex(0);
     resetTimer();
     closeDrawer();
+    // 바꾼 세트가 시험/랜덤 모드에 이전 답안을 갖고 있으면 "이어풀기/새로 풀기" 선택 모달을 띄운다.
+    if (
+      (mode === 'exam' || mode === 'random') &&
+      Object.keys(answers).some((k) => k.startsWith(`${newSetId}-${mode}-`))
+    ) {
+      setResumePrompt(true);
+    }
   };
 
   const handleModeChange = (newMode: typeof mode) => {
