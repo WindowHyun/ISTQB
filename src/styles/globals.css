@@ -616,7 +616,56 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
   border-radius: var(--radius-sm);
 }
 .wrong-note-jump:hover { background: var(--primary-100); }
+.wrong-note-list li {
+  /* 해설을 포함하도록 세로 배치로 전환(#F). */
+  flex-direction: column;
+  align-items: stretch;
+}
+.wrong-note-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
 .wrong-note-ans { font-size: 13px; color: var(--muted); font-weight: 600; }
+.wrong-note-explain {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+/* ── 제출 전 검토(채점 확인) 팔레트(#E) ─────────────────────────────── */
+.review-hint { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.review-palette { margin-top: 10px; max-height: 38vh; overflow-y: auto; }
+
+/* ── 이어풀기 안내 배너(#A) ─────────────────────────────────────────── */
+.resume-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--primary-100);
+  border-radius: var(--radius-sm);
+  background: var(--primary-50);
+  color: var(--primary-700);
+}
+.resume-text { font-size: 13.5px; font-weight: 600; }
+.resume-actions { display: flex; gap: 8px; }
+.resume-banner button {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.resume-restart { border: 0; background: var(--primary); color: #fff; }
+.resume-dismiss { border: 1px solid var(--line-strong); background: var(--surface); color: var(--text-2); }
 
 /* ── 파서 렌더 콘텐츠(표·그림·코드·목록·텍스트) ─────────────────────────── */
 .rich-text-container { display: flex; flex-direction: column; gap: 10px; }

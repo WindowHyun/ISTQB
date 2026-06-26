@@ -176,7 +176,12 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
       </div>
 
       {reveal && (
-        <div id="feedback" className={`feedback ${correct ? 'correct' : 'wrong'}`}>
+        <div
+          id="feedback"
+          className={`feedback ${correct ? 'correct' : 'wrong'}`}
+          role="status"
+          aria-live="polite"
+        >
           <strong>
             {correct ? '✅ 정답입니다' : '❌ 오답입니다'} · 정답 {answerDisplay}
           </strong>

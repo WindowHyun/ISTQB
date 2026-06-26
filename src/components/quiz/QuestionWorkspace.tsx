@@ -9,6 +9,7 @@ export const QuestionWorkspace = () => {
   const {
     index, setId, mode, setIndex, tickTimer, startTimer,
     navCollapsed, setNavCollapsed, setPaletteOpen, setResultOpen,
+    resumeNotice, setResumeNotice,
   } = useQuizStore();
   const {
     appData, currentQuestions, answered, isGraded, canGrade, requestGrade,
@@ -43,6 +44,11 @@ export const QuestionWorkspace = () => {
       setIndex(Math.min(Math.max(index, 0), total - 1));
     }
   }, [currentQuestions.length, index, setIndex]);
+
+  // 이어풀기 배너는 첫 문항(또는 세트 변경)에 도달하면 자동으로 닫는다(#A).
+  useEffect(() => {
+    if (resumeNotice && index <= 0) setResumeNotice(false);
+  }, [resumeNotice, index, setResumeNotice]);
 
   // 키보드 좌우 화살표로 문항 이동 (입력 필드 포커스 시 제외)
   useEffect(() => {
@@ -104,6 +110,32 @@ export const QuestionWorkspace = () => {
           <button id="nextBtn" type="button" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
         </div>
       </header>
+
+      {resumeNotice && (
+        <div className="resume-banner" data-testid="resume-banner" role="status">
+          <span className="resume-text">
+            이전에 풀던 위치에서 이어집니다 — 현재 <strong>{safeIndex + 1} / {total}</strong>번 문항.
+          </span>
+          <div className="resume-actions">
+            <button
+              type="button"
+              className="resume-restart"
+              data-testid="resume-restart"
+              onClick={() => { setIndex(0); setResumeNotice(false); }}
+            >
+              처음부터
+            </button>
+            <button
+              type="button"
+              className="resume-dismiss"
+              data-testid="resume-dismiss"
+              onClick={() => setResumeNotice(false)}
+            >
+              계속하기
+            </button>
+          </div>
+        </div>
+      )}
 
       <article className="question-card">
         {/* mode+문항을 key로 묶어 카드를 remount → showFeedback 등 로컬 상태가
