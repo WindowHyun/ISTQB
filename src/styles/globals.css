@@ -595,7 +595,35 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 .modal-header button:hover { background: var(--surface-3); }
 .modal-header button.danger { color: var(--danger); border-color: var(--danger-200); background: var(--danger-50); }
 .modal-body { padding: 18px 20px; overflow-y: auto; }
-/* ── 오답 노트(세트 회차별 리스트, 읽기 전용)(#3·#4) ──────────────────── */
+/* ── 오답 노트(1단계 세트 선택 → 2단계 오답 목록, 읽기 전용)(#3·#4) ───── */
+.wrong-note-sets { display: flex; flex-direction: column; gap: 8px; }
+.wrong-note-set-btn {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "title arrow" "meta arrow";
+  align-items: center;
+  gap: 2px 10px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  cursor: pointer;
+}
+.wrong-note-set-btn:hover { border-color: var(--primary); background: var(--primary-50); }
+.wns-title { grid-area: title; font-weight: 800; font-size: 14px; color: var(--text); }
+.wns-meta { grid-area: meta; font-size: 12px; font-weight: 600; color: var(--muted); }
+.wns-arrow { grid-area: arrow; font-size: 22px; color: var(--muted); }
+.wrong-note-back {
+  border: 0;
+  background: none;
+  color: var(--primary-700);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 2px 0 12px;
+  cursor: pointer;
+}
 .wrong-note-group { margin-bottom: 18px; }
 .wrong-note-group:last-child { margin-bottom: 0; }
 .wrong-note-set {
@@ -1064,8 +1092,10 @@ body[data-theme="dark"] {
   border-radius: var(--radius-sm);
   background: var(--surface-2);
 }
-.result-metrics dt { color: var(--muted); font-size: 13px; font-weight: 600; }
-.result-metrics dd { margin: 0; font-weight: 800; color: var(--text); font-size: 14px; }
+.result-metrics dt { color: var(--muted); font-size: 13px; font-weight: 600; white-space: nowrap; }
+/* 값은 줄바꿈 없이 한 줄로 표시한다(#5). 긴 값(점수·합격 기준)은 가로 전체를 쓴다. */
+.result-metrics dd { margin: 0; font-weight: 800; color: var(--text); font-size: 14px; white-space: nowrap; }
+.result-metric-wide { grid-column: 1 / -1; }
 .result-actions { display: flex; gap: 10px; justify-content: center; }
 .result-actions button {
   padding: 10px 18px;

@@ -119,14 +119,7 @@ export function sanitizeUiState(value: unknown): Partial<QuizState> {
     out.elapsedSeconds = value.elapsedSeconds;
   }
   if (typeof value.navCollapsed === "boolean") out.navCollapsed = value.navCollapsed;
-  // 채점 상태(시험/랜덤 모드)도 복원해 재접속 시 결과/잠금을 유지한다(#2).
-  if (isPlainObject(value.graded)) {
-    const graded: Record<string, boolean> = {};
-    for (const [key, val] of Object.entries(value.graded)) {
-      if (typeof val === "boolean") graded[key] = val;
-    }
-    out.graded = graded;
-  }
+  // 채점 상태(graded)는 일부러 복원하지 않는다 — 재접속/모드 복귀 시 시험은 다시 풀 수 있게 초기화(#1).
   if (isPlainObject(value.reviewIds)) {
     const reviewIds: Record<string, string[]> = {};
     for (const [key, ids] of Object.entries(value.reviewIds)) {
@@ -185,8 +178,7 @@ export const saveUiState = debounce((state: Partial<QuizState>) => {
       index: state.index,
       elapsedSeconds: state.elapsedSeconds,
       reviewIds: state.reviewIds,
-      navCollapsed: state.navCollapsed,
-      graded: state.graded
+      navCollapsed: state.navCollapsed
     };
     localStorage.setItem(uiStorageKey(), JSON.stringify(safeState));
     
@@ -229,8 +221,7 @@ export async function exportUserData() {
       index: state.index,
       elapsedSeconds: state.elapsedSeconds,
       reviewIds: state.reviewIds,
-      navCollapsed: state.navCollapsed,
-      graded: state.graded
+      navCollapsed: state.navCollapsed
     },
     answers: state.answers,
     histories: state.histories,
@@ -305,8 +296,7 @@ useQuizStore.subscribe((state, prevState) => {
     state.setId !== prevState.setId ||
     state.index !== prevState.index ||
     state.reviewIds !== prevState.reviewIds ||
-    state.navCollapsed !== prevState.navCollapsed ||
-    state.graded !== prevState.graded
+    state.navCollapsed !== prevState.navCollapsed
   ) {
     saveUiState(state);
   }

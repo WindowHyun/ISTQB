@@ -16,7 +16,7 @@ const MODE_LABELS: { mode: 'practice' | 'exam' | 'random' | 'review'; label: str
 
 export const Sidebar = () => {
   const {
-    mode, setId, activeProduct, elapsedSeconds,
+    mode, setId, activeProduct, elapsedSeconds, graded,
     setMode, setSetId, setIndex, resetTimer, clearAnswers,
     setStatsOpen, setSettingsOpen, setWrongNoteOpen, setResultOpen, setDrawerOpen,
     setPendingMode,
@@ -44,8 +44,8 @@ export const Sidebar = () => {
   const closeDrawer = () => setDrawerOpen(false);
 
   const handleSetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    // 세트를 바꿔도 현재 모드는 유지한다(연습으로 초기화하지 않음, #2).
     setSetId(e.target.value);
-    setMode('practice');
     setIndex(0);
     resetTimer();
     closeDrawer();
@@ -58,6 +58,10 @@ export const Sidebar = () => {
       closeDrawer();
       setPendingMode(newMode);
       return;
+    }
+    // 이미 채점한 시험/랜덤 모드로 다시 들어오면 새로 풀 수 있게 초기화한다(#1).
+    if ((newMode === 'exam' || newMode === 'random') && graded[`${setId}-${newMode}`]) {
+      clearAnswers(setId, newMode);
     }
     setMode(newMode);
     setIndex(0);

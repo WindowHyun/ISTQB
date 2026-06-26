@@ -153,17 +153,17 @@ test.describe("최종점검", () => {
   });
 
   // ── 오답 연계 ──────────────────────────────────────────────────
-  test("채점 후 오답 노트에 세트명·문제번호·내 답·정답이 표시된다", async ({ page }) => {
+  test("채점 후 오답 노트에서 세트 선택 시 세트명·내 답·정답이 표시된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await modeBtn(page, "시험").click();
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
     await page.getByRole("button", { name: "오답 노트" }).click();
-    const group = page.getByTestId("wrong-note-group").first();
-    await expect(group).toContainText("샘플문제 A");
-    const item = group.locator(".wrong-note-item").first();
-    await expect(item.locator(".wn-num")).toContainText("문제");
+    const setBtn = page.getByTestId("wrong-note-set-btn").first();
+    await expect(setBtn).toContainText("샘플문제 A");
+    await setBtn.click();
+    const item = page.getByTestId("wrong-note-detail").locator(".wrong-note-item").first();
     await expect(item.locator(".wn-mine")).toContainText("내 답");
     await expect(item.locator(".wn-correct")).toContainText("정답");
   });

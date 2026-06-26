@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useQuizStore } from '../../store/useQuizStore';
+import { useQuizStore, ExamHistory } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { useTheme, ThemePref } from '../../hooks/useTheme';
 import { exportUserData, importUserData, clearHistoriesFromDB } from '../../utils/storage';
@@ -46,6 +46,8 @@ export const AppModals = () => {
     () => (localStorage.getItem('istqb-q-font') as FontSize) || 'normal',
   );
   const [debugOn, setDebugOn] = useState(() => isDebugEnabled());
+  // 오답 노트 팝업에서 선택한 세트(null이면 세트 목록 화면).
+  const [wrongNoteSetId, setWrongNoteSetId] = useState<string | null>(null);
 
   useEffect(() => {
     document.body.dataset.qfont = fontSize;
@@ -57,13 +59,23 @@ export const AppModals = () => {
     : [];
   const currentSet = sets.find((s) => s.id === setId);
 
-  // 오답 노트: 현재 제품의 채점 이력(회차)을 최신순으로 모아 보여준다(#4, 읽기 전용).
+  // 오답 노트(읽기 전용): 1단계 세트 선택 → 2단계 그 세트의 오답 목록(#3·#4).
+  // 세트별로 최신 채점 회차(오답이 있는 것)만 추려 보여준다.
   const productSetIds = new Set(sets.map((s) => s.id));
   const fmtAns = (arr: string[]) =>
     arr.length ? arr.map((s) => s.toUpperCase()).join(', ') : '미응답';
-  const wrongNoteGroups = Object.values(histories)
-    .filter((h) => productSetIds.has(h.setId) && (h.wrongItems?.length ?? 0) > 0)
-    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  const wrongNoteBySet: ExamHistory[] = (() => {
+    const latest = new Map<string, ExamHistory>();
+    for (const h of Object.values(histories)) {
+      if (!productSetIds.has(h.setId) || (h.wrongItems?.length ?? 0) === 0) continue;
+      const prev = latest.get(h.setId);
+      if (!prev || (h.createdAt ?? 0) > (prev.createdAt ?? 0)) latest.set(h.setId, h);
+    }
+    return Array.from(latest.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  })();
+  const selectedWrong = wrongNoteSetId
+    ? wrongNoteBySet.find((h) => h.setId === wrongNoteSetId) ?? null
+    : null;
 
   const handleHome = () => {
     setSettingsOpen(false);
@@ -119,32 +131,60 @@ export const AppModals = () => {
       )}
 
       {wrongNoteOpen && (
-        <Modal title="오답 노트" onClose={() => setWrongNoteOpen(false)}>
+        <Modal title="오답 노트" onClose={() => { setWrongNoteOpen(false); setWrongNoteSetId(null); }}>
           <div className="modal-body" data-testid="wrong-note">
-            {wrongNoteGroups.length === 0 ? (
+            {wrongNoteBySet.length === 0 ? (
               <p>표시할 오답이 없습니다. (시험·랜덤 모드에서 채점하면 기록됩니다)</p>
+            ) : !selectedWrong ? (
+              // 1단계: 오답이 있는 세트 선택
+              <ul className="wrong-note-sets" data-testid="wrong-note-sets">
+                {wrongNoteBySet.map((h) => (
+                  <li key={h.id}>
+                    <button
+                      type="button"
+                      className="wrong-note-set-btn"
+                      data-testid="wrong-note-set-btn"
+                      onClick={() => setWrongNoteSetId(h.setId)}
+                    >
+                      <span className="wns-title">{h.setTitle || h.setId}</span>
+                      <span className="wns-meta">
+                        {MODE_LABEL[h.mode] || h.mode} · 오답 {h.wrongItems?.length ?? 0}
+                        {h.total != null ? ` / ${h.total}` : ''}
+                        {h.createdAt ? ` · ${new Date(h.createdAt).toLocaleDateString('ko-KR')}` : ''}
+                      </span>
+                      <span className="wns-arrow" aria-hidden="true">›</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
             ) : (
-              wrongNoteGroups.map((h) => (
-                <section className="wrong-note-group" data-testid="wrong-note-group" key={h.id}>
-                  <h4 className="wrong-note-set">
-                    {h.setTitle || h.setId}
-                    <small>
-                      {MODE_LABEL[h.mode] || h.mode} · 오답 {h.wrongItems?.length ?? 0}
-                      {h.total != null ? ` / ${h.total}` : ''}
-                      {h.createdAt ? ` · ${new Date(h.createdAt).toLocaleDateString('ko-KR')}` : ''}
-                    </small>
-                  </h4>
-                  <ul className="wrong-note-list">
-                    {(h.wrongItems ?? []).map((it, idx) => (
-                      <li className="wrong-note-item" key={`${it.number}-${idx}`}>
-                        <span className="wn-num">문제 {it.number}</span>
-                        <span className="wn-mine">내 답 {fmtAns(it.myAnswer)}</span>
-                        <span className="wn-correct">정답 {fmtAns(it.correctAnswer)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ))
+              // 2단계: 선택한 세트의 오답 목록
+              <div data-testid="wrong-note-detail">
+                <button
+                  type="button"
+                  className="wrong-note-back"
+                  data-testid="wrong-note-back"
+                  onClick={() => setWrongNoteSetId(null)}
+                >
+                  ← 세트 목록
+                </button>
+                <h4 className="wrong-note-set">
+                  {selectedWrong.setTitle || selectedWrong.setId}
+                  <small>
+                    {MODE_LABEL[selectedWrong.mode] || selectedWrong.mode} · 오답 {selectedWrong.wrongItems?.length ?? 0}
+                    {selectedWrong.total != null ? ` / ${selectedWrong.total}` : ''}
+                  </small>
+                </h4>
+                <ul className="wrong-note-list">
+                  {(selectedWrong.wrongItems ?? []).map((it, idx) => (
+                    <li className="wrong-note-item" key={`${it.number}-${idx}`}>
+                      <span className="wn-num">문제 {it.number}</span>
+                      <span className="wn-mine">내 답 {fmtAns(it.myAnswer)}</span>
+                      <span className="wn-correct">정답 {fmtAns(it.correctAnswer)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
         </Modal>

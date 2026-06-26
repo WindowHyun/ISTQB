@@ -79,7 +79,7 @@ test.describe("학습 UX — 제출 전 검토(E)", () => {
 });
 
 test.describe("학습 UX — 오답 노트 재설계(세트명·내 답·정답)", () => {
-  test("오답 노트 항목에 문제번호·내 답·정답이 표시된다", async ({ page }) => {
+  test("오답 노트: 세트 선택 후 문제번호·내 답·정답이 표시된다(#3·#4)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await modeBtn(page, "시험").click();
     await page.locator("#options .option").first().click();
@@ -87,32 +87,37 @@ test.describe("학습 UX — 오답 노트 재설계(세트명·내 답·정답)
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
 
     await page.getByRole("button", { name: "오답 노트" }).click();
-    const wn = page.getByTestId("wrong-note");
-    await expect(wn).toBeVisible();
-    await expect(wn).toContainText("샘플문제 A"); // 세트명
-    const item = wn.locator(".wrong-note-item").first();
+    // 1단계: 세트 목록
+    await expect(page.getByTestId("wrong-note-set-btn").first()).toContainText("샘플문제 A");
+    await page.getByTestId("wrong-note-set-btn").first().click();
+    // 2단계: 오답 항목
+    const item = page.getByTestId("wrong-note-detail").locator(".wrong-note-item").first();
     await expect(item.locator(".wn-num")).toContainText("문제");
     await expect(item.locator(".wn-mine")).toContainText("내 답");
     await expect(item.locator(".wn-correct")).toContainText("정답");
   });
 
-  test("오답 노트가 여러 세트의 채점 회차를 모아 보여준다", async ({ page }) => {
+  test("오답 노트: 여러 세트가 목록으로 보이고 뒤로가기로 돌아온다(#3·#4)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await modeBtn(page, "시험").click();
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
 
-    // 다른 세트로 전환 후 채점 → 회차 2건
+    // 다른 세트로 전환(모드 유지됨) 후 채점 → 회차 2건
     await page.locator("#examSelect").selectOption("ISTQB-FL-V4-C");
     await expect(page.locator("#questionStem")).toBeVisible();
-    await modeBtn(page, "시험").click();
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
 
     await page.getByRole("button", { name: "오답 노트" }).click();
-    await expect(page.getByTestId("wrong-note-group")).toHaveCount(2);
+    await expect(page.getByTestId("wrong-note-set-btn")).toHaveCount(2);
+    // 세트 진입 → 뒤로가기 → 다시 목록
+    await page.getByTestId("wrong-note-set-btn").first().click();
+    await expect(page.getByTestId("wrong-note-detail")).toBeVisible();
+    await page.getByTestId("wrong-note-back").click();
+    await expect(page.getByTestId("wrong-note-set-btn")).toHaveCount(2);
   });
 
   test("채점 전에는 빈 안내를 보여준다", async ({ page }) => {
@@ -122,8 +127,8 @@ test.describe("학습 UX — 오답 노트 재설계(세트명·내 답·정답)
   });
 });
 
-test.describe("학습 UX — 시험 모드 이어풀기/유지(#1·#2)", () => {
-  test("재접속 시 시험 모드가 유지된다(연습으로 바뀌지 않음)", async ({ page }) => {
+test.describe("학습 UX — 시험 모드 이어풀기/유지(#1·#2·#6)", () => {
+  test("재접속 시 시험 모드가 유지된다(연습으로 바뀌지 않음, #6)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await modeBtn(page, "시험").click();
     await page.locator("#options .option").first().click();
@@ -134,19 +139,40 @@ test.describe("학습 UX — 시험 모드 이어풀기/유지(#1·#2)", () => {
     await expect(page.locator('.segmented button[data-mode="exam"]')).toHaveAttribute("aria-pressed", "true");
   });
 
-  test("채점한 시험 결과(잠금)가 재접속 후에도 유지된다", async ({ page }) => {
+  test("세트를 바꿔도 모드가 유지된다(연습으로 초기화 안 됨, #2)", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    await page.locator("#examSelect").selectOption("ISTQB-FL-V4-C");
+    await expect(page.locator("#questionStem")).toBeVisible();
+    await expect(page.locator('.segmented button[data-mode="exam"]')).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("채점한 시험은 다른 모드 갔다 오면 다시 풀 수 있다(잠금 해제, #1)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await modeBtn(page, "시험").click();
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
-    await expect(page.locator("#options .option").first()).toBeDisabled(); // 채점 잠금
+    await expect(page.locator("#options .option").first()).toBeDisabled(); // 채점 직후 잠금
+    // 연습 갔다가 다시 시험 → 잠금 해제(재응시)
+    await modeBtn(page, "연습").click();
+    await modeBtn(page, "시험").click();
+    await expect(page.locator("#options .option").first()).toBeEnabled();
+    await expect(page.locator("#progressText")).toHaveText("0 / 40");
+  });
+
+  test("채점한 시험은 재접속하면 다시 풀 수 있다(잠금 미유지, #1 롤백)", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
     await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('.segmented button[data-mode="exam"]')).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator("#options .option").first()).toBeDisabled(); // 잠금 유지
+    await expect(page.locator("#options .option").first()).toBeEnabled(); // 잠금 미유지
   });
 });
 
@@ -158,5 +184,21 @@ test.describe("학습 UX — 피드백 접근성(I)", () => {
     await expect(fb).toBeVisible({ timeout: 4_000 });
     await expect(fb).toHaveAttribute("aria-live", "polite");
     await expect(fb).toHaveAttribute("role", "status");
+  });
+});
+
+test.describe("학습 UX — 채점 결과 줄바꿈 없음(#5)", () => {
+  test("점수·합격 기준 값이 한 줄로(줄바꿈 없이) 표시된다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    const result = page.getByTestId("result-summary");
+    await expect(result).toBeVisible({ timeout: 8_000 });
+    // 합격 기준·점수 값은 white-space:nowrap 으로 줄바꿈되지 않는다.
+    for (const sel of [".result-criterion", '[data-testid="result-score"]']) {
+      const ws = await result.locator(sel).evaluate((el) => getComputedStyle(el).whiteSpace);
+      expect(ws).toBe("nowrap");
+    }
   });
 });

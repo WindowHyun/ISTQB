@@ -35,10 +35,10 @@ export const ResultSummary = ({
         </div>
 
         <dl className="result-metrics">
-          <div><dt>점수</dt><dd data-testid="result-score">{scoreLabel}</dd></div>
+          <div className="result-metric-wide"><dt>점수</dt><dd data-testid="result-score">{scoreLabel}</dd></div>
           <div><dt>오답</dt><dd>{wrong}개</dd></div>
           <div><dt>소요 시간</dt><dd>{formatClock(elapsedSeconds)}</dd></div>
-          <div><dt>합격 기준</dt><dd className="result-criterion">{criterionLabel}</dd></div>
+          <div className="result-metric-wide"><dt>합격 기준</dt><dd className="result-criterion">{criterionLabel}</dd></div>
         </dl>
 
         <div className="result-actions">
