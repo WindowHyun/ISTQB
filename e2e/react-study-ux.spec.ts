@@ -278,6 +278,18 @@ test.describe("코드리뷰 수정 회귀 — 오답 목록 보존·가드 이�
       .toBeGreaterThan(40);
   });
 
+  test("랜덤 모드는 채점해도 문항 추첨이 유지된다(재추첨 없음)", async ({ page }) => {
+    // 70문항 세트: 재추첨되면 40문항 부분집합이 교체되어 현재 문항이 바뀐다.
+    await openSet(page, "CSTS", "CSTS-FL-2402");
+    await modeBtn(page, "랜덤").click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
+    const titleBefore = await page.locator("#questionTitle").textContent();
+    await submitGrade(page); // 미응답 확인 → 채점
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+    await expect(page.locator("#questionTitle")).toHaveText(titleBefore || "");
+    await expect(page.locator("#questionNav button")).toHaveCount(40);
+  });
+
   test("시험 중 가드 모달 '이동'으로 채점된 랜덤에 들어가면 새로 풀 수 있다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     // 1) 랜덤을 채점해 잠금 상태로 만든다.
