@@ -269,7 +269,8 @@ test.describe("코드리뷰 수정 회귀 — 오답 목록 보존·가드 이�
 
     await modeBtn(page, "랜덤").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
-    await page.locator("#options .option").first().click();
+    // 추첨 첫 문항이 단답형일 수 있어 응답 없이 채점한다(미응답 확인 → 채점).
+    // 응답 여부와 무관하게 랜덤 채점은 reviewIds를 기록하므로 덮어쓰기 검증에 충분하다.
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
 
