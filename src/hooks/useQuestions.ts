@@ -64,8 +64,13 @@ export function useQuestions() {
         const take = Math.min(40, shuffled.length);
         setCurrentQuestions(shuffled.slice(0, take));
       } else if (mode === 'review') {
-        const ids = reviewIds[setId] || [];
-        const reviews = questions.filter((q) => ids.includes(q.id || `legacy-${q.number}`));
+        // 시험·랜덤 각각의 오답 합집합(+구버전 setId 단독 키 호환)을 복습 대상으로 한다.
+        const ids = new Set([
+          ...(reviewIds[`${setId}-exam`] || []),
+          ...(reviewIds[`${setId}-random`] || []),
+          ...(reviewIds[setId] || []),
+        ]);
+        const reviews = questions.filter((q) => ids.has(q.id || `legacy-${q.number}`));
         setCurrentQuestions(reviews);
       } else {
         setCurrentQuestions(questions);

@@ -35,7 +35,7 @@ const MODE_LABEL: Record<string, string> = {
 // 드로어(transform)의 자식이 아니어서 position:fixed 오버레이가 정상 동작한다.
 export const AppModals = () => {
   const {
-    setId, mode, activeProduct, elapsedSeconds, histories,
+    setId, mode, activeProduct, elapsedSeconds, histories, graded,
     settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, pendingMode, resumePrompt,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
     setMode, setIndex, resetTimer, clearAnswers, clearHistory, clearHistories, setPendingMode, setResumePrompt,
@@ -103,6 +103,11 @@ export const AppModals = () => {
     if (!pendingMode) return;
     const target = pendingMode;
     setPendingMode(null);
+    // 직접 클릭 경로(Sidebar.handleModeChange)와 동일하게, 이미 채점된
+    // 시험/랜덤으로 이동하면 새로 풀 수 있게 초기화한다.
+    if ((target === 'exam' || target === 'random') && graded[`${setId}-${target}`]) {
+      clearAnswers(setId, target);
+    }
     setMode(target);
     setIndex(0);
     resetTimer();

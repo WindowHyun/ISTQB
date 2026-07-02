@@ -62,7 +62,8 @@ export function useQuizSession() {
     addHistory(history);
     // 채점 이력을 IndexedDB에 영속화(새로고침 후 통계 대시보드에서 조회).
     saveHistoryToDB(history);
-    setReviewIds(setId, wrongIds);
+    // 모드별로 저장해 랜덤 채점이 시험 오답 목록을 덮어쓰지 않게 한다(오답 모드는 합집합을 읽음).
+    setReviewIds(`${setId}-${mode}`, wrongIds);
     setGraded(gradeKey, true);
   };
 

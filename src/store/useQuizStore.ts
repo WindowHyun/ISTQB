@@ -53,7 +53,8 @@ export interface QuizState {
   setIndex: (index: number | ((prev: number) => number)) => void;
   setAnswer: (key: string, selected: string[]) => void;
   addHistory: (history: ExamHistory) => void;
-  setReviewIds: (setId: string, ids: string[]) => void;
+  // 오답(review) 대상 문항 id 목록. 키는 `${setId}-${mode}`(과거 데이터는 setId 단독일 수 있음).
+  setReviewIds: (key: string, ids: string[]) => void;
   setGraded: (key: string, value: boolean) => void;
   clearAnswers: (setId: string, mode: QuizMode) => void;
   clearHistory: (setId: string, mode: QuizMode) => void;
@@ -113,8 +114,8 @@ export const useQuizStore = create<QuizState>((set) => ({
   addHistory: (history) => set((state) => ({
     histories: { ...state.histories, [history.id]: history }
   })),
-  setReviewIds: (setId, ids) => set((state) => ({
-    reviewIds: { ...state.reviewIds, [setId]: ids }
+  setReviewIds: (key, ids) => set((state) => ({
+    reviewIds: { ...state.reviewIds, [key]: ids }
   })),
   setGraded: (key, value) => set((state) => ({
     graded: { ...state.graded, [key]: value }
@@ -122,7 +123,8 @@ export const useQuizStore = create<QuizState>((set) => ({
   clearAnswers: (setId, mode) => set((state) => {
     const nextAnswers = { ...state.answers };
     for (const key in nextAnswers) {
-      if (key.startsWith(`${setId}-${mode}`)) {
+      // 답안 키는 `${setId}-${mode}-${qid}` — 구분자까지 포함해 유사 접두 세트id 오삭제를 방지.
+      if (key.startsWith(`${setId}-${mode}-`)) {
         delete nextAnswers[key];
       }
     }

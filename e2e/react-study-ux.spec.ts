@@ -258,6 +258,48 @@ test.describe("학습 UX — 피드백 접근성(I)", () => {
   });
 });
 
+test.describe("코드리뷰 수정 회귀 — 오답 목록 보존·가드 이동 초기화", () => {
+  test("랜덤 채점이 시험 오답 목록을 덮어쓰지 않는다(오답 모드 합집합)", async ({ page }) => {
+    // 70문항 세트: 랜덤은 40문항만 추첨하므로, 시험 오답(≈69)이 보존되면 합집합 > 40.
+    await openSet(page, "CSTS", "CSTS-FL-2402");
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+
+    await modeBtn(page, "랜덤").click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+
+    await modeBtn(page, "오답").click();
+    await expect.poll(() => page.locator("#questionNav button").count(), { timeout: 10_000 })
+      .toBeGreaterThan(40);
+  });
+
+  test("시험 중 가드 모달 '이동'으로 채점된 랜덤에 들어가면 새로 풀 수 있다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    // 1) 랜덤을 채점해 잠금 상태로 만든다.
+    await modeBtn(page, "랜덤").click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+    // 2) 시험 모드에서 1문항 응답(진행 중) 후 랜덤으로 이동 시도 → 가드 모달 → 이동.
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click();
+    await modeBtn(page, "랜덤").click();
+    await expect(page.getByTestId("mode-change-modal")).toBeVisible();
+    await page.getByTestId("mode-change-go").click();
+    // 3) 직접 클릭 경로와 동일하게 초기화되어 새로 풀 수 있어야 한다.
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("#options .option").first()).toBeEnabled();
+    await expect(page.locator("#progressText")).toHaveText("0 / 40");
+    await expect(page.getByTestId("grade-button")).toBeVisible();
+  });
+});
+
 test.describe("학습 UX — 채점 결과 줄바꿈 없음(#5)", () => {
   test("점수·합격 기준 값이 한 줄로(줄바꿈 없이) 표시된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");

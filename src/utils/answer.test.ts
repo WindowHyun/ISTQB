@@ -18,6 +18,10 @@ describe("isAnswerCorrect", () => {
     expect(isAnswerCorrect(["a"], ["b"])).toBe(false);
     expect(isAnswerCorrect(["a", "b"], ["a", "c"])).toBe(false);
   });
+  it("중복 선택은 개수가 맞아도 오답(가져오기 데이터 방어)", () => {
+    expect(isAnswerCorrect(["a", "b"], ["a", "a"])).toBe(false);
+    expect(isAnswerCorrect(["a", "b"], ["A", "a"])).toBe(false); // 정규화 후 중복
+  });
 });
 
 // 유형별 정답판정(단답형 정규화 / 진위형 / 객관식) — #3 기능 추가분.
