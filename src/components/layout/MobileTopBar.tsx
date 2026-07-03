@@ -1,6 +1,7 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
-import { formatClock } from '../../utils/time';
+import { TimerClock } from '../common/TimerClock';
 
 const MODE_LABEL: Record<string, string> = {
   practice: '연습', exam: '시험', random: '랜덤', review: '오답',
@@ -11,7 +12,10 @@ const LOGO_SRC =
 
 // 모바일 전용 상단바(CSS로 ≤880px에서만 노출). 모드·진행·시간을 상시 노출하고 ☰로 컨트롤 드로어를 연다.
 export const MobileTopBar = () => {
-  const { mode, setId, activeProduct, elapsedSeconds, setDrawerOpen } = useQuizStore();
+  // 슬라이스 구독(O1) — 타이머는 TimerClock이 단독 구독한다.
+  const { mode, setId, activeProduct, setDrawerOpen } = useQuizStore(useShallow((s) => ({
+    mode: s.mode, setId: s.setId, activeProduct: s.activeProduct, setDrawerOpen: s.setDrawerOpen,
+  })));
   const { appData, total, answered, progressPercent } = useQuizSession();
   const setTitle = appData?.sets.find((s) => s.id === setId)?.title || '문제 풀이';
 
@@ -39,7 +43,7 @@ export const MobileTopBar = () => {
       <div className="mtb-info" aria-live="polite">
         <span className="mtb-chip">{MODE_LABEL[mode] || mode}</span>
         <span className="mtb-meta">{answered} / {total}</span>
-        <span className="mtb-meta">⏱ {formatClock(elapsedSeconds)}</span>
+        <span className="mtb-meta">⏱ <TimerClock /></span>
         <span className="mtb-bar" aria-hidden="true"><i style={{ width: `${progressPercent}%` }} /></span>
       </div>
     </header>

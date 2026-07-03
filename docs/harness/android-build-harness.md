@@ -6,7 +6,7 @@
 
 - `android/**`
 - `capacitor.config.json`
-- 패키징되는 웹 에셋 — **`webDir`는 이제 `dist`(React 앱)** 입니다(과거 `www` 레거시 바닐라 앱에서 전환, PR #111). 따라서 APK엔 React 빌드 산출물이 들어갑니다. `www/`는 로컬 미리보기·레거시 E2E 전용으로만 유지됩니다.
+- 패키징되는 웹 에셋 — **`webDir`는 이제 `dist`(React 앱)** 입니다(과거 `www` 레거시 바닐라 앱에서 전환, PR #111). 따라서 APK엔 React 빌드 산출물이 들어갑니다. `www/`는 콘텐츠 자산 정본(data·images) 전용입니다(레거시 바닐라 앱은 제거됨).
 - 설치 결과에 영향을 주는 아이콘, 매니페스트, 서비스 워커 동작
 - APK 서명, 빌드 설정, Gradle 파일, Android 권한
 - Firebase App Distribution 배포 — 절차/CI는 [`docs/firebase-app-distribution.md`](../firebase-app-distribution.md) 참고

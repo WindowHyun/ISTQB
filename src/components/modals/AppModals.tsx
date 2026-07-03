@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore, ExamHistory } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { useTheme, ThemePref } from '../../hooks/useTheme';
@@ -34,12 +35,25 @@ const MODE_LABEL: Record<string, string> = {
 // 앱 루트에 렌더되는 모든 오버레이(설정·통계·오답노트·결과·문항이동).
 // 드로어(transform)의 자식이 아니어서 position:fixed 오버레이가 정상 동작한다.
 export const AppModals = () => {
+  // 슬라이스 구독(O1). elapsedSeconds는 결과 모달이 열려 있을 때만 반영해
+  // 닫혀 있는 동안 타이머 틱으로 리렌더되지 않게 한다(열려 있으면 기존처럼 초 단위 갱신).
   const {
-    setId, mode, activeProduct, elapsedSeconds, histories, graded,
+    setId, mode, activeProduct, histories, resultElapsedSeconds,
     settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, pendingMode, resumePrompt,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
     setMode, setIndex, resetTimer, clearAnswers, clearHistory, clearHistories, setPendingMode, setResumePrompt,
-  } = useQuizStore();
+  } = useQuizStore(useShallow((s) => ({
+    setId: s.setId, mode: s.mode, activeProduct: s.activeProduct, histories: s.histories,
+    resultElapsedSeconds: s.resultOpen ? s.elapsedSeconds : 0,
+    settingsOpen: s.settingsOpen, statsOpen: s.statsOpen, wrongNoteOpen: s.wrongNoteOpen,
+    resultOpen: s.resultOpen, paletteOpen: s.paletteOpen, confirmGradeOpen: s.confirmGradeOpen,
+    pendingMode: s.pendingMode, resumePrompt: s.resumePrompt,
+    setSettingsOpen: s.setSettingsOpen, setStatsOpen: s.setStatsOpen, setWrongNoteOpen: s.setWrongNoteOpen,
+    setResultOpen: s.setResultOpen, setPaletteOpen: s.setPaletteOpen, setDrawerOpen: s.setDrawerOpen,
+    setConfirmGradeOpen: s.setConfirmGradeOpen, setMode: s.setMode, setIndex: s.setIndex,
+    resetTimer: s.resetTimer, clearAnswers: s.clearAnswers, clearHistory: s.clearHistory,
+    clearHistories: s.clearHistories, setPendingMode: s.setPendingMode, setResumePrompt: s.setResumePrompt,
+  })));
   const { appData, total, answered, correctCount, gradeAndShow } = useQuizSession();
   const { pref: themePref, setPref: setThemePref } = useTheme();
   const [fontSize, setFontSize] = useState<FontSize>(
@@ -105,7 +119,7 @@ export const AppModals = () => {
     setPendingMode(null);
     // 직접 클릭 경로(Sidebar.handleModeChange)와 동일하게, 이미 채점된
     // 시험/랜덤으로 이동하면 새로 풀 수 있게 초기화한다.
-    if ((target === 'exam' || target === 'random') && graded[`${setId}-${target}`]) {
+    if ((target === 'exam' || target === 'random') && useQuizStore.getState().graded[`${setId}-${target}`]) {
       clearAnswers(setId, target);
     }
     setMode(target);
@@ -365,7 +379,7 @@ export const AppModals = () => {
           certification={activeProduct}
           correct={correctCount}
           total={total}
-          elapsedSeconds={elapsedSeconds}
+          elapsedSeconds={resultElapsedSeconds}
           onClose={() => setResultOpen(false)}
           onOpenWrongNote={() => { setResultOpen(false); setWrongNoteOpen(true); }}
         />

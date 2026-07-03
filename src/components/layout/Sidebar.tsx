@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { useSetCounts } from '../../hooks/useSetCounts';
-import { formatClock } from '../../utils/time';
+import { TimerClock } from '../common/TimerClock';
 
 const LOGO_SRC =
   'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%20role%3D%22img%22%20aria-label%3D%22Quiz%20mark%22%3E%0A%20%20%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%23166064%22/%3E%0A%20%20%3Cpath%20d%3D%22M18%2018h28v28H18z%22%20fill%3D%22%23f5f7f2%22/%3E%0A%20%20%3Cpath%20d%3D%22M24%2030l5%205%2011-13%22%20fill%3D%22none%22%20stroke%3D%22%23b55c3c%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%0A%20%20%3Cpath%20d%3D%22M22%2047h25%22%20stroke%3D%22%23f5f7f2%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22/%3E%0A%3C/svg%3E%0A';
@@ -15,12 +16,22 @@ const MODE_LABELS: { mode: 'practice' | 'exam' | 'random' | 'review'; label: str
 ];
 
 export const Sidebar = () => {
+  // 렌더에 쓰는 값만 슬라이스 구독(O1) — 타이머(elapsedSeconds)·답안(answers) 변경에 리렌더되지 않는다.
+  // 이벤트 핸들러에서만 필요한 graded/answers는 호출 시점에 getState()로 읽는다.
   const {
-    mode, setId, activeProduct, elapsedSeconds, graded, answers,
+    mode, setId, activeProduct,
     setMode, setSetId, setIndex, resetTimer, clearAnswers,
     setStatsOpen, setSettingsOpen, setWrongNoteOpen, setResultOpen, setDrawerOpen,
     setPendingMode, setResumePrompt,
-  } = useQuizStore();
+  } = useQuizStore(useShallow((s) => ({
+    mode: s.mode, setId: s.setId, activeProduct: s.activeProduct,
+    setMode: s.setMode, setSetId: s.setSetId, setIndex: s.setIndex,
+    resetTimer: s.resetTimer, clearAnswers: s.clearAnswers,
+    setStatsOpen: s.setStatsOpen, setSettingsOpen: s.setSettingsOpen,
+    setWrongNoteOpen: s.setWrongNoteOpen, setResultOpen: s.setResultOpen,
+    setDrawerOpen: s.setDrawerOpen, setPendingMode: s.setPendingMode,
+    setResumePrompt: s.setResumePrompt,
+  })));
   const {
     appData, total, answered, correctCount, isGraded, canGrade, progressPercent,
     requestGrade,
@@ -51,6 +62,7 @@ export const Sidebar = () => {
     resetTimer();
     closeDrawer();
     // 바꾼 세트가 시험/랜덤 모드에 이전 답안을 갖고 있으면 "이어풀기/새로 풀기" 선택 모달을 띄운다.
+    const { answers } = useQuizStore.getState();
     if (
       (mode === 'exam' || mode === 'random') &&
       Object.keys(answers).some((k) => k.startsWith(`${newSetId}-${mode}-`))
@@ -68,7 +80,7 @@ export const Sidebar = () => {
       return;
     }
     // 이미 채점한 시험/랜덤 모드로 다시 들어오면 새로 풀 수 있게 초기화한다(#1).
-    if ((newMode === 'exam' || newMode === 'random') && graded[`${setId}-${newMode}`]) {
+    if ((newMode === 'exam' || newMode === 'random') && useQuizStore.getState().graded[`${setId}-${newMode}`]) {
       clearAnswers(setId, newMode);
     }
     setMode(newMode);
@@ -170,7 +182,7 @@ export const Sidebar = () => {
           </div>
           <div>
             <span>시간</span>
-            <strong id="timerText">{formatClock(elapsedSeconds)}</strong>
+            <strong id="timerText"><TimerClock /></strong>
           </div>
           <div className="progress-track" aria-hidden="true">
             <div id="progressFill" className="progress-fill" style={{ width: `${progressPercent}%` }} />
