@@ -117,10 +117,13 @@ export const AppModals = () => {
     if (!pendingMode) return;
     const target = pendingMode;
     setPendingMode(null);
-    // 직접 클릭 경로(Sidebar.handleModeChange)와 동일하게, 이미 채점된
-    // 시험/랜덤으로 이동하면 새로 풀 수 있게 초기화한다.
-    if ((target === 'exam' || target === 'random') && useQuizStore.getState().graded[`${setId}-${target}`]) {
-      clearAnswers(setId, target);
+    // 직접 클릭 경로(Sidebar.handleModeChange)와 동일하게 초기화한다.
+    if (target === 'random') {
+      // 랜덤은 이어풀기 없음 — 진입 시 항상 초기화(F4).
+      clearAnswers(setId, 'random');
+    } else if (target === 'exam' && useQuizStore.getState().graded[`${setId}-exam`]) {
+      // 이미 채점한 시험으로 이동하면 새로 풀 수 있게 초기화(#1).
+      clearAnswers(setId, 'exam');
     }
     setMode(target);
     setIndex(0);
