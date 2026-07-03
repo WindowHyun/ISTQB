@@ -158,6 +158,19 @@ function validateQuestion(q, filePath, allIds, allNumbers) {
     }
   }
 
+  // 조각남(PDF 추출 아티팩트): 괄호 약어가 블록 경계에서 쪼개진 경우.
+  // 예) block[i]가 "…개발(ATD" 로 끝나고 block[i+1]이 "D) …" 로 시작 → "(ATDD)".
+  // 정상 텍스트엔 이런 형태가 없어 오탐이 사실상 없다. (REQ 05-017 류 재발 방지)
+  if (Array.isArray(q.stem)) {
+    for (let i = 0; i < q.stem.length - 1; i++) {
+      const a = String(q.stem[i].text || '').trim();
+      const b = String(q.stem[i + 1].text || '').trim();
+      if (/\([A-Za-z0-9]{1,4}$/.test(a) && /^[A-Za-z0-9]{1,3}\)/.test(b)) {
+        log('WARNING', filePath, qId, `괄호 약어가 stem 블록 경계에서 쪼개짐: "…${a.slice(-8)}" + "${b.slice(0, 8)}…"`);
+      }
+    }
+  }
+
   if (Array.isArray(q.options)) {
     for (const opt of q.options) {
       const optionMatches = opt.text ? opt.text.match(/(?:\s)([가-라][\-\.]|[1-4]\)|[①-④]|[A-D][\.\)])\s+/g) : null;
