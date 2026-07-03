@@ -2,8 +2,11 @@
 // QuestionCard / QuestionWorkspace가 공유(중복 제거 + 유닛 테스트 대상, #76).
 export function isAnswerCorrect(answer: string[], selected: string[]): boolean {
   if (selected.length !== answer.length) return false;
+  // 중복 키(예: ['a','a'])는 개수만 맞아도 오답 — UI는 못 만들지만 가져오기 데이터로 유입될 수 있다.
+  const chosen = selected.map((s) => s.toLowerCase());
+  if (new Set(chosen).size !== chosen.length) return false;
   const expected = answer.map((a) => a.toLowerCase());
-  return selected.every((s) => expected.includes(s.toLowerCase()));
+  return chosen.every((s) => expected.includes(s));
 }
 
 // 단답형 비교용 정규화: 공백 제거 + 소문자.

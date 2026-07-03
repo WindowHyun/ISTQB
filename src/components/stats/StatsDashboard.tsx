@@ -25,7 +25,8 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear }: StatsDashb
       .map((h) => ({
         ...h,
         title: titleOf(h.setId),
-        when: h.createdAt ?? Number(h.id) ?? 0,
+        // Number(h.id)는 NaN일 수 있어 ??로 걸러지지 않는다 — ||로 0 폴백.
+        when: h.createdAt ?? (Number(h.id) || 0),
         rate: h.total ? Math.round(((h.correct ?? 0) / h.total) * 100) : null,
       }))
       .sort((a, b) => b.when - a.when);
