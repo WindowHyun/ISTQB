@@ -245,6 +245,33 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
     await page.getByTestId("resume-fresh").click();
     await expect(page.locator("#progressText")).toHaveText("0 / 40");
   });
+
+  test("랜덤은 재접속 시 이어풀기 없이 새로 시작한다(선택 모달 없음)", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "랜덤").click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
+    await page.locator("#options .option").first().click(); // 랜덤 1문항 응답
+    await expect(page.locator("#progressText")).not.toHaveText("0 / 40");
+    await page.waitForTimeout(800);
+    await page.reload();
+    await page.getByRole("button", { name: "ISTQB" }).click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    // 랜덤 모드 유지 + 이어풀기 모달 없음 + 진행 0(새로 시작)
+    await expect(page.locator('.segmented button[data-mode="random"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("resume-prompt-modal")).toHaveCount(0);
+    await expect(page.locator("#progressText")).toHaveText("0 / 40");
+  });
+
+  test("랜덤은 세트를 바꿔도 이전 답안 없이 새로 시작한다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "랜덤").click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
+    await page.locator("#options .option").first().click();
+    await page.locator("#examSelect").selectOption("ISTQB-FL-V4-C");
+    await expect(page.locator("#questionStem")).toBeVisible();
+    await expect(page.getByTestId("resume-prompt-modal")).toHaveCount(0);
+    await expect(page.locator("#progressText")).toHaveText("0 / 40");
+  });
 });
 
 test.describe("학습 UX — 피드백 접근성(I)", () => {

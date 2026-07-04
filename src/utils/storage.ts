@@ -163,16 +163,25 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
       histories,
       activeProduct, // ensure it's set
     });
-    // 시험/랜덤 모드로 복원했고 이전 답안이 남아 있으면 "이어풀기/새로 풀기" 선택 모달을 띄운다.
     const sid = restoredUi.setId ?? '';
     const m = restoredUi.mode;
-    const hasExamProgress =
-      (m === 'exam' || m === 'random') &&
-      Object.keys(sanitizedAnswers).some((k) => k.startsWith(`${sid}-${m}-`));
     const store = useQuizStore.getState();
-    store.setResumePrompt(hasExamProgress);
-    // 선택 모달이 뜨는 경우엔 위치 배너는 띄우지 않는다(중복 방지). 그 외엔 첫 문항이 아니면 배너(#A).
-    store.setResumeNotice(!hasExamProgress && (restoredUi.index ?? 0) > 0);
+    if (m === 'random') {
+      // 랜덤은 재접속 시 재추첨되어 이어풀기가 무의미하므로 이전 답안을 비우고
+      // 처음부터 새로 시작한다(랜덤은 이어풀기 없음). 선택 모달·배너도 띄우지 않는다.
+      store.clearAnswers(sid, 'random');
+      store.setIndex(0);
+      store.setResumePrompt(false);
+      store.setResumeNotice(false);
+    } else {
+      // 시험 모드로 복원했고 이전 답안이 남아 있으면 "이어풀기/새로 풀기" 선택 모달을 띄운다.
+      const hasExamProgress =
+        m === 'exam' &&
+        Object.keys(sanitizedAnswers).some((k) => k.startsWith(`${sid}-${m}-`));
+      store.setResumePrompt(hasExamProgress);
+      // 선택 모달이 뜨는 경우엔 위치 배너는 띄우지 않는다(중복 방지). 그 외엔 첫 문항이 아니면 배너(#A).
+      store.setResumeNotice(!hasExamProgress && (restoredUi.index ?? 0) > 0);
+    }
   } catch (e) {
     console.error("Failed to restore snapshot:", e);
   }

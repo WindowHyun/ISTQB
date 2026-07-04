@@ -61,11 +61,13 @@ export const Sidebar = () => {
     setIndex(0);
     resetTimer();
     closeDrawer();
-    // 바꾼 세트가 시험/랜덤 모드에 이전 답안을 갖고 있으면 "이어풀기/새로 풀기" 선택 모달을 띄운다.
-    const { answers } = useQuizStore.getState();
-    if (
-      (mode === 'exam' || mode === 'random') &&
-      Object.keys(answers).some((k) => k.startsWith(`${newSetId}-${mode}-`))
+    if (mode === 'random') {
+      // 랜덤은 이어풀기 없음 — 세트를 바꾸면 그 세트의 랜덤 답안을 비우고 새로 시작한다(F4).
+      clearAnswers(newSetId, 'random');
+    } else if (
+      // 바꾼 세트가 시험 모드에 이전 답안을 갖고 있으면 "이어풀기/새로 풀기" 선택 모달을 띄운다.
+      mode === 'exam' &&
+      Object.keys(useQuizStore.getState().answers).some((k) => k.startsWith(`${newSetId}-exam-`))
     ) {
       setResumePrompt(true);
     }
@@ -79,9 +81,12 @@ export const Sidebar = () => {
       setPendingMode(newMode);
       return;
     }
-    // 이미 채점한 시험/랜덤 모드로 다시 들어오면 새로 풀 수 있게 초기화한다(#1).
-    if ((newMode === 'exam' || newMode === 'random') && useQuizStore.getState().graded[`${setId}-${newMode}`]) {
-      clearAnswers(setId, newMode);
+    // 랜덤은 진입마다 재추첨되어 이어풀기가 무의미하므로 들어올 때마다 초기화한다(랜덤은 이어풀기 없음, F4).
+    if (newMode === 'random') {
+      clearAnswers(setId, 'random');
+    } else if (newMode === 'exam' && useQuizStore.getState().graded[`${setId}-exam`]) {
+      // 이미 채점한 시험으로 다시 들어오면 새로 풀 수 있게 초기화한다(#1).
+      clearAnswers(setId, 'exam');
     }
     setMode(newMode);
     setIndex(0);
