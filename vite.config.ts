@@ -2,8 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from 'vite-plugin-pwa';
 
-// 빌드 엔트리는 레거시 루트 index.html과의 충돌을 피하려고 index.vite.html을 쓴다.
-// 하지만 정적 호스팅(Vercel)·PWA navigateFallback은 dist/index.html을 기대하므로,
+// 빌드 엔트리는 index.vite.html(과거 레거시 루트 index.html과의 충돌 회피에서 유래한 이름).
+// 정적 호스팅(Vercel)·PWA navigateFallback은 dist/index.html을 기대하므로,
 // 산출물 파일명만 index.html로 바꿔 emit한다(소스 파일명은 그대로 유지).
 function emitIndexHtml() {
   return {
@@ -23,9 +23,8 @@ function emitIndexHtml() {
 export default defineConfig({
   plugins: [
     react(),
-    // 이 PWA(service worker)는 Vite 빌드 산출물(dist/, React 앱) 스코프만 관리한다.
-    // 루트/www의 수기 service-worker.js는 레거시 정적 앱(Vercel 루트 서빙) 전용으로,
-    // 두 SW는 서로 다른 배포 산출물에 속하므로 스코프가 겹치지 않는다.
+    // 이 PWA(service worker)는 Vite 빌드 산출물(dist/, React 앱) 스코프를 관리한다.
+    // public/service-worker.js 는 과거 레거시 SW 사용자를 해제하는 tombstone(유지 필요).
     VitePWA({
       // 'prompt': 새 SW를 자동 활성화하지 않고 onNeedRefresh로 알린다.
       // 앱 내 업데이트 배너(UpdatePrompt)가 사용자 1탭으로 갱신을 처리한다.

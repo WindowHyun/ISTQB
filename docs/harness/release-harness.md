@@ -43,7 +43,6 @@ Android 패키징 변경이 있다면 `android-build-harness.md`의 점검을 �
 - `*.aab`
 - `*.jks`
 - `*.keystore`
-- 의도적으로 리포트를 커밋하는 경우가 아니라면 `tmp/visual-audit/`
 
 ### 4. 사용자 관점 동작 검토
 

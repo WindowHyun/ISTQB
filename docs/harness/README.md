@@ -26,11 +26,10 @@
 npm run verify
 ```
 
-UI 렌더링 감사를 할 때는 로컬 서버를 시작한 뒤 다음을 실행합니다.
+UI 렌더링 확인은 React E2E로 수행합니다(레거시 visual-audit 스크립트는 제거됨).
 
 ```bash
-npm run serve
-node scripts/visual-audit-render.js
+npm run test:e2e
 ```
 
 Android 패키징 변경이 있을 때는 다음 명령 실행 여부를 판단합니다.

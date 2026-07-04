@@ -160,22 +160,21 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 
 ## 아키텍처
 
-데이터 정본(`www/`)을 동기화로 배포 경로에 복사하고, 웹은 React(`dist`)·APK는 바닐라 JS(`www`)로 서빙하는 **이중 런타임** 구조입니다.
+데이터 정본(`www/` 자산)을 `public/`으로 동기화하고, 웹·APK 모두 **React 단일 런타임**(`dist`)으로 서빙합니다.
 
 ```mermaid
 flowchart LR
   PDF["원본 PDF (DATA/)"] -->|pymupdf 추출·정제| SRC["정본 데이터 www/ (index.json + 세트별 JSON, 이미지)"]
-  SRC -->|sync-assets| PUB["public/ · dist/ · root"]
-  SRC -->|cap:sync| WWW["APK 자산 (www/)"]
+  SRC -->|sync-assets| PUB["public/ · dist/"]
 
   subgraph 웹_운영["웹 운영 (Vercel)"]
     REACT["React 19 + Vite → dist/index.html"]
   end
   subgraph APK["Android (Capacitor)"]
-    VANILLA["바닐라 JS (www/index.html)"]
+    CAP["cap:sync → dist를 APK로 패키징"]
   end
   PUB --> REACT
-  WWW --> VANILLA
+  REACT --> CAP
 
   subgraph 품질["품질 게이트 (GitHub Actions)"]
     CI["lint · verify · unit(52) · build · e2e(251)"]
@@ -185,7 +184,7 @@ flowchart LR
 ```
 
 - **데이터 정본**: `www/data/index.json`(세트 인덱스) + `www/data/{istqb,csts}/*.json`(세트별 문제). 공통 스키마는 `id` 기반 `stem` / `options` / `explanation` 블록 구조.
-- **이중 런타임**: 웹 운영 진입점은 React 앱(`dist/index.html`, Vercel). 바닐라 JS 앱(`www/`)은 로컬 미리보기·레거시 E2E·APK 패키징 용도로 유지.
+- **단일 런타임(React)**: 웹·APK 모두 React 앱(`dist/index.html`) — 웹은 Vercel, APK는 Capacitor가 `dist`를 패키징. 레거시 바닐라 앱은 제거됨. `www/`는 **콘텐츠 자산 정본**(data·images) 전용.
 
 ## 포함된 문제
 
@@ -221,7 +220,7 @@ flowchart LR
 - **테스트/QA**: Playwright(E2E), Vitest + jsdom(유닛/렌더), 커스텀 데이터 검증 스크립트
 - **데이터 파이프라인**: Python + pymupdf(PDF 추출·대조), 컨택트시트 검수
 - **CI/CD**: GitHub Actions, Vercel
-- **레거시/모바일**: 바닐라 JS, Capacitor(Android APK)
+- **모바일**: Capacitor(Android APK — React `dist` 패키징)
 
 ## 로컬 실행
 
@@ -233,9 +232,9 @@ npm run dev      # React 앱 개발 서버 (index.vite.html 기준)
 기타 명령:
 
 ```bash
-npm test            # Vitest 유닛 테스트 (51개)
+npm test            # Vitest 유닛 테스트 (52개)
 npm run test:cov    # 유닛 테스트 + 커버리지
-npm run test:e2e    # Playwright React E2E (70개)
+npm run test:e2e    # Playwright React E2E (251개)
 npm run verify      # 데이터 정합성 검증 (626문항 정답·이미지·스키마)
 npm run build       # tsc 타입 검사 후 dist/ 정적 빌드
 ```

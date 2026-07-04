@@ -4,9 +4,7 @@
 
 다음 변경에는 이 하네스를 사용합니다.
 
-- `index.html`, `www/index.html`
-- `style.css`, `www/style.css`
-- 렌더링 변경이 포함된 `script.js`, `www/script.js`
+- `index.vite.html`, `src/**`(React 컴포넌트·`src/styles/globals.css`·`src/utils/parser.tsx`)
 - 지문, 선택지, 해설, 그림, 표, 코드 블록, 반응형 레이아웃의 문제 렌더링
 - 문제 표시 방식에 영향을 주는 시각 에셋
 
@@ -22,21 +20,13 @@ UI 렌더링 하네스는 문제가 로드되고, 화면에 정상 렌더링되�
 npm run verify
 ```
 
-눈에 보이는 렌더링, 이미지, 표, 선택지, CSS, 레이아웃 변경이 있다면 Playwright 시각 감사를 실행합니다.
+눈에 보이는 렌더링, 이미지, 표, 선택지, CSS, 레이아웃 변경이 있다면 React E2E(콘텐츠·반응형·표/그림 스펙)를 실행하고, 필요 시 `npm run preview`(dist 서빙) 상태에서 해당 화면을 스크린샷으로 확인합니다.
 
 ```bash
-npm run serve
-node scripts/visual-audit-render.js
+npm run test:e2e   # react-content · react-responsive · react-edge-figtable 등 포함
 ```
 
-한 셸에서 서버 실행과 감사를 함께 수행할 때는 백그라운드 서버를 사용하고 감사 후 종료합니다.
-
-```bash
-npm run serve > /tmp/istqb-server.log 2>&1 &
-SERVER_PID=$!
-node scripts/visual-audit-render.js
-kill $SERVER_PID
-```
+(레거시 앱 전용 visual-audit 스크립트는 레거시 제거와 함께 삭제됨 — 렌더 검증은 React E2E가 담당)
 
 ## 확인할 내용
 
@@ -47,17 +37,13 @@ kill $SERVER_PID
 - 선택지가 하나의 시각 블록으로 합쳐지지 않는지 확인합니다.
 - 표와 목록형 콘텐츠가 읽을 수 있는 상태인지 확인합니다.
 - 모바일/태블릿 viewport에서 사용성이 유지되는지 확인합니다.
-- `tmp/visual-audit/report.json`의 `badCount`가 0인지 확인하거나, 발견 항목을 각각 검토하고 설명합니다.
 
 ## 스크린샷 기준
 
 다음 경우에는 스크린샷을 캡처하거나 보존합니다.
 
 - 눈에 보이는 웹 UI 변경이 있는 경우
-- 시각 감사에서 실패가 보고된 경우
 - 레이아웃 버그를 수정했고 전/후 증거가 필요한 경우
-
-시각 감사 스크린샷은 `tmp/visual-audit/` 아래에 생성되며, 일반적으로 커밋하지 않습니다.
 
 ## 하네스를 보강해야 하는 경우
 
@@ -74,6 +60,5 @@ kill $SERVER_PID
 최종 응답에는 다음을 포함합니다.
 
 - 변경한 UI 파일
-- 검증 및 시각 감사 명령
-- 시각 감사 리포트 상태
+- 실행한 검증(E2E) 명령
 - 캡처한 스크린샷 또는 스크린샷이 필요 없었던 이유

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { flushPersist } from '../../utils/storage';
@@ -6,11 +7,18 @@ import { QuestionCard } from './QuestionCard';
 import { QuestionPalette } from './QuestionPalette';
 
 export const QuestionWorkspace = () => {
+  // 슬라이스 구독(O1) — elapsedSeconds를 구독하지 않으므로 타이머 틱에 리렌더되지 않는다.
   const {
     index, setId, mode, setIndex, tickTimer, startTimer,
     navCollapsed, setNavCollapsed, setPaletteOpen, setResultOpen,
     resumeNotice, setResumeNotice,
-  } = useQuizStore();
+  } = useQuizStore(useShallow((s) => ({
+    index: s.index, setId: s.setId, mode: s.mode, setIndex: s.setIndex,
+    tickTimer: s.tickTimer, startTimer: s.startTimer,
+    navCollapsed: s.navCollapsed, setNavCollapsed: s.setNavCollapsed,
+    setPaletteOpen: s.setPaletteOpen, setResultOpen: s.setResultOpen,
+    resumeNotice: s.resumeNotice, setResumeNotice: s.setResumeNotice,
+  })));
   const {
     appData, currentQuestions, answered, isGraded, canGrade, requestGrade,
   } = useQuizSession();

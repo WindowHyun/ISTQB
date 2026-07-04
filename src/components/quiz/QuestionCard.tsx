@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../../store/useQuizStore';
 import { Question } from '../../hooks/useQuestions';
 import { isQuestionCorrect } from '../../utils/answer';
@@ -52,7 +53,10 @@ const TF_OPTIONS = [
 ];
 
 export const QuestionCard = React.memo(({ question }: { question: Question }) => {
-  const { mode, setId, answers, setAnswer, graded } = useQuizStore();
+  // 슬라이스 구독(O1) — 타이머 틱에 리렌더되지 않아 React.memo가 실효를 갖는다.
+  const { mode, setId, answers, setAnswer, graded } = useQuizStore(useShallow((s) => ({
+    mode: s.mode, setId: s.setId, answers: s.answers, setAnswer: s.setAnswer, graded: s.graded,
+  })));
   const [showFeedback, setShowFeedback] = useState(false);
 
   const answerKey = `${setId}-${mode}-${question.id || question.number}`;

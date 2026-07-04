@@ -1,4 +1,5 @@
 import React, { useEffect, useState, Suspense } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../store/useQuizStore';
 import { restorePersistentSnapshot } from '../utils/storage';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
@@ -9,7 +10,13 @@ const Sidebar = React.lazy(() => import('../components/layout/Sidebar').then(mod
 const QuestionWorkspace = React.lazy(() => import('../components/quiz/QuestionWorkspace').then(module => ({ default: module.QuestionWorkspace })));
 
 export const App = () => {
-  const { mode, activeProduct, drawerOpen, setMode, setActiveProduct, setDrawerOpen, resetToGate } = useQuizStore();
+  // 슬라이스 구독(O1) — 앱 셸이 타이머 틱·답안 변경에 리렌더되지 않는다.
+  const { mode, activeProduct, drawerOpen, setMode, setActiveProduct, setDrawerOpen, resetToGate } =
+    useQuizStore(useShallow((s) => ({
+      mode: s.mode, activeProduct: s.activeProduct, drawerOpen: s.drawerOpen,
+      setMode: s.setMode, setActiveProduct: s.setActiveProduct,
+      setDrawerOpen: s.setDrawerOpen, resetToGate: s.resetToGate,
+    })));
   const [isRestored, setIsRestored] = useState(false);
 
   useEffect(() => {

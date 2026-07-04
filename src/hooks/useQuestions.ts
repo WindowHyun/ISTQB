@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../store/useQuizStore';
 
 // Fisher–Yates shuffle: 균일 분포를 보장한다. (sort 비교자에 Math.random을 쓰면 편향됨)
@@ -50,7 +51,10 @@ let randomDraw: { setId: string; questions: Question[] } | null = null;
 export function useQuestions() {
   const [appData, setAppData] = useState<AppData | null>(null);
   const [currentQuestions, setCurrentQuestions] = useState<Question[]>([]);
-  const { setId, mode, reviewIds } = useQuizStore();
+  // 슬라이스 구독(O1) — 타이머 틱·답안 변경에 이 훅이 리렌더를 유발하지 않는다.
+  const { setId, mode, reviewIds } = useQuizStore(useShallow((s) => ({
+    setId: s.setId, mode: s.mode, reviewIds: s.reviewIds,
+  })));
 
   useEffect(() => {
     fetch('data/index.json')

@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../store/useQuizStore';
 import { useQuestions, Question } from './useQuestions';
 import { isQuestionCorrect } from '../utils/answer';
@@ -7,7 +8,14 @@ import { saveHistoryToDB } from '../utils/storage';
 // 레거시 레이아웃은 채점 버튼·진행률을 사이드바에, 문항을 워크스페이스에 두므로
 // 두 컴포넌트가 동일한 세션 계산을 필요로 한다 — 한 곳에 모아 중복을 제거한다.
 export function useQuizSession() {
-  const { mode, setId, answers, graded, elapsedSeconds, addHistory, setReviewIds, setGraded, setResultOpen, setConfirmGradeOpen } = useQuizStore();
+  // 슬라이스 구독(O1) — elapsedSeconds는 구독하지 않고 채점 시점에 getState()로 읽는다
+  // (구독하면 이 훅을 쓰는 모든 컴포넌트가 타이머 틱마다 리렌더된다).
+  const { mode, setId, answers, graded, addHistory, setReviewIds, setGraded, setResultOpen, setConfirmGradeOpen } =
+    useQuizStore(useShallow((s) => ({
+      mode: s.mode, setId: s.setId, answers: s.answers, graded: s.graded,
+      addHistory: s.addHistory, setReviewIds: s.setReviewIds, setGraded: s.setGraded,
+      setResultOpen: s.setResultOpen, setConfirmGradeOpen: s.setConfirmGradeOpen,
+    })));
   const { appData, currentQuestions } = useQuestions();
 
   // 각 모드는 자체 답안 네임스페이스를 사용한다(오답 모드는 재풀이용 별도 기록).
@@ -54,7 +62,8 @@ export function useQuizSession() {
       answers: gradedAnswers,
       correct: total - wrongIds.length,
       total,
-      elapsedSeconds: Math.round(elapsedSeconds),
+      // 매초 리렌더를 피하려고 구독 대신 채점 시점에 스냅샷으로 읽는다(O1).
+      elapsedSeconds: Math.round(useQuizStore.getState().elapsedSeconds),
       createdAt: Date.now(),
       setTitle,
       wrongItems,
@@ -90,7 +99,6 @@ export function useQuizSession() {
     canGrade,
     progressPercent,
     wrongQuestions,
-    elapsedSeconds,
     handleGrade,
     gradeAndShow,
     requestGrade,

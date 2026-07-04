@@ -1,4 +1,3 @@
-const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
@@ -14,18 +13,7 @@ function run(command, args) {
   }
 }
 
-function syntaxCheck(relativePath) {
-  run("node", ["-c", relativePath]);
-}
-
-const html = fs.readFileSync(path.join(root, "www", "index.html"), "utf8");
-if (/questions\.js|csts-questions\.js/.test(html)) {
-  // questions.js is removed
-  throw new Error("www/index.html must not load questions.js or csts-questions.js");
-}
-
-syntaxCheck("script.js");
-syntaxCheck(path.join("www", "script.js"));
+// 레거시 바닐라 앱(루트/www의 index.html·script.js) 문법 검사는 앱 제거(C8)와 함께 삭제됨.
 run("node", [path.join("scripts", "validate-questions.js")]);
 run("node", [path.join("scripts", "audit-phase3-content.js")]);
 run("node", [path.join("scripts", "audit-classification-markers.js")]);

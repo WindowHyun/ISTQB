@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { isQuestionCorrect } from '../../utils/answer';
@@ -11,7 +12,10 @@ interface QuestionPaletteProps {
 
 // 문제 번호 팔레트(답함/정답/오답/현재 색상). 본문 인라인과 "문항 이동" 모달이 공유한다.
 export const QuestionPalette = ({ withId, onJump }: QuestionPaletteProps) => {
-  const { index, answers, setIndex } = useQuizStore();
+  // 슬라이스 구독(O1) — 40버튼 팔레트가 타이머 틱마다 리렌더되지 않게 한다.
+  const { index, answers, setIndex } = useQuizStore(useShallow((s) => ({
+    index: s.index, answers: s.answers, setIndex: s.setIndex,
+  })));
   const { currentQuestions, answerKeyOf, isGraded } = useQuizSession();
 
   const total = currentQuestions.length;
