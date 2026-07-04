@@ -4,7 +4,9 @@ import path from "node:path";
 
 // useQuestions(#56)가 의존하는 실제 데이터 스키마 계약을 검증한다.
 // 데이터가 드리프트하면(예: index.json 형태 변경) 이 테스트가 실패해 회귀를 알린다.
-const dataRoot = path.resolve(process.cwd(), "public/data");
+// 정본(www/data)을 읽는다 — public/data는 sync-assets가 www/에서 생성하는 사본(비커밋)이라
+// 동기화 여부와 무관하게 소스를 검증한다.
+const dataRoot = path.resolve(process.cwd(), "www/data");
 
 function readJson(rel: string) {
   return JSON.parse(fs.readFileSync(path.join(dataRoot, rel), "utf8"));

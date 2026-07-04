@@ -46,3 +46,11 @@ coverage/
 /anomalies.json
 /qa_1000_audit_result.json
 /validation_report.json
+
+# public/ 자산은 sync-assets가 www/ 정본에서 생성 → 커밋하지 않음 (public/service-worker.js tombstone만 정본)
+/public/data/
+/public/images/
+/public/figures/
+/public/csts-figures/
+/public/source-visuals/
+/public/icons/

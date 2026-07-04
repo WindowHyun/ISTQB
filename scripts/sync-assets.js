@@ -2,10 +2,10 @@
 /**
  * 자산 단일 정본 동기화 (#52)
  *
- * 정본: www/  (콘텐츠 데이터·이미지 원본)
- * 대상:
- *   - public/  : Vite publicDir → dev 서버와 빌드가 여기서 자산을 취한다.
- *   - dist/    : Vite 빌드 산출물(빌드가 덮어쓰지만 정적 배포 일관성 위해 동기화).
+ * 정본: www/  (콘텐츠 데이터·이미지 원본, 커밋됨)
+ * 대상(둘 다 생성물이라 커밋하지 않음 — predev/prebuild 훅이 재생성):
+ *   - public/  : Vite publicDir → dev 서버와 빌드가 여기서 자산을 취한다. (public/service-worker.js tombstone만 정본·커밋)
+ *   - dist/    : Vite 빌드 산출물.
  *
  * 루트 복사·script.js 동기화는 레거시 바닐라 앱 제거(C8)와 함께 삭제됨 —
  * Vercel은 outputDirectory: dist 만 서빙하므로 루트 사본이 불필요하다.
