@@ -150,6 +150,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 
 - GitHub Actions **5 job**: `lint` · `verify(데이터)` · `unit` · `build` · `e2e`.
 - 모든 job 통과해야 머지 → **결함의 main 유입 차단**. 동시성·캐시·최소권한 설정.
+- E2E가 CI에서 어떻게 실행되는지(빌드→preview 서빙→Chromium 병렬 실행·재시도·리포트): [`docs/ci-e2e-pipeline.md`](docs/ci-e2e-pipeline.md).
 
 ## 품질 지표 (Metrics)
 
