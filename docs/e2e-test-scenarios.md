@@ -2,7 +2,7 @@
 
 > 대상: React 앱(`index.vite.html` → Vercel `dist` 배포본). Playwright로 자동화.
 > 실행: CI `react` 프로젝트(`testMatch: /react-.*\.spec\.ts/`) — `npm run test:e2e`.
-> CI 실행 메커니즘(빌드·서버 기동·병렬·재시도)은 [`ci-e2e-pipeline.md`](./ci-e2e-pipeline.md) 참고.
+> CI 실행 메커니즘(빌드·서버 기동·병렬·재시도)은 [`ci/ci.md`](./ci/ci.md) 참고.
 > 공용 헬퍼: `e2e/helpers.ts` (`openProduct`, `openSet`, `modeBtn`, `gotoQuestion`, `submitGrade`).
 > 표기: G(전제) / W(행위) / T(기대).
 

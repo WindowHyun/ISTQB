@@ -1,0 +1,139 @@
+# CI (`ci.yml`) — 머지 품질 게이트
+
+`.github/workflows/ci.yml`. push/PR마다 **5개 job을 병렬**로 돌려 결함의 main 유입을 차단한다.
+
+## 트리거
+
+```yaml
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+```
+
+- **main push · 모든 PR · 수동(`workflow_dispatch`)** 에 실행.
+- `concurrency` — 같은 ref에서 새 실행이 뜨면 진행 중이던 이전 실행 취소(중복/분 낭비 방지).
+- `permissions: contents: read` — 최소 권한(읽기 전용).
+- `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` — `npm ci` 시 브라우저 자동 다운로드 차단(브라우저는 e2e job에서 명시 설치).
+
+## job 구성 (5개, 병렬·독립)
+
+| job | 이름 | 실행 명령 | 산출물 |
+| --- | --- | --- | --- |
+| `lint` | Lint & Typecheck | `npm run lint` + `npm run typecheck`(`tsc --noEmit`) | — |
+| `verify-data` | Verify data & content | `npm run verify` (626문항 정답·이미지·스키마·콘텐츠 감사) | — |
+| `unit` | Unit tests (vitest) | `npm run test:cov` (유닛 + 커버리지) | `coverage/`(7일) |
+| `build` | Build (tsc + vite) | `npm run build` | `dist/`(7일) |
+| `e2e` | E2E smoke (Playwright) | `npm run test:e2e` | 실패 시 `playwright-report/`(7일) |
+
+모든 job이 공통으로: `checkout@v4` → `setup-node@v4`(node 22, `cache: npm`) → `npm ci` → 각자 명령.
+모든 job이 성공해야 머지 게이트를 통과한다(브랜치 보호 설정에 따름).
+
+---
+
+## e2e job 상세 (가장 복잡)
+
+```yaml
+e2e:
+  name: E2E smoke (Playwright)
+  runs-on: ubuntu-latest
+  timeout-minutes: 20
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with: { node-version: 22, cache: npm }
+    - run: npm ci
+    - name: Cache Playwright browsers
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          playwright-${{ runner.os }}-
+    - run: npx playwright install --with-deps chromium
+    - run: npm run test:e2e
+    - name: Upload Playwright report
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v4
+      with: { name: playwright-report, path: playwright-report/, retention-days: 7, if-no-files-found: ignore }
+```
+
+### 단계별
+
+| 단계 | 하는 일 |
+| --- | --- |
+| **npm ci** | 의존성 설치. 전역 env로 **브라우저는 이 시점에 받지 않음** |
+| **Cache Playwright browsers** | `~/.cache/ms-playwright`를 `package-lock.json` 해시 키로 캐시 → 락파일 불변 시 다운로드 skip |
+| **`npx playwright install --with-deps chromium`** | Chromium + 리눅스 시스템 의존성(폰트·라이브러리) 설치. `--with-deps`가 헤드리스 리눅스 구동의 핵심 |
+| **`npm run test:e2e`** | 실제 실행(= `playwright test`). config가 서버 기동·병렬·재시도를 담당(아래) |
+| **Upload Playwright report** | `if: failure()` — **실패 시에만** HTML 리포트를 아티팩트로 업로드(7일) |
+
+### `playwright.config.ts` — 실행 규칙
+
+```ts
+export default defineConfig({
+  testDir: "./e2e",
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 1 : 0,
+  reporter: process.env.CI ? [["html", { open: "never" }]] : "list",
+  use: { trace: "on-first-retry" },
+  projects: [
+    { name: "react", testMatch: /react-.*\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"], baseURL: "http://localhost:4173" } },
+  ],
+  webServer: [
+    { command: "npm run build && npm run preview",
+      url: "http://localhost:4173/", timeout: 180_000,
+      reuseExistingServer: !process.env.CI },
+  ],
+});
+```
+
+| 항목 | 의미 |
+| --- | --- |
+| project `react` (`react-*.spec.ts`) | 해당 파일만 실행(현재 253개). 레거시 프로젝트 제거됨 → React 단일 프로젝트 |
+| `baseURL: :4173` | 테스트의 `page.goto("/")`가 이 주소로 감 |
+| `fullyParallel: true` | 파일 단위 병렬(러너 CPU 수만큼 워커) |
+| `forbidOnly: CI` | CI에서 `test.only`가 남아 있으면 실패 처리 |
+| `retries: CI ? 1 : 0` | **CI에서만 실패 시 1회 자동 재시도**(환경성 플레이키 흡수) |
+| `reporter: CI ? html : list` | CI는 HTML 리포트 → 실패 시 위에서 아티팩트 업로드 |
+| `trace: on-first-retry` | 재시도 케이스에만 trace(스텝·네트워크·DOM) 기록 |
+
+### webServer — 앱을 어떻게 띄우나 (핵심)
+
+테스트 시작 **전에** Playwright가 `command`를 실행해 앱 서버를 자동 기동하고, `url`이 응답하면 시작한다.
+
+- **`npm run build && npm run preview`**
+  - `build`(= `tsc && vite build`) 앞의 **`prebuild` 훅이 `sync-assets`** 로 `www/` 정본 데이터를 `public/`·`dist/`로 동기화 후 빌드.
+  - `preview`(= `vite preview --port 4173 --strictPort`)가 **`dist/`를 4173에 정적 서빙**.
+  - → 검증 대상이 **실제 운영 배포본(Vercel `dist`)과 동일한 산출물**. 소스가 아니라 빌드 결과를 검증한다.
+- `url` 200 응답까지 최대 **180초** 대기 후 테스트 시작.
+- `reuseExistingServer: !CI` — 로컬은 재사용, **CI는 항상 새로 기동**(깨끗한 상태). 종료 시 서버 정리.
+
+### 로컬 재현
+
+```bash
+npm ci
+npx playwright install --with-deps chromium   # 최초 1회
+npm run test:e2e                              # config가 build+preview 자동 기동
+# CI와 동일 조건(재시도 1·HTML 리포트·서버 강제 재기동):
+CI=1 npm run test:e2e
+```
+
+---
+
+## 요약
+
+**push/PR → 5 job 병렬 → 모두 통과해야 머지.** e2e는 `npm ci`(브라우저 skip) → 브라우저 캐시/설치 → `playwright test`가 `build+preview`로 `dist`를 4173에 서빙하고 → `react-*.spec.ts` 253개를 Chromium으로 병렬 실행(CI 재시도 1) → 실패 시 HTML 리포트 아티팩트를 남긴다.
