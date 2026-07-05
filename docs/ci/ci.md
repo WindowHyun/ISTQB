@@ -36,8 +36,8 @@ env:
 | --- | --- | --- | --- |
 | `lint` | Lint & Typecheck | `npm run lint` + `npm run typecheck`(`tsc --noEmit`) | — |
 | `verify-data` | Verify data & content | `npm run verify` (626문항 정답·이미지·스키마·콘텐츠 감사) | — |
-| `unit` | Unit tests (vitest) | `npm run test:cov` (유닛 + 커버리지) | `coverage/`(7일) |
-| `build` | Build (tsc + vite) | `npm run build` | `dist/`(7일) |
+| `unit` | Unit tests (vitest) | `npm run test:cov` (유닛 + 커버리지, **임계값 게이트**: stmt 54·branch 50·func 53·line 54) | `coverage/`(7일) |
+| `build` | Build (tsc + vite) | `npm run build` → **`npm run size`**(번들 예산: JS 330KB·CSS 45KB) | `dist/`(7일) |
 | `e2e` | E2E smoke (Playwright) | `npm run test:e2e` | 실패 시 `playwright-report/`(7일) |
 
 ### 보안 게이트 (3, 체크리스트 #4)
@@ -54,6 +54,10 @@ env:
 **설계 근거 — `audit`가 왜 `--omit=dev`인가:** 이 앱은 클라이언트 SPA라 사용자에게 실제로 나가는 코드는 **프로덕션 의존성**뿐이다. `pdfjs-dist`·`undici` 등 high 취약점은 빌드/스크립트용 dev 툴링에만 있어 배포물에 포함되지 않으므로, 차단은 프로덕션 트리 기준으로 하고 dev 트리는 `continue-on-error` 정보성 단계로 남겨 가시성만 확보한다.
 
 **`codeql` 권한:** 이 job만 `security-events: write`(스캔 결과 업로드용)를 job 레벨에서 부여한다. 나머지는 최상위 `contents: read`(읽기 전용)를 그대로 상속. 저장소에 CodeQL **default setup**이 켜져 있으면 이 advanced 워크플로와 충돌하므로, 둘 중 하나만 사용한다.
+
+**커버리지 임계값 범위:** `vitest.config.ts`의 coverage `include`를 `src/store/**`·`src/utils/**`(유닛이 실제로 다루는 로직 계층)로 한정한다. 컴포넌트/훅/앱 셸은 E2E(255)가 검증하므로, 여기에 포함하면 미임포트 파일이 0%로 집계돼 임계값이 무의미해진다. 임계값은 현재값보다 약 1%p 낮게 잡아 지금은 통과시키되 향후 회귀를 차단하는 바닥 게이트로 동작한다.
+
+**번들 예산(`npm run size`):** `scripts/check-bundle-size.js`가 `dist/assets`의 JS·CSS raw 합계를 예산과 대조한다. 현재 JS ~265KB·CSS ~31KB 대비 넉넉한 여유(JS 330KB·CSS 45KB)를 둬 무거운 의존성 유입 같은 **큰** 회귀만 잡고 소폭 증가엔 관대하다.
 
 ---
 
