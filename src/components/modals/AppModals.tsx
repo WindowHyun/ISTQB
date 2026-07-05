@@ -4,6 +4,7 @@ import { useQuizStore, ExamHistory } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { useTheme, ThemePref } from '../../hooks/useTheme';
 import { exportUserData, importUserData, clearHistoriesFromDB } from '../../utils/storage';
+import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
 import { showToast } from '../../utils/toast';
 import { isDebugEnabled, setDebugEnabled } from '../../utils/debugLog';
 import { Modal } from '../common/Modal';
@@ -57,7 +58,7 @@ export const AppModals = () => {
   const { appData, total, answered, correctCount, gradeAndShow } = useQuizSession();
   const { pref: themePref, setPref: setThemePref } = useTheme();
   const [fontSize, setFontSize] = useState<FontSize>(
-    () => (localStorage.getItem('istqb-q-font') as FontSize) || 'normal',
+    () => (safeGetItem('istqb-q-font') as FontSize) || 'normal',
   );
   const [debugOn, setDebugOn] = useState(() => isDebugEnabled());
   // 오답 노트 팝업에서 선택한 세트(null이면 세트 목록 화면).
@@ -65,7 +66,7 @@ export const AppModals = () => {
 
   useEffect(() => {
     document.body.dataset.qfont = fontSize;
-    localStorage.setItem('istqb-q-font', fontSize);
+    safeSetItem('istqb-q-font', fontSize);
   }, [fontSize]);
 
   const sets = appData
