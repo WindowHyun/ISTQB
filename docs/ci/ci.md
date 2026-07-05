@@ -1,6 +1,7 @@
 # CI (`ci.yml`) — 머지 품질 게이트
 
-`.github/workflows/ci.yml`. push/PR마다 **5개 job을 병렬**로 돌려 결함의 main 유입을 차단한다.
+`.github/workflows/ci.yml`. push/PR마다 **8개 job을 병렬**로 돌려 결함의 main 유입을 차단한다.
+품질 게이트(lint·데이터·유닛·빌드·e2e) 5개 + 보안 게이트(의존성 감사·시크릿 스캔·정적 분석) 3개.
 
 ## 트리거
 
@@ -27,7 +28,9 @@ env:
 - `permissions: contents: read` — 최소 권한(읽기 전용).
 - `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` — `npm ci` 시 브라우저 자동 다운로드 차단(브라우저는 e2e job에서 명시 설치).
 
-## job 구성 (5개, 병렬·독립)
+## job 구성 (8개, 병렬·독립)
+
+### 품질 게이트 (5)
 
 | job | 이름 | 실행 명령 | 산출물 |
 | --- | --- | --- | --- |
@@ -37,8 +40,20 @@ env:
 | `build` | Build (tsc + vite) | `npm run build` | `dist/`(7일) |
 | `e2e` | E2E smoke (Playwright) | `npm run test:e2e` | 실패 시 `playwright-report/`(7일) |
 
-모든 job이 공통으로: `checkout@v4` → `setup-node@v4`(node 22, `cache: npm`) → `npm ci` → 각자 명령.
+### 보안 게이트 (3, 체크리스트 #4)
+
+| job | 이름 | 하는 일 | 차단 기준 |
+| --- | --- | --- | --- |
+| `audit` | Dependency audit (npm) | `npm audit --omit=dev --audit-level=high`(배포 번들) + 전체 트리 정보성 보고 | **프로덕션 의존성**에 high+ 취약점 |
+| `secrets` | Secret scan (gitleaks) | `gitleaks/gitleaks-action@v2`로 전체 커밋 히스토리에서 API 키·토큰·비밀번호 유출 탐지 | 시크릿 패턴 매칭 |
+| `codeql` | CodeQL (static analysis) | `github/codeql-action` JS/TS 정적 분석(`security-and-quality`: XSS·프로토타입 오염·안전하지 않은 DOM 등) → Security 탭 업로드 | 분석 오류 시(경보는 Security 탭, 머지 차단은 브랜치 보호 설정에 따름) |
+
+품질 5개 job은 공통으로: `checkout@v4` → `setup-node@v4`(node 22, `cache: npm`) → `npm ci` → 각자 명령.
 모든 job이 성공해야 머지 게이트를 통과한다(브랜치 보호 설정에 따름).
+
+**설계 근거 — `audit`가 왜 `--omit=dev`인가:** 이 앱은 클라이언트 SPA라 사용자에게 실제로 나가는 코드는 **프로덕션 의존성**뿐이다. `pdfjs-dist`·`undici` 등 high 취약점은 빌드/스크립트용 dev 툴링에만 있어 배포물에 포함되지 않으므로, 차단은 프로덕션 트리 기준으로 하고 dev 트리는 `continue-on-error` 정보성 단계로 남겨 가시성만 확보한다.
+
+**`codeql` 권한:** 이 job만 `security-events: write`(스캔 결과 업로드용)를 job 레벨에서 부여한다. 나머지는 최상위 `contents: read`(읽기 전용)를 그대로 상속. 저장소에 CodeQL **default setup**이 켜져 있으면 이 advanced 워크플로와 충돌하므로, 둘 중 하나만 사용한다.
 
 ---
 
@@ -103,7 +118,7 @@ export default defineConfig({
 
 | 항목 | 의미 |
 | --- | --- |
-| project `react` (`react-*.spec.ts`) | 해당 파일만 실행(현재 253개). 레거시 프로젝트 제거됨 → React 단일 프로젝트 |
+| project `react` (`react-*.spec.ts`) | 해당 파일만 실행(현재 255개). 레거시 프로젝트 제거됨 → React 단일 프로젝트 |
 | `baseURL: :4173` | 테스트의 `page.goto("/")`가 이 주소로 감 |
 | `fullyParallel: true` | 파일 단위 병렬(러너 CPU 수만큼 워커) |
 | `forbidOnly: CI` | CI에서 `test.only`가 남아 있으면 실패 처리 |
@@ -136,4 +151,4 @@ CI=1 npm run test:e2e
 
 ## 요약
 
-**push/PR → 5 job 병렬 → 모두 통과해야 머지.** e2e는 `npm ci`(브라우저 skip) → 브라우저 캐시/설치 → `playwright test`가 `build+preview`로 `dist`를 4173에 서빙하고 → `react-*.spec.ts` 253개를 Chromium으로 병렬 실행(CI 재시도 1) → 실패 시 HTML 리포트 아티팩트를 남긴다.
+**push/PR → 8 job 병렬 → 모두 통과해야 머지.** 품질 5개(lint·verify-data·unit·build·e2e) + 보안 3개(audit·secrets·codeql). e2e는 `npm ci`(브라우저 skip) → 브라우저 캐시/설치 → `playwright test`가 `build+preview`로 `dist`를 4173에 서빙하고 → `react-*.spec.ts` 255개를 Chromium으로 병렬 실행(CI 재시도 1) → 실패 시 HTML 리포트 아티팩트를 남긴다. 보안 job은 배포 번들의 취약 의존성(audit)·유출 시크릿(gitleaks)·정적 분석 경보(CodeQL)를 각각 차단한다.
