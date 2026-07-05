@@ -97,6 +97,8 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
+      - name: Check bundle size budget
+        run: npm run size
       - name: Upload build output
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4

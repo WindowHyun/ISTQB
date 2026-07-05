@@ -13,6 +13,7 @@
     "precap:sync": "node scripts/sync-assets.js",
     "validate:questions": "node scripts/validate-questions.js",
     "verify": "node scripts/verify.js",
+    "size": "node scripts/check-bundle-size.js",
     "cap:init": "npx cap init \"ISTQB FL\" \"com.local.istqbfl\" --web-dir dist",
     "cap:add:android": "npx cap add android",
     "cap:sync": "npx cap sync android",
