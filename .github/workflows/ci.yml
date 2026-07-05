@@ -139,3 +139,61 @@ jobs:
           path: playwright-report/
           retention-days: 7
           if-no-files-found: ignore
+
+  # ── 보안(체크리스트 #4) ──────────────────────────────────────────
+  audit:
+    name: Dependency audit (npm)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      # 배포 번들(=사용자에게 나가는 코드)의 취약점만 차단 기준으로 삼는다.
+      # dev 툴링(pdfjs·undici 등)은 런타임에 포함되지 않으므로 아래 정보성 단계에서만 보고한다.
+      - name: Audit production deps (fail on high+)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Audit full tree (informational, dev 포함)
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 전체 커밋 히스토리에서 유출 이력까지 스캔.
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  codeql:
+    name: CodeQL (static analysis)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write # 스캔 결과를 Security 탭에 업로드.
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality # XSS·프로토타입 오염·안전하지 않은 DOM 등.
+      - name: Analyze
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"
