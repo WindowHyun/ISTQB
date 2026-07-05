@@ -137,6 +137,34 @@ test.describe("엣지-영속성", () => {
     await expect(page.getByTestId("debug-fab")).toBeVisible({ timeout: 8_000 });
   });
 
+  test("localStorage 저장이 막힌 환경에서도 제품 선택·문항 진입이 된다", async ({ page }) => {
+    // 프라이빗 모드·쿼터 초과·저장 비활성 등에서 setItem이 예외를 던지는 상황을 모사.
+    await page.addInitScript(() => {
+      const proto = Object.getPrototypeOf(window.localStorage);
+      proto.setItem = () => { throw new Error("저장 불가(테스트 모사)"); };
+    });
+    await page.goto("/");
+    await page.getByRole("button", { name: "ISTQB" }).click();
+    // handleProductSelect의 setItem이 앱 진입을 막지 않아야 한다(안전 래퍼).
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    // 답 선택도 크래시 없이 동작(저장은 조용히 실패).
+    await page.locator("#options .option").first().click();
+    await expect(page.locator("#questionNav button.answered")).toHaveCount(1);
+  });
+
+  test("localStorage 저장이 막혀도 테마·글자 크기 설정이 크래시 없이 동작한다", async ({ page }) => {
+    await page.addInitScript(() => {
+      const proto = Object.getPrototypeOf(window.localStorage);
+      proto.setItem = () => { throw new Error("저장 불가(테스트 모사)"); };
+    });
+    await openProduct(page, "ISTQB");
+    await page.getByRole("button", { name: /설정/ }).click();
+    await page.getByRole("dialog", { name: "설정" }).getByRole("button", { name: "다크" }).click();
+    await expect.poll(() => page.evaluate(() => document.body.dataset.theme)).toBe("dark");
+    await page.getByRole("button", { name: "작게" }).click();
+    await expect.poll(() => page.evaluate(() => document.body.dataset.qfont)).toBe("small");
+  });
+
   test("여러 문항 응답 후 새로고침→재선택 시 진행 수가 복원된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await modeBtn(page, "연습").click();

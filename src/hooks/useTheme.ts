@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 
 export type ThemePref = 'system' | 'light' | 'dark';
 
@@ -11,11 +12,11 @@ const STORAGE_KEY = 'istqb-theme';
  */
 export function useTheme() {
   const [pref, setPref] = useState<ThemePref>(
-    () => (localStorage.getItem(STORAGE_KEY) as ThemePref) || 'system',
+    () => (safeGetItem(STORAGE_KEY) as ThemePref) || 'system',
   );
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, pref);
+    safeSetItem(STORAGE_KEY, pref);
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const apply = () => {
       const effective = pref === 'system' ? (mq.matches ? 'dark' : 'light') : pref;

@@ -2,6 +2,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../store/useQuizStore';
 import { restorePersistentSnapshot } from '../utils/storage';
+import { safeSetItem } from '../utils/safeStorage';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { MobileTopBar } from '../components/layout/MobileTopBar';
 import { AppModals } from '../components/modals/AppModals';
@@ -43,7 +44,7 @@ export const App = () => {
   }, [drawerOpen, setDrawerOpen]);
 
   const handleProductSelect = async (product: 'istqb' | 'csts') => {
-    localStorage.setItem("istqb-fl-v4-sample-last-product", product);
+    safeSetItem("istqb-fl-v4-sample-last-product", product);
     setActiveProduct(product);
     await restorePersistentSnapshot(product);
     // 저장된 모드(시험 등)를 그대로 이어간다. 게이트 모드('home')/무효면 연습으로 폴백(#1).
