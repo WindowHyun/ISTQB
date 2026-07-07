@@ -145,11 +145,19 @@ function buildRichBlocks(text: unknown): Block[] {
   }
 
   function parseStructuredItem(line: string): ListItem | null {
+    // \uB2E4\uB2E8\uACC4 \uBC88\uD638("1.1", "2.3.1")\uB97C \uB2E8\uC77C \uBC88\uD638("1.")\uBCF4\uB2E4 \uBA3C\uC800 \uB9E4\uCE6D\uD574
+    // "1.1 \uAE30\uB2A5"\uC774 marker "1." + text "1 \uAE30\uB2A5"\uC73C\uB85C \uCABC\uAC1C\uC9C0\uB294 \uAC83\uC744 \uB9C9\uB294\uB2E4.
     const match = line.match(
-      /^(\d+\.|\(\d+\)|[A-E]\.|[a-e]\)|(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s*(.+)$/i,
+      /^(\d+(?:\.\d+)+\.?|\d+\.|\(\d+\)|[A-E]\.|[a-e]\)|(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.|[\u2022\uF06C\uF0A1\uF0A7\uF0B7])\s*(.+)$/i,
     );
     if (!match) return null;
     return { marker: match[1], text: match[2].trim() };
+  }
+
+  // "1.1"\u00B7"2.3.1" \uAC19\uC740 \uB2E4\uB2E8\uACC4 \uBC88\uD638\uC758 \uAE4A\uC774(1=\uCD5C\uC0C1\uC704). \uB4E4\uC5EC\uC4F0\uAE30 \uB80C\uB354\uC5D0 \uC4F4\uB2E4.
+  function markerDepth(marker: string): number {
+    const m = marker.match(/^\d+((?:\.\d+)+)\.?$/);
+    return m ? m[1].split(".").length : 1;
   }
 
   function renderStructuredList(items: ListItem[]): HTMLElement {
@@ -158,15 +166,34 @@ function buildRichBlocks(text: unknown): Block[] {
     items.forEach((item) => {
       const row = document.createElement("span");
       row.className = "structured-line";
+      // 하위 번호("1.1"·"2.3.1")는 상위 항목 아래로 들여쓴다(요구사항 트리 표기).
+      const depth = markerDepth(item.marker);
+      if (depth > 1) row.classList.add(`indent-${Math.min(depth - 1, 3)}`);
       const marker = document.createElement("span");
       marker.className = "structured-marker";
       marker.textContent = isBulletMarker(item.marker) ? "•" : item.marker;
       const body = document.createElement("span");
-      body.textContent = item.text;
+      appendTextWithUnderline(body, item.text);
       row.append(marker, body);
       list.appendChild(row);
     });
     return list;
+  }
+
+  // 텍스트 중 <u>…</u> 구간만 실제 밑줄로 렌더한다(그 외 태그는 해석하지 않음 — XSS 안전).
+  // 문제 지문의 "밑줄 친 부분"(2405 Q63·2403 Q65)을 PDF 원본대로 표시하기 위한 최소 인라인 마크업.
+  function appendTextWithUnderline(target: HTMLElement, text: string): void {
+    const parts = String(text).split(/<u>([\s\S]*?)<\/u>/);
+    parts.forEach((part, i) => {
+      if (!part) return;
+      if (i % 2 === 1) {
+        const u = document.createElement("u");
+        u.textContent = part;
+        target.appendChild(u);
+      } else {
+        target.appendChild(document.createTextNode(part));
+      }
+    });
   }
 
   function renderCodeBlock(lines: string[]): HTMLElement {
@@ -701,7 +728,9 @@ function splitStructuralMarkers(text: string): string {
       "\n",
     )
     .replace(
-      /\s*(?=(?:리뷰 활동은 다음과 같다:|그리고 다음과 같은 완화 활동이 있다\.|다음 중 위|다음 중 분석한|테스트 도구 분류는 다음과 같다:|구현된 기능은 다음과 같다:|사전 조건은 다음과 같다:))/g,
+      // "사전 조건은…"은 "모든 테스트 케이스의"까지 포함해 통째로 분리한다 —
+      // 부분 매칭이면 데이터가 이미 단락 분리된 경우 "모든 테스트 케이스의"만 고아 줄로 남는다(D Q29).
+      /\s*(?=(?:리뷰 활동은 다음과 같다:|그리고 다음과 같은 완화 활동이 있다\.|다음 중 위|다음 중 분석한|테스트 도구 분류는 다음과 같다:|구현된 기능은 다음과 같다:|모든 테스트 케이스의 사전 조건은 다음과 같다:))/g,
       "\n",
     )
     .replace(/\s+(?=그리고 다음과 같은 설명이 있다:)/g, "\n")
@@ -729,9 +758,11 @@ function mergeTextContinuations(blocks: Block[]): Block[] {
   // 한글 항목 마커("가. ", "나. ", "(가)", "①" 등) — 이런 줄은 새 항목이므로,
   // 직전 줄이 이런 항목이면 내용이 있는 "다. …"는 다음 항목으로 보고 합치지 않는다.
   const KO_ENUM = /^(\([가-힣]\)|[가-힣]\.|[①-⑳]|[ⓐ-ⓩ])\s/;
-  // 텍스트 계열 블록(데이터에 paragraph/prompt/text 등으로 들어옴)만 병합 대상.
+  // 텍스트 계열 블록(데이터에 paragraph/prompt/text/note/formula 등으로 들어옴)만 병합 대상.
+  // note 포함: CSTS 각주(※…)도 PDF 추출로 "…의미한"+"다."처럼 조각나는 동일 클래스(2402 Q2).
+  // formula 포함: 수식도 "E(" + "5) = …"처럼 괄호가 열린 채 조각난다(B Q23·C Q31).
   const isTextLike = (b: Block | undefined): boolean =>
-    !!b && typeof b.text === "string" && ["text", "prompt", "paragraph"].includes(b.type || "");
+    !!b && typeof b.text === "string" && ["text", "prompt", "paragraph", "note", "formula"].includes(b.type || "");
   const out: Block[] = [];
   for (const block of blocks) {
     const prev = out[out.length - 1];
@@ -785,7 +816,14 @@ function renderRichText(target: HTMLElement, text: unknown): void {
     }
     const line = document.createElement("span");
     line.className = "text-line";
-    line.textContent = block.text ?? "";
+    const value = block.text ?? "";
+    // note/text 라인 중 하위 번호("1.1 …")로 시작하면 들여쓴다(구조화 리스트와 동일 규칙).
+    const sub = value.match(/^(\d+(?:\.\d+)+)\.?\s/);
+    if (sub) {
+      const depth = sub[1].split(".").length - 1;
+      line.classList.add(`indent-${Math.min(depth, 3)}`);
+    }
+    appendTextWithUnderline(line, value);
     target.appendChild(line);
   });
 }

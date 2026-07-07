@@ -11,6 +11,32 @@ import { Modal } from '../common/Modal';
 import { StatsDashboard } from '../stats/StatsDashboard';
 import { ResultSummary } from '../quiz/ResultSummary';
 import { QuestionPalette } from '../quiz/QuestionPalette';
+import { Question } from '../../hooks/useQuestions';
+import { RichText } from '../../utils/parser';
+
+// 오답노트 3단계(문항 보기)용 세트 문항 캐시(useQuestions와 동일 소스, 모달 전용 경량 로더).
+const wrongNoteSetCache: Record<string, Question[]> = {};
+
+function useWrongNoteQuestions(path: string | null, setId: string | null): Question[] | null {
+  const [questions, setQuestions] = useState<Question[] | null>(
+    () => (setId && wrongNoteSetCache[setId]) || null,
+  );
+  useEffect(() => {
+    if (!setId || !path) { setQuestions(null); return; }
+    if (wrongNoteSetCache[setId]) { setQuestions(wrongNoteSetCache[setId]); return; }
+    let cancelled = false;
+    fetch(`data/${path.replace(/^\.\//, '')}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const qs: Question[] = Array.isArray(data) ? data : data?.questions || [];
+        wrongNoteSetCache[setId] = qs;
+        if (!cancelled) setQuestions(qs);
+      })
+      .catch(() => { if (!cancelled) setQuestions([]); });
+    return () => { cancelled = true; };
+  }, [path, setId]);
+  return questions;
+}
 
 const FONT_SIZES: { value: 'small' | 'normal' | 'large'; label: string }[] = [
   { value: 'small', label: '작게' },
@@ -63,6 +89,8 @@ export const AppModals = () => {
   const [debugOn, setDebugOn] = useState(() => isDebugEnabled());
   // 오답 노트 팝업에서 선택한 세트(null이면 세트 목록 화면).
   const [wrongNoteSetId, setWrongNoteSetId] = useState<string | null>(null);
+  // 오답 노트 3단계: 선택한 오답 문항 번호(null이면 오답 목록 화면). 팝업 안에서 문제를 다시 본다.
+  const [wrongNoteQuestionNo, setWrongNoteQuestionNo] = useState<number | null>(null);
 
   useEffect(() => {
     document.body.dataset.qfont = fontSize;
@@ -90,6 +118,17 @@ export const AppModals = () => {
   })();
   const selectedWrong = wrongNoteSetId
     ? wrongNoteBySet.find((h) => h.setId === wrongNoteSetId) ?? null
+    : null;
+  // 3단계 문항 보기: 선택한 세트의 문항을 로드해 해당 번호의 문제를 찾는다.
+  const wrongNoteSetPath = selectedWrong
+    ? appData?.sets.find((s) => s.id === selectedWrong.setId)?.path ?? null
+    : null;
+  const wrongNoteQuestions = useWrongNoteQuestions(wrongNoteSetPath, selectedWrong?.setId ?? null);
+  const selectedWrongItem = selectedWrong && wrongNoteQuestionNo != null
+    ? (selectedWrong.wrongItems ?? []).find((it) => it.number === wrongNoteQuestionNo) ?? null
+    : null;
+  const selectedWrongQuestion = selectedWrongItem
+    ? wrongNoteQuestions?.find((q) => q.number === selectedWrongItem.number) ?? null
     : null;
 
   const handleHome = () => {
@@ -187,7 +226,7 @@ export const AppModals = () => {
       )}
 
       {wrongNoteOpen && (
-        <Modal title="오답 노트" onClose={() => { setWrongNoteOpen(false); setWrongNoteSetId(null); }}>
+        <Modal title="오답 노트" onClose={() => { setWrongNoteOpen(false); setWrongNoteSetId(null); setWrongNoteQuestionNo(null); }}>
           <div className="modal-body" data-testid="wrong-note">
             {wrongNoteBySet.length === 0 ? (
               <p>표시할 오답이 없습니다. (시험·랜덤 모드에서 채점하면 기록됩니다)</p>
@@ -213,14 +252,67 @@ export const AppModals = () => {
                   </li>
                 ))}
               </ul>
+            ) : selectedWrongItem ? (
+              // 3단계: 선택한 오답 문항 보기(지문·보기 + 내 답/정답 하이라이트, 읽기 전용)
+              <div data-testid="wrong-note-question">
+                <button
+                  type="button"
+                  className="wrong-note-back"
+                  data-testid="wrong-note-question-back"
+                  onClick={() => setWrongNoteQuestionNo(null)}
+                >
+                  ← 오답 목록
+                </button>
+                <h4 className="wrong-note-set">
+                  문제 {selectedWrongItem.number}
+                  <small>
+                    내 답 {fmtAns(selectedWrongItem.myAnswer)} · 정답 {fmtAns(selectedWrongItem.correctAnswer)}
+                  </small>
+                </h4>
+                {!selectedWrongQuestion ? (
+                  <p className="wn-loading">{wrongNoteQuestions === null ? '문제 불러오는 중…' : '문항을 찾을 수 없습니다.'}</p>
+                ) : (
+                  <div className="wrong-note-view">
+                    <div className="question-stem">
+                      <RichText content={selectedWrongQuestion.stem} />
+                    </div>
+                    {selectedWrongQuestion.options.length > 0 ? (
+                      <div className="options wrong-note-options">
+                        {selectedWrongQuestion.options.map((opt) => {
+                          const mine = selectedWrongItem.myAnswer.some((a) => a.toLowerCase() === opt.key.toLowerCase());
+                          const correct = selectedWrongItem.correctAnswer.some((a) => a.toLowerCase() === opt.key.toLowerCase());
+                          let cls = 'option';
+                          if (correct) cls += ' correct';
+                          else if (mine) cls += ' selected wrong';
+                          return (
+                            <div key={opt.key} className={cls} data-mine={mine || undefined} data-correct={correct || undefined}>
+                              <span className="option-key">{opt.key.toUpperCase()}</span>
+                              <span className="option-text"><RichText content={opt.text} /></span>
+                              {(mine || correct) && (
+                                <span className="wn-tag">{correct ? (mine ? '내 답 · 정답' : '정답') : '내 답'}</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      // 단답형·진위형 등 보기 없는 문항: 내 답/정답 텍스트로 표시.
+                      <dl className="wrong-note-short">
+                        <div><dt>내 답</dt><dd>{fmtAns(selectedWrongItem.myAnswer)}</dd></div>
+                        <div><dt>정답</dt><dd>{fmtAns(selectedWrongItem.correctAnswer)}</dd></div>
+                      </dl>
+                    )}
+                  </div>
+                )}
+              </div>
             ) : (
-              // 2단계: 선택한 세트의 오답 목록
+              // 2단계: 선택한 세트의 오답 목록(문항을 누르면 팝업 안에서 해당 문제를 본다)
               <div data-testid="wrong-note-detail">
                 <button
                   type="button"
                   className="wrong-note-back"
                   data-testid="wrong-note-back"
-                  onClick={() => setWrongNoteSetId(null)}
+                  onClick={() => { setWrongNoteSetId(null); setWrongNoteQuestionNo(null); }}
                 >
                   ← 세트 목록
                 </button>
@@ -233,10 +325,18 @@ export const AppModals = () => {
                 </h4>
                 <ul className="wrong-note-list">
                   {(selectedWrong.wrongItems ?? []).map((it, idx) => (
-                    <li className="wrong-note-item" key={`${it.number}-${idx}`}>
-                      <span className="wn-num">문제 {it.number}</span>
-                      <span className="wn-mine">내 답 {fmtAns(it.myAnswer)}</span>
-                      <span className="wn-correct">정답 {fmtAns(it.correctAnswer)}</span>
+                    <li key={`${it.number}-${idx}`}>
+                      <button
+                        type="button"
+                        className="wrong-note-item wrong-note-item-btn"
+                        data-testid="wrong-note-item-btn"
+                        onClick={() => setWrongNoteQuestionNo(it.number)}
+                      >
+                        <span className="wn-num">문제 {it.number}</span>
+                        <span className="wn-mine">내 답 {fmtAns(it.myAnswer)}</span>
+                        <span className="wn-correct">정답 {fmtAns(it.correctAnswer)}</span>
+                        <span className="wns-arrow" aria-hidden="true">›</span>
+                      </button>
                     </li>
                   ))}
                 </ul>

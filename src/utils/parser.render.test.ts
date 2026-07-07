@@ -176,3 +176,66 @@ describe("RichText (parser renderRichText 회귀 가드)", () => {
     expect(lines.some((l) => l.startsWith("다음 중 AC3"))).toBe(true);
   });
 });
+
+describe("RichText — 콘텐츠 표시 수정 회귀(2402 Q2·2405 Q38/Q63·중첩 번호)", () => {
+  // note 타입도 병합 대상 — CSTS 각주(※…)의 "…의미한"+"다." 조각을 잇는다(2402 Q2).
+  it("note 블록의 한국어 어미 분절을 이어붙인다", async () => {
+    const el = await renderRichTextEl([
+      { type: "note", text: "※ A < B는 A의 개념보다 B가 더 광범위한 용어임을 의미한" },
+      { type: "note", text: "다. A = B는 A와 B가 동일한 범위를 가짐을 의미한" },
+      { type: "note", text: "다." },
+    ]);
+    const text = el.textContent || "";
+    expect(text).toContain("의미한다. A = B는");
+    expect(text).toContain("가짐을 의미한다.");
+    // 조각 "다."가 별도 줄로 남지 않는다.
+    const lines = Array.from(el.querySelectorAll(".text-line")).map((n) => (n.textContent || "").trim());
+    expect(lines).not.toContain("다.");
+  });
+
+  // 다단계 번호("1.1")는 marker가 통째로 잡히고 들여쓰기 클래스가 붙는다.
+  it("'1.1 기능' 항목은 1.1 전체가 마커이고 들여쓴다", async () => {
+    const el = await renderRichTextEl([
+      { type: "note", text: "1. 기능적 요구사항" },
+      { type: "note", text: "1.1 기능 1" },
+      { type: "note", text: "2.3 신뢰성 요구사항" },
+    ]);
+    const text = el.textContent || "";
+    expect(text).toContain("1.1 기능 1");           // "1." + "1 기능 1"로 쪼개지지 않음
+    expect(el.querySelectorAll(".indent-1").length).toBeGreaterThanOrEqual(2); // 1.1·2.3 들여쓰기
+  });
+
+  // <u>…</u> 인라인 밑줄만 해석한다(그 외 태그는 텍스트 그대로 — XSS 안전).
+  it("<u> 구간을 밑줄로 렌더하고 다른 태그는 해석하지 않는다", async () => {
+    const el = await renderRichTextEl([
+      { type: "paragraph", text: "테스트 팀은 <u>동일한 테스트 케이스를 사용하여 새로운 버전을 테스트</u> 하였다." },
+      { type: "paragraph", text: "<script>alert(1)</script><b>굵게?</b>" },
+    ]);
+    const u = el.querySelector("u");
+    expect(u?.textContent).toBe("동일한 테스트 케이스를 사용하여 새로운 버전을 테스트");
+    expect(el.querySelector("script")).toBeNull();
+    expect(el.querySelector("b")).toBeNull();
+    expect(el.textContent).toContain("<b>굵게?</b>"); // 밑줄 외 태그는 문자 그대로
+  });
+
+  // (가)~(바) 가로 나열 문단은 리스트 마커 강조 없이 그대로 한 줄 텍스트다(2405 Q38).
+  it("가로 나열 '(가) … (나) …' 문단은 마커 강조 없이 렌더된다", async () => {
+    const el = await renderRichTextEl([
+      { type: "paragraph", text: "(가) 테스트 계획서   (나) 테스트 설계 명세서   (다) 테스트 케이스 명세서" },
+    ]);
+    expect(el.querySelectorAll(".structured-marker").length).toBe(0);
+    expect(el.textContent).toContain("(가) 테스트 계획서");
+  });
+});
+
+  // formula 블록도 괄호 열림/어미 분절을 이어붙인다(B Q23·C Q31).
+describe("RichText — formula 조각 병합", () => {
+  it("괄호가 열린 formula 조각을 이어붙인다", async () => {
+    const text = await renderRichText([
+      { type: "formula", text: "E(" },
+      { type: "formula", text: "5) = (3*A(" },
+      { type: "formula", text: "4) + A(3)) / 5" },
+    ]);
+    expect(text).toContain("E(5) = (3*A(4) + A(3)) / 5");
+  });
+});
