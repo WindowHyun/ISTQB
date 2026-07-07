@@ -656,6 +656,54 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
   .wrong-note-item { grid-template-columns: 1fr; gap: 4px; }
   .wn-correct { text-align: left; }
 }
+/* 2단계 목록 항목을 버튼화(클릭 → 3단계 문항 보기). 기존 카드 룩 유지. */
+.wrong-note-item-btn {
+  width: 100%;
+  grid-template-columns: auto 1fr 1fr auto;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: border-color .15s ease, background .15s ease;
+}
+.wrong-note-item-btn:hover { border-color: var(--primary); background: var(--surface); }
+@media (max-width: 560px) { .wrong-note-item-btn { grid-template-columns: 1fr; } }
+
+/* ── 오답 노트 3단계: 팝업 내 문항 보기(읽기 전용) ───────────────────── */
+.wrong-note-view { display: flex; flex-direction: column; gap: 14px; }
+.wrong-note-view .question-stem { font-size: 14px; }
+.wrong-note-options .option {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 13.5px;
+  cursor: default;
+}
+.wrong-note-options { display: flex; flex-direction: column; gap: 8px; }
+.wrong-note-options .option.correct { border-color: var(--success); background: color-mix(in srgb, var(--success) 10%, var(--surface-2)); }
+.wrong-note-options .option.wrong { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, var(--surface-2)); }
+.wrong-note-options .option-key { font-weight: 800; }
+.wrong-note-options .option-text { flex: 1; }
+.wn-tag {
+  flex: none;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+.wrong-note-options .option.correct .wn-tag { color: var(--success); border-color: var(--success); }
+.wrong-note-options .option.wrong .wn-tag { color: var(--danger); border-color: var(--danger); }
+.wrong-note-short { display: flex; gap: 24px; margin: 0; }
+.wrong-note-short dt { font-size: 12px; color: var(--muted); font-weight: 700; }
+.wrong-note-short dd { margin: 2px 0 0; font-weight: 800; }
+.wn-loading { color: var(--muted); font-size: 13px; }
 
 /* ── 제출 전 검토(채점 확인) 팔레트(#E) ─────────────────────────────── */
 .review-hint { font-size: 13px; color: var(--muted); margin-top: 6px; }
@@ -693,6 +741,12 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 .structured-list { display: flex; flex-direction: column; gap: 6px; padding-left: 4px; }
 .structured-line { display: flex; gap: 8px; align-items: baseline; }
 .structured-marker { flex: none; font-weight: 700; color: var(--primary); min-width: 1.4em; }
+/* 하위 번호("1.1"·"2.3.1") 들여쓰기 — 요구사항 트리 등 계층 표기. */
+.text-line.indent-1, .structured-line.indent-1 { padding-left: 1.6em; }
+.text-line.indent-2, .structured-line.indent-2 { padding-left: 3.2em; }
+.text-line.indent-3, .structured-line.indent-3 { padding-left: 4.8em; }
+/* 지문 내 밑줄(문항이 "밑줄 친 부분"을 묻는 경우 — PDF 원본 표기 복원). */
+.rich-text-container u { text-underline-offset: 3px; text-decoration-thickness: 1.5px; }
 .reference-image-frame, .table-image-frame {
   display: inline-flex;
   justify-content: center;

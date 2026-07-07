@@ -112,3 +112,59 @@ test.describe("엣지-콘텐츠", () => {
     await expect(toast).toHaveCount(0, { timeout: 3_000 });
   });
 });
+
+// 콘텐츠 표시 수정 회귀 — 사용자 신고 문항(2402 Q2·2405 Q38/Q63·D Q29·요구사항 트리 들여쓰기).
+test.describe("엣지-콘텐츠 표시 수정 회귀", () => {
+  test("CSTS 2402 Q2: 각주 '…의미한다.'가 줄바꿈 없이 이어진다", async ({ page }) => {
+    await openSet(page, "CSTS", "CSTS-FL-2402");
+    await gotoQuestion(page, 2);
+    const stem = page.locator("#questionStem");
+    await expect(stem).toContainText("광범위한 용어임을 의미한다.");
+    // 조각 "다."가 별도 줄로 남지 않는다.
+    const lines = await stem.locator(".text-line").allTextContents();
+    expect(lines.map((l) => l.trim())).not.toContain("다.");
+  });
+
+  test("CSTS 2405 Q38: (가)·(라)가 마커 강조 없이 나열된다", async ({ page }) => {
+    await openSet(page, "CSTS", "CSTS-FL-2405");
+    await gotoQuestion(page, 38);
+    const stem = page.locator("#questionStem");
+    await expect(stem).toContainText("(가) 테스트 계획서");
+    await expect(stem).toContainText("(라) 테스트 절차서");
+    expect(await stem.locator(".structured-marker").count()).toBe(0);
+  });
+
+  test("CSTS 2405 Q63: '밑줄 친 부분'에 실제 밑줄이 렌더된다", async ({ page }) => {
+    await openSet(page, "CSTS", "CSTS-FL-2405");
+    await gotoQuestion(page, 63);
+    const u = page.locator("#questionStem u");
+    await expect(u).toHaveCount(1);
+    await expect(u).toContainText("동일한 테스트 케이스를 사용하여");
+  });
+
+  test("CSTS 2403 Q65: '밑줄 친 부분'에 실제 밑줄이 렌더된다", async ({ page }) => {
+    await openSet(page, "CSTS", "CSTS-FL-2403");
+    await gotoQuestion(page, 65);
+    const u = page.locator("#questionStem u");
+    await expect(u).toHaveCount(1);
+    await expect(u).toContainText("표준 준수 여부를 독립적으로 평가");
+  });
+
+  test("ISTQB D Q29: 사전 조건이 별도 단락으로 분리되고 '다음 중 이'로 표기된다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-D");
+    await gotoQuestion(page, 29);
+    const stem = page.locator("#questionStem");
+    await expect(stem).toContainText("다음 중 이 사용자 스토리에");
+    // 인수조건 3과 사전 조건이 한 줄로 붙어 있지 않다.
+    const lines = await stem.locator(".text-line, .structured-line").allTextContents();
+    expect(lines.some((l) => l.includes("업데이트되어야 한다") && l.includes("모든 테스트 케이스의"))).toBe(false);
+  });
+
+  test("CSTS 2402 Q4: 요구사항 트리 '1.1'이 들여쓰기로 렌더된다", async ({ page }) => {
+    await openSet(page, "CSTS", "CSTS-FL-2402");
+    await gotoQuestion(page, 4);
+    const stem = page.locator("#questionStem");
+    await expect(stem).toContainText("1.1 기능 1");
+    expect(await stem.locator(".indent-1").count()).toBeGreaterThanOrEqual(4); // 1.1·1.2·2.1·2.2·2.3
+  });
+});

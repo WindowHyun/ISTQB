@@ -130,6 +130,45 @@ test.describe("엣지-모달", () => {
     await expect(page.getByTestId("debug-fab")).toHaveCount(0);
   });
 
+  test("오답 노트에서 문항 클릭 → 팝업 안에서 문제·내 답·정답을 본다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    await page.getByRole("button", { name: "오답 노트 보기" }).click();
+    await page.getByTestId("wrong-note-set-btn").first().click();
+    // 2단계: 오답 목록의 문항 버튼 클릭 → 3단계 문항 보기
+    await page.getByTestId("wrong-note-item-btn").first().click();
+    const view = page.getByTestId("wrong-note-question");
+    await expect(view).toBeVisible();
+    // 지문이 실제로 렌더된다.
+    await expect(view.locator(".question-stem .rich-text-container")).not.toBeEmpty();
+    // 정답 보기가 하이라이트되고 태그가 붙는다.
+    await expect(view.locator(".option.correct")).toHaveCount(1);
+    await expect(view.locator(".option.correct .wn-tag")).toContainText("정답");
+    // 뒤로가기 → 오답 목록으로 복귀.
+    await page.getByTestId("wrong-note-question-back").click();
+    await expect(page.getByTestId("wrong-note-detail")).toBeVisible();
+  });
+
+  test("오답 문항 보기에서 내가 고른 오답이 표시된다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    // 40문항 전부 첫 보기로 응답 → 오답 다수 확보, 내 답이 항상 존재.
+    for (let i = 0; i < 40; i++) {
+      await page.locator("#options .option").first().click();
+      if (i < 39) await page.locator("#nextBtn").click();
+    }
+    await submitGrade(page);
+    await page.getByRole("button", { name: "오답 노트 보기" }).click();
+    await page.getByTestId("wrong-note-set-btn").first().click();
+    await page.getByTestId("wrong-note-item-btn").first().click();
+    const view = page.getByTestId("wrong-note-question");
+    // 내 답(오답)이 danger 스타일로 표시된다(정답과 다른 보기를 골랐던 문항).
+    await expect(view.locator(".option.wrong .wn-tag")).toContainText("내 답");
+    await expect(view.locator(".option.correct")).toHaveCount(1);
+  });
+
   test("모달이 열려 있으면 화살표 키가 뒤 문항을 바꾸지 않는다(#P3-1)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     const title = page.locator("#questionTitle");
