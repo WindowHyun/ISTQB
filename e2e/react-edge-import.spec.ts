@@ -97,4 +97,27 @@ test.describe("엣지-대용량 import", () => {
     await page.locator("#nextBtn").click();
     await expect(page.locator("#questionTitle")).toContainText("문제 2");
   });
+
+  test("id 없는 이력이 섞여도 유효한 이력만 복원되고 성공 처리된다(#P2-3)", async ({ page }) => {
+    await openSet(page, "ISTQB", SET);
+    const histories = {
+      good: {
+        id: "good-1", setId: SET, mode: "exam", answers: {}, correct: 2, total: 3,
+        createdAt: Date.now(), setTitle: "샘플문제 A",
+        wrongItems: [{ number: 1, myAnswer: ["a"], correctAnswer: ["b"] }],
+      },
+      bad: { setId: SET, mode: "exam", answers: {}, correct: 1, total: 3 }, // id(keyPath) 없음
+    };
+    await page.getByRole("button", { name: /설정/ }).click();
+    await page.locator('input[type="file"][accept=".json"]').setInputFiles({
+      name: "backup.json", mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify({ state: baseState, answers: {}, histories }), "utf-8"),
+    });
+    // 부분 실패로 '실패' 토스트가 뜨지 않고 성공 처리되어야 한다(수정 전엔 실패 토스트).
+    await expect(page.getByTestId("toast")).toContainText("복원했습니다", { timeout: 8_000 });
+    await page.keyboard.press("Escape");
+    // 유효한 good 이력이 통계에 1건 남는다.
+    await page.getByTestId("stats-open").click();
+    await expect(page.getByTestId("stats-dashboard").locator(".stats-list li")).toHaveCount(1, { timeout: 8_000 });
+  });
 });
