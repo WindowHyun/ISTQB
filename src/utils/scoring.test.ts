@@ -24,4 +24,13 @@ describe('evaluatePass', () => {
     expect(r.passed).toBe(false);
     expect(r.ratePercent).toBe(0);
   });
+
+  it('ISTQB 합격 기준 라벨은 세트 문항수에 맞춰 표기된다(#P5-3)', () => {
+    // 40문항 세트: 기존과 동일하게 26/40.
+    expect(evaluatePass('istqb', 26, 40).criterionLabel).toBe('26 / 40문항(65%) 이상 정답');
+    // EXTRA(26문항) 세트: 40 고정이 아니라 17/26로 표기.
+    expect(evaluatePass('istqb', 17, 26).criterionLabel).toBe('17 / 26문항(65%) 이상 정답');
+    // 70문항 세트: 46/70.
+    expect(evaluatePass('istqb', 46, 70).criterionLabel).toBe('46 / 70문항(65%) 이상 정답');
+  });
 });

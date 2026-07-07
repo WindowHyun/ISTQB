@@ -129,4 +129,22 @@ test.describe("엣지-모달", () => {
     await page.getByTestId("debug-off").click();
     await expect(page.getByTestId("debug-fab")).toHaveCount(0);
   });
+
+  test("모달이 열려 있으면 화살표 키가 뒤 문항을 바꾸지 않는다(#P3-1)", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    const title = page.locator("#questionTitle");
+    const before = (await title.textContent()) || "";
+    // '문항 이동' 팔레트 모달을 연다.
+    await page.getByTestId("palette-jump-btn").click();
+    await expect(page.getByTestId("palette-jump")).toBeVisible();
+    // 모달이 떠 있는 동안 화살표는 무시되어야 한다(모달 뒤 문항 불변).
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowRight");
+    await expect(title).toHaveText(before);
+    // 모달을 닫으면 화살표가 다시 정상 동작한다.
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("palette-jump")).toHaveCount(0);
+    await page.keyboard.press("ArrowRight");
+    await expect(title).not.toHaveText(before);
+  });
 });

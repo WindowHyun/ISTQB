@@ -66,6 +66,15 @@ export const QuestionWorkspace = () => {
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
         return;
       }
+      // 오버레이(모달/드로어)가 열려 있으면 화살표가 뒤 문항을 바꾸지 않도록 무시한다.
+      // Modal은 Esc/Tab만 가로채고 화살표는 통과시키며, 모달 포커스는 버튼이라 위 입력 가드에도 안 걸린다.
+      const s = useQuizStore.getState();
+      if (
+        s.settingsOpen || s.statsOpen || s.wrongNoteOpen || s.resultOpen || s.paletteOpen ||
+        s.confirmGradeOpen || s.pendingMode || s.resumePrompt || s.drawerOpen
+      ) {
+        return;
+      }
       if (event.key === 'ArrowLeft') setIndex((i) => Math.max(0, i - 1));
       else if (event.key === 'ArrowRight') setIndex((i) => Math.min(total - 1, i + 1));
     };
