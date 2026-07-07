@@ -25,6 +25,15 @@ describe('evaluatePass', () => {
     expect(r.ratePercent).toBe(0);
   });
 
+  it('표시 퍼센트는 내림이라 판정과 모순되지 않는다(64.x%가 "65%·불합격"으로 뜨지 않음)', () => {
+    const r = evaluatePass('istqb', 97, 150); // 64.67% — 반올림이면 65%로 표기돼 판정(불합격)과 모순
+    expect(r.passed).toBe(false);
+    expect(r.ratePercent).toBe(64);
+    const exact = evaluatePass('istqb', 13, 20); // 정확히 65% — 부동소수 오차에도 65로 표기
+    expect(exact.passed).toBe(true);
+    expect(exact.ratePercent).toBe(65);
+  });
+
   it('ISTQB 합격 기준 라벨은 세트 문항수에 맞춰 표기된다(#P5-3)', () => {
     // 40문항 세트: 기존과 동일하게 26/40.
     expect(evaluatePass('istqb', 26, 40).criterionLabel).toBe('26 / 40문항(65%) 이상 정답');

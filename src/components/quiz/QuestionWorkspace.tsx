@@ -5,6 +5,7 @@ import { useQuizSession } from '../../hooks/useQuizSession';
 import { flushPersist } from '../../utils/storage';
 import { QuestionCard } from './QuestionCard';
 import { QuestionPalette } from './QuestionPalette';
+import { ErrorState } from '../common/ErrorState';
 
 export const QuestionWorkspace = () => {
   // 슬라이스 구독(O1) — elapsedSeconds를 구독하지 않으므로 타이머 틱에 리렌더되지 않는다.
@@ -21,6 +22,7 @@ export const QuestionWorkspace = () => {
   })));
   const {
     appData, currentQuestions, answered, isGraded, canGrade, requestGrade,
+    loadError, retryLoad,
   } = useQuizSession();
 
   useEffect(() => {
@@ -83,11 +85,19 @@ export const QuestionWorkspace = () => {
   }, [setIndex, currentQuestions.length]);
 
   if (!currentQuestions.length) {
-    // 오답 모드에서 비어 있으면 "틀린 문항 없음", 그 외엔 로딩 스켈레톤.
+    // 로드 실패가 최우선(오답 모드보다 먼저) — 아니면 오답 모드의 fetch 실패가
+    // "틀린 문항 없음"으로 오표시돼 재시도 경로가 사라진다. 그다음 오답 없음, 그 외 스켈레톤.
     const isEmptyReview = mode === 'review';
     return (
       <section className="workspace" aria-label="문제 풀이 영역">
-        {isEmptyReview ? (
+        {loadError ? (
+          <article className="question-card" data-testid="load-error">
+            <ErrorState message={loadError} />
+            <button type="button" className="primary" data-testid="load-retry" onClick={retryLoad}>
+              다시 시도
+            </button>
+          </article>
+        ) : isEmptyReview ? (
           <article className="question-card">
             <p className="nav-summary">표시할 오답 문항이 없습니다.</p>
           </article>

@@ -101,7 +101,6 @@ test.describe("엣지-영속성", () => {
   });
 
   test("내보내기→초기화→가져오기 라운드트립으로 답안이 복원된다", async ({ page }) => {
-    page.on("dialog", (d) => d.accept());
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await page.locator("#options .option").first().click();
     await page.waitForTimeout(800);
@@ -112,6 +111,7 @@ test.describe("엣지-영속성", () => {
     ]);
     const fp = await download.path();
     await page.getByRole("button", { name: "현재 모드 답안 초기화" }).click();
+    await page.getByTestId("confirm-reset-yes").click();
     await page.waitForTimeout(300);
     expect(await page.locator("#questionNav button.answered").count()).toBe(0);
     await page.locator('input[type="file"][accept=".json"]').setInputFiles(fp as string);
@@ -119,13 +119,13 @@ test.describe("엣지-영속성", () => {
     expect(await page.locator("#questionNav button.answered").count()).toBeGreaterThanOrEqual(1);
   });
 
-  test("현재 모드 답안 초기화는 confirm 수락 시 동작한다", async ({ page }) => {
-    page.on("dialog", (d) => d.accept());
+  test("현재 모드 답안 초기화는 2단계 확인 후 동작한다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await page.locator("#options .option").first().click();
     expect(await page.locator("#questionNav button.answered").count()).toBeGreaterThanOrEqual(1);
     await page.getByRole("button", { name: /설정/ }).click();
     await page.getByRole("button", { name: "현재 모드 답안 초기화" }).click();
+    await page.getByTestId("confirm-reset-yes").click();
     await page.waitForTimeout(300);
     expect(await page.locator("#questionNav button.answered").count()).toBe(0);
   });

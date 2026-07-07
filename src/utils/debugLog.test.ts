@@ -31,4 +31,15 @@ describe('debugLog 화면 콘솔 버스', () => {
     console.log({ a: 1, b: 'two' });
     expect(getLogs().some((l) => l.text.includes('"a":1'))).toBe(true);
   });
+
+  it('비활성화하면 버퍼 적재도 멈춘다(오버레이만 숨는 것이 아님)', () => {
+    setDebugEnabled(false);
+    clearLogs();
+    console.log('captured-while-off');
+    expect(getLogs().some((l) => l.text.includes('captured-while-off'))).toBe(false);
+    // 다시 켜면 이후 로그부터 캡처된다.
+    setDebugEnabled(true);
+    console.log('captured-while-on');
+    expect(getLogs().some((l) => l.text.includes('captured-while-on'))).toBe(true);
+  });
 });

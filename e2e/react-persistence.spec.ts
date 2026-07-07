@@ -51,7 +51,6 @@ test.describe("영속성/백업", () => {
   });
 
   test("내보내기→초기화→가져오기 라운드트립으로 답안이 복원된다", async ({ page }) => {
-    page.on("dialog", (d) => d.accept());
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await page.locator("#options .option").first().click();
     await page.waitForTimeout(800);
@@ -63,6 +62,7 @@ test.describe("영속성/백업", () => {
     ]);
     const filePath = await download.path();
     await page.getByRole("button", { name: "현재 모드 답안 초기화" }).click();
+    await page.getByTestId("confirm-reset-yes").click();
     await page.waitForTimeout(300);
     expect(await page.locator("#questionNav button.answered").count()).toBe(0);
     await page.locator('input[type="file"][accept=".json"]').setInputFiles(filePath as string);

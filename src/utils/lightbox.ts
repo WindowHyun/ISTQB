@@ -1,7 +1,13 @@
 // 문제 그림 클릭 시 앱 내(in-app) 확대 라이트박스. 새 탭으로 이탈하지 않는다.
 // parser.tsx(바닐라 DOM)와 QuestionCard(React)에서 공유한다.
+import { lockBodyScroll } from './scrollLock';
 
 let activeOverlay: HTMLElement | null = null;
+
+// 공용 Modal이 키 이벤트 양보 판단에 쓴다(모달 위에 라이트박스가 겹칠 수 있음).
+export function isImageLightboxOpen(): boolean {
+  return activeOverlay !== null;
+}
 
 export function openImageLightbox(src: string): void {
   if (typeof document === 'undefined' || !src) return;
@@ -29,13 +35,13 @@ export function openImageLightbox(src: string): void {
   overlay.appendChild(img);
   overlay.appendChild(closeBtn);
 
-  const prevOverflow = document.body.style.overflow;
+  const unlock = lockBodyScroll();
   const prevFocused = document.activeElement as HTMLElement | null;
 
   const close = () => {
     document.removeEventListener('keydown', onKey, true);
     overlay.remove();
-    document.body.style.overflow = prevOverflow;
+    unlock();
     activeOverlay = null;
     prevFocused?.focus?.();
   };
@@ -50,7 +56,6 @@ export function openImageLightbox(src: string): void {
   closeBtn.addEventListener('click', (e) => { e.stopPropagation(); close(); });
   document.addEventListener('keydown', onKey, true);
 
-  document.body.style.overflow = 'hidden';
   document.body.appendChild(overlay);
   activeOverlay = overlay;
   closeBtn.focus(); // 공용 Modal과 동일하게 첫 포커스를 모달 내부로 이동

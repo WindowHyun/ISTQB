@@ -3,6 +3,8 @@ import { Modal } from '../common/Modal';
 import { ExamHistory } from '../../store/useQuizStore';
 import { SetSummary } from '../../hooks/useQuestions';
 import { formatClock } from '../../utils/time';
+import { displayRatePercent } from '../../utils/scoring';
+import { ConfirmButtons } from '../common/ConfirmButtons';
 
 const MODE_LABEL: Record<string, string> = {
   exam: '시험',
@@ -27,7 +29,8 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear }: StatsDashb
         title: titleOf(h.setId),
         // Number(h.id)는 NaN일 수 있어 ??로 걸러지지 않는다 — ||로 0 폴백.
         when: h.createdAt ?? (Number(h.id) || 0),
-        rate: h.total ? Math.round(((h.correct ?? 0) / h.total) * 100) : null,
+        // 결과 모달(evaluatePass)과 같은 내림 기준 — 화면마다 퍼센트가 어긋나지 않게.
+        rate: h.total ? displayRatePercent(h.correct ?? 0, h.total) : null,
       }))
       .sort((a, b) => b.when - a.when);
   }, [histories, sets]);
@@ -40,13 +43,15 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear }: StatsDashb
     return { attempts: rows.length, avg, best };
   }, [rows]);
 
-  const handleClear = () => {
-    if (confirm('저장된 모든 응시 이력을 삭제하시겠습니까?')) onClear();
-  };
-
+  // 파괴적 액션은 공용 2단계 확인 버튼으로(window.confirm은 차단형이고 모달/토스트 체계와 불일치).
   const headerExtra =
     rows.length > 0 ? (
-      <button type="button" className="danger" onClick={handleClear}>이력 비우기</button>
+      <ConfirmButtons
+        label="이력 비우기"
+        confirmLabel="정말 삭제"
+        confirmTestId="stats-clear-confirm"
+        onConfirm={onClear}
+      />
     ) : null;
 
   return (

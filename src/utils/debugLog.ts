@@ -16,6 +16,9 @@ let snapshot: LogEntry[] = []; // useSyncExternalStore용 캐시(변경 시에�
 const listeners = new Set<() => void>();
 let seq = 0;
 let patched = false;
+// 콘솔 패치는 되돌릴 수 없으므로(원본 참조가 이미 전파됨) 활성 플래그로 적재를 제어한다 —
+// 끄면 오버레이만 숨는 게 아니라 버퍼 적재도 멈춘다.
+let active = false;
 
 function emit() {
   snapshot = buffer.slice();
@@ -33,6 +36,7 @@ function fmt(v: unknown): string {
 }
 
 function push(level: LogLevel, args: unknown[]) {
+  if (!active) return;
   buffer.push({ id: ++seq, level, text: args.map(fmt).join(' '), time: Date.now() });
   if (buffer.length > MAX) buffer.shift();
   emit();
@@ -63,9 +67,11 @@ export function isDebugEnabled(): boolean {
 
 export function setDebugEnabled(on: boolean): void {
   try {
-    if (on) { localStorage.setItem(STORAGE_KEY, '1'); patchConsole(); }
+    if (on) localStorage.setItem(STORAGE_KEY, '1');
     else localStorage.removeItem(STORAGE_KEY);
   } catch { /* storage 비가용 환경 무시 */ }
+  active = on;
+  if (on) patchConsole();
   emit();
 }
 
@@ -88,5 +94,8 @@ export function clearLogs(): void { buffer.length = 0; emit(); }
       else localStorage.setItem(STORAGE_KEY, '1');
     }
   } catch { /* noop */ }
-  if (isDebugEnabled()) patchConsole();
+  if (isDebugEnabled()) {
+    active = true;
+    patchConsole();
+  }
 })();

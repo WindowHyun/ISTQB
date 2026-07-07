@@ -1,4 +1,4 @@
-import { useQuizStore, QuizState, ExamHistory } from '../store/useQuizStore';
+import { useQuizStore, QuizState, QuizMode, ExamHistory } from '../store/useQuizStore';
 import debounce from 'lodash-es/debounce';
 import { showToast } from './toast';
 
@@ -70,8 +70,10 @@ export async function loadHistoriesFromDB(): Promise<Record<string, ExamHistory>
       const request = tx.objectStore(STORE_NAME).getAll();
       request.onsuccess = () => {
         const result: Record<string, ExamHistory> = {};
-        request.result.forEach((h: ExamHistory) => {
-          result[h.id] = h;
+        // DB에는 구버전·가져오기 유래의 임의 데이터가 있을 수 있어 읽는 시점에 정제한다.
+        request.result.forEach((raw: unknown) => {
+          const h = sanitizeHistory(raw);
+          if (h) result[h.id] = h;
         });
         resolve(result);
       };
@@ -83,18 +85,33 @@ export async function loadHistoriesFromDB(): Promise<Record<string, ExamHistory>
   }
 }
 
-export async function clearHistoriesFromDB() {
+async function deleteHistoriesFromDB(ids: string[]) {
+  if (!ids.length) return;
   try {
     const db = await getDb();
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    tx.objectStore(STORE_NAME).clear();
-    await new Promise<void>((res) => {
+    await new Promise<void>((res, rej) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      ids.forEach((id) => {
+        try { store.delete(id); } catch { /* 항목 단위 실패는 나머지 삭제를 막지 않는다 */ }
+      });
       tx.oncomplete = () => res();
-      tx.onerror = () => res();
+      tx.onerror = () => rej(tx.error);
+      tx.onabort = () => rej(tx.error);
     });
   } catch (err) {
-    console.error("IndexedDB clear failed", err);
+    // 실패를 삼키면 UI(메모리)는 지워졌는데 새로고침 후 이력이 되살아나는 무통지 불일치가 된다.
+    console.error("IndexedDB delete failed", err);
+    showToast("이력 삭제에 실패했습니다.", "error");
   }
+}
+
+// 이력 삭제 단일 진입점 — 메모리(store)와 IndexedDB를 반드시 함께 지운다.
+// 한쪽만 지우는 호출부 실수는 "새로고침하면 삭제한 이력이 되살아나는" 버그 클래스를
+// 재발시키므로, 호출부는 이 함수만 사용한다.
+export function removeHistoriesEverywhere(ids: string[]): Promise<void> {
+  useQuizStore.getState().removeHistories(ids);
+  return deleteHistoriesFromDB(ids);
 }
 
 type UnknownRecord = Record<string, unknown>;
@@ -103,20 +120,70 @@ function isPlainObject(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function finiteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((s): s is string => typeof s === "string") : [];
+}
+
 // 외부(localStorage/백업 파일) 값을 신뢰하지 않고 정제한다.
 export function sanitizeAnswers(value: unknown): Record<string, string[]> {
   const result: Record<string, string[]> = {};
   if (!isPlainObject(value)) return result;
   for (const [key, choices] of Object.entries(value)) {
-    if (Array.isArray(choices)) {
-      const filtered = choices.filter((c): c is string => typeof c === "string");
-      if (filtered.length) result[key] = filtered;
-    }
+    const filtered = stringArray(choices);
+    if (filtered.length) result[key] = filtered;
   }
   return result;
 }
 
-const VALID_MODES = ["home", "exam", "practice", "random", "review"];
+// 이력은 풀이 모드에서만 생성된다. VALID_MODES는 여기서 파생 — 두 목록을 따로
+// 관리하면 모드 추가 시 한쪽 누락으로 이력이 무단 폐기되는 사고가 난다.
+const HISTORY_MODES: QuizMode[] = ["exam", "practice", "random", "review"];
+const VALID_MODES: string[] = ["home", ...HISTORY_MODES];
+
+// 외부(IndexedDB 구버전 데이터·백업 파일) 이력을 정제한다 — sanitizeAnswers/sanitizeUiState와
+// 같은 계층. 필드를 검증하지 않으면 손상된 백업의 wrongItems 등이 그대로 상태에 들어가
+// 오답노트·통계 렌더에서 예외를 일으킬 수 있다.
+export function sanitizeHistory(value: unknown): ExamHistory | null {
+  if (!isPlainObject(value)) return null;
+  if (typeof value.id !== "string" || value.id === "") return null;
+  if (typeof value.setId !== "string" || value.setId === "") return null;
+  // mode가 없거나 무효인 구버전/손상 레코드는 버리지 않고 'exam'으로 보정한다 —
+  // id·setId가 유효한 실제 응시 기록을 필드 하나 때문에 무단 폐기하지 않는다(데이터 보존).
+  const mode = HISTORY_MODES.find((m) => m === value.mode) ?? "exam";
+  const out: ExamHistory = {
+    id: value.id,
+    setId: value.setId,
+    mode,
+    answers: sanitizeAnswers(value.answers),
+  };
+  if (value.certification === "istqb" || value.certification === "csts") {
+    out.certification = value.certification;
+  }
+  const correct = finiteNumber(value.correct);
+  if (correct !== undefined) out.correct = correct;
+  const total = finiteNumber(value.total);
+  if (total !== undefined) out.total = total;
+  const elapsedSeconds = finiteNumber(value.elapsedSeconds);
+  if (elapsedSeconds !== undefined) out.elapsedSeconds = elapsedSeconds;
+  const createdAt = finiteNumber(value.createdAt);
+  if (createdAt !== undefined) out.createdAt = createdAt;
+  if (typeof value.setTitle === "string") out.setTitle = value.setTitle;
+  if (Array.isArray(value.wrongItems)) {
+    out.wrongItems = value.wrongItems
+      .filter(isPlainObject)
+      .filter((it) => typeof it.number === "number" && Number.isFinite(it.number))
+      .map((it) => ({
+        number: it.number as number,
+        myAnswer: stringArray(it.myAnswer),
+        correctAnswer: stringArray(it.correctAnswer),
+      }));
+  }
+  return out;
+}
 
 export function sanitizeUiState(value: unknown): Partial<QuizState> {
   if (!isPlainObject(value)) return {};
@@ -136,9 +203,7 @@ export function sanitizeUiState(value: unknown): Partial<QuizState> {
   if (isPlainObject(value.reviewIds)) {
     const reviewIds: Record<string, string[]> = {};
     for (const [key, ids] of Object.entries(value.reviewIds)) {
-      if (Array.isArray(ids)) {
-        reviewIds[key] = ids.filter((id): id is string => typeof id === "string");
-      }
+      if (Array.isArray(ids)) reviewIds[key] = stringArray(ids);
     }
     out.reviewIds = reviewIds;
   }
@@ -298,10 +363,12 @@ export async function importUserData(file: File): Promise<boolean> {
           const db = await getDb();
           const tx = db.transaction(STORE_NAME, "readwrite");
           const store = tx.objectStore(STORE_NAME);
-          // keyPath('id')가 없는 이력은 put이 동기 throw로 트랜잭션을 깨뜨려
-          // 부분 가져오기 + 실패 토스트를 유발하므로 걸러낸다(#P2-3). 각 put도 예외 격리.
-          (Object.values(data.histories) as ExamHistory[])
-            .filter((h) => h && typeof h.id === "string" && h.id !== "")
+          // 손상·조작된 백업 항목을 정제해 걸러낸다(#P2-3 keyPath 누락 방어 포함).
+          // 정제 없이 put하면 keyPath('id') 없는 항목이 동기 throw로 트랜잭션을 깨뜨리고,
+          // 임의 필드가 상태에 유입돼 오답노트/통계 렌더 예외를 유발할 수 있다. 각 put도 예외 격리.
+          Object.values(data.histories)
+            .map(sanitizeHistory)
+            .filter((h): h is ExamHistory => h !== null)
             .forEach((h) => {
               try { store.put(h); } catch (err) { console.warn("이력 항목 건너뜀", err); }
             });
@@ -318,6 +385,11 @@ export async function importUserData(file: File): Promise<boolean> {
         console.error("Import failed", err);
         resolve(false);
       }
+    };
+    // 읽기 실패(권한·디스크 오류 등) 시에도 반드시 resolve해 호출부 토스트가 뜨게 한다.
+    reader.onerror = () => {
+      console.error("Import file read failed", reader.error);
+      resolve(false);
     };
     reader.readAsText(file);
   });

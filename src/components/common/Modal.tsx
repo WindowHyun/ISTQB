@@ -1,4 +1,6 @@
 import { useEffect, useRef, ReactNode } from 'react';
+import { lockBodyScroll } from '../../utils/scrollLock';
+import { isImageLightboxOpen } from '../../utils/lightbox';
 
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -17,17 +19,28 @@ interface ModalProps {
  */
 export const Modal = ({ title, onClose, children, headerExtra }: ModalProps) => {
   const panelRef = useRef<HTMLElement>(null);
+  // onClose는 호출부가 매 렌더 새 인라인 함수를 넘긴다 — effect 의존성으로 두면
+  // 결과 모달이 열린 동안(타이머 틱으로 매초 리렌더) 포커스 강탈/스크롤락 재실행이
+  // 반복되므로 ref로 최신 참조만 유지하고 effect는 마운트 시 1회만 실행한다.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
 
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
+    // 모달이 떠 있는 동안 배경 스크롤을 잠근다(라이트박스와 refcount 공유).
+    const unlock = lockBodyScroll();
     const panel = panelRef.current;
     const first = panel?.querySelector<HTMLElement>(FOCUSABLE);
     (first || panel)?.focus();
 
     const handleKey = (e: KeyboardEvent) => {
+      // 라이트박스가 모달 위에 떠 있으면 키 처리는 라이트박스 몫이다 — 둘 다 document
+      // 캡처 리스너라 stopPropagation이 서로를 막지 못해, 가드 없이는 Esc 한 번에
+      // 라이트박스와 모달이 함께 닫힌다.
+      if (isImageLightboxOpen()) return;
       if (e.key === 'Escape') {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key === 'Tab' && panel) {
@@ -48,9 +61,10 @@ export const Modal = ({ title, onClose, children, headerExtra }: ModalProps) => 
     document.addEventListener('keydown', handleKey, true);
     return () => {
       document.removeEventListener('keydown', handleKey, true);
+      unlock();
       previouslyFocused?.focus?.();
     };
-  }, [onClose]);
+  }, []);
 
   return (
     <div className="modal-backdrop" onClick={onClose}>

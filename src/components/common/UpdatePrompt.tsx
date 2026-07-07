@@ -1,19 +1,24 @@
+import { useEffect, useRef } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
 // 새 버전(서비스워커) 감지 시 하단 배너로 알리고, 사용자가 1탭으로 갱신한다.
 // registerType: 'prompt' + injectRegister: false 와 함께 동작한다.
 export const UpdatePrompt = () => {
+  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({
     onRegisteredSW(_swUrl, registration) {
       // 1시간마다 백그라운드로 새 버전 확인.
+      // 재등록(StrictMode 이중 실행 포함) 시 기존 인터벌을 먼저 지워 중복을 막는다.
       if (registration) {
-        setInterval(() => { registration.update().catch(() => {}); }, 60 * 60 * 1000);
+        clearInterval(intervalRef.current);
+        intervalRef.current = setInterval(() => { registration.update().catch(() => {}); }, 60 * 60 * 1000);
       }
     },
   });
+  useEffect(() => () => clearInterval(intervalRef.current), []);
 
   if (!needRefresh) return null;
 

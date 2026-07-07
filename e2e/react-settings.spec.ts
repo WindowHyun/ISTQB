@@ -42,13 +42,13 @@ test.describe("설정", () => {
     await expect(page.getByRole("button", { name: "CSTS" })).toBeVisible();
   });
 
-  test("'선택 답안 초기화'가 confirm 수락 시 동작한다", async ({ page }) => {
-    page.on("dialog", (d) => d.accept());
+  test("'선택 답안 초기화'가 2단계 확인 후 동작한다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await page.locator("#options .option").first().click();
     expect(await page.locator("#questionNav button.answered").count()).toBeGreaterThanOrEqual(1);
     await page.getByRole("button", { name: /설정/ }).click();
     await page.getByRole("button", { name: "현재 모드 답안 초기화" }).click();
+    await page.getByTestId("confirm-reset-yes").click();
     await page.waitForTimeout(300);
     expect(await page.locator("#questionNav button.answered").count()).toBe(0);
   });
