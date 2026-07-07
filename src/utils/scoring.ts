@@ -27,7 +27,8 @@ export function evaluatePass(cert: Certification, correct: number, total: number
   return {
     passed: rate >= 65,
     ratePercent,
-    criterionLabel: '26 / 40문항(65%) 이상 정답',
+    // 세트 문항수(total)에 맞춰 필요 정답 수를 산출한다(EXTRA 26문항 등에서 "26/40" 오표기 방지, #P5-3).
+    criterionLabel: `${Math.ceil(total * 0.65)} / ${total}문항(65%) 이상 정답`,
     scoreLabel: `${correct} / ${total} (${ratePercent}%)`,
   };
 }
