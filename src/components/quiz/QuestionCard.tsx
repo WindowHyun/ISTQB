@@ -60,7 +60,9 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
   const [showFeedback, setShowFeedback] = useState(false);
 
   const answerKey = `${setId}-${mode}-${question.id || question.number}`;
-  const selected = answers[answerKey] || [];
+  // `|| []` 폴백을 useMemo로 감싸 참조를 안정화 — handleSelect(useCallback) 의존성이
+  // 매 렌더 바뀌는 것을 막는다(react-hooks/exhaustive-deps 경고 해소).
+  const selected = React.useMemo(() => answers[answerKey] || [], [answers, answerKey]);
 
   const hasOptions = question.options.length > 0;
   const isTrueFalse = !hasOptions && question.type === 'true_false';

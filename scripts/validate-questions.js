@@ -151,7 +151,9 @@ function validateQuestion(q, filePath, allIds, allNumbers) {
     if (optionMatches) {
       const realMatches = optionMatches.filter(m => !m.includes('다.') && !m.includes('라.'));
       if (realMatches.length >= 2) {
-        if (!['ISTQB-FL-V4-B-017', 'ISTQB-FL-V4-D-004', 'CSTS-EL-2018-002'].includes(qId)) {
+        // CSTS-EL-2018-010: 보기(가~라)가 지문에 오는 원본 구조 — 렌더 정상(E2E 4항목 검증).
+        // CSTS-FL-2402-024: 보기(A~J) 목록이 지문에 오는 원본 구조 — 선택지는 조합(①~④).
+        if (!['ISTQB-FL-V4-B-017', 'ISTQB-FL-V4-D-004', 'CSTS-EL-2018-002', 'CSTS-EL-2018-010', 'CSTS-FL-2402-024'].includes(qId)) {
           log('WARNING', filePath, qId, `stem 안에 보기 패턴이 남아있을 가능성 있음`);
         }
       }

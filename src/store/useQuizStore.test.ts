@@ -67,3 +67,79 @@ describe("useQuizStore 채점 관련 액션", () => {
     expect(useQuizStore.getState().elapsedSeconds).toBeGreaterThanOrEqual(1.5);
   });
 });
+
+describe("useQuizStore 세션/네비/타이머 액션", () => {
+  beforeEach(reset);
+
+  it("setAnswer는 기존 답안을 보존하며 키를 추가·갱신한다", () => {
+    useQuizStore.getState().setAnswer("S-exam-1", ["a"]);
+    useQuizStore.getState().setAnswer("S-exam-2", ["b"]);
+    useQuizStore.getState().setAnswer("S-exam-1", ["c"]); // 갱신
+    const a = useQuizStore.getState().answers;
+    expect(a["S-exam-1"]).toEqual(["c"]);
+    expect(a["S-exam-2"]).toEqual(["b"]);
+  });
+
+  it("setIndex는 값·함수형 둘 다 지원한다", () => {
+    useQuizStore.getState().setIndex(5);
+    expect(useQuizStore.getState().index).toBe(5);
+    useQuizStore.getState().setIndex((i) => i + 2);
+    expect(useQuizStore.getState().index).toBe(7);
+  });
+
+  it("clearAnswers는 유사 접두 세트id(S vs S-1)를 오삭제하지 않는다", () => {
+    useQuizStore.setState({ answers: { "S-exam-1": ["a"], "S-1-exam-1": ["b"] } });
+    useQuizStore.getState().clearAnswers("S", "exam");
+    const a = useQuizStore.getState().answers;
+    expect(a["S-exam-1"]).toBeUndefined();
+    expect(a["S-1-exam-1"]).toEqual(["b"]); // "S-1" 세트는 보존
+  });
+
+  it("clearHistory는 세트+모드가 일치하는 이력만 지운다", () => {
+    useQuizStore.getState().addHistory({ id: "1", setId: "S", mode: "exam", answers: {} });
+    useQuizStore.getState().addHistory({ id: "2", setId: "S", mode: "random", answers: {} });
+    useQuizStore.getState().addHistory({ id: "3", setId: "T", mode: "exam", answers: {} });
+    useQuizStore.getState().clearHistory("S", "exam");
+    const h = useQuizStore.getState().histories;
+    expect(h["1"]).toBeUndefined();
+    expect(h["2"]).toBeDefined();
+    expect(h["3"]).toBeDefined();
+  });
+
+  it("startTimer/resetTimer는 기준 시각과 경과를 관리한다", () => {
+    useQuizStore.getState().startTimer();
+    const st = useQuizStore.getState();
+    expect(st.startedAt).not.toBeNull();
+    expect(st.lastTick).not.toBeNull();
+    useQuizStore.setState({ elapsedSeconds: 42 });
+    useQuizStore.getState().resetTimer();
+    expect(useQuizStore.getState().elapsedSeconds).toBe(0);
+  });
+
+  it("resetToGate는 게이트로 되돌리고 모든 오버레이를 닫는다", () => {
+    useQuizStore.setState({
+      mode: "exam", activeProduct: "istqb",
+      settingsOpen: true, statsOpen: true, wrongNoteOpen: true, resultOpen: true,
+      paletteOpen: true, confirmGradeOpen: true, drawerOpen: true,
+      pendingMode: "random", resumeNotice: true, resumePrompt: true,
+    });
+    useQuizStore.getState().resetToGate();
+    const st = useQuizStore.getState();
+    expect(st.mode).toBe("home");
+    expect(st.activeProduct).toBeNull();
+    for (const k of [
+      "settingsOpen", "statsOpen", "wrongNoteOpen", "resultOpen",
+      "paletteOpen", "confirmGradeOpen", "drawerOpen", "resumeNotice", "resumePrompt",
+    ] as const) expect(st[k]).toBe(false);
+    expect(st.pendingMode).toBeNull();
+  });
+
+  it("hydrate는 부분 상태를 병합하고 나머지는 보존한다", () => {
+    useQuizStore.setState({ setId: "S", index: 3 });
+    useQuizStore.getState().hydrate({ index: 9, elapsedSeconds: 100 });
+    const st = useQuizStore.getState();
+    expect(st.index).toBe(9);
+    expect(st.elapsedSeconds).toBe(100);
+    expect(st.setId).toBe("S"); // 미지정 필드 보존
+  });
+});
