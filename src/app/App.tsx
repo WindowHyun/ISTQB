@@ -1,7 +1,7 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../store/useQuizStore';
-import { restorePersistentSnapshot } from '../utils/storage';
+import { restorePersistentSnapshot, flushPersist } from '../utils/storage';
 import { safeSetItem } from '../utils/safeStorage';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { MobileTopBar } from '../components/layout/MobileTopBar';
@@ -44,6 +44,10 @@ export const App = () => {
   }, [drawerOpen, setDrawerOpen]);
 
   const handleProductSelect = async (product: 'istqb' | 'csts') => {
+    // 제품을 바꾸기 전에 이전 제품의 대기 중 저장을 지금 flush한다(#P1-1 방어).
+    // 디바운스 저장은 실행 시점의 activeProduct로 키를 정하므로, 남은 저장이 새 제품 키에
+    // 잘못 기록되는 경합 창을 없앤다. 최초 진입(activeProduct=null) 시에는 내부에서 no-op.
+    flushPersist();
     safeSetItem("istqb-fl-v4-sample-last-product", product);
     setActiveProduct(product);
     await restorePersistentSnapshot(product);
