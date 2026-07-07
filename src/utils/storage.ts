@@ -1,5 +1,6 @@
 import { useQuizStore, QuizState, ExamHistory } from '../store/useQuizStore';
 import debounce from 'lodash-es/debounce';
+import { showToast } from './toast';
 
 const DB_NAME = "istqb-db";
 const STORE_NAME = "history";
@@ -9,7 +10,7 @@ let dbPromise: Promise<IDBDatabase> | null = null;
 
 function getDb(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise;
-  dbPromise = new Promise((resolve, reject) => {
+  const p = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
@@ -20,7 +21,11 @@ function getDb(): Promise<IDBDatabase> {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
-  return dbPromise;
+  // 열기 실패(일시 오류 등) 시 캐시를 비워 다음 호출이 재시도하도록 한다(#P2-2).
+  // 거부된 Promise를 영구 캐시하면 새로고침 전까지 이력 저장/조회가 고착된다.
+  p.catch(() => { if (dbPromise === p) dbPromise = null; });
+  dbPromise = p;
+  return p;
 }
 
 function getActiveProduct() {
@@ -42,10 +47,18 @@ function persistenceKey() {
 export async function saveHistoryToDB(history: ExamHistory) {
   try {
     const db = await getDb();
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    tx.objectStore(STORE_NAME).put(history);
+    // 트랜잭션 완료를 기다리고 async 실패(쿼터 초과·abort)까지 포착한다(#P2-1).
+    // 기다리지 않으면 커밋 실패 시 메모리엔 있으나 새로고침 후 사라지는 무통지 유실이 된다.
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      tx.objectStore(STORE_NAME).put(history);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
   } catch (err) {
     console.error("IndexedDB save failed", err);
+    showToast("채점 이력 저장에 실패했습니다.", "error");
   }
 }
 
@@ -285,7 +298,13 @@ export async function importUserData(file: File): Promise<boolean> {
           const db = await getDb();
           const tx = db.transaction(STORE_NAME, "readwrite");
           const store = tx.objectStore(STORE_NAME);
-          (Object.values(data.histories) as ExamHistory[]).forEach((h) => store.put(h));
+          // keyPath('id')가 없는 이력은 put이 동기 throw로 트랜잭션을 깨뜨려
+          // 부분 가져오기 + 실패 토스트를 유발하므로 걸러낸다(#P2-3). 각 put도 예외 격리.
+          (Object.values(data.histories) as ExamHistory[])
+            .filter((h) => h && typeof h.id === "string" && h.id !== "")
+            .forEach((h) => {
+              try { store.put(h); } catch (err) { console.warn("이력 항목 건너뜀", err); }
+            });
           // 복원이 DB를 읽기 전에 트랜잭션 커밋을 기다린다.
           await new Promise<void>((res) => {
             tx.oncomplete = () => res();
