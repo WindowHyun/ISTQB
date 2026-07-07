@@ -104,6 +104,33 @@ test.describe("비기능 · 성능(응답 시간)", () => {
     note(testInfo, "150건 통계 렌더", `${Date.now() - t0}ms`);
     expect(Date.now() - t0).toBeLessThan(budget(2000, 5000));
   });
+
+  test("NF12 장기 사용 스케일: 이력 1,000건 통계 렌더·스크롤", async ({ page }, testInfo) => {
+    // histories 무한 증가(known-issue) 대비 — 수년치 사용량 규모에서도 UI가 버티는지.
+    await openSet(page, "ISTQB", A);
+    const histories: Record<string, unknown> = {};
+    for (let i = 0; i < 1000; i++) {
+      const id = String(10000 + i);
+      histories[id] = { id, setId: A, mode: i % 2 ? "exam" : "random", answers: {}, correct: i % 41, total: 40, createdAt: Date.now() - i * 60_000 };
+    }
+    await page.getByRole("button", { name: /설정/ }).click();
+    await page.locator('input[type="file"][accept=".json"]').setInputFiles({
+      name: "hist1k.json", mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify({ answers: {}, histories }), "utf-8"),
+    });
+    await expect(page.getByTestId("toast")).toBeVisible({ timeout: 15_000 });
+    await page.keyboard.press("Escape");
+    const t0 = Date.now();
+    await page.getByTestId("stats-open").click();
+    await expect(page.getByTestId("stats-dashboard").locator(".stats-list li")).toHaveCount(1000, { timeout: 15_000 });
+    const dt = Date.now() - t0;
+    note(testInfo, "1,000건 통계 렌더", `${dt}ms`);
+    expect(dt).toBeLessThan(budget(4000, 9000));
+    // 스크롤이 끊기지 않고 동작(마지막 항목 도달).
+    const list = page.getByTestId("stats-dashboard").locator(".stats-list li");
+    await list.last().scrollIntoViewIfNeeded();
+    await expect(list.last()).toBeVisible();
+  });
 });
 
 test.describe("비기능 · 부하/스트레스·메모리", () => {
