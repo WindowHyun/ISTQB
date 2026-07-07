@@ -49,6 +49,29 @@ describe('storage IndexedDB', () => {
     expect(loaded['retry-1']).toBeTruthy(); // 수정 전(거부 영구 캐시)이면 여기서 실패
   });
 
+  it('removeHistoriesEverywhere는 메모리(store)와 DB에서 함께 삭제한다', async () => {
+    const s = await freshStorage();
+    const { useQuizStore } = await import('../store/useQuizStore');
+    await s.saveHistoryToDB(hist('rm-1'));
+    await s.saveHistoryToDB(hist('rm-2'));
+    useQuizStore.setState({ histories: { 'rm-1': hist('rm-1'), 'rm-2': hist('rm-2') } });
+
+    await s.removeHistoriesEverywhere(['rm-1']);
+
+    // 메모리에서 즉시 제거되고,
+    expect(useQuizStore.getState().histories['rm-1']).toBeUndefined();
+    expect(useQuizStore.getState().histories['rm-2']).toBeDefined();
+    // DB에서도 제거돼 재로드(새로고침) 시 되살아나지 않는다.
+    const loaded = await s.loadHistoriesFromDB();
+    expect(loaded['rm-1']).toBeUndefined();
+    expect(loaded['rm-2']).toBeTruthy();
+  });
+
+  it('removeHistoriesEverywhere: 빈 id 목록은 no-op으로 안전하다', async () => {
+    const s = await freshStorage();
+    await expect(s.removeHistoriesEverywhere([])).resolves.toBeUndefined();
+  });
+
   it('저장 트랜잭션이 실패해도 예외를 던지지 않고 통지 경로로 흡수한다(P2-1: 무통지 유실 방지)', async () => {
     const s = await freshStorage();
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
