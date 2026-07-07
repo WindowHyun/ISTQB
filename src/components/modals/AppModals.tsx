@@ -130,6 +130,15 @@ export const AppModals = () => {
   const selectedWrongQuestion = selectedWrongItem
     ? wrongNoteQuestions?.find((q) => q.number === selectedWrongItem.number) ?? null
     : null;
+  // 3단계 ‹ › 이동: 같은 회차의 오답 목록 안에서 이전/다음 오답 문항으로 넘긴다.
+  const wrongItems = selectedWrong?.wrongItems ?? [];
+  const wrongItemIndex = selectedWrongItem
+    ? wrongItems.findIndex((it) => it.number === selectedWrongItem.number)
+    : -1;
+  const gotoWrongItem = (delta: number) => {
+    const next = wrongItems[wrongItemIndex + delta];
+    if (next) setWrongNoteQuestionNo(next.number);
+  };
 
   const handleHome = () => {
     setSettingsOpen(false);
@@ -255,14 +264,42 @@ export const AppModals = () => {
             ) : selectedWrongItem ? (
               // 3단계: 선택한 오답 문항 보기(지문·보기 + 내 답/정답 하이라이트, 읽기 전용)
               <div data-testid="wrong-note-question">
-                <button
-                  type="button"
-                  className="wrong-note-back"
-                  data-testid="wrong-note-question-back"
-                  onClick={() => setWrongNoteQuestionNo(null)}
-                >
-                  ← 오답 목록
-                </button>
+                <div className="wrong-note-question-head">
+                  <button
+                    type="button"
+                    className="wrong-note-back"
+                    data-testid="wrong-note-question-back"
+                    onClick={() => setWrongNoteQuestionNo(null)}
+                  >
+                    ← 오답 목록
+                  </button>
+                  {/* 같은 회차의 이전/다음 오답 문항으로 이동. 끝에서는 비활성. */}
+                  <div className="wn-nav" role="group" aria-label="오답 문항 이동">
+                    <button
+                      type="button"
+                      className="wn-nav-btn"
+                      data-testid="wrong-note-prev"
+                      aria-label="이전 오답 문항"
+                      disabled={wrongItemIndex <= 0}
+                      onClick={() => gotoWrongItem(-1)}
+                    >
+                      ‹
+                    </button>
+                    <span className="wn-nav-pos" data-testid="wrong-note-pos">
+                      {wrongItemIndex + 1} / {wrongItems.length}
+                    </span>
+                    <button
+                      type="button"
+                      className="wn-nav-btn"
+                      data-testid="wrong-note-next"
+                      aria-label="다음 오답 문항"
+                      disabled={wrongItemIndex >= wrongItems.length - 1}
+                      onClick={() => gotoWrongItem(1)}
+                    >
+                      ›
+                    </button>
+                  </div>
+                </div>
                 <h4 className="wrong-note-set">
                   문제 {selectedWrongItem.number}
                   <small>

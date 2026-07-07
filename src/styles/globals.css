@@ -670,6 +670,23 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 @media (max-width: 560px) { .wrong-note-item-btn { grid-template-columns: 1fr; } }
 
 /* ── 오답 노트 3단계: 팝업 내 문항 보기(읽기 전용) ───────────────────── */
+.wrong-note-question-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.wn-nav { display: flex; align-items: center; gap: 8px; }
+.wn-nav-btn {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+.wn-nav-btn:hover:not(:disabled) { border-color: var(--primary); background: var(--surface); }
+.wn-nav-btn:disabled { opacity: .35; cursor: default; }
+.wn-nav-pos { font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
 .wrong-note-view { display: flex; flex-direction: column; gap: 14px; }
 .wrong-note-view .question-stem { font-size: 14px; }
 .wrong-note-options .option {

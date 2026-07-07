@@ -169,6 +169,38 @@ test.describe("엣지-모달", () => {
     await expect(view.locator(".option.correct")).toHaveCount(1);
   });
 
+  test("오답 문항 보기에서 ‹ ›로 이전/다음 오답으로 이동한다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    // 전 문항 첫 보기 응답 → 오답 2개 이상 확보(정답이 전부 a일 수는 없음).
+    for (let i = 0; i < 40; i++) {
+      await page.locator("#options .option").first().click();
+      if (i < 39) await page.locator("#nextBtn").click();
+    }
+    await submitGrade(page);
+    await page.getByRole("button", { name: "오답 노트 보기" }).click();
+    await page.getByTestId("wrong-note-set-btn").first().click();
+    await page.getByTestId("wrong-note-item-btn").first().click();
+    const view = page.getByTestId("wrong-note-question");
+    const title = view.locator(".wrong-note-set");
+    const first = (await title.textContent()) || "";
+    // 첫 오답: ‹ 비활성, 위치 "1 / N".
+    await expect(page.getByTestId("wrong-note-prev")).toBeDisabled();
+    await expect(page.getByTestId("wrong-note-pos")).toContainText("1 /");
+    // › 다음 오답으로 이동 → 문제 번호가 바뀌고 위치 갱신, ‹ 활성화.
+    await page.getByTestId("wrong-note-next").click();
+    await expect(title).not.toHaveText(first);
+    await expect(page.getByTestId("wrong-note-pos")).toContainText("2 /");
+    await expect(page.getByTestId("wrong-note-prev")).toBeEnabled();
+    // ‹ 로 처음 오답으로 복귀.
+    await page.getByTestId("wrong-note-prev").click();
+    await expect(title).toHaveText(first);
+    // 마지막 오답에서는 › 비활성.
+    const total = Number(((await page.getByTestId("wrong-note-pos").textContent()) || "").split("/")[1].trim());
+    for (let i = 1; i < total; i++) await page.getByTestId("wrong-note-next").click();
+    await expect(page.getByTestId("wrong-note-next")).toBeDisabled();
+  });
+
   test("모달이 열려 있으면 화살표 키가 뒤 문항을 바꾸지 않는다(#P3-1)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     const title = page.locator("#questionTitle");
