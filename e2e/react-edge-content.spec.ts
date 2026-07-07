@@ -158,6 +158,9 @@ test.describe("엣지-콘텐츠 표시 수정 회귀", () => {
     // 인수조건 3과 사전 조건이 한 줄로 붙어 있지 않다.
     const lines = await stem.locator(".text-line, .structured-line").allTextContents();
     expect(lines.some((l) => l.includes("업데이트되어야 한다") && l.includes("모든 테스트 케이스의"))).toBe(false);
+    // "모든 테스트 케이스의"가 고아 줄로 쪼개지지도 않는다(분리 규칙은 구절 전체 기준).
+    expect(lines.map((l) => l.trim())).not.toContain("모든 테스트 케이스의");
+    expect(lines.some((l) => l.startsWith("모든 테스트 케이스의 사전 조건은"))).toBe(true);
   });
 
   test("CSTS 2402 Q4: 요구사항 트리 '1.1'이 들여쓰기로 렌더된다", async ({ page }) => {
