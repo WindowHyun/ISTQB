@@ -43,7 +43,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 - **PDF ↔ 데이터 전수 정합성 검증** — 626문항 정답·보기·stem을 **공식 PDF와 1:1 대조**(대조 가능 600문항 불일치 0). 더해 `npm run verify`로 정답·이미지·스키마 자동 점검 + 전 문항 렌더 스윕(404·예외·깨진 이미지 0).
 - **자격증별 컷스코어·접근성** — ISTQB 65% / CSTS 환산 52.5점 합격 판정, 색각 대비 글리프·포커스 트랩·reduced-motion 등 a11y 반영.
 - **결함 RCA & 회귀 방지** — PDF 원본 ↔ 앱 렌더를 전수 대조해 결함을 찾고, 반복 결함의 근본원인을 분석해 **클래스 단위**로 차단(케이스별 회귀 테스트 추가).
-- **CI 품질 게이트** — GitHub Actions **8-job** 통과 시에만 머지: 품질 5(lint·verify·unit·build·e2e) + **보안 3(의존성 감사·시크릿 스캔·CodeQL 정적분석)**. unit은 커버리지 임계값, build는 번들 크기 예산까지 게이트. 추가로 **매일 예약 E2E**(`daily-e2e.yml`, KST 09:17)가 회귀를 상시 감시하고 실패 시 이슈로 알림.
+- **CI 품질 게이트** — GitHub Actions **9-job** 통과 시에만 머지: 기능·품질 6(lint·verify·unit·build·e2e·**nonfunctional**) + **보안 3(의존성 감사·시크릿 스캔·CodeQL 정적분석)**. unit은 커버리지 임계값, build는 번들 크기 예산, nonfunctional은 성능·부하·메모리·타이머·오프라인·데이터 내구성까지 게이트. 추가로 **매일 예약 E2E**(`daily-e2e.yml`, KST 09:17)가 회귀를 상시 감시하고 실패 시 이슈로 알림.
 
 ## QA 역량 매핑
 
@@ -51,7 +51,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 |---------|----------------------|------|
 | 테스트 자동화 | Playwright **E2E 255개** + Vitest **유닛 56개** 작성·CI 연동 | `e2e/`, `src/**/*.test.ts` |
 | 테스트 설계 | 모드·문항유형·네비·설정·영속성·엣지(경계·격리·복원·대용량 import)·표/그림·반응형·접근성으로 시나리오 분해 | [`docs/e2e-test-scenarios.md`](docs/e2e-test-scenarios.md) |
-| 회귀 방지 | 결함 수정마다 회귀 테스트 추가, CI 머지 게이트 | 파서 회귀 케이스, 8-job CI |
+| 회귀 방지 | 결함 수정마다 회귀 테스트 추가, CI 머지 게이트 | 파서 회귀 케이스, 9-job CI |
 | 결함 발견·RCA | **PDF 원본 ↔ 앱 렌더 전수 대조**로 결함 식별, 반복 결함 근본원인 분석 | 아래 [Case Studies](#결함-발견--근본원인-분석-case-studies) |
 | 결함 관리 | GitHub Issues 등록·추적 + 커밋/이슈 대시보드 | `docs/commit-dashboard.html` |
 | 데이터 품질 검증 | 626문항 정답/이미지/스키마 자동 검증 스크립트 | `npm run verify` |
@@ -154,8 +154,8 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 
 ## CI 품질 게이트
 
-- GitHub Actions **8 job**(push/PR 병렬):
-  - **품질 5** — `lint`(ESLint+tsc) · `verify(데이터)` · `unit`(+커버리지 임계값 게이트) · `build`(+번들 크기 예산) · `e2e`.
+- GitHub Actions **9 job**(push/PR 병렬):
+  - **기능·품질 6** — `lint`(ESLint+tsc) · `verify(데이터)` · `unit`(+커버리지 임계값 게이트) · `build`(+번들 크기 예산) · `e2e`(기능 255) · `nonfunctional`(성능·부하·메모리·타이머·오프라인·데이터 내구성 11, CI 완화 예산).
   - **보안 3** — `audit`(의존성 취약점, 배포 번들 기준) · `secrets`(gitleaks 시크릿 스캔) · `codeql`(JS/TS 정적분석: XSS·프로토타입 오염 등).
 - 모든 job 통과해야 머지 → **결함·취약점의 main 유입 차단**. 동시성·캐시·최소권한(CodeQL만 job 레벨 `security-events: write`) 설정.
 - 각 CI 워크플로의 동작 방식·코드 설명(CI·매일 예약 E2E·Android 배포): [`docs/ci/`](docs/ci/README.md).
@@ -185,8 +185,8 @@ flowchart LR
   PUB --> REACT
   REACT --> CAP
 
-  subgraph 품질["품질 게이트 (GitHub Actions · 8 job)"]
-    CI["품질: lint · verify · unit(56) · build · e2e(255)<br/>보안: audit · secrets · codeql"]
+  subgraph 품질["품질 게이트 (GitHub Actions · 9 job)"]
+    CI["기능·품질: lint · verify · unit(56) · build · e2e(255) · nonfunctional(11)<br/>보안: audit · secrets · codeql"]
   end
   REACT -.검증.-> CI
   SRC -.정합성 verify.-> CI

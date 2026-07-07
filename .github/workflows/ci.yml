@@ -142,6 +142,41 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  nonfunctional:
+    name: Non-functional (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+      - name: Install Playwright (chromium + system deps)
+        run: npx playwright install --with-deps chromium
+      # 성능·부하·메모리·타이머·오프라인·데이터 내구성. 예산은 CI에서 완화(러너 변동성 흡수).
+      - name: Run non-functional suite
+        run: npm run test:nf
+      - name: Upload Playwright report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-nf
+          path: playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
   # ── 보안(체크리스트 #4) ──────────────────────────────────────────
   audit:
     name: Dependency audit (npm)

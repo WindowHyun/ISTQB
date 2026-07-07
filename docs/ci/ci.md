@@ -1,7 +1,7 @@
 # CI (`ci.yml`) — 머지 품질 게이트
 
-`.github/workflows/ci.yml`. push/PR마다 **8개 job을 병렬**로 돌려 결함의 main 유입을 차단한다.
-품질 게이트(lint·데이터·유닛·빌드·e2e) 5개 + 보안 게이트(의존성 감사·시크릿 스캔·정적 분석) 3개.
+`.github/workflows/ci.yml`. push/PR마다 **9개 job을 병렬**로 돌려 결함의 main 유입을 차단한다.
+기능·품질 게이트(lint·데이터·유닛·빌드·e2e·비기능) 6개 + 보안 게이트(의존성 감사·시크릿 스캔·정적 분석) 3개.
 
 ## 트리거
 
@@ -28,9 +28,9 @@ env:
 - `permissions: contents: read` — 최소 권한(읽기 전용).
 - `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` — `npm ci` 시 브라우저 자동 다운로드 차단(브라우저는 e2e job에서 명시 설치).
 
-## job 구성 (8개, 병렬·독립)
+## job 구성 (9개, 병렬·독립)
 
-### 품질 게이트 (5)
+### 기능·품질 게이트 (6)
 
 | job | 이름 | 실행 명령 | 산출물 |
 | --- | --- | --- | --- |
@@ -38,7 +38,8 @@ env:
 | `verify-data` | Verify data & content | `npm run verify` (626문항 정답·이미지·스키마·콘텐츠 감사) | — |
 | `unit` | Unit tests (vitest) | `npm run test:cov` (유닛 + 커버리지, **임계값 게이트**: stmt 54·branch 50·func 53·line 54) | `coverage/`(7일) |
 | `build` | Build (tsc + vite) | `npm run build` → **`npm run size`**(번들 예산: JS 330KB·CSS 45KB) | `dist/`(7일) |
-| `e2e` | E2E smoke (Playwright) | `npm run test:e2e` | 실패 시 `playwright-report/`(7일) |
+| `e2e` | E2E smoke (Playwright) | `npm run test:e2e`(`--project=react`, 기능 255) | 실패 시 `playwright-report/`(7일) |
+| `nonfunctional` | Non-functional (Playwright) | `npm run test:nf`(`--project=nonfunctional`, 성능·부하·메모리·타이머·오프라인·데이터 내구성 11) | 실패 시 `playwright-report-nf/`(7일) |
 
 ### 보안 게이트 (3, 체크리스트 #4)
 
@@ -58,6 +59,8 @@ env:
 **커버리지 임계값 범위:** `vitest.config.ts`의 coverage `include`를 `src/store/**`·`src/utils/**`(유닛이 실제로 다루는 로직 계층)로 한정한다. 컴포넌트/훅/앱 셸은 E2E(255)가 검증하므로, 여기에 포함하면 미임포트 파일이 0%로 집계돼 임계값이 무의미해진다. 임계값은 현재값보다 약 1%p 낮게 잡아 지금은 통과시키되 향후 회귀를 차단하는 바닥 게이트로 동작한다.
 
 **번들 예산(`npm run size`):** `scripts/check-bundle-size.js`가 `dist/assets`의 JS·CSS raw 합계를 예산과 대조한다. 현재 JS ~265KB·CSS ~31KB 대비 넉넉한 여유(JS 330KB·CSS 45KB)를 둬 무거운 의존성 유입 같은 **큰** 회귀만 잡고 소폭 증가엔 관대하다.
+
+**비기능(`nonfunctional`) 분리·예산:** `playwright.config.ts`에 별도 프로젝트로 두어 기능 `e2e`(`--project=react`, 255)와 다른 잡에서 돈다(`--project=nonfunctional`, `e2e/nonfunctional.spec.ts` 11건). 측정 항목은 초기 로드(DCL/FCP/LCP)·문항 이동·채점·대량 통계 렌더 시간, 입력 폭주·모드 전환 스트레스, JS 힙, 타이머 정확도, 오프라인(PWA) reload, 데이터 내구성. 시간 예산은 러너 변동성 때문에 **CI에서 완화**(`process.env.CI`로 2~3배)해 오탐 없이 "큰 회귀"만 잡는다 — 로컬은 엄격.
 
 ---
 
@@ -155,4 +158,4 @@ CI=1 npm run test:e2e
 
 ## 요약
 
-**push/PR → 8 job 병렬 → 모두 통과해야 머지.** 품질 5개(lint·verify-data·unit·build·e2e) + 보안 3개(audit·secrets·codeql). e2e는 `npm ci`(브라우저 skip) → 브라우저 캐시/설치 → `playwright test`가 `build+preview`로 `dist`를 4173에 서빙하고 → `react-*.spec.ts` 255개를 Chromium으로 병렬 실행(CI 재시도 1) → 실패 시 HTML 리포트 아티팩트를 남긴다. 보안 job은 배포 번들의 취약 의존성(audit)·유출 시크릿(gitleaks)·정적 분석 경보(CodeQL)를 각각 차단한다.
+**push/PR → 9 job 병렬 → 모두 통과해야 머지.** 기능·품질 6개(lint·verify-data·unit·build·e2e·nonfunctional) + 보안 3개(audit·secrets·codeql). e2e는 `npm ci`(브라우저 skip) → 브라우저 캐시/설치 → `playwright test --project=react`가 `build+preview`로 `dist`를 4173에 서빙하고 → `react-*.spec.ts` 255개를 Chromium으로 병렬 실행(CI 재시도 1) → 실패 시 HTML 리포트 아티팩트를 남긴다. nonfunctional은 같은 서버로 `--project=nonfunctional` 11건(성능·부하·메모리·타이머·오프라인·데이터 내구성)을 CI 완화 예산으로 실행한다. 보안 job은 배포 번들의 취약 의존성(audit)·유출 시크릿(gitleaks)·정적 분석 경보(CodeQL)를 각각 차단한다.

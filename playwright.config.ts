@@ -15,8 +15,15 @@ export default defineConfig({
   },
   projects: [
     {
+      // 기능 E2E(react-*.spec.ts). 비기능 스펙은 별도 프로젝트로 분리해 제외된다.
       name: "react",
       testMatch: /react-.*\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"], baseURL: REACT_URL },
+    },
+    {
+      // 비기능(성능·부하·메모리·복원력) — 전용 CI 잡에서 `--project=nonfunctional`로 실행.
+      name: "nonfunctional",
+      testMatch: /nonfunctional\.spec\.ts/,
       use: { ...devices["Desktop Chrome"], baseURL: REACT_URL },
     },
   ],
