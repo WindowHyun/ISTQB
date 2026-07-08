@@ -26,6 +26,10 @@ export const QuestionWorkspace = () => {
   } = useQuizSession();
 
   useEffect(() => {
+    // 채점 후에는 타이머를 정지한다 — 결과가 나온 뒤에도 시간이 계속 오르면
+    // 결과 모달·사이드바의 소요 시간이 채점 시점과 어긋난다.
+    // 재응시(초기화)로 graded가 풀리면 effect가 재실행돼 다시 시작한다.
+    if (isGraded) return;
     startTimer();
     let interval: ReturnType<typeof setInterval> | undefined;
     const handleVisibilityChange = () => {
@@ -45,7 +49,7 @@ export const QuestionWorkspace = () => {
       flushPersist();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [mode, startTimer, tickTimer]);
+  }, [mode, isGraded, startTimer, tickTimer]);
 
   // index가 현재 목록 범위를 벗어나면 보정(세트/모드 전환 잔여 index 방어, #70)
   useEffect(() => {

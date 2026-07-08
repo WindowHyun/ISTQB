@@ -154,4 +154,14 @@ test.describe("엣지-채점", () => {
     await page.getByRole("button", { name: "오답 노트 보기" }).click();
     await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 5_000 });
   });
+  test("채점 후에는 타이머가 정지한다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+    const before = await page.locator("#timerText").textContent();
+    await page.waitForTimeout(2300); // 2틱 이상 대기 — 진행 중이면 반드시 값이 바뀐다
+    expect(await page.locator("#timerText").textContent()).toBe(before);
+  });
 });

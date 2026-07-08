@@ -68,4 +68,12 @@ test.describe("모드", () => {
       await expect(page.locator(".workspace")).toBeVisible();
     }
   });
+  test("오답이 없으면 '오답 다시 풀기'가 모드를 유지하고 안내 토스트를 띄운다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-B"); // 채점 이력 없는 초기 상태(연습 모드)
+    await page.getByRole("button", { name: "오답 다시 풀기" }).click();
+    await expect(page.getByTestId("toast")).toContainText("오답이 없습니다");
+    // 오답 모드로 이동하지 않고 연습 모드가 유지된다.
+    await expect(page.locator('.segmented button[data-mode="practice"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator("#questionStem")).toBeVisible();
+  });
 });
