@@ -17,14 +17,35 @@ export function subscribeLoads(listener: () => void): () => void {
   return () => { loadListeners.delete(listener); };
 }
 
-function fetchJsonCached(url: string): Promise<unknown> {
+// 성공 로그의 요약부(세트/문항 수). 화면 콘솔(?debug)에서 실기기 진단용으로 쓴다 —
+// "느린 건지, 안 오는 건지, 빈 데이터인지"를 한 줄로 구분하게 해 준다.
+function summarizeIndex(data: unknown): string {
+  const sets = (data as AppData | null)?.sets;
+  return `세트 ${Array.isArray(sets) ? sets.length : 0}개`;
+}
+
+function summarizeSet(data: unknown): string {
+  const questions = Array.isArray(data)
+    ? data
+    : (data as { questions?: unknown[] } | null)?.questions;
+  return `문항 ${Array.isArray(questions) ? questions.length : 0}개`;
+}
+
+function fetchJsonCached(url: string, summarize?: (data: unknown) => string): Promise<unknown> {
   if (!jsonPromises[url]) {
+    const started = performance.now();
     const p = fetch(url).then((res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
     });
     p.then(
-      () => loadListeners.forEach((l) => l()),
+      (data) => {
+        // 이 then은 실제 네트워크 요청당 1회만 실행된다(캐시 히트는 내부 then이 없음) —
+        // 성공 로그가 호출자 수만큼 중복되지 않는다.
+        const ms = Math.round(performance.now() - started);
+        console.info(`[data] 로드 완료: ${url} (${ms}ms)${summarize ? ` · ${summarize(data)}` : ''}`);
+        loadListeners.forEach((l) => l());
+      },
       // 실패는 캐시에서 비운다 — 새 요청이 이미 캐시를 교체했을 수 있어 동일성 확인.
       () => { if (jsonPromises[url] === p) delete jsonPromises[url]; },
     );
@@ -34,7 +55,7 @@ function fetchJsonCached(url: string): Promise<unknown> {
 }
 
 export function loadIndex(): Promise<AppData> {
-  return fetchJsonCached('data/index.json') as Promise<AppData>;
+  return fetchJsonCached('data/index.json', summarizeIndex) as Promise<AppData>;
 }
 
 // 로드 완료된 세트의 결과 캐시(정규화된 경로 키) — peekSetQuestions의 동기 반환용.
@@ -48,7 +69,7 @@ function normalizePath(path: string): string {
 // 불일치(데이터 버전 전환 등)로 다른 파일의 캐시를 돌려줄 여지가 없다.
 export function loadSetQuestions(path: string): Promise<Question[]> {
   const key = normalizePath(path);
-  return fetchJsonCached(`data/${key}`).then((data) => {
+  return fetchJsonCached(`data/${key}`, summarizeSet).then((data) => {
     // 세트 파일은 { meta, questions: [...] } 형태(혹은 배열 자체).
     const questions: Question[] = Array.isArray(data)
       ? data

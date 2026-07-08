@@ -88,4 +88,33 @@ describe('questionLoader', () => {
     await Promise.resolve();
     expect(listener).not.toHaveBeenCalled();
   });
+
+  it('네트워크 로드 성공 시 진단용 info 로그(경로·소요·요약)를 1회만 남긴다(캐시 히트 중복 없음)', async () => {
+    vi.stubGlobal('fetch', vi.fn((url: string) =>
+      Promise.resolve(ok(url.endsWith('index.json')
+        ? { sets: [{ id: 'A' }, { id: 'B' }] }
+        : { questions: [{ number: 1 }, { number: 2 }] })),
+    ));
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+    await loader.loadIndex();
+    await loader.loadSetQuestions('istqb/a.json');
+    await loader.loadSetQuestions('./istqb/a.json'); // 캐시 히트 — 추가 로그 없어야 함
+    await Promise.resolve();
+
+    const texts = info.mock.calls.map((c) => String(c[0]));
+    expect(texts.filter((t) => t.includes('data/index.json'))).toHaveLength(1);
+    expect(texts.find((t) => t.includes('data/index.json'))).toContain('세트 2개');
+    expect(texts.filter((t) => t.includes('data/istqb/a.json'))).toHaveLength(1);
+    expect(texts.find((t) => t.includes('data/istqb/a.json'))).toContain('문항 2개');
+    info.mockRestore();
+  });
+
+  it('실패한 로드는 성공 로그를 남기지 않는다', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(notFound()));
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+    await expect(loader.loadIndex()).rejects.toThrow();
+    await Promise.resolve();
+    expect(info.mock.calls.map((c) => String(c[0])).some((t) => t.includes('로드 완료'))).toBe(false);
+    info.mockRestore();
+  });
 });
