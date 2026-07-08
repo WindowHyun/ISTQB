@@ -204,6 +204,9 @@ export const AppModals = () => {
           .map((h) => h.id)
       : [];
     removeHistoriesEverywhere([...Object.keys(productHistories), ...orphanIds]);
+    // 파괴적 액션의 완료 피드백 — 없으면 "정말 삭제"를 눌러도 됐는지 알 수 없다.
+    // (DB 쓰기 실패는 removeHistoriesEverywhere가 별도 오류 토스트로 알린다)
+    showToast('현재 자격증의 응시 이력을 모두 삭제했습니다.', 'success');
   };
 
   const handleResetMode = () => {
@@ -215,6 +218,8 @@ export const AppModals = () => {
       .filter((h) => h.setId === setId && h.mode === mode)
       .map((h) => h.id);
     removeHistoriesEverywhere(ids);
+    // 파괴적 액션의 완료 피드백 — 없으면 "정말 삭제"를 눌러도 됐는지 알 수 없다.
+    showToast(`${MODE_LABEL[mode] ?? mode} 모드의 답안과 이력을 초기화했습니다.`, 'success');
   };
 
   return (
