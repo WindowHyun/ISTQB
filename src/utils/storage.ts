@@ -241,6 +241,11 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
       histories,
       activeProduct, // ensure it's set
     });
+    // 성공 경로 진단 로그(화면 콘솔 ?debug용) — "복원은 됐는데 데이터가 이상하다"류
+    // 문의에서 무엇이 몇 건 복원됐는지를 실기기에서 바로 확인할 수 있게 한다.
+    console.info(
+      `[data] 복원 완료: ${activeProduct} · 이력 ${Object.keys(histories).length}건 · 답안 ${Object.keys(sanitizedAnswers).length}건`,
+    );
     const sid = restoredUi.setId ?? '';
     const m = restoredUi.mode;
     const store = useQuizStore.getState();
@@ -359,6 +364,7 @@ export async function importUserData(file: File): Promise<boolean> {
           saveAnswers(data.answers);
           saveAnswers.flush();
         }
+        let importedHistories = 0;
         if (data.histories) {
           const db = await getDb();
           const tx = db.transaction(STORE_NAME, "readwrite");
@@ -370,7 +376,7 @@ export async function importUserData(file: File): Promise<boolean> {
             .map(sanitizeHistory)
             .filter((h): h is ExamHistory => h !== null)
             .forEach((h) => {
-              try { store.put(h); } catch (err) { console.warn("이력 항목 건너뜀", err); }
+              try { store.put(h); importedHistories += 1; } catch (err) { console.warn("이력 항목 건너뜀", err); }
             });
           // 복원이 DB를 읽기 전에 트랜잭션 커밋을 기다린다.
           await new Promise<void>((res) => {
@@ -379,6 +385,7 @@ export async function importUserData(file: File): Promise<boolean> {
           });
         }
 
+        console.info(`[data] 백업 가져오기 완료: ${file.name} · 이력 ${importedHistories}건`);
         await restorePersistentSnapshot(product);
         resolve(true);
       } catch (err) {
