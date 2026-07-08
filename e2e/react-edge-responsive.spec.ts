@@ -70,6 +70,35 @@ test.describe("엣지-반응형", () => {
       await expect(page.getByRole("button", { name: "ISTQB" })).toBeVisible({ timeout: 15_000 });
       await expect(page.getByRole("button", { name: "CSTS" })).toBeVisible();
     });
+
+    test("드로어의 채점하기는 드로어를 닫고 확인 팝업을 맨 위로 띄운다", async ({ page }) => {
+      await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+      await page.getByTestId("drawer-open").click();
+      await modeBtn(page, "시험").click(); // 모드 변경으로 드로어가 닫힘
+      await page.getByTestId("drawer-open").click();
+      await page.getByTestId("grade-button").click();
+      // 드로어가 닫혀 뒤의 모드/세트 컨트롤을 더 조작할 수 없다.
+      await expect(page.locator(".app-shell")).toHaveAttribute("data-drawer", "closed");
+      const modal = page.getByTestId("confirm-grade-modal");
+      await expect(modal).toBeVisible();
+      // 팝업이 최상단이라 버튼 조작이 가능하다(z-index 회귀 방지).
+      await page.getByRole("button", { name: "계속 풀기" }).click();
+      await expect(modal).toHaveCount(0);
+    });
+
+    test("라이트박스 이미지가 화면 폭 안에 온전히 들어온다(오른쪽 잘림 방지)", async ({ page }) => {
+      await openSet(page, "CSTS", "CSTS-FL-2402");
+      // 그림 문항(9번)으로 이동 — 모바일은 점프핀 시트 사용.
+      await page.getByTestId("jump-pin").click();
+      await page.getByTestId("palette-jump").locator("button", { hasText: /^9$/ }).click();
+      await page.locator("#questionFigure img, #questionStem img").first().click();
+      const img = page.locator(".figure-lightbox-img");
+      await expect(img).toBeVisible();
+      const box = await img.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(375 + 1); // 뷰포트 폭(375) 안(±1px 반올림 여유)
+    });
   });
 
   test.describe("초소형(320x640)", () => {

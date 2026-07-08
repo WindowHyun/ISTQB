@@ -228,7 +228,10 @@ ul { margin: 0; padding: 0; list-style: none; }
 /* 모드 세그먼트 */
 .segmented {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* 버튼 수에 맞춰 균등 분할 — 4열 고정이면 3버튼(테마·글자 크기)에서
+     오른쪽 한 칸이 비어 왼쪽으로 쏠려 보인다. */
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   gap: 4px;
   background: var(--surface-3);
   border-radius: 10px;
@@ -562,7 +565,9 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
   display: grid;
   place-items: center;
   padding: 20px;
-  z-index: 50;
+  /* 모바일 드로어(60)보다 위, 이미지 라이트박스(100)보다 아래 —
+     50이면 드로어가 채점/결과 팝업을 덮어 뒤의 컨트롤이 계속 조작 가능했다. */
+  z-index: 70;
 }
 .modal-panel {
   width: min(560px, 100%);
@@ -790,8 +795,9 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
   cursor: zoom-out;
 }
 .figure-lightbox-img {
-  max-width: 96vw;
-  max-height: 92vh;
+  /* 컨테이너 패딩(24px×2)을 뺀 영역 기준 — 96vw면 모바일에서 패딩만큼 넘쳐 오른쪽이 잘린다. */
+  max-width: 100%;
+  max-height: 100%;
   border-radius: 8px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   background: #fff;

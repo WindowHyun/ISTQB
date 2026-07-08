@@ -4,6 +4,7 @@ import { useQuizStore } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { useSetCounts } from '../../hooks/useSetCounts';
 import { TimerClock } from '../common/TimerClock';
+import { showToast } from '../../utils/toast';
 
 const LOGO_SRC =
   'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%20role%3D%22img%22%20aria-label%3D%22Quiz%20mark%22%3E%0A%20%20%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%23166064%22/%3E%0A%20%20%3Cpath%20d%3D%22M18%2018h28v28H18z%22%20fill%3D%22%23f5f7f2%22/%3E%0A%20%20%3Cpath%20d%3D%22M24%2030l5%205%2011-13%22%20fill%3D%22none%22%20stroke%3D%22%23b55c3c%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%0A%20%20%3Cpath%20d%3D%22M22%2047h25%22%20stroke%3D%22%23f5f7f2%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22/%3E%0A%3C/svg%3E%0A';
@@ -95,6 +96,16 @@ export const Sidebar = () => {
   };
 
   const handleRetryWrong = () => {
+    // 현재 세트에 오답이 없으면 빈 오답 모드로 이동하지 않고 안내만 한다(모드 유지).
+    // 오답 대상은 useQuestions의 review 모드와 동일한 합집합 기준으로 판정한다.
+    const { reviewIds } = useQuizStore.getState();
+    const hasWrong = [`${setId}-exam`, `${setId}-random`, setId].some(
+      (key) => (reviewIds[key] || []).length > 0,
+    );
+    if (!hasWrong) {
+      showToast('현재 문제 세트에는 오답이 없습니다. 시험·랜덤 모드에서 채점하면 기록됩니다.', 'info');
+      return;
+    }
     // 오답 다시 풀기: 이전 재풀이 답안을 비우고 오답(review) 모드로 전환해 틀린 문항만 새로 푼다.
     clearAnswers(setId, 'review');
     setMode('review');
@@ -128,7 +139,9 @@ export const Sidebar = () => {
                 type="button"
                 className="primary"
                 data-testid="grade-button"
-                onClick={requestGrade}
+                // 모바일 드로어에서 누르면 드로어를 먼저 닫는다 — 열린 채면 확인 팝업 중에
+                // 뒤의 모드/세트 컨트롤이 계속 조작돼 바뀐 기준으로 채점되는 사고가 난다.
+                onClick={() => { closeDrawer(); requestGrade(); }}
               >
                 채점하기
               </button>
@@ -138,7 +151,7 @@ export const Sidebar = () => {
                 type="button"
                 className="subtle"
                 data-testid="result-open"
-                onClick={() => setResultOpen(true)}
+                onClick={() => { closeDrawer(); setResultOpen(true); }}
               >
                 결과 요약
               </button>
