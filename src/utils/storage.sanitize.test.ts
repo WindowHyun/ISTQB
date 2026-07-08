@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sanitizeAnswers, sanitizeUiState } from "./storage";
+import { sanitizeAnswers, sanitizeUiState, sanitizeHistory } from "./storage";
 
 // 외부 입력(localStorage/백업 JSON) 검증 로직 유닛 테스트 (#65/#76).
 describe("sanitizeAnswers", () => {
@@ -52,5 +52,48 @@ describe("sanitizeUiState", () => {
   it("객체가 아니면 빈 객체", () => {
     expect(sanitizeUiState(undefined)).toEqual({});
     expect(sanitizeUiState(42)).toEqual({});
+  });
+});
+
+describe("sanitizeHistory", () => {
+  it("유효한 이력은 필드를 보존해 통과시킨다", () => {
+    const h = sanitizeHistory({
+      id: "h1", setId: "S", mode: "exam",
+      answers: { "S-exam-1": ["a"] },
+      correct: 7, total: 10, elapsedSeconds: 120, createdAt: 1700000000000,
+      setTitle: "세트 A",
+      wrongItems: [{ number: 3, myAnswer: ["b"], correctAnswer: ["a"] }],
+    });
+    expect(h).not.toBeNull();
+    expect(h!.correct).toBe(7);
+    expect(h!.wrongItems).toEqual([{ number: 3, myAnswer: ["b"], correctAnswer: ["a"] }]);
+  });
+
+  it("필수 필드(id/setId)가 없으면 null, 무효 mode는 'exam'으로 보정한다(데이터 보존)", () => {
+    expect(sanitizeHistory(null)).toBeNull();
+    expect(sanitizeHistory({ setId: "S", mode: "exam" })).toBeNull(); // id 없음
+    expect(sanitizeHistory({ id: "h", mode: "exam" })).toBeNull(); // setId 없음
+    // mode가 없거나 무효라도 실제 응시 기록(id·setId 유효)은 버리지 않는다.
+    expect(sanitizeHistory({ id: "h", setId: "S" })?.mode).toBe("exam");
+    expect(sanitizeHistory({ id: "h", setId: "S", mode: "evil" })?.mode).toBe("exam");
+  });
+
+  it("certification 필드는 유효 값만 통과한다(제품 스코프 필터용)", () => {
+    expect(sanitizeHistory({ id: "h", setId: "S", mode: "exam", certification: "csts" })?.certification).toBe("csts");
+    expect(sanitizeHistory({ id: "h", setId: "S", mode: "exam", certification: "hack" })?.certification).toBeUndefined();
+  });
+
+  it("손상된 wrongItems·비유한 숫자를 걸러 렌더 예외를 막는다", () => {
+    const h = sanitizeHistory({
+      id: "h2", setId: "S", mode: "random", answers: "junk",
+      correct: NaN, total: "10",
+      wrongItems: [null, "x", { number: "3" }, { number: 5, myAnswer: "b", correctAnswer: [1, "a"] }],
+    });
+    expect(h).not.toBeNull();
+    expect(h!.answers).toEqual({});
+    expect(h!.correct).toBeUndefined();
+    expect(h!.total).toBeUndefined();
+    // number가 유효한 항목만 남고, 배열 아닌 답안은 빈 배열로 정규화된다.
+    expect(h!.wrongItems).toEqual([{ number: 5, myAnswer: [], correctAnswer: ["a"] }]);
   });
 });

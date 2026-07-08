@@ -16,7 +16,7 @@ export function useQuizSession() {
       addHistory: s.addHistory, setReviewIds: s.setReviewIds, setGraded: s.setGraded,
       setResultOpen: s.setResultOpen, setConfirmGradeOpen: s.setConfirmGradeOpen,
     })));
-  const { appData, currentQuestions } = useQuestions();
+  const { appData, currentQuestions, loadError, retryLoad } = useQuestions();
 
   // 각 모드는 자체 답안 네임스페이스를 사용한다(오답 모드는 재풀이용 별도 기록).
   const answerKeyOf = (q: Question) => `${setId}-${mode}-${q.id || q.number}`;
@@ -56,9 +56,14 @@ export function useQuizSession() {
       if (answers[k]) gradedAnswers[k] = answers[k];
     });
     const history = {
-      id: Date.now().toString(),
+      // 시각+난수 — 같은 ms 재채점·백업 병합에서도 기존 회차를 덮어쓰지 않는 유일 키.
+      // (통계의 시각 표시는 createdAt을 쓰므로 id가 숫자일 필요는 없다)
+      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
       setId,
       mode,
+      // 소속 제품을 기록에 남긴다 — 세트가 훗날 index.json에서 빠져도 제품 스코프
+      // 통계/삭제에서 이력이 고아가 되지 않는다.
+      certification: useQuizStore.getState().activeProduct ?? undefined,
       answers: gradedAnswers,
       correct: total - wrongIds.length,
       total,
@@ -91,6 +96,8 @@ export function useQuizSession() {
   return {
     appData,
     currentQuestions,
+    loadError,
+    retryLoad,
     answerKeyOf,
     total,
     answered,

@@ -3,35 +3,33 @@ import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore, ExamHistory } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { useTheme, ThemePref } from '../../hooks/useTheme';
-import { exportUserData, importUserData, clearHistoriesFromDB } from '../../utils/storage';
+import { exportUserData, importUserData, removeHistoriesEverywhere } from '../../utils/storage';
 import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
 import { showToast } from '../../utils/toast';
 import { isDebugEnabled, setDebugEnabled } from '../../utils/debugLog';
 import { Modal } from '../common/Modal';
+import { ConfirmButtons } from '../common/ConfirmButtons';
 import { StatsDashboard } from '../stats/StatsDashboard';
 import { ResultSummary } from '../quiz/ResultSummary';
 import { QuestionPalette } from '../quiz/QuestionPalette';
 import { Question } from '../../hooks/useQuestions';
+import { loadSetQuestions, peekSetQuestions } from '../../utils/questionLoader';
 import { RichText } from '../../utils/parser';
 
-// 오답노트 3단계(문항 보기)용 세트 문항 캐시(useQuestions와 동일 소스, 모달 전용 경량 로더).
-const wrongNoteSetCache: Record<string, Question[]> = {};
-
+// 오답노트 3단계(문항 보기)용 세트 문항 로더 — 본문(useQuestions)과 같은 공용
+// 로더(questionLoader)를 사용해 같은 세트를 다시 내려받지 않는다.
+// 이미 로드된 세트는 peek로 동기 렌더해 재진입 시 로딩 프레임이 깜빡이지 않는다.
 function useWrongNoteQuestions(path: string | null, setId: string | null): Question[] | null {
   const [questions, setQuestions] = useState<Question[] | null>(
-    () => (setId && wrongNoteSetCache[setId]) || null,
+    () => (path && peekSetQuestions(path)) || null,
   );
   useEffect(() => {
     if (!setId || !path) { setQuestions(null); return; }
-    if (wrongNoteSetCache[setId]) { setQuestions(wrongNoteSetCache[setId]); return; }
+    const cached = peekSetQuestions(path);
+    if (cached) { setQuestions(cached); return; }
     let cancelled = false;
-    fetch(`data/${path.replace(/^\.\//, '')}`)
-      .then((res) => res.json())
-      .then((data) => {
-        const qs: Question[] = Array.isArray(data) ? data : data?.questions || [];
-        wrongNoteSetCache[setId] = qs;
-        if (!cancelled) setQuestions(qs);
-      })
+    loadSetQuestions(path)
+      .then((qs) => { if (!cancelled) setQuestions(qs); })
       .catch(() => { if (!cancelled) setQuestions([]); });
     return () => { cancelled = true; };
   }, [path, setId]);
@@ -68,7 +66,7 @@ export const AppModals = () => {
     setId, mode, activeProduct, histories, resultElapsedSeconds,
     settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, pendingMode, resumePrompt,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
-    setMode, setIndex, resetTimer, clearAnswers, clearHistory, clearHistories, setPendingMode, setResumePrompt,
+    setMode, setIndex, resetTimer, clearAnswers, setReviewIds, setPendingMode, setResumePrompt,
   } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, activeProduct: s.activeProduct, histories: s.histories,
     resultElapsedSeconds: s.resultOpen ? s.elapsedSeconds : 0,
@@ -78,8 +76,8 @@ export const AppModals = () => {
     setSettingsOpen: s.setSettingsOpen, setStatsOpen: s.setStatsOpen, setWrongNoteOpen: s.setWrongNoteOpen,
     setResultOpen: s.setResultOpen, setPaletteOpen: s.setPaletteOpen, setDrawerOpen: s.setDrawerOpen,
     setConfirmGradeOpen: s.setConfirmGradeOpen, setMode: s.setMode, setIndex: s.setIndex,
-    resetTimer: s.resetTimer, clearAnswers: s.clearAnswers, clearHistory: s.clearHistory,
-    clearHistories: s.clearHistories, setPendingMode: s.setPendingMode, setResumePrompt: s.setResumePrompt,
+    resetTimer: s.resetTimer, clearAnswers: s.clearAnswers, setReviewIds: s.setReviewIds,
+    setPendingMode: s.setPendingMode, setResumePrompt: s.setResumePrompt,
   })));
   const { appData, total, answered, correctCount, gradeAndShow } = useQuizSession();
   const { pref: themePref, setPref: setThemePref } = useTheme();
@@ -97,20 +95,33 @@ export const AppModals = () => {
     safeSetItem('istqb-q-font', fontSize);
   }, [fontSize]);
 
-  const sets = appData
-    ? appData.sets.filter((s) => s.certification.toLowerCase() === activeProduct)
-    : [];
+  // useMemo: 아래 productHistories 메모의 의존성이라 참조가 렌더마다 바뀌면 안 된다.
+  const sets = React.useMemo(
+    () => (appData ? appData.sets.filter((s) => s.certification.toLowerCase() === activeProduct) : []),
+    [appData, activeProduct],
+  );
   const currentSet = sets.find((s) => s.id === setId);
 
-  // 오답 노트(읽기 전용): 1단계 세트 선택 → 2단계 그 세트의 오답 목록(#3·#4).
-  // 세트별로 최신 채점 회차(오답이 있는 것)만 추려 보여준다.
-  const productSetIds = new Set(sets.map((s) => s.id));
+  // 통계·오답노트·이력 비우기는 현재 제품(ISTQB/CSTS) 이력만 대상으로 한다.
+  // IndexedDB 스토어는 두 제품이 공유하므로 필터 없이는 다른 제품 기록이 섞여 보인다.
+  // 신규 기록은 certification 필드로 판별하고, 필드가 없는 과거 기록만 setId로 추론한다.
+  // useMemo: 결과 모달이 열린 동안 매초(타이머 틱) 리렌더돼도 재계산·참조 변경을 막아
+  // StatsDashboard의 useMemo가 실효를 갖게 한다.
+  const productHistories = React.useMemo(() => {
+    const productSetIds = new Set(sets.map((s) => s.id));
+    const out: Record<string, ExamHistory> = {};
+    for (const [id, h] of Object.entries(histories)) {
+      const owns = h.certification ? h.certification === activeProduct : productSetIds.has(h.setId);
+      if (owns) out[id] = h;
+    }
+    return out;
+  }, [histories, sets, activeProduct]);
   const fmtAns = (arr: string[]) =>
     arr.length ? arr.map((s) => s.toUpperCase()).join(', ') : '미응답';
   const wrongNoteBySet: ExamHistory[] = (() => {
     const latest = new Map<string, ExamHistory>();
-    for (const h of Object.values(histories)) {
-      if (!productSetIds.has(h.setId) || (h.wrongItems?.length ?? 0) === 0) continue;
+    for (const h of Object.values(productHistories)) {
+      if ((h.wrongItems?.length ?? 0) === 0) continue;
       const prev = latest.get(h.setId);
       if (!prev || (h.createdAt ?? 0) > (prev.createdAt ?? 0)) latest.set(h.setId, h);
     }
@@ -148,7 +159,10 @@ export const AppModals = () => {
 
   const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
-    const success = await importUserData(e.target.files[0]);
+    const file = e.target.files[0];
+    // 실패 후 같은 파일을 다시 선택해도 onChange가 발화하도록 값을 리셋한다.
+    e.target.value = '';
+    const success = await importUserData(file);
     showToast(
       success ? '백업 파일을 복원했습니다.' : '파일 복원에 실패했습니다.',
       success ? 'success' : 'error',
@@ -180,15 +194,27 @@ export const AppModals = () => {
   };
 
   const handleClearHistories = () => {
-    clearHistories();
-    clearHistoriesFromDB();
+    // 현재 제품 이력만 지운다 — 전체 clear면 다른 제품(ISTQB↔CSTS) 기록까지 사라진다.
+    // 어느 제품 세트에도 속하지 않는 고아 이력(세트 제거/구버전 백업 유래)은 화면에
+    // 보이지 않아 다른 삭제 경로가 없으므로 이때 함께 지워 영구 잔존을 막는다.
+    const allKnownSetIds = new Set((appData?.sets ?? []).map((s) => s.id));
+    const orphanIds = appData
+      ? Object.values(histories)
+          .filter((h) => !h.certification && !allKnownSetIds.has(h.setId))
+          .map((h) => h.id)
+      : [];
+    removeHistoriesEverywhere([...Object.keys(productHistories), ...orphanIds]);
   };
 
   const handleResetMode = () => {
-    if (confirm('현재 모드의 모든 답안을 지우시겠습니까?')) {
-      clearAnswers(setId, mode);
-      clearHistory(setId, mode);
-    }
+    clearAnswers(setId, mode);
+    // 이 세트/모드의 오답(review) 대상도 비운다 — 남기면 삭제된 회차의 오답이
+    // 오답 모드에 유령처럼 남는다(오답 노트에는 없는데 오답 풀이엔 나오는 불일치).
+    setReviewIds(`${setId}-${mode}`, []);
+    const ids = Object.values(histories)
+      .filter((h) => h.setId === setId && h.mode === mode)
+      .map((h) => h.id);
+    removeHistoriesEverywhere(ids);
   };
 
   return (
@@ -443,9 +469,15 @@ export const AppModals = () => {
 
             <section className="settings-group">
               <h4>초기화</h4>
-              <button type="button" className="settings-action danger" onClick={handleResetMode}>
-                현재 모드 답안 초기화
-              </button>
+              <div className="settings-actions" data-testid="confirm-reset-mode">
+                <ConfirmButtons
+                  label="현재 모드 답안 초기화"
+                  confirmLabel="정말 삭제 (답안·이력)"
+                  confirmTestId="confirm-reset-yes"
+                  buttonClassName="settings-action"
+                  onConfirm={handleResetMode}
+                />
+              </div>
             </section>
 
             <section className="settings-group">
@@ -467,7 +499,7 @@ export const AppModals = () => {
 
       {statsOpen && (
         <StatsDashboard
-          histories={histories}
+          histories={productHistories}
           sets={sets}
           onClose={() => setStatsOpen(false)}
           onClear={handleClearHistories}

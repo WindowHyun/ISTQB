@@ -33,12 +33,13 @@ describe("useQuizStore 채점 관련 액션", () => {
     expect(h.elapsedSeconds).toBe(123);
   });
 
-  it("clearHistories는 모든 이력을 비운다", () => {
+  it("removeHistories는 지정한 id의 이력만 지운다(제품별 이력 비우기)", () => {
     useQuizStore.getState().addHistory({ id: "a", setId: "S", mode: "exam", answers: {} });
     useQuizStore.getState().addHistory({ id: "b", setId: "T", mode: "random", answers: {} });
-    expect(Object.keys(useQuizStore.getState().histories)).toHaveLength(2);
-    useQuizStore.getState().clearHistories();
-    expect(useQuizStore.getState().histories).toEqual({});
+    useQuizStore.getState().removeHistories(["a"]);
+    const h = useQuizStore.getState().histories;
+    expect(h["a"]).toBeUndefined();
+    expect(h["b"]).toBeDefined();
   });
 
   it("setReviewIds는 세트별 오답 id를 저장한다", () => {
@@ -93,17 +94,6 @@ describe("useQuizStore 세션/네비/타이머 액션", () => {
     const a = useQuizStore.getState().answers;
     expect(a["S-exam-1"]).toBeUndefined();
     expect(a["S-1-exam-1"]).toEqual(["b"]); // "S-1" 세트는 보존
-  });
-
-  it("clearHistory는 세트+모드가 일치하는 이력만 지운다", () => {
-    useQuizStore.getState().addHistory({ id: "1", setId: "S", mode: "exam", answers: {} });
-    useQuizStore.getState().addHistory({ id: "2", setId: "S", mode: "random", answers: {} });
-    useQuizStore.getState().addHistory({ id: "3", setId: "T", mode: "exam", answers: {} });
-    useQuizStore.getState().clearHistory("S", "exam");
-    const h = useQuizStore.getState().histories;
-    expect(h["1"]).toBeUndefined();
-    expect(h["2"]).toBeDefined();
-    expect(h["3"]).toBeDefined();
   });
 
   it("startTimer/resetTimer는 기준 시각과 경과를 관리한다", () => {

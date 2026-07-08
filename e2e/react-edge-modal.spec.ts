@@ -52,8 +52,7 @@ test.describe("엣지-모달", () => {
     await expect(page.getByTestId("stats-dashboard")).toHaveCount(0);
   });
 
-  test("학습 통계 '이력 비우기'는 confirm 수락 시 비워진다", async ({ page }) => {
-    page.on("dialog", (d) => d.accept());
+  test("학습 통계 '이력 비우기'는 2단계 확인 후 비워진다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await modeBtn(page, "시험").click();
     await page.locator("#options .option").first().click();
@@ -61,6 +60,7 @@ test.describe("엣지-모달", () => {
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
     await page.getByTestId("stats-open").click();
     await page.getByRole("button", { name: "이력 비우기" }).click();
+    await page.getByTestId("stats-clear-confirm").click();
     await page.waitForTimeout(300);
     await expect(page.getByTestId("stats-dashboard")).toContainText("아직 채점한 기록이 없습니다");
   });

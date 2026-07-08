@@ -6,6 +6,9 @@ export interface ExamHistory {
   id: string;
   setId: string;
   mode: QuizMode;
+  // 소속 제품(채점 시 기록). 과거 기록엔 없을 수 있어 setId 기반 추론으로 폴백한다 —
+  // 세트가 index.json에서 제거/개명돼도 제품 스코프 필터에서 이력이 실종되지 않게 한다.
+  certification?: 'istqb' | 'csts';
   answers: Record<string, string[]>;
   // 채점 시점에 기록되는 요약 메타(통계 대시보드용). 과거 기록은 없을 수 있다.
   correct?: number;
@@ -57,8 +60,8 @@ export interface QuizState {
   setReviewIds: (key: string, ids: string[]) => void;
   setGraded: (key: string, value: boolean) => void;
   clearAnswers: (setId: string, mode: QuizMode) => void;
-  clearHistory: (setId: string, mode: QuizMode) => void;
-  clearHistories: () => void;
+  // id 목록으로 이력을 지운다. 호출은 storage.removeHistoriesEverywhere(메모리+DB 동시 삭제)로만.
+  removeHistories: (ids: string[]) => void;
   tickTimer: () => void;
   startTimer: () => void;
   resetTimer: () => void;
@@ -131,17 +134,11 @@ export const useQuizStore = create<QuizState>((set) => ({
     // 해당 세트/모드의 채점 상태도 함께 초기화
     return { answers: nextAnswers, graded: { ...state.graded, [`${setId}-${mode}`]: false } };
   }),
-  clearHistory: (setId, mode) => set((state) => {
+  removeHistories: (ids) => set((state) => {
     const nextHistories = { ...state.histories };
-    for (const key in nextHistories) {
-      const hist = nextHistories[key];
-      if (hist.setId === setId && hist.mode === mode) {
-        delete nextHistories[key];
-      }
-    }
+    ids.forEach((id) => { delete nextHistories[id]; });
     return { histories: nextHistories };
   }),
-  clearHistories: () => set({ histories: {} }),
   tickTimer: () => set((state) => {
     if (!state.lastTick) return state;
     const now = Date.now();
