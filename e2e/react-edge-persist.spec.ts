@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openSet, openProduct, modeBtn } from "./helpers";
+import { enterExam, modeBtn, openProduct, openSet } from "./helpers";
 
 // 엣지: 영속성·복원·가져오기/내보내기·테마/콘솔 지속.
 test.describe("엣지-영속성", () => {
@@ -30,7 +30,7 @@ test.describe("엣지-영속성", () => {
 
   test("시험 모드 답안도 새로고침 후 복원된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await page.waitForTimeout(800);
     await page.reload();

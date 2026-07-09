@@ -10,8 +10,9 @@ test("React 앱: 시험 모드에서 답 선택 후 채점하면 점수가 표�
   await page.getByRole("button", { name: "ISTQB" }).click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 
-  // 시험 모드로 전환
+  // 시험 모드로 전환 + 시작 게이트 통과(Phase 1)
   await page.getByRole("button", { name: "시험", exact: true }).click();
+  await page.getByTestId("exam-start-btn").click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 
   // 첫 문항의 선택지 하나 선택

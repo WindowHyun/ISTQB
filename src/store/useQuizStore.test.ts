@@ -111,7 +111,7 @@ describe("useQuizStore 세션/네비/타이머 액션", () => {
       mode: "exam", activeProduct: "istqb",
       settingsOpen: true, statsOpen: true, wrongNoteOpen: true, resultOpen: true,
       paletteOpen: true, confirmGradeOpen: true, drawerOpen: true,
-      pendingMode: "random", resumeNotice: true, resumePrompt: true,
+      resumeNotice: true, resumePrompt: true,
     });
     useQuizStore.getState().resetToGate();
     const st = useQuizStore.getState();
@@ -121,7 +121,6 @@ describe("useQuizStore 세션/네비/타이머 액션", () => {
       "settingsOpen", "statsOpen", "wrongNoteOpen", "resultOpen",
       "paletteOpen", "confirmGradeOpen", "drawerOpen", "resumeNotice", "resumePrompt",
     ] as const) expect(st[k]).toBe(false);
-    expect(st.pendingMode).toBeNull();
   });
 
   it("hydrate는 부분 상태를 병합하고 나머지는 보존한다", () => {

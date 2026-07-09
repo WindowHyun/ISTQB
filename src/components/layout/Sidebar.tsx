@@ -20,17 +20,18 @@ export const Sidebar = () => {
   // 렌더에 쓰는 값만 슬라이스 구독(O1) — 타이머(elapsedSeconds)·답안(answers) 변경에 리렌더되지 않는다.
   // 이벤트 핸들러에서만 필요한 graded/answers는 호출 시점에 getState()로 읽는다.
   const {
-    mode, setId, activeProduct,
+    mode, setId, activeProduct, examStarted,
     setMode, setSetId, setIndex, resetTimer, clearAnswers,
     setStatsOpen, setSettingsOpen, setWrongNoteOpen, setResultOpen, setDrawerOpen,
-    setPendingMode, setResumePrompt,
+    setResumePrompt,
   } = useQuizStore(useShallow((s) => ({
     mode: s.mode, setId: s.setId, activeProduct: s.activeProduct,
+    examStarted: s.examStarted[s.setId],
     setMode: s.setMode, setSetId: s.setSetId, setIndex: s.setIndex,
     resetTimer: s.resetTimer, clearAnswers: s.clearAnswers,
     setStatsOpen: s.setStatsOpen, setSettingsOpen: s.setSettingsOpen,
     setWrongNoteOpen: s.setWrongNoteOpen, setResultOpen: s.setResultOpen,
-    setDrawerOpen: s.setDrawerOpen, setPendingMode: s.setPendingMode,
+    setDrawerOpen: s.setDrawerOpen,
     setResumePrompt: s.setResumePrompt,
   })));
   const {
@@ -75,13 +76,7 @@ export const Sidebar = () => {
   };
 
   const handleModeChange = (newMode: typeof mode) => {
-    // 시험 모드 진행 중(답안 작성 + 미채점)에 다른 모드로 전환을 시도하면
-    // 곧바로 전환하지 않고 확인 모달을 띄운다(이동/뒤로가기 선택).
-    if (mode === 'exam' && !isGraded && answered > 0 && newMode !== mode) {
-      closeDrawer();
-      setPendingMode(newMode);
-      return;
-    }
+    // 응시 중(시험 시작 후 미채점)에는 모드 버튼 자체가 disabled라 이 경로로 오지 않는다(잠금).
     // 랜덤은 진입마다 재추첨되어 이어풀기가 무의미하므로 들어올 때마다 초기화한다(랜덤은 이어풀기 없음, F4).
     if (newMode === 'random') {
       clearAnswers(setId, 'random');
@@ -117,6 +112,8 @@ export const Sidebar = () => {
   const productSubtitle = activeProduct === 'istqb' ? 'ISTQB FL v4.0' : 'CSTS';
   const productBadge = (activeProduct || '').toUpperCase();
   const showGradeSection = mode === 'exam' || mode === 'random';
+  // 응시 중(시험 시작 후 채점 전) 잠금 — 세트·모드 변경을 막아 채점 기준이 흔들리지 않게 한다.
+  const examLocked = mode === 'exam' && !!examStarted && !isGraded;
 
   return (
     <aside className="sidebar" aria-label="시험 설정">
@@ -163,10 +160,16 @@ export const Sidebar = () => {
         </section>
       )}
 
-      <div className="sidebar-controls">
+      <div className="sidebar-controls" data-exam-locked={examLocked ? 'true' : undefined}>
         <section className="panel">
           <label htmlFor="examSelect">문제 세트</label>
-          <select id="examSelect" value={setId} onChange={handleSetChange}>
+          <select
+            id="examSelect"
+            value={setId}
+            onChange={handleSetChange}
+            disabled={examLocked}
+            data-testid="set-select"
+          >
             {sets.map((set) => (
               <option key={set.id} value={set.id}>
                 {set.title}{setCounts[set.id] != null ? ` (${setCounts[set.id]}문항)` : ''}
@@ -181,6 +184,8 @@ export const Sidebar = () => {
             {MODE_LABELS.map(({ mode: m, label }) => (
               <button
                 key={m}
+                // 응시 중에는 다른 모드로의 전환을 막는다(현재 시험 버튼은 활성 유지).
+                disabled={examLocked && m !== 'exam'}
                 type="button"
                 className={mode === m ? 'active' : ''}
                 aria-pressed={mode === m}
@@ -191,6 +196,9 @@ export const Sidebar = () => {
               </button>
             ))}
           </div>
+          {examLocked && (
+            <p className="exam-lock-hint" data-testid="exam-lock-hint">🔒 시험 응시 중 — 채점 후 세트·모드를 변경할 수 있습니다.</p>
+          )}
         </section>
 
         <section className="stats" aria-live="polite">

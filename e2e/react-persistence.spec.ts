@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openProduct, openSet, modeBtn } from "./helpers";
+import { enterExam, openProduct, openSet } from "./helpers";
 
 // 영속성(새로고침 복원) + 기록 내보내기/가져오기.
 // 진입 시 항상 제품 선택 게이트가 뜨므로(#5), 재선택 시 저장된 답안이 복원된다.
@@ -80,7 +80,7 @@ test.describe("영속성/백업", () => {
 
   test("시험 모드 답안도 새로고침 후 복원된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await page.waitForTimeout(800);
     await page.reload();

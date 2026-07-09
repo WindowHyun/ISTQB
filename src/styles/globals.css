@@ -732,6 +732,27 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 .review-palette { margin-top: 10px; max-height: 38vh; overflow-y: auto; }
 
 /* ── 이어풀기 안내 배너(#A) ─────────────────────────────────────────── */
+/* 시험 시작 게이트(Phase 1) */
+.exam-gate { text-align: center; padding: 32px 24px; }
+.exam-gate-title { font-size: 20px; font-weight: 800; color: var(--text); }
+.exam-gate-set { margin-top: 6px; font-size: 14px; font-weight: 700; color: var(--primary); }
+.exam-gate-desc {
+  margin: 16px auto 0;
+  max-width: 420px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+.exam-gate-start { margin-top: 22px; padding: 12px 28px; font-size: 15px; font-weight: 800; }
+
+/* 응시 중 잠금 힌트 */
+.exam-lock-hint { margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.sidebar-controls[data-exam-locked="true"] .panel select:disabled,
+.sidebar-controls[data-exam-locked="true"] .segmented button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* 챕터 집중 연습 배너(Phase 3) — 이어풀기 배너와 동일한 시각 언어. */
 .chapter-filter-banner {
   display: flex;

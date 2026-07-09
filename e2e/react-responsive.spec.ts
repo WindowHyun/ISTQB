@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openProduct, openSet, modeBtn, submitGrade } from "./helpers";
+import { enterExam, openProduct, openSet, submitGrade } from "./helpers";
 
 // 반응형(모바일/태블릿 뷰포트)에서 핵심 동작.
 test.describe("반응형", () => {
@@ -31,7 +31,7 @@ test.describe("반응형", () => {
       await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
       // 모드 변경은 드로어에서
       await page.getByTestId("drawer-open").click();
-      await modeBtn(page, "시험").click();
+      await enterExam(page);
       await page.locator("#options .option").first().click();
       await submitGrade(page, "grade-button-m");
       await expect(page.getByTestId("score")).toContainText("점수", { timeout: 8_000 });

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openSet, modeBtn, gotoQuestion, submitGrade } from "./helpers";
+import { enterExam, gotoQuestion, modeBtn, openSet, submitGrade } from "./helpers";
 
 // 문항 유형별(객관식 복수정답/진위형/단답형) 답안 UI.
 test.describe("문항 유형", () => {
@@ -41,7 +41,7 @@ test.describe("문항 유형", () => {
 
   test("채점 후 정답 보기는 .correct 스타일을 갖는다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await expect(page.getByTestId("score")).toBeVisible({ timeout: 8_000 });

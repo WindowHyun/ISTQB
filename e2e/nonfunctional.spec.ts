@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openSet, modeBtn } from "./helpers";
+import { enterExam, modeBtn, openSet } from "./helpers";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 비기능(Non-functional) 테스트 — 성능·부하/스트레스·메모리·정확도·복원력.
@@ -71,7 +71,7 @@ test.describe("비기능 · 성능(응답 시간)", () => {
 
   test("NF4 40문항 응답 후 채점 응답 시간", async ({ page }, testInfo) => {
     await openSet(page, "ISTQB", A);
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     for (let i = 0; i < 40; i++) {
       await page.locator("#options .option").first().click();
       if (i < 39) await page.locator("#nextBtn").click();
@@ -182,7 +182,7 @@ test.describe("비기능 · 부하/스트레스·메모리", () => {
 test.describe("비기능 · 정확도/복원력", () => {
   test("NF9 타이머 정확도: 3초 경과 표시", async ({ page }, testInfo) => {
     await openSet(page, "ISTQB", A);
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     const read = async () => {
       const t = (await page.locator("#timerText").textContent()) || "00:00";
       const [mm, ss] = t.trim().split(":").map(Number);

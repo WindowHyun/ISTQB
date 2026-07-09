@@ -31,6 +31,9 @@ export interface QuizState {
   histories: Record<string, ExamHistory>;
   reviewIds: Record<string, string[]>;
   graded: Record<string, boolean>;
+  // 시험 시작 게이트(Phase 1) — 세트별로 "시작하기"를 눌러 응시를 개시했는지.
+  // 비영속(새로고침 시 게이트 재노출, 답안은 보존). 키는 setId.
+  examStarted: Record<string, boolean>;
   elapsedSeconds: number;
   lastTick: number | null;
   startedAt: number | null;
@@ -46,8 +49,6 @@ export interface QuizState {
   resultOpen: boolean;
   paletteOpen: boolean;
   confirmGradeOpen: boolean;
-  // 시험 모드 진행 중 다른 모드로 전환 시도 시, 확인 대기 중인 목표 모드(null이면 대기 없음).
-  pendingMode: QuizMode | null;
   // 저장된 진행을 중간 위치에서 복원했을 때 "이어풀기" 안내 배너를 띄울지 여부.
   resumeNotice: boolean;
   // 시험/랜덤 모드로 복원했고 이전 답안이 있을 때 "이어풀기/새로 풀기" 선택 모달을 띄울지 여부.
@@ -63,6 +64,7 @@ export interface QuizState {
   // 오답(review) 대상 문항 id 목록. 키는 `${setId}-${mode}`(과거 데이터는 setId 단독일 수 있음).
   setReviewIds: (key: string, ids: string[]) => void;
   setGraded: (key: string, value: boolean) => void;
+  setExamStarted: (setId: string, value: boolean) => void;
   clearAnswers: (setId: string, mode: QuizMode) => void;
   // id 목록으로 이력을 지운다. 호출은 storage.removeHistoriesEverywhere(메모리+DB 동시 삭제)로만.
   removeHistories: (ids: string[]) => void;
@@ -78,7 +80,6 @@ export interface QuizState {
   setResultOpen: (open: boolean) => void;
   setPaletteOpen: (open: boolean) => void;
   setConfirmGradeOpen: (open: boolean) => void;
-  setPendingMode: (mode: QuizMode | null) => void;
   setResumeNotice: (show: boolean) => void;
   setResumePrompt: (show: boolean) => void;
   resetToGate: () => void;
@@ -94,6 +95,7 @@ export const useQuizStore = create<QuizState>((set) => ({
   histories: {},
   reviewIds: {},
   graded: {},
+  examStarted: {},
   elapsedSeconds: 0,
   lastTick: null,
   startedAt: null,
@@ -107,7 +109,6 @@ export const useQuizStore = create<QuizState>((set) => ({
   resultOpen: false,
   paletteOpen: false,
   confirmGradeOpen: false,
-  pendingMode: null,
   resumeNotice: false,
   resumePrompt: false,
 
@@ -130,6 +131,9 @@ export const useQuizStore = create<QuizState>((set) => ({
   setGraded: (key, value) => set((state) => ({
     graded: { ...state.graded, [key]: value }
   })),
+  setExamStarted: (setId, value) => set((state) => ({
+    examStarted: { ...state.examStarted, [setId]: value }
+  })),
   clearAnswers: (setId, mode) => set((state) => {
     const nextAnswers = { ...state.answers };
     for (const key in nextAnswers) {
@@ -138,8 +142,15 @@ export const useQuizStore = create<QuizState>((set) => ({
         delete nextAnswers[key];
       }
     }
-    // 해당 세트/모드의 채점 상태도 함께 초기화
-    return { answers: nextAnswers, graded: { ...state.graded, [`${setId}-${mode}`]: false } };
+    // 해당 세트/모드의 채점 상태 초기화 + 시험 재응시 시 시작 게이트가 다시 뜨도록 examStarted도 해제.
+    const nextExamStarted = mode === 'exam'
+      ? { ...state.examStarted, [setId]: false }
+      : state.examStarted;
+    return {
+      answers: nextAnswers,
+      graded: { ...state.graded, [`${setId}-${mode}`]: false },
+      examStarted: nextExamStarted,
+    };
   }),
   removeHistories: (ids) => set((state) => {
     const nextHistories = { ...state.histories };
@@ -165,7 +176,6 @@ export const useQuizStore = create<QuizState>((set) => ({
   setResultOpen: (resultOpen) => set({ resultOpen }),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
   setConfirmGradeOpen: (confirmGradeOpen) => set({ confirmGradeOpen }),
-  setPendingMode: (pendingMode) => set({ pendingMode }),
   setResumeNotice: (resumeNotice) => set({ resumeNotice }),
   setResumePrompt: (resumePrompt) => set({ resumePrompt }),
   // 진입/캐시 복원 시 항상 최초 화면(제품 선택 게이트)으로 — 오버레이도 모두 닫는다.
@@ -173,7 +183,9 @@ export const useQuizStore = create<QuizState>((set) => ({
     mode: 'home', activeProduct: null,
     drawerOpen: false, settingsOpen: false, statsOpen: false,
     wrongNoteOpen: false, resultOpen: false, paletteOpen: false, confirmGradeOpen: false,
-    pendingMode: null, resumeNotice: false, resumePrompt: false,
+    resumeNotice: false, resumePrompt: false,
+    // 제품 게이트로 돌아가면 시험 시작 상태도 리셋(다음 진입 시 시작 게이트 재노출).
+    examStarted: {}, chapterFilter: null,
   }),
   hydrate: (hydratedState) => set((state) => ({ ...state, ...hydratedState })),
 }));

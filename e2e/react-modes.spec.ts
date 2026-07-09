@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openSet, modeBtn, gotoQuestion, submitGrade } from "./helpers";
+import { enterExam, gotoQuestion, modeBtn, openSet, submitGrade } from "./helpers";
 
 // 풀이 모드(연습/시험/랜덤/오답) 상세 동작.
 test.describe("모드", () => {
@@ -19,7 +19,7 @@ test.describe("모드", () => {
 
   test("시험: 채점 후 보기 선택이 잠긴다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await expect(page.getByTestId("score")).toBeVisible({ timeout: 8_000 });
@@ -29,7 +29,7 @@ test.describe("모드", () => {
 
   test("시험: 채점 후 문제 번호 팔레트가 정답/오답 색을 띤다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await expect(page.getByTestId("score")).toBeVisible({ timeout: 8_000 });
@@ -50,7 +50,7 @@ test.describe("모드", () => {
   test("오답 다시풀기: review 모드로 진입해 답을 다시 고를 수 있다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     // 먼저 시험 채점으로 오답을 만든다
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await expect(page.getByTestId("score")).toBeVisible({ timeout: 8_000 });

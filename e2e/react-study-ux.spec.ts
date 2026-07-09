@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openProduct, openSet, modeBtn, gotoQuestion, submitGrade } from "./helpers";
+import { enterExam, gotoQuestion, modeBtn, openProduct, openSet, submitGrade } from "./helpers";
 
 // 학습 UX 개선: 이어풀기 배너(A) · 제출 전 검토(E) · 오답 해설(F) · 피드백 aria-live(I).
 
@@ -49,7 +49,7 @@ test.describe("학습 UX — 이어풀기 배너(A)", () => {
 test.describe("학습 UX — 제출 전 검토(E)", () => {
   test("확인 모달에 검토 팔레트가 보이고 미응답 문항으로 이동한다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click(); // 1번만 응답
     await page.getByTestId("grade-button").click();
 
@@ -66,7 +66,7 @@ test.describe("학습 UX — 제출 전 검토(E)", () => {
 
   test("모두 응답하면 검토 모달 없이 바로 채점된다(기존 동작 유지)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     const total = await page.locator("#questionNav button").count();
     for (let i = 0; i < total; i++) {
       await page.locator("#options .option").first().click();
@@ -81,7 +81,7 @@ test.describe("학습 UX — 제출 전 검토(E)", () => {
 test.describe("학습 UX — 오답 노트 재설계(세트명·내 답·정답)", () => {
   test("오답 노트: 세트 선택 후 문제번호·내 답·정답이 표시된다(#3·#4)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
@@ -99,14 +99,14 @@ test.describe("학습 UX — 오답 노트 재설계(세트명·내 답·정답)
 
   test("오답 노트: 여러 세트가 목록으로 보이고 뒤로가기로 돌아온다(#3·#4)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
 
-    // 다른 세트로 전환(모드 유지됨) 후 채점 → 회차 2건
+    // 채점 후 잠금 해제 → 다른 세트로 전환(모드 유지) → 시작 게이트 통과 후 채점 → 회차 2건
     await page.locator("#examSelect").selectOption("ISTQB-FL-V4-C");
-    await expect(page.locator("#questionStem")).toBeVisible();
+    await page.getByTestId("exam-start-btn").click();
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
@@ -130,7 +130,7 @@ test.describe("학습 UX — 오답 노트 재설계(세트명·내 답·정답)
 test.describe("학습 UX — 시험 모드 이어풀기/유지(#1·#2·#6)", () => {
   test("재접속 시 시험 모드가 유지된다(연습으로 바뀌지 않음, #6)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await page.waitForTimeout(800);
     await page.reload();
@@ -142,29 +142,31 @@ test.describe("학습 UX — 시험 모드 이어풀기/유지(#1·#2·#6)", () 
 
   test("세트를 바꿔도 모드가 유지된다(연습으로 초기화 안 됨, #2)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    // 시작 게이트(응시 전)에서는 세트 변경이 열려 있고, 바꿔도 모드는 시험으로 유지된다.
     await modeBtn(page, "시험").click();
+    await expect(page.getByTestId("exam-start-gate")).toBeVisible();
     await page.locator("#examSelect").selectOption("ISTQB-FL-V4-C");
-    await expect(page.locator("#questionStem")).toBeVisible();
+    await expect(page.getByTestId("exam-start-gate")).toBeVisible();
     await expect(page.locator('.segmented button[data-mode="exam"]')).toHaveAttribute("aria-pressed", "true");
   });
 
   test("채점한 시험은 다른 모드 갔다 오면 다시 풀 수 있다(잠금 해제, #1)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
     await expect(page.locator("#options .option").first()).toBeDisabled(); // 채점 직후 잠금
     // 연습 갔다가 다시 시험 → 잠금 해제(재응시)
     await modeBtn(page, "연습").click();
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await expect(page.locator("#options .option").first()).toBeEnabled();
     await expect(page.locator("#progressText")).toHaveText("0 / 40");
   });
 
   test("채점한 시험은 재접속하면 다시 풀 수 있다(잠금 미유지, #1 롤백)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
@@ -181,7 +183,7 @@ test.describe("학습 UX — 시험 모드 이어풀기/유지(#1·#2·#6)", () 
 test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", () => {
   test("시험 답안이 있으면 재접속 시 선택 모달이 뜬다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await page.waitForTimeout(800);
     await page.reload();
@@ -194,7 +196,7 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
 
   test("'이어풀기'를 고르면 이전 답안이 유지된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await page.waitForTimeout(800);
     await page.reload();
@@ -207,7 +209,7 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
 
   test("'새로 풀기'를 고르면 이전 답안이 초기화된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await page.waitForTimeout(800);
     await page.reload();
@@ -231,14 +233,15 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
 
   test("다른 세트로 바꿔서 이전 답안이 있으면 선택 모달이 뜬다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click(); // A 답
-    // C로 전환(답안 없음 → 모달 없음)
+    await submitGrade(page); // 채점 → 잠금 해제(세트 변경 가능)
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+    // C로 전환(답안 없음 → 모달 없음, 시작 게이트)
     await page.locator("#examSelect").selectOption("ISTQB-FL-V4-C");
-    await expect(page.locator("#questionStem")).toBeVisible();
+    await expect(page.getByTestId("exam-start-gate")).toBeVisible();
     await expect(page.getByTestId("resume-prompt-modal")).toHaveCount(0);
-    await page.locator("#options .option").first().click(); // C 답
-    // 다시 A로 전환 → A에 답안 있음 → 모달
+    // 다시 A로 전환 → A에 채점 답안 있음 → 모달
     await page.locator("#examSelect").selectOption("ISTQB-FL-V4-A");
     await expect(page.getByTestId("resume-prompt-modal")).toBeVisible();
     // 새로 풀기 → A 초기화
@@ -289,7 +292,7 @@ test.describe("코드리뷰 수정 회귀 — 오답 목록 보존·가드 이�
   test("랜덤 채점이 시험 오답 목록을 덮어쓰지 않는다(오답 모드 합집합)", async ({ page }) => {
     // 70문항 세트: 랜덤은 40문항만 추첨하므로, 시험 오답(≈69)이 보존되면 합집합 > 40.
     await openSet(page, "CSTS", "CSTS-FL-2402");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
@@ -318,21 +321,21 @@ test.describe("코드리뷰 수정 회귀 — 오답 목록 보존·가드 이�
     await expect(page.locator("#questionNav button")).toHaveCount(40);
   });
 
-  test("시험 중 가드 모달 '이동'으로 채점된 랜덤에 들어가면 새로 풀 수 있다", async ({ page }) => {
+  test("채점 후 시험 잠금이 풀려 채점된 랜덤에 들어가면 새로 풀 수 있다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    // 1) 랜덤을 채점해 잠금 상태로 만든다.
+    // 1) 랜덤을 채점해 둔다.
     await modeBtn(page, "랜덤").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
-    // 2) 시험 모드에서 1문항 응답(진행 중) 후 랜덤으로 이동 시도 → 가드 모달 → 이동.
-    await modeBtn(page, "시험").click();
+    // 2) 시험을 시작·응답·채점하면 잠금이 풀린다.
+    await enterExam(page);
     await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+    // 3) 잠금 해제 후 채점된 랜덤으로 이동하면 재추첨·초기화되어 새로 풀 수 있다.
     await modeBtn(page, "랜덤").click();
-    await expect(page.getByTestId("mode-change-modal")).toBeVisible();
-    await page.getByTestId("mode-change-go").click();
-    // 3) 직접 클릭 경로와 동일하게 초기화되어 새로 풀 수 있어야 한다.
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
     await expect(page.locator("#options .option").first()).toBeEnabled();
     await expect(page.locator("#progressText")).toHaveText("0 / 40");
@@ -343,7 +346,7 @@ test.describe("코드리뷰 수정 회귀 — 오답 목록 보존·가드 이�
 test.describe("학습 UX — 채점 결과 줄바꿈 없음(#5)", () => {
   test("점수·합격 기준 값이 한 줄로(줄바꿈 없이) 표시된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     const result = page.getByTestId("result-summary");

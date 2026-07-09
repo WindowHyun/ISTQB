@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { openSet, modeBtn, submitGrade } from "./helpers";
+import { enterExam, modeBtn, openSet, submitGrade } from "./helpers";
 
 // Phase 3: 챕터별 약점 분석·챕터 집중 연습·오답노트 전 회차 합산.
 
@@ -21,7 +21,7 @@ async function answerCurrentCorrectly(page: Page, setPath: string) {
 test.describe("약점 분석(Phase 3)", () => {
   test("채점하면 통계에 챕터별 정답률이 뜨고, '연습'으로 챕터 집중 연습에 진입한다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await submitGrade(page); // 전부 미응답 채점 → 챕터 전부 0%
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
 
@@ -54,7 +54,7 @@ test.describe("약점 분석(Phase 3)", () => {
   test("오답노트는 전 회차 합산 — 최신 회차에서 맞힌 문항도 이전 회차 오답이면 남는다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     // 1회차(시험): 전부 미응답 → 40문항 전부 오답.
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
     // 2회차(랜덤, 같은 세트): 첫 문항만 정답 → 최신 회차 오답 39.

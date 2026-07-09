@@ -64,20 +64,20 @@ export const AppModals = () => {
   // 닫혀 있는 동안 타이머 틱으로 리렌더되지 않게 한다(열려 있으면 기존처럼 초 단위 갱신).
   const {
     setId, mode, activeProduct, histories, resultElapsedSeconds,
-    settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, pendingMode, resumePrompt,
+    settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, resumePrompt,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
-    setMode, setIndex, resetTimer, clearAnswers, setReviewIds, setChapterFilter, setPendingMode, setResumePrompt,
+    setMode, setIndex, resetTimer, clearAnswers, setReviewIds, setChapterFilter, setResumePrompt,
   } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, activeProduct: s.activeProduct, histories: s.histories,
     resultElapsedSeconds: s.resultOpen ? s.elapsedSeconds : 0,
     settingsOpen: s.settingsOpen, statsOpen: s.statsOpen, wrongNoteOpen: s.wrongNoteOpen,
     resultOpen: s.resultOpen, paletteOpen: s.paletteOpen, confirmGradeOpen: s.confirmGradeOpen,
-    pendingMode: s.pendingMode, resumePrompt: s.resumePrompt,
+    resumePrompt: s.resumePrompt,
     setSettingsOpen: s.setSettingsOpen, setStatsOpen: s.setStatsOpen, setWrongNoteOpen: s.setWrongNoteOpen,
     setResultOpen: s.setResultOpen, setPaletteOpen: s.setPaletteOpen, setDrawerOpen: s.setDrawerOpen,
     setConfirmGradeOpen: s.setConfirmGradeOpen, setMode: s.setMode, setIndex: s.setIndex,
     resetTimer: s.resetTimer, clearAnswers: s.clearAnswers, setReviewIds: s.setReviewIds,
-    setChapterFilter: s.setChapterFilter, setPendingMode: s.setPendingMode, setResumePrompt: s.setResumePrompt,
+    setChapterFilter: s.setChapterFilter, setResumePrompt: s.setResumePrompt,
   })));
   const { appData, total, answered, correctCount, gradeAndShow } = useQuizSession();
   const { pref: themePref, setPref: setThemePref } = useTheme();
@@ -193,24 +193,6 @@ export const AppModals = () => {
   const confirmGrade = () => {
     setConfirmGradeOpen(false);
     gradeAndShow();
-  };
-
-  // 시험 모드 전환 확인: '이동'이면 목표 모드로 전환, '뒤로가기'면 취소(시험 유지).
-  const confirmModeChange = () => {
-    if (!pendingMode) return;
-    const target = pendingMode;
-    setPendingMode(null);
-    // 직접 클릭 경로(Sidebar.handleModeChange)와 동일하게 초기화한다.
-    if (target === 'random') {
-      // 랜덤은 이어풀기 없음 — 진입 시 항상 초기화(F4).
-      clearAnswers(setId, 'random');
-    } else if (target === 'exam' && useQuizStore.getState().graded[`${setId}-exam`]) {
-      // 이미 채점한 시험으로 이동하면 새로 풀 수 있게 초기화(#1).
-      clearAnswers(setId, 'exam');
-    }
-    setMode(target);
-    setIndex(0);
-    resetTimer();
   };
 
   const handleClearHistories = () => {
@@ -557,25 +539,6 @@ export const AppModals = () => {
               <button type="button" onClick={() => setConfirmGradeOpen(false)}>계속 풀기</button>
               <button type="button" className="primary" data-testid="confirm-grade" onClick={confirmGrade}>
                 채점하기
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {pendingMode && (
-        <Modal title="시험 진행 중" onClose={() => setPendingMode(null)}>
-          <div className="modal-body confirm-body" data-testid="mode-change-modal">
-            <p>
-              시험 모드를 진행 중입니다. <strong>{MODE_LABEL[pendingMode] ?? pendingMode}</strong> 모드로 이동하면
-              현재 시험 진행 상태(타이머)가 초기화됩니다. 이동할까요?
-            </p>
-            <div className="confirm-actions">
-              <button type="button" data-testid="mode-change-back" onClick={() => setPendingMode(null)}>
-                뒤로가기
-              </button>
-              <button type="button" className="primary" data-testid="mode-change-go" onClick={confirmModeChange}>
-                이동
               </button>
             </div>
           </div>

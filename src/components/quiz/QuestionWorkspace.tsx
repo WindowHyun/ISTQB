@@ -10,27 +10,37 @@ import { ErrorState } from '../common/ErrorState';
 export const QuestionWorkspace = () => {
   // 슬라이스 구독(O1) — elapsedSeconds를 구독하지 않으므로 타이머 틱에 리렌더되지 않는다.
   const {
-    index, setId, mode, setIndex, tickTimer, startTimer,
+    index, setId, mode, setIndex, tickTimer, startTimer, resetTimer,
     navCollapsed, setNavCollapsed, setPaletteOpen, setResultOpen,
     resumeNotice, setResumeNotice, chapterFilter, setChapterFilter,
+    examStarted, setExamStarted, setDrawerOpen,
   } = useQuizStore(useShallow((s) => ({
     index: s.index, setId: s.setId, mode: s.mode, setIndex: s.setIndex,
-    tickTimer: s.tickTimer, startTimer: s.startTimer,
+    tickTimer: s.tickTimer, startTimer: s.startTimer, resetTimer: s.resetTimer,
     navCollapsed: s.navCollapsed, setNavCollapsed: s.setNavCollapsed,
     setPaletteOpen: s.setPaletteOpen, setResultOpen: s.setResultOpen,
     resumeNotice: s.resumeNotice, setResumeNotice: s.setResumeNotice,
     chapterFilter: s.chapterFilter, setChapterFilter: s.setChapterFilter,
+    examStarted: s.examStarted[s.setId], setExamStarted: s.setExamStarted,
+    setDrawerOpen: s.setDrawerOpen,
   })));
   const {
     appData, currentQuestions, answered, isGraded, canGrade, requestGrade,
     loadError, retryLoad,
   } = useQuizSession();
 
+  // 시험 시작 게이트: "완전히 새로 시작하는 시험"에서만 보여준다.
+  // - examStarted: 이번 세션에서 시작 버튼을 눌렀으면 게이트 없음.
+  // - answered>0: 새로고침으로 답안이 복원된(이어풀기) 경우 이미 시작한 것이므로 게이트 없음.
+  //   (examStarted는 비영속이라 복원 후 false지만, 답이 있으면 게이트를 건너뛰어 이어풀기와 충돌하지 않는다.)
+  const showExamGate = mode === 'exam' && !examStarted && !isGraded && answered === 0;
+
   useEffect(() => {
     // 채점 후에는 타이머를 정지한다 — 결과가 나온 뒤에도 시간이 계속 오르면
     // 결과 모달·사이드바의 소요 시간이 채점 시점과 어긋난다.
     // 재응시(초기화)로 graded가 풀리면 effect가 재실행돼 다시 시작한다.
-    if (isGraded) return;
+    // 시험 시작 게이트를 보는 동안에도 아직 응시 전이므로 타이머를 돌리지 않는다.
+    if (isGraded || showExamGate) return;
     startTimer();
     let interval: ReturnType<typeof setInterval> | undefined;
     const handleVisibilityChange = () => {
@@ -50,7 +60,7 @@ export const QuestionWorkspace = () => {
       flushPersist();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [mode, isGraded, startTimer, tickTimer]);
+  }, [mode, isGraded, showExamGate, startTimer, tickTimer]);
 
   // index가 현재 목록 범위를 벗어나면 보정(세트/모드 전환 잔여 index 방어, #70)
   useEffect(() => {
@@ -78,7 +88,7 @@ export const QuestionWorkspace = () => {
       const s = useQuizStore.getState();
       if (
         s.settingsOpen || s.statsOpen || s.wrongNoteOpen || s.resultOpen || s.paletteOpen ||
-        s.confirmGradeOpen || s.pendingMode || s.resumePrompt || s.drawerOpen
+        s.confirmGradeOpen || s.resumePrompt || s.drawerOpen
       ) {
         return;
       }
@@ -130,10 +140,37 @@ export const QuestionWorkspace = () => {
   }
 
   const total = currentQuestions.length;
+  const setTitle = appData?.sets.find((s) => s.id === setId)?.title || '';
+
+  // 시험 시작 게이트 — "시작하기"를 누르기 전에는 문항을 노출하지 않는다.
+  // 시작하면 타이머가 0부터 시작하고, 채점 전까지 세트·모드가 잠긴다(사이드바에서 처리).
+  if (showExamGate) {
+    const startExam = () => {
+      setExamStarted(setId, true);
+      setIndex(0);
+      resetTimer();
+      setDrawerOpen(false);
+    };
+    return (
+      <section className="workspace" aria-label="문제 풀이 영역">
+        <article className="question-card exam-gate" data-testid="exam-start-gate">
+          <h2 className="exam-gate-title">시험 모드</h2>
+          <p className="exam-gate-set">{setTitle} · 총 {total}문항</p>
+          <p className="exam-gate-desc">
+            시험을 시작하면 응시가 끝나(채점)기 전까지 <strong>문제 세트와 풀이 모드를 변경할 수 없습니다.</strong>
+            준비되면 시작하세요.
+          </p>
+          <button type="button" className="primary exam-gate-start" data-testid="exam-start-btn" onClick={startExam}>
+            시험 시작
+          </button>
+        </article>
+      </section>
+    );
+  }
+
   const safeIndex = Math.min(Math.max(index, 0), total - 1);
   const currentQuestion = currentQuestions[safeIndex];
   const isMulti = currentQuestion.answer.length > 1;
-  const setTitle = appData?.sets.find((s) => s.id === setId)?.title || '';
 
   const goPrev = () => setIndex((i) => Math.max(0, i - 1));
   const goNext = () => setIndex((i) => Math.min(total - 1, i + 1));

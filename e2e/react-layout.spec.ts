@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openSet } from "./helpers";
+import { enterExam, openSet } from "./helpers";
 
 // 하이브리드 레이아웃: 접이식 팔레트 · 문항 이동 모달 · 모바일 드로어.
 test.describe("레이아웃", () => {
@@ -44,7 +44,7 @@ test.describe("레이아웃", () => {
     test("모드 변경 시 드로어가 자동으로 닫힌다", async ({ page }) => {
       await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
       await page.getByTestId("drawer-open").click();
-      await page.locator('.segmented button[data-mode="exam"]').click();
+      await enterExam(page);
       await expect(page.locator(".app-shell")).toHaveAttribute("data-drawer", "closed");
     });
   });

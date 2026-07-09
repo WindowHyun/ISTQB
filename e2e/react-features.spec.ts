@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openProduct, openSet, modeBtn, submitGrade } from "./helpers";
+import { enterExam, openProduct, openSet, submitGrade } from "./helpers";
 
 // 신규 기능: 다크모드 토글 · 모달 Esc 닫기 · 세트 문항 수 · 결과 요약 · 학습 통계.
 test.describe("신규 기능", () => {
@@ -31,7 +31,7 @@ test.describe("신규 기능", () => {
 
   test("채점 시 결과 요약 모달이 자동으로 뜬다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     const result = page.getByTestId("result-summary");
@@ -43,7 +43,7 @@ test.describe("신규 기능", () => {
 
   test("학습 통계에 채점 이력이 누적된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     // 자동으로 뜬 결과 요약 모달 닫기
@@ -57,7 +57,7 @@ test.describe("신규 기능", () => {
 
   test("미응답 상태로 채점하면 확인 모달이 뜨고 계속 풀기/채점을 고를 수 있다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click(); // 1문항만 응답
     await page.getByTestId("grade-button").click();
     const confirm = page.getByTestId("confirm-grade-modal");

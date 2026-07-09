@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { submitGrade } from "./helpers";
+import { enterExam, submitGrade } from "./helpers";
 
 // React 앱 기능 전수 회귀 스펙 — 게이트·모드·채점·오답노트·설정·진위/단답 UI.
 // (Playwright 전수조사에서 도출: 626문항 렌더/404/예외 0, 기능 플로우 정상)
@@ -48,7 +48,7 @@ test("네비: 팔레트 + 키보드 화살표 이동", async ({ page }) => {
 
 test("시험: 채점 전 피드백 없음 → 채점 → 점수/공개 + 오답노트", async ({ page }) => {
   await openIstqb(page);
-  await modeBtn(page, "시험").click();
+  await enterExam(page);
   await page.locator("#options .option").first().click();
   await expect(page.locator("#feedback")).toHaveCount(0);
   await submitGrade(page);

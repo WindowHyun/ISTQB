@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openProduct, openSet, modeBtn, submitGrade } from "./helpers";
+import { enterExam, modeBtn, openProduct, openSet, submitGrade } from "./helpers";
 
 // 최종 QA — 전 기능 점검(진입·지속성·컷스코어·미응답 확인·라이트박스·토스트·스켈레톤·오답연계·모바일).
 test.describe("최종점검", () => {
@@ -36,14 +36,14 @@ test.describe("최종점검", () => {
     await modeBtn(page, "연습").click();
     await page.locator("#options .option").first().click();
     await expect(page.locator("#progressText")).not.toHaveText("0 / 40");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await expect(page.locator("#progressText")).toHaveText("0 / 40");
   });
 
   // ── 채점 / 컷스코어 ────────────────────────────────────────────
   test("ISTQB 미달 시 '합격 기준 미달'이 노출된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await expect(page.getByTestId("result-summary")).toContainText("미달", { timeout: 8_000 });
@@ -51,7 +51,7 @@ test.describe("최종점검", () => {
 
   test("ISTQB 합격 기준 라벨(26 / 40문항(65%))이 노출된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await expect(page.locator(".result-criterion")).toContainText("26 / 40문항(65%)");
@@ -59,7 +59,7 @@ test.describe("최종점검", () => {
 
   test("CSTS 결과는 환산 점수와 환산 52.5점 기준을 노출한다", async ({ page }) => {
     await openSet(page, "CSTS", "CSTS-FL-2402");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await expect(page.getByTestId("result-score")).toContainText("환산", { timeout: 8_000 });
@@ -68,7 +68,7 @@ test.describe("최종점검", () => {
 
   test("모두 응답 후 채점하면 확인 모달 없이 결과가 뜬다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     const total = await page.locator("#questionNav button").count();
     for (let i = 0; i < total; i++) {
       await page.locator("#options .option").first().click();
@@ -82,7 +82,7 @@ test.describe("최종점검", () => {
   // ── 미응답 확인 ────────────────────────────────────────────────
   test("미응답 확인 모달을 Esc로 닫으면 채점되지 않는다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await page.getByTestId("grade-button").click();
     await expect(page.getByTestId("confirm-grade-modal")).toBeVisible();
@@ -93,7 +93,7 @@ test.describe("최종점검", () => {
 
   test("미응답 확인 모달이 미응답 개수(37)를 정확히 표시한다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     for (let i = 0; i < 3; i++) {
       await page.locator("#options .option").first().click();
       await page.locator("#nextBtn").click();
@@ -155,7 +155,7 @@ test.describe("최종점검", () => {
   // ── 오답 연계 ──────────────────────────────────────────────────
   test("채점 후 오답 노트에서 세트 선택 시 세트명·내 답·정답이 표시된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
@@ -170,7 +170,7 @@ test.describe("최종점검", () => {
 
   test("결과 요약의 '오답 노트 보기'로 오답노트가 열린다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 8_000 });

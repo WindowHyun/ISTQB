@@ -1,11 +1,11 @@
 import { test, expect } from "@playwright/test";
-import { openSet, modeBtn, gotoQuestion, submitGrade } from "./helpers";
+import { enterExam, gotoQuestion, modeBtn, openSet, submitGrade } from "./helpers";
 
 // 엣지: 채점(미응답 확인·컷스코어·복수정답·진위형·단답형).
 test.describe("엣지-채점", () => {
   test("아무것도 응답하지 않고 채점하면 확인 모달이 40문항 미응답을 알린다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.getByTestId("grade-button").click();
     const m = page.getByTestId("confirm-grade-modal");
     await expect(m).toBeVisible();
@@ -14,7 +14,7 @@ test.describe("엣지-채점", () => {
 
   test("미응답 확인 모달을 '계속 풀기'로 닫으면 채점되지 않는다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await page.getByTestId("grade-button").click();
     await page.getByRole("button", { name: "계속 풀기" }).click();
@@ -24,7 +24,7 @@ test.describe("엣지-채점", () => {
 
   test("미응답 확인 모달을 Esc로 취소할 수 있다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await page.getByTestId("grade-button").click();
     await page.keyboard.press("Escape");
@@ -33,7 +33,7 @@ test.describe("엣지-채점", () => {
 
   test("3문항만 응답하면 확인 모달이 37문항 미응답을 표시한다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     for (let i = 0; i < 3; i++) {
       await page.locator("#options .option").first().click();
       await page.locator("#nextBtn").click();
@@ -44,7 +44,7 @@ test.describe("엣지-채점", () => {
 
   test("ISTQB 결과는 '26 / 40문항(65%)' 합격 기준을 표시한다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await expect(page.locator(".result-criterion")).toContainText("26 / 40문항(65%)");
@@ -52,7 +52,7 @@ test.describe("엣지-채점", () => {
 
   test("CSTS 결과는 환산 점수와 '환산 52.5점' 기준을 표시한다", async ({ page }) => {
     await openSet(page, "CSTS", "CSTS-FL-2402");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await expect(page.getByTestId("result-score")).toContainText("환산");
@@ -61,7 +61,7 @@ test.describe("엣지-채점", () => {
 
   test("미응답으로 채점하면 0%·합격 기준 미달이 표시된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await submitGrade(page);
     await expect(page.getByTestId("result-rate")).toHaveText("0%");
     await expect(page.getByTestId("result-summary")).toContainText("미달");
@@ -127,7 +127,7 @@ test.describe("엣지-채점", () => {
 
   test("채점 후 '결과 요약' 버튼으로 결과를 다시 열 수 있다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
@@ -137,7 +137,7 @@ test.describe("엣지-채점", () => {
 
   test("채점 후 팔레트가 정답/오답 색을 띤다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
@@ -148,7 +148,7 @@ test.describe("엣지-채점", () => {
 
   test("결과 요약의 '오답 노트 보기'로 오답노트가 열린다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByRole("button", { name: "오답 노트 보기" }).click();
@@ -156,7 +156,7 @@ test.describe("엣지-채점", () => {
   });
   test("채점 후에는 타이머가 정지한다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();

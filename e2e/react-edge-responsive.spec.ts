@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openSet, openProduct, modeBtn, submitGrade } from "./helpers";
+import { enterExam, openProduct, openSet, submitGrade } from "./helpers";
 
 // 엣지: 반응형(모바일 드로어·하단바·점프핀·소형 뷰포트).
 test.describe("엣지-반응형", () => {
@@ -36,7 +36,7 @@ test.describe("엣지-반응형", () => {
     test("모드 변경 시 드로어가 자동으로 닫힌다", async ({ page }) => {
       await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
       await page.getByTestId("drawer-open").click();
-      await page.locator('.segmented button[data-mode="exam"]').click();
+      await enterExam(page);
       await expect(page.locator(".app-shell")).toHaveAttribute("data-drawer", "closed");
     });
 
@@ -52,7 +52,7 @@ test.describe("엣지-반응형", () => {
     test("하단 액션바 채점 흐름이 동작한다", async ({ page }) => {
       await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
       await page.getByTestId("drawer-open").click();
-      await modeBtn(page, "시험").click();
+      await enterExam(page);
       await page.locator("#options .option").first().click();
       await submitGrade(page, "grade-button-m");
       await expect(page.getByTestId("score")).toContainText("점수", { timeout: 8_000 });
@@ -74,7 +74,7 @@ test.describe("엣지-반응형", () => {
     test("드로어의 채점하기는 드로어를 닫고 확인 팝업을 맨 위로 띄운다", async ({ page }) => {
       await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
       await page.getByTestId("drawer-open").click();
-      await modeBtn(page, "시험").click(); // 모드 변경으로 드로어가 닫힘
+      await enterExam(page); // 모드 변경으로 드로어가 닫힘
       await page.getByTestId("drawer-open").click();
       await page.getByTestId("grade-button").click();
       // 드로어가 닫혀 뒤의 모드/세트 컨트롤을 더 조작할 수 없다.
@@ -124,7 +124,7 @@ test.describe("엣지-반응형", () => {
       // 768px은 ≤880(모바일 레이아웃) → 모드는 드로어에서, 채점은 하단바로.
       await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
       await page.getByTestId("drawer-open").click();
-      await modeBtn(page, "시험").click();
+      await enterExam(page);
       await page.locator("#options .option").first().click();
       await submitGrade(page, "grade-button-m");
       await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 8_000 });

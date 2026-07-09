@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openSet, modeBtn, gotoQuestion, submitGrade } from "./helpers";
+import { enterExam, gotoQuestion, openSet, submitGrade } from "./helpers";
 
 // 엣지 케이스(빈 오답/마지막 문항/제품 전환/연속 조작 등) — 크래시 없이 견고한지.
 test.describe("엣지 케이스", () => {
@@ -15,7 +15,7 @@ test.describe("엣지 케이스", () => {
 
   test("마지막 문항에서도 채점이 동작한다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     const total = await page.locator("#questionNav button").count();
     await gotoQuestion(page, total);
     await page.locator("#options .option").first().click();
@@ -36,7 +36,7 @@ test.describe("엣지 케이스", () => {
   test("모드 전환 시 현재 문항이 1번으로 초기화된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await gotoQuestion(page, 5);
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await expect(page.locator("#questionNav button.current")).toHaveText("1");
   });
 

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openSet, openProduct, modeBtn, submitGrade } from "./helpers";
+import { enterExam, openProduct, openSet, submitGrade } from "./helpers";
 
 // 엣지: 모달 상호작용(Esc·백드롭·전환·설정 토글·통계 빈/비우기).
 test.describe("엣지-모달", () => {
@@ -36,7 +36,7 @@ test.describe("엣지-모달", () => {
 
   test("채점 후 학습 통계에 이력 1건이 쌓인다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
@@ -54,7 +54,7 @@ test.describe("엣지-모달", () => {
 
   test("학습 통계 '이력 비우기'는 2단계 확인 후 비워진다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
@@ -67,7 +67,7 @@ test.describe("엣지-모달", () => {
 
   test("결과 요약→오답 노트로 전환된다(스택되지 않음)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByRole("button", { name: "오답 노트 보기" }).click();
@@ -132,7 +132,7 @@ test.describe("엣지-모달", () => {
 
   test("오답 노트에서 문항 클릭 → 팝업 안에서 문제·내 답·정답을 본다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByRole("button", { name: "오답 노트 보기" }).click();
@@ -153,7 +153,7 @@ test.describe("엣지-모달", () => {
 
   test("오답 문항 보기에서 내가 고른 오답이 표시된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     // 40문항 전부 첫 보기로 응답 → 오답 다수 확보, 내 답이 항상 존재.
     for (let i = 0; i < 40; i++) {
       await page.locator("#options .option").first().click();
@@ -171,7 +171,7 @@ test.describe("엣지-모달", () => {
 
   test("오답 문항 보기에서 ‹ ›로 이전/다음 오답으로 이동한다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
+    await enterExam(page);
     // 전 문항 첫 보기 응답 → 오답 2개 이상 확보(정답이 전부 a일 수는 없음).
     for (let i = 0; i < 40; i++) {
       await page.locator("#options .option").first().click();

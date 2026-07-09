@@ -18,6 +18,15 @@ export async function openSet(page: Page, product: "ISTQB" | "CSTS", setId: stri
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 15_000 });
 }
 
+// 시험 모드 진입 + 시작 게이트 통과(Phase 1). 시험 모드는 "시험 시작"을 눌러야
+// 문항이 노출되므로, 대부분의 시나리오는 이 헬퍼로 진입한다(게이트 자체 검증은 전용 스펙).
+export async function enterExam(page: Page) {
+  await modeBtn(page, "시험").click();
+  const start = page.getByTestId("exam-start-btn");
+  await start.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
+  if (await start.count()) await start.click();
+}
+
 // 채점: 채점 버튼 클릭 후 미응답 경고 모달이 뜨면 확인까지 처리한다.
 export async function submitGrade(page: Page, testid = "grade-button") {
   await page.getByTestId(testid).click();
