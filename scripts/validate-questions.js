@@ -23,6 +23,20 @@ const path = require('path');
 const ALLOWED_BLOCK_TYPES = ['paragraph', 'note', 'prompt', 'list', 'table', 'code', 'formula', 'image'];
 const REQUIRED_FIELDS = ['id', 'number', 'type', 'stem', 'options', 'answer'];
 
+// 분류 체계(Phase 0) — chapter 값이 자격증별 taxonomy에 등록된 이름인지 검증한다.
+// 자격증명 → 유효 챕터 이름 Set. taxonomy.json 이 없으면 chapter 검증은 건너뛴다.
+let TAXONOMY = null;
+try {
+  const taxPath = fs.existsSync(path.join(process.cwd(), 'www/data/taxonomy.json'))
+    ? path.join(process.cwd(), 'www/data/taxonomy.json')
+    : path.join(process.cwd(), 'data/taxonomy.json');
+  const tax = JSON.parse(fs.readFileSync(taxPath, 'utf8'));
+  TAXONOMY = {};
+  for (const [cert, def] of Object.entries(tax.certifications || {})) {
+    TAXONOMY[cert] = new Set((def.chapters || []).map((c) => c.name));
+  }
+} catch { /* taxonomy 없음 — chapter 검증 생략 */ }
+
 let totalErrors = 0;
 let totalWarnings = 0;
 
@@ -212,6 +226,24 @@ function validateFile(filePath) {
 
   for (const q of questions) {
     validateQuestion(q, filePath, allIds, allNumbers);
+  }
+
+  // 챕터(대단원) 검증 — 값이 있으면 taxonomy에 등록된 이름이어야 함(오타·잘못된 값 차단).
+  // null(미태깅)은 오류가 아니라 커버리지 정보로만 집계한다.
+  if (TAXONOMY) {
+    const cert = data.meta && data.meta.certification;
+    const valid = cert && TAXONOMY[cert];
+    let untagged = 0;
+    for (const q of questions) {
+      if (q.chapter == null) { untagged += 1; continue; }
+      if (valid && !valid.has(q.chapter)) {
+        log('ERROR', filePath, q.id || `#${q.number}`, `chapter '${q.chapter}'가 ${cert} taxonomy에 없음`);
+      }
+    }
+    if (untagged > 0) {
+      // 미태깅은 오류·경고가 아니라 Phase 0 진행 중 예상되는 상태 — 정보로만 표기(경고 0 유지).
+      console.log(`  ℹ️  챕터 미태깅 ${untagged}/${questions.length}개(리뷰 대상 — chapter-overrides.json으로 보정)`);
+    }
   }
 
   if (allNumbers.size > 0) {

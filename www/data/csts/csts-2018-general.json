@@ -52,7 +52,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "①"
+      "answerText": "①",
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-2018-002",
@@ -114,7 +115,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "④"
+      "answerText": "④",
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-EL-2018-003",
@@ -156,7 +158,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "③"
+      "answerText": "③",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-2018-004",
@@ -198,7 +201,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "④"
+      "answerText": "④",
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-EL-2018-005",
@@ -269,7 +273,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "③"
+      "answerText": "③",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-2018-006",
@@ -311,7 +316,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "①"
+      "answerText": "①",
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-EL-2018-007",
@@ -373,7 +379,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "②"
+      "answerText": "②",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-2018-008",
@@ -415,7 +422,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "③"
+      "answerText": "③",
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-2018-009",
@@ -469,7 +477,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": "/images/questions/CSTS-EL-2018-009.png",
-      "answerText": "③"
+      "answerText": "③",
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-2018-010",
@@ -543,7 +552,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "③"
+      "answerText": "③",
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-2018-011",
@@ -593,7 +603,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "②"
+      "answerText": "②",
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-2018-012",
@@ -643,7 +654,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "③"
+      "answerText": "③",
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-2018-013",
@@ -685,7 +697,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "③"
+      "answerText": "③",
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-2018-014",
@@ -727,7 +740,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "③"
+      "answerText": "③",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-2018-015",
@@ -769,7 +783,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": "/images/questions/CSTS-EL-2018-015.png",
-      "answerText": "④"
+      "answerText": "④",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-2018-016",
@@ -794,7 +809,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "X"
+      "answerText": "X",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-2018-017",
@@ -819,7 +835,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "X"
+      "answerText": "X",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-2018-018",
@@ -844,7 +861,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "테스트 실행"
+      "answerText": "테스트 실행",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-2018-019",
@@ -869,7 +887,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "다중 조건 커버리지"
+      "answerText": "다중 조건 커버리지",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-2018-020",
@@ -894,7 +913,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": "/images/questions/CSTS-EL-2018-020.png",
-      "answerText": "50%"
+      "answerText": "50%",
+      "chapter": "테스트 기법"
     }
   ]
 }

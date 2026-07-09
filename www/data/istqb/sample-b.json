@@ -51,7 +51,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": null
     },
     {
       "id": "ISTQB-FL-V4-B-002",
@@ -92,7 +93,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": null
     },
     {
       "id": "ISTQB-FL-V4-B-003",
@@ -137,7 +139,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "테스트 분석 및 설계(기법)"
     },
     {
       "id": "ISTQB-FL-V4-B-004",
@@ -178,7 +181,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": null
     },
     {
       "id": "ISTQB-FL-V4-B-005",
@@ -219,7 +223,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": null
     },
     {
       "id": "ISTQB-FL-V4-B-006",
@@ -260,7 +265,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "테스트 활동 관리"
     },
     {
       "id": "ISTQB-FL-V4-B-007",
@@ -301,7 +307,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "테스트 기초"
     },
     {
       "id": "ISTQB-FL-V4-B-008",
@@ -342,7 +349,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "테스트 기초"
     },
     {
       "id": "ISTQB-FL-V4-B-009",
@@ -383,7 +391,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "SDLC 전반의 테스트"
     },
     {
       "id": "ISTQB-FL-V4-B-010",
@@ -424,7 +433,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "SDLC 전반의 테스트"
     },
     {
       "id": "ISTQB-FL-V4-B-011",
@@ -465,7 +475,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "SDLC 전반의 테스트"
     },
     {
       "id": "ISTQB-FL-V4-B-012",
@@ -506,7 +517,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "SDLC 전반의 테스트"
     },
     {
       "id": "ISTQB-FL-V4-B-013",
@@ -547,7 +559,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": null
     },
     {
       "id": "ISTQB-FL-V4-B-014",
@@ -588,7 +601,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "SDLC 전반의 테스트"
     },
     {
       "id": "ISTQB-FL-V4-B-015",
@@ -629,7 +643,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "정적 테스트"
     },
     {
       "id": "ISTQB-FL-V4-B-016",
@@ -670,7 +685,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": null
     },
     {
       "id": "ISTQB-FL-V4-B-017",
@@ -773,7 +789,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": null
     },
     {
       "id": "ISTQB-FL-V4-B-018",
@@ -860,7 +877,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "정적 테스트"
     },
     {
       "id": "ISTQB-FL-V4-B-019",
@@ -901,7 +919,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "테스트 분석 및 설계(기법)"
     },
     {
       "id": "ISTQB-FL-V4-B-020",
@@ -958,7 +977,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "테스트 분석 및 설계(기법)"
     },
     {
       "id": "ISTQB-FL-V4-B-021",
@@ -1013,7 +1033,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "테스트 분석 및 설계(기법)"
     },
     {
       "id": "ISTQB-FL-V4-B-022",
@@ -1091,7 +1112,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "테스트 분석 및 설계(기법)"
     },
     {
       "id": "ISTQB-FL-V4-B-023",
@@ -1156,7 +1178,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "/images/questions/ISTQB-FL-V4-B-023.png"
+      "figure": "/images/questions/ISTQB-FL-V4-B-023.png",
+      "chapter": "테스트 분석 및 설계(기법)"
     },
     {
       "id": "ISTQB-FL-V4-B-024",
@@ -1199,7 +1222,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "테스트 분석 및 설계(기법)"
     },
     {
       "id": "ISTQB-FL-V4-B-025",
@@ -1252,7 +1276,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "테스트 분석 및 설계(기법)"
     },
     {
       "id": "ISTQB-FL-V4-B-026",
@@ -1298,7 +1323,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "테스트 분석 및 설계(기법)"
     },
     {
       "id": "ISTQB-FL-V4-B-027",
@@ -1339,7 +1365,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": null
     },
     {
       "id": "ISTQB-FL-V4-B-028",
@@ -1384,7 +1411,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": null
     },
     {
       "id": "ISTQB-FL-V4-B-029",
@@ -1429,7 +1457,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": null
     },
     {
       "id": "ISTQB-FL-V4-B-030",
@@ -1478,7 +1507,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "SDLC 전반의 테스트"
     },
     {
       "id": "ISTQB-FL-V4-B-031",
@@ -1543,7 +1573,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": null
     },
     {
       "id": "ISTQB-FL-V4-B-032",
@@ -1640,7 +1671,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": null
     },
     {
       "id": "ISTQB-FL-V4-B-033",
@@ -1693,7 +1725,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": null
     },
     {
       "id": "ISTQB-FL-V4-B-034",
@@ -1784,7 +1817,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "테스트 분석 및 설계(기법)"
     },
     {
       "id": "ISTQB-FL-V4-B-035",
@@ -1825,7 +1859,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": null
     },
     {
       "id": "ISTQB-FL-V4-B-036",
@@ -1874,7 +1909,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": "SDLC 전반의 테스트"
     },
     {
       "id": "ISTQB-FL-V4-B-037",
@@ -1915,7 +1951,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": null
     },
     {
       "id": "ISTQB-FL-V4-B-038",
@@ -1960,7 +1997,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": "/images/questions/ISTQB-FL-V4-B-038.png"
+      "figure": "/images/questions/ISTQB-FL-V4-B-038.png",
+      "chapter": null
     },
     {
       "id": "ISTQB-FL-V4-B-039",
@@ -2044,7 +2082,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": null
     },
     {
       "id": "ISTQB-FL-V4-B-040",
@@ -2085,7 +2124,8 @@
       ],
       "tags": [],
       "difficulty": "normal",
-      "figure": null
+      "figure": null,
+      "chapter": null
     }
   ]
 }

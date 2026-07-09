@@ -23,6 +23,11 @@ export interface Question {
   answer: string[];
   explanation?: unknown;
   figure?: string | null;
+  // 대단원 분류(Phase 0, 약점 분석용). taxonomy.json의 챕터명 또는 null(미태깅).
+  chapter?: string | null;
+  // 세부 주제 태그(향후 확장). 현재는 비어 있을 수 있음.
+  tags?: string[];
+  difficulty?: string;
 }
 
 // index.json의 세트 요약(평면 배열, certification 포함).

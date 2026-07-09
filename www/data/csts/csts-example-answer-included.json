@@ -56,7 +56,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-001.png",
-      "answerText": "2"
+      "answerText": "2",
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-002",
@@ -98,7 +99,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "1"
+      "answerText": "1",
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-003",
@@ -144,7 +146,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-004",
@@ -186,7 +189,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "2"
+      "answerText": "2",
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-005",
@@ -228,7 +232,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "1"
+      "answerText": "1",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-006",
@@ -270,7 +275,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-007",
@@ -316,7 +322,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-007.png",
-      "answerText": "4"
+      "answerText": "4",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-008",
@@ -358,7 +365,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-009",
@@ -400,7 +408,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-010",
@@ -442,7 +451,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "1"
+      "answerText": "1",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-011",
@@ -484,7 +494,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "4"
+      "answerText": "4",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-012",
@@ -530,7 +541,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "4"
+      "answerText": "4",
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-013",
@@ -572,7 +584,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-014",
@@ -651,7 +664,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-015",
@@ -693,7 +707,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-016",
@@ -735,7 +750,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "1"
+      "answerText": "1",
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-017",
@@ -777,7 +793,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "2"
+      "answerText": "2",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-018",
@@ -844,7 +861,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-019",
@@ -886,7 +904,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "1"
+      "answerText": "1",
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-020",
@@ -928,7 +947,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "1"
+      "answerText": "1",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-021",
@@ -970,7 +990,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "4"
+      "answerText": "4",
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-022",
@@ -1026,7 +1047,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "1"
+      "answerText": "1",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-023",
@@ -1068,7 +1090,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-024",
@@ -1110,7 +1133,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-025",
@@ -1152,7 +1176,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-026",
@@ -1198,7 +1223,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-026.png",
-      "answerText": "1"
+      "answerText": "1",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-027",
@@ -1240,7 +1266,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "1"
+      "answerText": "1",
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-028",
@@ -1318,7 +1345,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "2"
+      "answerText": "2",
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-029",
@@ -1360,7 +1388,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "1"
+      "answerText": "1",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-030",
@@ -1402,7 +1431,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "1"
+      "answerText": "1",
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-031",
@@ -1469,7 +1499,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "2"
+      "answerText": "2",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-032",
@@ -1515,7 +1546,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-032.png",
-      "answerText": "4"
+      "answerText": "4",
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-033",
@@ -1569,7 +1601,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-033.png",
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-034",
@@ -1611,7 +1644,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "4"
+      "answerText": "4",
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-035",
@@ -1653,7 +1687,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "4"
+      "answerText": "4",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-036",
@@ -1716,7 +1751,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-037",
@@ -1766,7 +1802,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "4"
+      "answerText": "4",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-038",
@@ -1808,7 +1845,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "4"
+      "answerText": "4",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-039",
@@ -1850,7 +1888,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "2"
+      "answerText": "2",
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-040",
@@ -1913,7 +1952,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "4"
+      "answerText": "4",
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-041",
@@ -1985,7 +2025,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-041.png",
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-042",
@@ -2027,7 +2068,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "4"
+      "answerText": "4",
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-043",
@@ -2069,7 +2111,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "2"
+      "answerText": "2",
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-044",
@@ -2111,7 +2154,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-045",
@@ -2157,7 +2201,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-046",
@@ -2199,7 +2244,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-047",
@@ -2271,7 +2317,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-048",
@@ -2313,7 +2360,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "4"
+      "answerText": "4",
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-049",
@@ -2385,7 +2433,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "3"
+      "answerText": "3",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-050",
@@ -2452,7 +2501,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "4"
+      "answerText": "4",
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-051",
@@ -2477,7 +2527,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "X"
+      "answerText": "X",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-052",
@@ -2510,7 +2561,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "O"
+      "answerText": "O",
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-053",
@@ -2535,7 +2587,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "X"
+      "answerText": "X",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-054",
@@ -2560,7 +2613,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "X"
+      "answerText": "X",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-055",
@@ -2585,7 +2639,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "X"
+      "answerText": "X",
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-056",
@@ -2614,7 +2669,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "O"
+      "answerText": "O",
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-057",
@@ -2643,7 +2699,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "X"
+      "answerText": "X",
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-058",
@@ -2672,7 +2729,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "X"
+      "answerText": "X",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-059",
@@ -2697,7 +2755,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "X"
+      "answerText": "X",
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-060",
@@ -2726,7 +2785,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "O"
+      "answerText": "O",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-061",
@@ -2751,7 +2811,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "스크립트(Script) 또는 테스트 스크립트(Test Script)"
+      "answerText": "스크립트(Script) 또는 테스트 스크립트(Test Script)",
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-062",
@@ -2784,7 +2845,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "인수 테스트 사용자 인수 테스트"
+      "answerText": "인수 테스트 사용자 인수 테스트",
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-063",
@@ -2817,7 +2879,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "호환성 Compatibility 상호 호환성"
+      "answerText": "호환성 Compatibility 상호 호환성",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-064",
@@ -2846,7 +2909,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "재테스팅 / retesting / 재테스트 / retest"
+      "answerText": "재테스팅 / retesting / 재테스트 / retest",
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-065",
@@ -2889,7 +2953,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "관리 리뷰(Management Review)"
+      "answerText": "관리 리뷰(Management Review)",
+      "chapter": null
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-066",
@@ -2914,7 +2979,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": "/images/questions/CSTS-EL-SW-EXAMPLE-066.png",
-      "answerText": "50%"
+      "answerText": "50%",
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-067",
@@ -2966,7 +3032,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "TC1"
+      "answerText": "TC1",
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-068",
@@ -2995,7 +3062,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "리그레션 또는 회귀"
+      "answerText": "리그레션 또는 회귀",
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-069",
@@ -3058,7 +3126,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "우선순위"
+      "answerText": "우선순위",
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-070",
@@ -3142,7 +3211,8 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "answerText": "심각도(결함 심각도)"
+      "answerText": "심각도(결함 심각도)",
+      "chapter": null
     }
   ]
 }
