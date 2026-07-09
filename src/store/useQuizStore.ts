@@ -18,6 +18,8 @@ export interface ExamHistory {
   // 오답 노트(세트 전체 회차 리스트)용으로 채점 시점에 함께 저장하는 상세(4A). 과거 기록엔 없을 수 있다.
   setTitle?: string;
   wrongItems?: { number: number; myAnswer: string[]; correctAnswer: string[] }[];
+  // 챕터별 정답 집계(Phase 3 약점 분석). 채점 시점에 기록 — 과거 기록엔 없을 수 있다.
+  chapterStats?: Record<string, { c: number; t: number }>;
 }
 
 export interface QuizState {
@@ -33,6 +35,8 @@ export interface QuizState {
   lastTick: number | null;
   startedAt: number | null;
   navCollapsed: boolean;
+  // 챕터 집중 연습 필터(Phase 3). null이면 전체. 세트/모드 전환 시 해제되며 영속화하지 않는다.
+  chapterFilter: string | null;
 
   // UI 오버레이/드로어 상태(영속화하지 않음 — 새로고침 시 닫힘).
   drawerOpen: boolean;
@@ -66,6 +70,7 @@ export interface QuizState {
   startTimer: () => void;
   resetTimer: () => void;
   setNavCollapsed: (collapsed: boolean) => void;
+  setChapterFilter: (chapter: string | null) => void;
   setDrawerOpen: (open: boolean) => void;
   setSettingsOpen: (open: boolean) => void;
   setStatsOpen: (open: boolean) => void;
@@ -93,6 +98,7 @@ export const useQuizStore = create<QuizState>((set) => ({
   lastTick: null,
   startedAt: null,
   navCollapsed: false,
+  chapterFilter: null,
 
   drawerOpen: false,
   settingsOpen: false,
@@ -106,8 +112,9 @@ export const useQuizStore = create<QuizState>((set) => ({
   resumePrompt: false,
 
   setActiveProduct: (activeProduct) => set({ activeProduct }),
-  setMode: (mode) => set({ mode }),
-  setSetId: (setId) => set({ setId }),
+  // 모드/세트가 바뀌면 챕터 필터는 의미를 잃으므로 함께 해제한다(필터는 현재 연습 세션 한정).
+  setMode: (mode) => set({ mode, chapterFilter: null }),
+  setSetId: (setId) => set({ setId, chapterFilter: null }),
   setIndex: (indexOrFn) => set((state) => ({
     index: typeof indexOrFn === 'function' ? indexOrFn(state.index) : indexOrFn
   })),
@@ -150,6 +157,7 @@ export const useQuizStore = create<QuizState>((set) => ({
   startTimer: () => set({ startedAt: Date.now(), lastTick: Date.now() }),
   resetTimer: () => set({ elapsedSeconds: 0, lastTick: Date.now() }),
   setNavCollapsed: (navCollapsed) => set({ navCollapsed }),
+  setChapterFilter: (chapterFilter) => set({ chapterFilter }),
   setDrawerOpen: (drawerOpen) => set({ drawerOpen }),
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   setStatsOpen: (statsOpen) => set({ statsOpen }),

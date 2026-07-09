@@ -4,7 +4,11 @@ import { ExamHistory } from '../../store/useQuizStore';
 import { SetSummary } from '../../hooks/useQuestions';
 import { formatClock } from '../../utils/time';
 import { displayRatePercent } from '../../utils/scoring';
+import { aggregateChapterStats, weightedRatePercent } from '../../utils/chapterStats';
 import { ConfirmButtons } from '../common/ConfirmButtons';
+
+// 챕터 정답률이 이 미만이면 '약점'으로 강조한다(ISTQB 합격 컷 65%와 동일 기준).
+const WEAK_THRESHOLD = 65;
 
 const MODE_LABEL: Record<string, string> = {
   exam: '시험',
@@ -18,9 +22,11 @@ interface StatsDashboardProps {
   sets: SetSummary[];
   onClose: () => void;
   onClear: () => void;
+  /** 챕터 집중 연습 진입(현재 세트를 해당 챕터로 필터해 연습 모드로). */
+  onPracticeChapter: (chapter: string) => void;
 }
 
-export const StatsDashboard = ({ histories, sets, onClose, onClear }: StatsDashboardProps) => {
+export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeChapter }: StatsDashboardProps) => {
   const rows = useMemo(() => {
     const titleOf = (setId: string) => sets.find((s) => s.id === setId)?.title || setId;
     return Object.values(histories)
@@ -38,10 +44,31 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear }: StatsDashb
   const summary = useMemo(() => {
     const scored = rows.filter((r) => r.rate !== null);
     if (!scored.length) return null;
-    const avg = Math.round(scored.reduce((s, r) => s + (r.rate ?? 0), 0) / scored.length);
+    // 평균은 문항 수 가중(정답 합/출제 합) — 회차별 %의 단순 평균은
+    // 문항 수가 다른 회차(랜덤 40 vs 시험 70)를 왜곡한다.
+    const avg = weightedRatePercent(Object.values(histories));
     const best = Math.max(...scored.map((r) => r.rate ?? 0));
-    return { attempts: rows.length, avg, best };
-  }, [rows]);
+    return { attempts: rows.length, avg: avg ?? 0, best };
+  }, [rows, histories]);
+
+  // 챕터별 정답률(약점 분석) — 정답률 오름차순(약한 챕터 먼저).
+  const chapterRows = useMemo(() => {
+    const agg = aggregateChapterStats(Object.values(histories));
+    return Object.entries(agg)
+      .map(([name, { c, t }]) => ({ name, c, t, rate: displayRatePercent(c, t) }))
+      .sort((a, b) => a.rate - b.rate || b.t - a.t);
+  }, [histories]);
+  // 챕터 집계가 없는(구버전에서 채점한) 회차가 섞여 있으면 안내한다.
+  const legacyCount = useMemo(
+    () => Object.values(histories).filter((h) => h.total != null && !h.chapterStats).length,
+    [histories],
+  );
+
+  // 성장 추이 — 최근 회차(오래된 → 최신)의 정답률 미니 바.
+  const trend = useMemo(
+    () => rows.filter((r) => r.rate !== null).slice(0, 12).reverse(),
+    [rows],
+  );
 
   // 파괴적 액션은 공용 2단계 확인 버튼으로(window.confirm은 차단형이고 모달/토스트 체계와 불일치).
   const headerExtra =
@@ -64,10 +91,61 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear }: StatsDashb
             {summary && (
               <div className="stats-summary" aria-label="요약">
                 <div><span>응시 횟수</span><strong>{summary.attempts}</strong></div>
-                <div><span>평균 정답률</span><strong>{summary.avg}%</strong></div>
+                <div><span title="문항 수 가중 평균(정답 합 ÷ 출제 합)">평균 정답률</span><strong>{summary.avg}%</strong></div>
                 <div><span>최고 정답률</span><strong>{summary.best}%</strong></div>
               </div>
             )}
+
+            {chapterRows.length > 0 && (
+              <section className="stats-chapters" aria-label="챕터별 정답률" data-testid="stats-chapters">
+                <h4>챕터별 정답률 <small>낮은 순 — 약점부터</small></h4>
+                <ul>
+                  {chapterRows.map((ch) => (
+                    <li key={ch.name} className={ch.rate < WEAK_THRESHOLD ? 'weak' : ''} data-testid="stats-chapter-row">
+                      <span className="sc-name">{ch.name}</span>
+                      <span className="sc-bar" aria-hidden="true">
+                        <i style={{ width: `${ch.rate}%` }} />
+                      </span>
+                      <span className="sc-rate">{ch.rate}% <small>({ch.c}/{ch.t})</small></span>
+                      <button
+                        type="button"
+                        className="sc-practice"
+                        data-testid="chapter-practice-btn"
+                        title={`현재 세트에서 '${ch.name}' 문항만 연습`}
+                        onClick={() => onPracticeChapter(ch.name)}
+                      >
+                        연습
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {legacyCount > 0 && (
+                  <p className="stats-hint">챕터 집계가 없는 이전 회차 {legacyCount}건은 제외됨(새로 채점하면 반영).</p>
+                )}
+              </section>
+            )}
+            {chapterRows.length === 0 && legacyCount > 0 && (
+              <p className="stats-hint" data-testid="stats-chapters-empty">
+                챕터별 분석은 이번 버전에서 채점한 회차부터 집계됩니다.
+              </p>
+            )}
+
+            {trend.length >= 2 && (
+              <section className="stats-trend" aria-label="정답률 추이" data-testid="stats-trend">
+                <h4>정답률 추이 <small>최근 {trend.length}회 (왼쪽이 과거)</small></h4>
+                <div className="trend-bars">
+                  {trend.map((r) => (
+                    <i
+                      key={r.id}
+                      style={{ height: `${Math.max(r.rate ?? 0, 4)}%` }}
+                      className={(r.rate ?? 0) < WEAK_THRESHOLD ? 'weak' : ''}
+                      title={`${r.title} · ${r.rate}%`}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
             <ul className="stats-list">
               {rows.map((r) => (
                 <li key={r.id}>

@@ -66,7 +66,7 @@ export const AppModals = () => {
     setId, mode, activeProduct, histories, resultElapsedSeconds,
     settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, pendingMode, resumePrompt,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
-    setMode, setIndex, resetTimer, clearAnswers, setReviewIds, setPendingMode, setResumePrompt,
+    setMode, setIndex, resetTimer, clearAnswers, setReviewIds, setChapterFilter, setPendingMode, setResumePrompt,
   } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, activeProduct: s.activeProduct, histories: s.histories,
     resultElapsedSeconds: s.resultOpen ? s.elapsedSeconds : 0,
@@ -77,7 +77,7 @@ export const AppModals = () => {
     setResultOpen: s.setResultOpen, setPaletteOpen: s.setPaletteOpen, setDrawerOpen: s.setDrawerOpen,
     setConfirmGradeOpen: s.setConfirmGradeOpen, setMode: s.setMode, setIndex: s.setIndex,
     resetTimer: s.resetTimer, clearAnswers: s.clearAnswers, setReviewIds: s.setReviewIds,
-    setPendingMode: s.setPendingMode, setResumePrompt: s.setResumePrompt,
+    setChapterFilter: s.setChapterFilter, setPendingMode: s.setPendingMode, setResumePrompt: s.setResumePrompt,
   })));
   const { appData, total, answered, correctCount, gradeAndShow } = useQuizSession();
   const { pref: themePref, setPref: setThemePref } = useTheme();
@@ -118,14 +118,34 @@ export const AppModals = () => {
   }, [histories, sets, activeProduct]);
   const fmtAns = (arr: string[]) =>
     arr.length ? arr.map((s) => s.toUpperCase()).join(', ') : '미응답';
+  // 세트별 "전 회차 오답의 합집합" — 최신 회차만 보여주면 같은 세트를 랜덤으로
+  // 재채점했을 때 이전 시험 회차의 오답이 노트에서 사라진다(QA 지적 해소).
+  // 같은 문항이 여러 회차에서 틀렸으면 가장 최근 회차의 내 답을 대표로 쓴다.
   const wrongNoteBySet: ExamHistory[] = (() => {
-    const latest = new Map<string, ExamHistory>();
+    const bySet = new Map<string, ExamHistory[]>();
     for (const h of Object.values(productHistories)) {
       if ((h.wrongItems?.length ?? 0) === 0) continue;
-      const prev = latest.get(h.setId);
-      if (!prev || (h.createdAt ?? 0) > (prev.createdAt ?? 0)) latest.set(h.setId, h);
+      const list = bySet.get(h.setId) ?? [];
+      list.push(h);
+      bySet.set(h.setId, list);
     }
-    return Array.from(latest.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const merged: ExamHistory[] = [];
+    for (const [sid, hs] of bySet) {
+      hs.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)); // 최신 우선
+      const items = new Map<number, NonNullable<ExamHistory['wrongItems']>[number]>();
+      for (const h of hs) {
+        for (const it of h.wrongItems ?? []) {
+          if (!items.has(it.number)) items.set(it.number, it); // 최신 회차 기록이 대표
+        }
+      }
+      merged.push({
+        ...hs[0],
+        id: `merged-${sid}`,
+        wrongItems: Array.from(items.values()).sort((a, b) => a.number - b.number),
+        total: undefined, // 합산 뷰에서 회차별 total 표기는 의미가 없다
+      });
+    }
+    return merged.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   })();
   const selectedWrong = wrongNoteSetId
     ? wrongNoteBySet.find((h) => h.setId === wrongNoteSetId) ?? null
@@ -207,6 +227,16 @@ export const AppModals = () => {
     // 파괴적 액션의 완료 피드백 — 없으면 "정말 삭제"를 눌러도 됐는지 알 수 없다.
     // (DB 쓰기 실패는 removeHistoriesEverywhere가 별도 오류 토스트로 알린다)
     showToast('현재 자격증의 응시 이력을 모두 삭제했습니다.', 'success');
+  };
+
+  // 약점 챕터 집중 연습(Phase 3): 통계에서 챕터를 고르면 현재 세트를 그 챕터로
+  // 필터해 연습 모드로 진입한다. setMode가 필터를 초기화하므로 필터는 그 뒤에 건다.
+  const handlePracticeChapter = (chapter: string) => {
+    setStatsOpen(false);
+    setMode('practice');
+    setChapterFilter(chapter);
+    setIndex(0);
+    resetTimer();
   };
 
   const handleResetMode = () => {
@@ -508,6 +538,7 @@ export const AppModals = () => {
           sets={sets}
           onClose={() => setStatsOpen(false)}
           onClear={handleClearHistories}
+          onPracticeChapter={handlePracticeChapter}
         />
       )}
 

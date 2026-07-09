@@ -732,6 +732,31 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 .review-palette { margin-top: 10px; max-height: 38vh; overflow-y: auto; }
 
 /* ── 이어풀기 안내 배너(#A) ─────────────────────────────────────────── */
+/* 챕터 집중 연습 배너(Phase 3) — 이어풀기 배너와 동일한 시각 언어. */
+.chapter-filter-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--primary-100);
+  border-radius: var(--radius);
+  background: var(--primary-50, var(--surface-3));
+  font-size: 13.5px;
+}
+.chapter-filter-banner .cf-text strong { color: var(--primary); }
+.chapter-filter-banner .cf-clear {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--text-2);
+}
+.chapter-filter-banner .cf-clear:hover { color: var(--primary); border-color: var(--primary); }
+
 .resume-banner {
   display: flex;
   align-items: center;
@@ -1119,6 +1144,64 @@ body[data-theme="dark"] {
 }
 .stats-summary span { display: block; font-size: 12px; color: var(--muted); font-weight: 600; }
 .stats-summary strong { font-size: 20px; font-weight: 800; color: var(--text); }
+
+/* 챕터별 정답률(약점 분석, Phase 3) */
+.stats-chapters { margin: 14px 0 4px; }
+.stats-chapters h4,
+.stats-trend h4 { font-size: 13px; font-weight: 800; color: var(--text-2); margin-bottom: 8px; }
+.stats-chapters h4 small,
+.stats-trend h4 small { font-weight: 600; color: var(--muted); margin-left: 6px; }
+.stats-chapters ul { display: flex; flex-direction: column; gap: 6px; }
+.stats-chapters li {
+  display: grid;
+  grid-template-columns: minmax(90px, 1.1fr) 2fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.stats-chapters li.weak { border-color: var(--danger, #c0392b); }
+.stats-chapters li.weak .sc-name { color: var(--danger, #c0392b); }
+.sc-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.sc-bar { display: block; height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.sc-bar i { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
+.stats-chapters li.weak .sc-bar i { background: var(--danger, #c0392b); }
+.sc-rate { font-size: 13px; font-weight: 800; white-space: nowrap; }
+.sc-rate small { color: var(--muted); font-weight: 600; }
+.sc-practice {
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+.sc-practice:hover { color: var(--primary); border-color: var(--primary); }
+.stats-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+/* 정답률 추이 미니 바(왼쪽=과거) */
+.stats-trend { margin: 14px 0 4px; }
+.trend-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  height: 64px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.trend-bars i {
+  flex: 1;
+  max-width: 26px;
+  background: var(--primary);
+  border-radius: 4px 4px 0 0;
+  opacity: 0.85;
+}
+.trend-bars i.weak { background: var(--danger, #c0392b); }
 
 .stats-list { display: flex; flex-direction: column; gap: 8px; }
 .stats-list li {

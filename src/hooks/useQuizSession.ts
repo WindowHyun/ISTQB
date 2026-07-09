@@ -2,6 +2,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../store/useQuizStore';
 import { useQuestions, Question } from './useQuestions';
 import { isQuestionCorrect } from '../utils/answer';
+import { buildChapterStats } from '../utils/chapterStats';
 import { saveHistoryToDB } from '../utils/storage';
 
 // 사이드바(통계·채점·진행률)와 워크스페이스(문항·네비)가 공유하는 파생 상태/액션.
@@ -72,6 +73,8 @@ export function useQuizSession() {
       createdAt: Date.now(),
       setTitle,
       wrongItems,
+      // 챕터별 정답 집계(약점 분석용) — 채점 시점의 문항·답안으로 확정 저장.
+      chapterStats: buildChapterStats(currentQuestions, answers, answerKeyOf),
     };
     addHistory(history);
     // 채점 이력을 IndexedDB에 영속화(새로고침 후 통계 대시보드에서 조회).

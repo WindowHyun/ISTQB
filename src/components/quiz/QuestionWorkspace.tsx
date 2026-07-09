@@ -12,13 +12,14 @@ export const QuestionWorkspace = () => {
   const {
     index, setId, mode, setIndex, tickTimer, startTimer,
     navCollapsed, setNavCollapsed, setPaletteOpen, setResultOpen,
-    resumeNotice, setResumeNotice,
+    resumeNotice, setResumeNotice, chapterFilter, setChapterFilter,
   } = useQuizStore(useShallow((s) => ({
     index: s.index, setId: s.setId, mode: s.mode, setIndex: s.setIndex,
     tickTimer: s.tickTimer, startTimer: s.startTimer,
     navCollapsed: s.navCollapsed, setNavCollapsed: s.setNavCollapsed,
     setPaletteOpen: s.setPaletteOpen, setResultOpen: s.setResultOpen,
     resumeNotice: s.resumeNotice, setResumeNotice: s.setResumeNotice,
+    chapterFilter: s.chapterFilter, setChapterFilter: s.setChapterFilter,
   })));
   const {
     appData, currentQuestions, answered, isGraded, canGrade, requestGrade,
@@ -101,6 +102,14 @@ export const QuestionWorkspace = () => {
               다시 시도
             </button>
           </article>
+        ) : chapterFilter ? (
+          // 챕터 필터 결과가 0개(현재 세트에 해당 챕터 문항 없음) — 스켈레톤으로 오인되지 않게 안내.
+          <article className="question-card" data-testid="chapter-filter-empty">
+            <p className="nav-summary">이 세트에는 ‘{chapterFilter}’ 챕터 문항이 없습니다.</p>
+            <button type="button" className="primary" onClick={() => setChapterFilter(null)}>
+              전체 문항 보기
+            </button>
+          </article>
         ) : isEmptyReview ? (
           <article className="question-card">
             <p className="nav-summary">표시할 오답 문항이 없습니다.</p>
@@ -141,6 +150,22 @@ export const QuestionWorkspace = () => {
           <button id="nextBtn" type="button" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
         </div>
       </header>
+
+      {chapterFilter && (
+        <div className="chapter-filter-banner" data-testid="chapter-filter-banner" role="status">
+          <span className="cf-text">
+            <strong>{chapterFilter}</strong> 챕터만 연습 중 — {total}문항
+          </span>
+          <button
+            type="button"
+            className="cf-clear"
+            data-testid="chapter-filter-clear"
+            onClick={() => setChapterFilter(null)}
+          >
+            전체 보기
+          </button>
+        </div>
+      )}
 
       {resumeNotice && (
         <div className="resume-banner" data-testid="resume-banner" role="status">

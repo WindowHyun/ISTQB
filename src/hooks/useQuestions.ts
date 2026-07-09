@@ -58,8 +58,8 @@ export function useQuestions() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   // 슬라이스 구독(O1) — 타이머 틱·답안 변경에 이 훅이 리렌더를 유발하지 않는다.
-  const { setId, mode, reviewIds } = useQuizStore(useShallow((s) => ({
-    setId: s.setId, mode: s.mode, reviewIds: s.reviewIds,
+  const { setId, mode, reviewIds, chapterFilter } = useQuizStore(useShallow((s) => ({
+    setId: s.setId, mode: s.mode, reviewIds: s.reviewIds, chapterFilter: s.chapterFilter,
   })));
 
   // 다른 인스턴스의 "다시 시도"가 성공하면 이 인스턴스도 캐시에서 다시 읽어 복구한다 —
@@ -116,7 +116,13 @@ export function useQuestions() {
         const reviews = questions.filter((q) => ids.has(q.id || `legacy-${q.number}`));
         setCurrentQuestions(reviews);
       } else {
-        setCurrentQuestions(questions);
+        // 챕터 집중 연습(Phase 3): 연습 모드에서 필터가 있으면 해당 챕터 문항만 노출.
+        // 답안 키는 문항 id 기준이라 필터를 걸거나 풀어도 기존 답안이 오염되지 않는다.
+        const filtered =
+          mode === 'practice' && chapterFilter
+            ? questions.filter((q) => q.chapter === chapterFilter)
+            : questions;
+        setCurrentQuestions(filtered);
       }
     }
 
@@ -135,7 +141,7 @@ export function useQuestions() {
         setCurrentQuestions([]);
       });
     return () => { cancelled = true; };
-  }, [appData, setId, mode, reviewIds, reloadKey]);
+  }, [appData, setId, mode, reviewIds, chapterFilter, reloadKey]);
 
   // 실패 배너의 "다시 시도" — 에러를 지우고 두 로드 effect를 재실행한다.
   const retryLoad = () => {

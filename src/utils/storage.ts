@@ -172,6 +172,17 @@ export function sanitizeHistory(value: unknown): ExamHistory | null {
   const createdAt = finiteNumber(value.createdAt);
   if (createdAt !== undefined) out.createdAt = createdAt;
   if (typeof value.setTitle === "string") out.setTitle = value.setTitle;
+  if (isPlainObject(value.chapterStats)) {
+    // 챕터 집계는 { 챕터명: {c,t} } — 유한 숫자 셀만 통과(손상 백업의 NaN 유입 차단).
+    const chapterStats: Record<string, { c: number; t: number }> = {};
+    for (const [ch, cell] of Object.entries(value.chapterStats)) {
+      if (!isPlainObject(cell)) continue;
+      const c = finiteNumber(cell.c);
+      const t = finiteNumber(cell.t);
+      if (c !== undefined && t !== undefined) chapterStats[ch] = { c, t };
+    }
+    if (Object.keys(chapterStats).length) out.chapterStats = chapterStats;
+  }
   if (Array.isArray(value.wrongItems)) {
     out.wrongItems = value.wrongItems
       .filter(isPlainObject)
