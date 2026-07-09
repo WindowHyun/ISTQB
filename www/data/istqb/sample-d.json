@@ -106,7 +106,7 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "chapter": null
+      "chapter": "테스트 기초"
     },
     {
       "id": "ISTQB-FL-V4-D-003",
@@ -160,7 +160,7 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "chapter": null
+      "chapter": "테스트 기초"
     },
     {
       "id": "ISTQB-FL-V4-D-004",
@@ -248,7 +248,7 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "chapter": null
+      "chapter": "테스트 기초"
     },
     {
       "id": "ISTQB-FL-V4-D-005",
@@ -344,7 +344,7 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "chapter": "테스트 활동 관리"
+      "chapter": "테스트 기초"
     },
     {
       "id": "ISTQB-FL-V4-D-007",
@@ -432,7 +432,7 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "chapter": null
+      "chapter": "테스트 기초"
     },
     {
       "id": "ISTQB-FL-V4-D-009",
@@ -558,7 +558,7 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "chapter": null
+      "chapter": "SDLC 전반의 테스트"
     },
     {
       "id": "ISTQB-FL-V4-D-012",
@@ -602,7 +602,7 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "chapter": "테스트 기초"
+      "chapter": "SDLC 전반의 테스트"
     },
     {
       "id": "ISTQB-FL-V4-D-013",
@@ -644,7 +644,7 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "chapter": null
+      "chapter": "SDLC 전반의 테스트"
     },
     {
       "id": "ISTQB-FL-V4-D-014",
@@ -728,7 +728,7 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "chapter": "테스트 활동 관리"
+      "chapter": "정적 테스트"
     },
     {
       "id": "ISTQB-FL-V4-D-016",
@@ -1434,7 +1434,7 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "chapter": null
+      "chapter": "테스트 분석 및 설계(기법)"
     },
     {
       "id": "ISTQB-FL-V4-D-029",
@@ -1504,7 +1504,7 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "chapter": null
+      "chapter": "테스트 분석 및 설계(기법)"
     },
     {
       "id": "ISTQB-FL-V4-D-030",
@@ -1551,7 +1551,7 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "chapter": null
+      "chapter": "테스트 활동 관리"
     },
     {
       "id": "ISTQB-FL-V4-D-031",
@@ -1713,7 +1713,7 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "chapter": "SDLC 전반의 테스트"
+      "chapter": "테스트 활동 관리"
     },
     {
       "id": "ISTQB-FL-V4-D-034",
@@ -1994,7 +1994,7 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "chapter": null
+      "chapter": "테스트 도구"
     },
     {
       "id": "ISTQB-FL-V4-D-040",
