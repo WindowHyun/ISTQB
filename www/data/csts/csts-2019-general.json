@@ -96,7 +96,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "④",
-      "chapter": null
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-2019-003",
@@ -186,7 +186,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "④",
-      "chapter": "테스트 관리"
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-2019-005",
@@ -358,7 +358,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "②",
-      "chapter": null
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-EL-2019-009",
@@ -401,7 +401,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "①",
-      "chapter": null
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-EL-2019-010",
@@ -555,7 +555,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "③",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-EL-2019-013",
@@ -641,7 +641,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "①",
-      "chapter": null
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-EL-2019-015",
@@ -688,7 +688,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "③",
-      "chapter": null
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-EL-2019-016",
@@ -731,7 +731,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "④",
-      "chapter": "테스트 프로세스와 도구"
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-EL-2019-017",
@@ -774,7 +774,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "②",
-      "chapter": null
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-EL-2019-018",
@@ -817,7 +817,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "③",
-      "chapter": null
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-EL-2019-019",
@@ -860,7 +860,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "③",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-EL-2019-020",
@@ -989,7 +989,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "②",
-      "chapter": null
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-EL-2019-023",
@@ -1032,7 +1032,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "④",
-      "chapter": null
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-EL-2019-024",
@@ -1075,7 +1075,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "②",
-      "chapter": null
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-EL-2019-025",
@@ -1208,7 +1208,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "④",
-      "chapter": null
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-2019-028",
@@ -1259,7 +1259,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "①",
-      "chapter": null
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-2019-029",
@@ -1306,7 +1306,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "②",
-      "chapter": null
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-2019-030",
@@ -1452,7 +1452,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "③",
-      "chapter": null
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-2019-033",
@@ -1495,7 +1495,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "④",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-2019-034",
@@ -1581,7 +1581,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "②",
-      "chapter": null
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-2019-036",
@@ -1703,7 +1703,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "③",
-      "chapter": null
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-EL-2019-038",
@@ -1746,7 +1746,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "③",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-EL-2019-039",
@@ -1789,7 +1789,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "④",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-EL-2019-040",
@@ -1832,7 +1832,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "①",
-      "chapter": null
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-EL-2019-041",
@@ -1875,7 +1875,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "①",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-EL-2019-042",
@@ -1918,7 +1918,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "④",
-      "chapter": "소프트웨어 개발과 테스트"
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-EL-2019-043",
@@ -1961,7 +1961,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "④",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-EL-2019-044",
@@ -2004,7 +2004,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "①",
-      "chapter": null
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-EL-2019-045",
@@ -2133,7 +2133,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "④",
-      "chapter": null
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-EL-2019-048",
@@ -2176,7 +2176,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "②",
-      "chapter": null
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-2019-049",
@@ -2219,7 +2219,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "④",
-      "chapter": null
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-2019-050",
@@ -2262,7 +2262,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "②",
-      "chapter": null
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-2019-051",
@@ -2288,7 +2288,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "X",
-      "chapter": null
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-EL-2019-052",
@@ -2314,7 +2314,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "O",
-      "chapter": null
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-EL-2019-053",
@@ -2340,7 +2340,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "O",
-      "chapter": null
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-EL-2019-054",
@@ -2422,7 +2422,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "O",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-2019-057",
@@ -2456,7 +2456,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "X",
-      "chapter": null
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-EL-2019-058",
@@ -2482,7 +2482,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "O",
-      "chapter": null
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-EL-2019-059",
@@ -2508,7 +2508,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "X",
-      "chapter": null
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-EL-2019-060",
@@ -2538,7 +2538,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "O",
-      "chapter": null
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-2019-061",
@@ -2572,7 +2572,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "분할용이성(decomposability)",
-      "chapter": null
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-2019-062",
@@ -2623,7 +2623,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "회귀(Regression) 테스트",
-      "chapter": null
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-EL-2019-063",
@@ -2657,7 +2657,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "로그(Log)",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-EL-2019-064",
@@ -2866,7 +2866,7 @@
       "difficulty": "normal",
       "figure": "/images/questions/CSTS-EL-2019-069.png",
       "answerText": "kk",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-EL-2019-070",

@@ -159,7 +159,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "③",
-      "chapter": null
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-EL-2018-004",
@@ -274,7 +274,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "③",
-      "chapter": null
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-EL-2018-006",
@@ -380,7 +380,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "②",
-      "chapter": null
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-2018-008",
@@ -698,7 +698,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "③",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-EL-2018-014",
@@ -741,7 +741,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "③",
-      "chapter": null
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-EL-2018-015",
@@ -784,7 +784,7 @@
       "difficulty": "normal",
       "figure": "/images/questions/CSTS-EL-2018-015.png",
       "answerText": "④",
-      "chapter": null
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-2018-016",
@@ -810,7 +810,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "X",
-      "chapter": null
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-EL-2018-017",
@@ -836,7 +836,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "X",
-      "chapter": null
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-EL-2018-018",
@@ -862,7 +862,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "테스트 실행",
-      "chapter": null
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-EL-2018-019",
@@ -888,7 +888,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "다중 조건 커버리지",
-      "chapter": null
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-EL-2018-020",

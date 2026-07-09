@@ -151,7 +151,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "1",
-      "chapter": null
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-FL-2402-004",
@@ -402,7 +402,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "2",
-      "chapter": null
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-FL-2402-009",
@@ -445,7 +445,7 @@
       "difficulty": "normal",
       "figure": "/images/questions/CSTS-FL-2402-009.png",
       "answerText": "2",
-      "chapter": null
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-FL-2402-010",
@@ -488,7 +488,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "2",
-      "chapter": null
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-FL-2402-011",
@@ -543,7 +543,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "3",
-      "chapter": null
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-FL-2402-012",
@@ -629,7 +629,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "4",
-      "chapter": null
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-FL-2402-014",
@@ -762,7 +762,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "3",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-FL-2402-017",
@@ -848,7 +848,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "1",
-      "chapter": null
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-FL-2402-019",
@@ -891,7 +891,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "1",
-      "chapter": null
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-FL-2402-020",
@@ -934,7 +934,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "4",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-FL-2402-021",
@@ -977,7 +977,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "3",
-      "chapter": null
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-FL-2402-022",
@@ -1020,7 +1020,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "2",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-FL-2402-023",
@@ -1075,7 +1075,7 @@
       "difficulty": "normal",
       "figure": "/images/questions/CSTS-FL-2402-023.png",
       "answerText": "2",
-      "chapter": null
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-FL-2402-024",
@@ -1448,7 +1448,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "4",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-FL-2402-030",
@@ -1524,7 +1524,7 @@
       "difficulty": "normal",
       "figure": "/images/questions/CSTS-FL-2402-030.png",
       "answerText": "3",
-      "chapter": null
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-FL-2402-031",
@@ -1579,7 +1579,7 @@
       "difficulty": "normal",
       "figure": "/images/questions/CSTS-FL-2402-031.png",
       "answerText": "4",
-      "chapter": null
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-FL-2402-032",
@@ -1622,7 +1622,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "3",
-      "chapter": null
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-FL-2402-033",
@@ -1733,7 +1733,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "3",
-      "chapter": null
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-FL-2402-035",
@@ -1776,7 +1776,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "3",
-      "chapter": "테스트 관리"
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-FL-2402-036",
@@ -1883,7 +1883,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "2",
-      "chapter": null
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-FL-2402-038",
@@ -1969,7 +1969,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "1",
-      "chapter": null
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-FL-2402-040",
@@ -2029,7 +2029,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "2",
-      "chapter": "테스트 기법"
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-FL-2402-041",
@@ -2072,7 +2072,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "2",
-      "chapter": null
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-FL-2402-042",
@@ -2119,7 +2119,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "1",
-      "chapter": null
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-FL-2402-043",
@@ -2200,7 +2200,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "3",
-      "chapter": null
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-FL-2402-044",
@@ -2243,7 +2243,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "4",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-FL-2402-045",
@@ -2372,7 +2372,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "4",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-FL-2402-048",
@@ -2415,7 +2415,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "3",
-      "chapter": null
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-FL-2402-049",
@@ -2466,7 +2466,7 @@
       "difficulty": "normal",
       "figure": "/images/questions/CSTS-FL-2402-049.png",
       "answerText": "4",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-FL-2402-050",
@@ -2539,7 +2539,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "X",
-      "chapter": null
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-FL-2402-052",
@@ -2569,7 +2569,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "X",
-      "chapter": null
+      "chapter": "테스트 프로세스와 도구"
     },
     {
       "id": "CSTS-FL-2402-053",
@@ -2595,7 +2595,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "X",
-      "chapter": null
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-FL-2402-054",
@@ -2725,7 +2725,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "X",
-      "chapter": null
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-FL-2402-058",
@@ -2755,7 +2755,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "X",
-      "chapter": null
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-FL-2402-059",
@@ -2785,7 +2785,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "X",
-      "chapter": null
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-FL-2402-060",
@@ -2815,7 +2815,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "X",
-      "chapter": null
+      "chapter": "테스트 관리"
     },
     {
       "id": "CSTS-FL-2402-061",
@@ -2893,7 +2893,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "단위 테스트(또는 테스팅), Unit Test(또는 Testing) 컴포넌트 테스트(또는 테스팅), Component Test(또는 Testing)",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-FL-2402-063",
@@ -2919,7 +2919,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "0.982 또는 98.2%, 982/1000",
-      "chapter": null
+      "chapter": "소프트웨어 테스트 기초"
     },
     {
       "id": "CSTS-FL-2402-064",
@@ -2949,7 +2949,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "재테스팅 / retesting / 재테스트 / retest",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "소프트웨어 개발과 테스트"
     },
     {
       "id": "CSTS-FL-2402-065",
@@ -2979,7 +2979,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "교정 활동, corrective action,",
-      "chapter": null
+      "chapter": "정적 테스트"
     },
     {
       "id": "CSTS-FL-2402-066",
@@ -3039,7 +3039,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "동등 분할(클래스), 동치 분할, 동등 클래스 분할, 등가 분할 Equivalence partitioning",
-      "chapter": null
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-FL-2402-068",
@@ -3065,7 +3065,7 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "오류 추정, 에러 추정, 에러 추정 테스트, 오류 추정 기반 테스트, 오류 추정 기반 방법",
-      "chapter": null
+      "chapter": "테스트 기법"
     },
     {
       "id": "CSTS-FL-2402-069",
