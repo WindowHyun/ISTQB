@@ -140,7 +140,7 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "chapter": "테스트 분석 및 설계(기법)"
+      "chapter": "테스트 기초"
     },
     {
       "id": "ISTQB-FL-V4-B-004",
@@ -266,7 +266,7 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "chapter": "테스트 활동 관리"
+      "chapter": "테스트 기초"
     },
     {
       "id": "ISTQB-FL-V4-B-007",
@@ -686,7 +686,7 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "chapter": "SDLC 전반의 테스트"
+      "chapter": "정적 테스트"
     },
     {
       "id": "ISTQB-FL-V4-B-017",
@@ -1508,7 +1508,7 @@
       "tags": [],
       "difficulty": "normal",
       "figure": null,
-      "chapter": "SDLC 전반의 테스트"
+      "chapter": "테스트 활동 관리"
     },
     {
       "id": "ISTQB-FL-V4-B-031",
