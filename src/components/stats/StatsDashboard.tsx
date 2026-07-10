@@ -5,6 +5,7 @@ import { SetSummary } from '../../hooks/useQuestions';
 import { formatClock } from '../../utils/time';
 import { displayRatePercent } from '../../utils/scoring';
 import { aggregateChapterStats, weightedRatePercent } from '../../utils/chapterStats';
+import { buildSetTimelines } from '../../utils/attemptStats';
 import { ConfirmButtons } from '../common/ConfirmButtons';
 
 // 챕터 정답률이 이 미만이면 '약점'으로 강조한다(ISTQB 합격 컷 65%와 동일 기준).
@@ -68,6 +69,12 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
   const trend = useMemo(
     () => rows.filter((r) => r.rate !== null).slice(0, 12).reverse(),
     [rows],
+  );
+
+  // 세트별 회차 타임라인(Phase 2 학습 누적) — 세트마다 1회차→2회차… 정답률 추이·성장폭.
+  const timelines = useMemo(
+    () => buildSetTimelines(Object.values(histories), (id) => sets.find((s) => s.id === id)?.title || id),
+    [histories, sets],
   );
 
   // 파괴적 액션은 공용 2단계 확인 버튼으로(window.confirm은 차단형이고 모달/토스트 체계와 불일치).
@@ -143,6 +150,42 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
                     />
                   ))}
                 </div>
+              </section>
+            )}
+
+            {timelines.length > 0 && (
+              <section className="stats-timelines" aria-label="세트별 회차 이력" data-testid="stats-set-timeline">
+                <h4>세트별 회차 이력 <small>응시할수록 쌓이는 성장 기록</small></h4>
+                {timelines.map((tl) => (
+                  <div key={tl.setId} className="set-timeline" data-testid="set-timeline-item">
+                    <div className="stl-head">
+                      <span className="stl-title">{tl.title}</span>
+                      <span className="stl-count">{tl.attempts.length}회차</span>
+                      {tl.attempts.length >= 2 && (
+                        <span
+                          className={`stl-improve ${tl.improvement > 0 ? 'up' : tl.improvement < 0 ? 'down' : 'same'}`}
+                          title="첫 회차 대비 최신 회차 정답률 변화"
+                        >
+                          {tl.improvement > 0 ? `▲ +${tl.improvement}%p` : tl.improvement < 0 ? `▼ ${tl.improvement}%p` : '± 0%p'}
+                        </span>
+                      )}
+                    </div>
+                    <ol className="stl-rounds">
+                      {tl.attempts.map((at) => (
+                        <li key={at.id} className={at.rate < WEAK_THRESHOLD ? 'weak' : ''}>
+                          <span className="stl-round-no">{at.round}회</span>
+                          <span className="stl-round-mode">{MODE_LABEL[at.mode] || at.mode}</span>
+                          <span className="stl-round-rate">{at.rate}%</span>
+                          {at.deltaFromPrev != null && at.deltaFromPrev !== 0 && (
+                            <span className={`stl-round-delta ${at.deltaFromPrev > 0 ? 'up' : 'down'}`}>
+                              {at.deltaFromPrev > 0 ? `+${at.deltaFromPrev}` : at.deltaFromPrev}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                ))}
               </section>
             )}
 

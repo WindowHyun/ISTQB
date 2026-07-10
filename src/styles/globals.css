@@ -1224,6 +1224,39 @@ body[data-theme="dark"] {
 }
 .trend-bars i.weak { background: var(--danger, #c0392b); }
 
+/* 세트별 회차 타임라인(Phase 2 학습 누적) */
+.stats-timelines { margin: 14px 0 4px; display: flex; flex-direction: column; gap: 10px; }
+.stats-timelines > h4 { font-size: 13px; font-weight: 800; color: var(--text-2); margin-bottom: 4px; }
+.stats-timelines > h4 small { font-weight: 600; color: var(--muted); margin-left: 6px; }
+.set-timeline {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 10px 12px;
+}
+.stl-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.stl-title { font-size: 13px; font-weight: 800; color: var(--text); }
+.stl-count {
+  font-size: 12px; font-weight: 700; color: var(--primary-700);
+  background: var(--primary-50); padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+}
+.stl-improve { font-size: 12px; font-weight: 800; white-space: nowrap; margin-left: auto; }
+.stl-improve.up { color: var(--success, #1c7c3c); }
+.stl-improve.down { color: var(--danger, #c0392b); }
+.stl-improve.same { color: var(--muted); }
+.stl-rounds { display: flex; flex-wrap: wrap; gap: 6px; }
+.stl-rounds li {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--surface-2); font-size: 12px; font-weight: 700; color: var(--text-2);
+}
+.stl-rounds li.weak { border-color: var(--danger, #c0392b); }
+.stl-round-no { color: var(--muted); font-weight: 700; }
+.stl-round-mode { color: var(--primary-700); font-weight: 700; }
+.stl-round-rate { color: var(--text); font-weight: 800; }
+.stl-round-delta.up { color: var(--success, #1c7c3c); }
+.stl-round-delta.down { color: var(--danger, #c0392b); }
+
 .stats-list { display: flex; flex-direction: column; gap: 8px; }
 .stats-list li {
   display: flex;

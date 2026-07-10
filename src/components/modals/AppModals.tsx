@@ -10,6 +10,7 @@ import { isDebugEnabled, setDebugEnabled } from '../../utils/debugLog';
 import { Modal } from '../common/Modal';
 import { ConfirmButtons } from '../common/ConfirmButtons';
 import { StatsDashboard } from '../stats/StatsDashboard';
+import { latestAttemptComparison } from '../../utils/attemptStats';
 import { ResultSummary } from '../quiz/ResultSummary';
 import { QuestionPalette } from '../quiz/QuestionPalette';
 import { Question } from '../../hooks/useQuestions';
@@ -116,6 +117,11 @@ export const AppModals = () => {
     }
     return out;
   }, [histories, sets, activeProduct]);
+  // Phase 2 — 결과 모달의 "직전 회차 대비" 비교(현재 세트·모드의 최신 회차 기준).
+  const attemptCompare = React.useMemo(
+    () => latestAttemptComparison(Object.values(histories), setId, mode),
+    [histories, setId, mode],
+  );
   const fmtAns = (arr: string[]) =>
     arr.length ? arr.map((s) => s.toUpperCase()).join(', ') : '미응답';
   // 세트별 "전 회차 오답의 합집합" — 최신 회차만 보여주면 같은 세트를 랜덤으로
@@ -552,6 +558,8 @@ export const AppModals = () => {
           correct={correctCount}
           total={total}
           elapsedSeconds={resultElapsedSeconds}
+          attemptRound={attemptCompare.round}
+          previousRate={attemptCompare.previousRate}
           onClose={() => setResultOpen(false)}
           onOpenWrongNote={() => { setResultOpen(false); setWrongNoteOpen(true); }}
         />

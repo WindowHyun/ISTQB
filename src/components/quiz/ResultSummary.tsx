@@ -8,6 +8,9 @@ interface ResultSummaryProps {
   correct: number;
   total: number;
   elapsedSeconds: number;
+  // Phase 2 학습 누적 — 같은 세트·모드 기준 이번이 몇 회차인지, 직전 회차 정답률(%).
+  attemptRound?: number;
+  previousRate?: number | null;
   onClose: () => void;
   onOpenWrongNote: () => void;
 }
@@ -18,11 +21,19 @@ export const ResultSummary = ({
   correct,
   total,
   elapsedSeconds,
+  attemptRound,
+  previousRate,
   onClose,
   onOpenWrongNote,
 }: ResultSummaryProps) => {
   const { passed, ratePercent, criterionLabel, scoreLabel } = evaluatePass(certification, correct, total);
   const wrong = total - correct;
+
+  // 직전 회차 대비 변화(%p) — 첫 응시(previousRate null)면 "첫 응시"로 안내한다.
+  const hasPrev = previousRate != null;
+  const delta = hasPrev ? ratePercent - (previousRate as number) : 0;
+  const trend = delta > 0 ? 'up' : delta < 0 ? 'down' : 'same';
+  const deltaLabel = delta > 0 ? `▲ +${delta}%p` : delta < 0 ? `▼ ${delta}%p` : '± 0%p';
 
   return (
     <Modal title="채점 결과" onClose={onClose}>
@@ -33,6 +44,20 @@ export const ResultSummary = ({
           <strong data-testid="result-rate">{ratePercent}%</strong>
           <span className="result-badge">{passed ? '합격 기준 충족' : '합격 기준 미달'}</span>
         </div>
+
+        {attemptRound != null && attemptRound > 0 && (
+          <p className={`result-compare ${trend}`} data-testid="result-compare">
+            <span className="rc-round">{attemptRound}회차</span>
+            {hasPrev ? (
+              <>
+                <span className="rc-delta" data-testid="result-delta">{deltaLabel}</span>
+                <span className="rc-prev">직전 {previousRate}%</span>
+              </>
+            ) : (
+              <span className="rc-first">첫 응시 — 이 세트의 기준 회차예요</span>
+            )}
+          </p>
+        )}
 
         <dl className="result-metrics">
           <div className="result-metric-wide"><dt>점수</dt><dd data-testid="result-score">{scoreLabel}</dd></div>
