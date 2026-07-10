@@ -41,6 +41,9 @@ export function useQuizSession() {
     .filter(({ q }) => !isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type));
 
   const handleGrade = () => {
+    // 멱등성 가드 — 같은 tick 더블클릭 등으로 재진입해도 회차/통계가 이중 집계되지 않게 한다.
+    // 버튼 disabled(canGrade)는 리렌더 이후에야 반영되므로 채점 상태를 직접 확인한다.
+    if (useQuizStore.getState().graded[gradeKey]) return;
     const wrongQs = currentQuestions
       .filter((q) => !isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type));
     const wrongIds = wrongQs.map((q) => q.id || `legacy-${q.number}`);

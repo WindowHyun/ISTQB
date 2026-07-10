@@ -230,18 +230,25 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
     let answers = {};
     const histories = await loadHistoriesFromDB();
     
-    // Legacy snapshot logic
-    const snapshotRaw = localStorage.getItem(persistenceKey());
-    if (snapshotRaw) {
-      const snapshot = JSON.parse(snapshotRaw);
-      uiState = snapshot.uiState || {};
-      answers = snapshot.answers || {};
-    } else {
-      const uiStateRaw = localStorage.getItem(uiStorageKey());
-      if (uiStateRaw) uiState = JSON.parse(uiStateRaw);
-      
-      const answersRaw = localStorage.getItem(storageKey());
-      if (answersRaw) answers = JSON.parse(answersRaw);
+    // Legacy snapshot logic — localStorage 파싱은 독립적으로 감싼다. 한 조각이 손상돼
+    // JSON.parse가 throw해도, 이미 읽어온 정상 이력(histories)까지 폐기되지 않게 한다.
+    try {
+      const snapshotRaw = localStorage.getItem(persistenceKey());
+      if (snapshotRaw) {
+        const snapshot = JSON.parse(snapshotRaw);
+        uiState = snapshot.uiState || {};
+        answers = snapshot.answers || {};
+      } else {
+        const uiStateRaw = localStorage.getItem(uiStorageKey());
+        if (uiStateRaw) uiState = JSON.parse(uiStateRaw);
+
+        const answersRaw = localStorage.getItem(storageKey());
+        if (answersRaw) answers = JSON.parse(answersRaw);
+      }
+    } catch (e) {
+      console.error("스냅샷 파싱 실패 — UI/답안은 건너뛰고 이력만 복원합니다:", e);
+      uiState = {};
+      answers = {};
     }
     
     const restoredUi = sanitizeUiState(uiState);
@@ -393,6 +400,8 @@ export async function importUserData(file: File): Promise<boolean> {
           await new Promise<void>((res) => {
             tx.oncomplete = () => res();
             tx.onerror = () => res();
+            // 쿼터 초과 등은 error가 아닌 abort로 온다 — 핸들러가 없으면 await가 영구 pending된다.
+            tx.onabort = () => res();
           });
         }
 

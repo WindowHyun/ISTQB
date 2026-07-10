@@ -57,8 +57,11 @@ test.describe("접근성", () => {
     await expect(opt).toHaveClass(/selected/);
   });
 
-  test("진행/타이머 통계 영역에 aria-live가 있다", async ({ page }) => {
+  test("진행률에 aria-live가 있고, 타이머는 라이브 영역 밖이다(매초 낭독 방지)", async ({ page }) => {
     await openProduct(page, "ISTQB");
-    await expect(page.locator(".stats")).toHaveAttribute("aria-live", "polite");
+    // 진행률(답한/총) 갱신만 스크린리더가 알린다.
+    await expect(page.locator("#progressText")).toHaveAttribute("aria-live", "polite");
+    // .stats 섹션 전체를 라이브로 두면 타이머가 매초 낭독되므로, 섹션엔 aria-live가 없어야 한다.
+    await expect(page.locator(".stats")).not.toHaveAttribute("aria-live", "polite");
   });
 });

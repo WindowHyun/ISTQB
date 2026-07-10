@@ -40,9 +40,10 @@ export const MobileTopBar = () => {
           ☰
         </button>
       </div>
-      <div className="mtb-info" aria-live="polite">
+      <div className="mtb-info">
         <span className="mtb-chip">{MODE_LABEL[mode] || mode}</span>
-        <span className="mtb-meta">{answered} / {total}</span>
+        {/* 라이브 영역을 진행률에만 둔다 — 타이머를 포함하면 스크린리더가 매초 시간을 낭독한다. */}
+        <span className="mtb-meta" aria-live="polite">{answered} / {total}</span>
         <span className="mtb-meta">⏱ <TimerClock /></span>
         <span className="mtb-bar" aria-hidden="true"><i style={{ width: `${progressPercent}%` }} /></span>
       </div>

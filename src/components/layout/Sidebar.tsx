@@ -76,7 +76,10 @@ export const Sidebar = () => {
   };
 
   const handleModeChange = (newMode: typeof mode) => {
-    // 응시 중(시험 시작 후 미채점)에는 모드 버튼 자체가 disabled라 이 경로로 오지 않는다(잠금).
+    // 같은 모드 버튼 재클릭은 무시한다 — 응시 중(잠금) 활성 '시험' 탭은 비활성화되지
+    // 않으므로, 재클릭 시 아래 setIndex(0)+resetTimer()로 타이머·위치가 초기화돼 잠금이
+    // 무력화되던 문제를 막는다(연습/랜덤의 자기 초기화도 함께 제거).
+    if (newMode === mode) { closeDrawer(); return; }
     // 랜덤은 진입마다 재추첨되어 이어풀기가 무의미하므로 들어올 때마다 초기화한다(랜덤은 이어풀기 없음, F4).
     if (newMode === 'random') {
       clearAnswers(setId, 'random');
@@ -201,10 +204,11 @@ export const Sidebar = () => {
           )}
         </section>
 
-        <section className="stats" aria-live="polite">
+        <section className="stats">
           <div>
             <span>진행</span>
-            <strong id="progressText">{answered} / {total}</strong>
+            {/* 라이브 영역을 진행률에만 둔다 — 타이머를 포함하면 스크린리더가 매초 시간을 낭독한다. */}
+            <strong id="progressText" aria-live="polite">{answered} / {total}</strong>
           </div>
           <div>
             <span>시간</span>

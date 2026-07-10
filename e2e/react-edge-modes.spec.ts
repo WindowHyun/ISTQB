@@ -175,4 +175,17 @@ test.describe("시험 시작 게이트·응시 중 잠금", () => {
     await page.locator("#options .option").first().click();
     await expect(page.getByTestId("set-select")).toBeDisabled();
   });
+
+  test("응시 중 활성 '시험' 탭 재클릭은 위치를 초기화하지 않는다(락 우회 방지)", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await enterExam(page);
+    await page.locator("#options .option").first().click();
+    await page.locator("#nextBtn").click(); // 2번으로 이동
+    await expect(page.locator("#questionTitle")).toContainText("문제 2");
+    // 활성 '시험' 탭을 다시 눌러도 setIndex(0)/resetTimer가 실행되지 않아 위치가 유지된다.
+    await page.locator('.segmented button[data-mode="exam"]').click();
+    await expect(page.locator("#questionTitle")).toContainText("문제 2");
+    // 여전히 응시 중 잠금 상태(세트 비활성) 유지.
+    await expect(page.getByTestId("set-select")).toBeDisabled();
+  });
 });
