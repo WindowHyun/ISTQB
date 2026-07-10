@@ -12,7 +12,9 @@ export function buildChapterStats(
   answers: Record<string, string[]>,
   answerKeyOf: (q: Question) => string,
 ): ChapterStats {
-  const stats: ChapterStats = {};
+  // null-프로토타입 — '__proto__' 같은 챕터명이 들어와도(조작 백업 등) ||= 대입이
+  // Object.prototype을 오염시키지 못하게 한다.
+  const stats: ChapterStats = Object.create(null);
   for (const q of questions) {
     if (!q.chapter) continue;
     const cell = (stats[q.chapter] ||= { c: 0, t: 0 });
@@ -24,7 +26,8 @@ export function buildChapterStats(
 
 // 여러 회차 이력의 chapterStats를 합산한다. chapterStats가 없는 과거 이력은 건너뛴다.
 export function aggregateChapterStats(histories: ExamHistory[]): ChapterStats {
-  const total: ChapterStats = {};
+  // null-프로토타입 — 이력의 chapterStats 키는 외부(DB·백업)에서 오므로 위와 동일하게 방어.
+  const total: ChapterStats = Object.create(null);
   for (const h of histories) {
     for (const [ch, cell] of Object.entries(h.chapterStats || {})) {
       const acc = (total[ch] ||= { c: 0, t: 0 });

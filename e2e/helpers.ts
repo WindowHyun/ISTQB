@@ -12,9 +12,22 @@ export async function openProduct(page: Page, name: "ISTQB" | "CSTS") {
 }
 
 // 제품 선택 후 특정 세트(연습 모드)로 진입.
+// 모바일/태블릿(≤880px)에서는 사이드바가 드로어(닫힘=visibility:hidden)라 세트 셀렉트가
+// 숨겨져 있다 — 실사용자와 동일하게 드로어를 열고 선택한다(세트 변경은 드로어를 자동으로 닫음).
 export async function openSet(page: Page, product: "ISTQB" | "CSTS", setId: string) {
   await openProduct(page, product);
-  await page.locator("#examSelect").selectOption(setId);
+  const select = page.locator("#examSelect");
+  const inDrawer = !(await select.isVisible());
+  if (inDrawer) {
+    await page.getByTestId("drawer-open").click();
+    await expect(select).toBeVisible();
+  }
+  await select.selectOption(setId);
+  if (inDrawer) {
+    // 같은 세트 재선택 등 변경 이벤트가 없으면 드로어가 열려 있을 수 있다 — Esc로 확실히 닫는다.
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".app-shell")).toHaveAttribute("data-drawer", "closed");
+  }
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 15_000 });
 }
 

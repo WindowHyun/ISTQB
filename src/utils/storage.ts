@@ -163,10 +163,14 @@ export function sanitizeHistory(value: unknown): ExamHistory | null {
   if (value.certification === "istqb" || value.certification === "csts") {
     out.certification = value.certification;
   }
-  const correct = finiteNumber(value.correct);
-  if (correct !== undefined) out.correct = correct;
+  // 모순 데이터 방어 — 음수 거부, 정답 수는 출제 수를 넘지 못하게 클램프
+  // (correct=100/total=1 같은 손상 백업이 통계에 10000%로 표시되는 것 차단).
   const total = finiteNumber(value.total);
-  if (total !== undefined) out.total = total;
+  if (total !== undefined && total >= 0) out.total = total;
+  const correct = finiteNumber(value.correct);
+  if (correct !== undefined && correct >= 0) {
+    out.correct = out.total !== undefined ? Math.min(correct, out.total) : correct;
+  }
   const elapsedSeconds = finiteNumber(value.elapsedSeconds);
   if (elapsedSeconds !== undefined) out.elapsedSeconds = elapsedSeconds;
   const createdAt = finiteNumber(value.createdAt);
@@ -176,6 +180,8 @@ export function sanitizeHistory(value: unknown): ExamHistory | null {
     // 챕터 집계는 { 챕터명: {c,t} } — 유한 숫자 셀만 통과(손상 백업의 NaN 유입 차단).
     const chapterStats: Record<string, { c: number; t: number }> = {};
     for (const [ch, cell] of Object.entries(value.chapterStats)) {
+      // '__proto__' 등 프로토타입 조작 키는 통과시키지 않는다(조작 백업 방어).
+      if (ch === "__proto__" || ch === "constructor" || ch === "prototype") continue;
       if (!isPlainObject(cell)) continue;
       const c = finiteNumber(cell.c);
       const t = finiteNumber(cell.t);
@@ -254,6 +260,9 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
     const restoredUi = sanitizeUiState(uiState);
     const sanitizedAnswers = sanitizeAnswers(answers);
     useQuizStore.getState().hydrate({
+      // 제품 전환 시 이전 제품의 세션 상태(채점 여부·응시 게이트·오답 대상·챕터 필터)가
+      // 새 제품으로 새어들지 않도록 기본값으로 깔고, 이 제품의 복원값(restoredUi)으로 덮는다.
+      graded: {}, examStarted: {}, reviewIds: {}, chapterFilter: null,
       ...restoredUi,
       answers: sanitizedAnswers,
       histories,
@@ -397,12 +406,19 @@ export async function importUserData(file: File): Promise<boolean> {
               try { store.put(h); importedHistories += 1; } catch (err) { console.warn("이력 항목 건너뜀", err); }
             });
           // 복원이 DB를 읽기 전에 트랜잭션 커밋을 기다린다.
-          await new Promise<void>((res) => {
-            tx.oncomplete = () => res();
-            tx.onerror = () => res();
-            // 쿼터 초과 등은 error가 아닌 abort로 온다 — 핸들러가 없으면 await가 영구 pending된다.
-            tx.onabort = () => res();
+          // 쿼터 초과 등은 error가 아닌 abort로 온다 — 핸들러가 없으면 await가 영구 pending된다.
+          const committed = await new Promise<boolean>((res) => {
+            tx.oncomplete = () => res(true);
+            tx.onerror = () => res(false);
+            tx.onabort = () => res(false);
           });
+          if (!committed) {
+            // put 호출 수(importedHistories)와 무관하게 커밋이 실패하면 아무것도 저장되지
+            // 않았다 — "가져오기 완료 N건"으로 오보고하지 않고 실패로 처리한다.
+            console.error("이력 트랜잭션 커밋 실패(쿼터 초과 등) — 가져오기를 실패로 처리합니다.");
+            resolve(false);
+            return;
+          }
         }
 
         console.info(`[data] 백업 가져오기 완료: ${file.name} · 이력 ${importedHistories}건`);

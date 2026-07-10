@@ -49,7 +49,8 @@ export function buildSetTimelines(
 
   const timelines: SetTimeline[] = [];
   for (const [setId, hs] of bySet) {
-    hs.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0)); // 오래된 → 최신
+    // 오래된 → 최신. createdAt 동률/결측 시 id로 타이브레이크해 회차 번호를 결정적으로 만든다.
+    hs.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0) || a.id.localeCompare(b.id));
     let prevRate: number | null = null;
     const attempts: AttemptEntry[] = hs.map((h, i) => {
       const rate = displayRatePercent(h.correct, h.total);
@@ -97,7 +98,8 @@ export function latestAttemptComparison(
 ): AttemptComparison {
   const same = histories
     .filter((h) => h.setId === setId && h.mode === mode && isScored(h))
-    .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
+    // 타임라인과 동일한 결정적 정렬(createdAt → id) — 동률 시 "직전 회차"가 흔들리지 않게.
+    .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0) || a.id.localeCompare(b.id));
   if (!same.length) return { round: 0, previousRate: null };
   const prev = same.length >= 2 ? same[same.length - 2] : null;
   return {

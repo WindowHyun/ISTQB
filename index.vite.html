@@ -7,6 +7,22 @@
     <title>ISTQB/CSTS React 문제풀이</title>
   </head>
   <body>
+    <script>
+      // 프리페인트 테마/글자크기 적용 — React(useTheme)는 제품 선택 후(AppModals)에야
+      // 마운트되므로, 여기서 먼저 body[data-theme]를 세팅해 게이트 화면의 라이트 플래시
+      // (FOUC)와 다크 사용자 게이트 미적용을 막는다. 이후 useTheme이 이어받는다.
+      (function () {
+        try {
+          var pref = localStorage.getItem('istqb-theme') || 'system';
+          var dark =
+            pref === 'dark' ||
+            (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.body.dataset.theme = dark ? 'dark' : 'light';
+          var font = localStorage.getItem('istqb-q-font');
+          if (font) document.body.dataset.qfont = font;
+        } catch (e) { /* 저장소 접근 불가 환경은 기본(라이트) 유지 */ }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

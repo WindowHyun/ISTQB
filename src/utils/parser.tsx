@@ -70,7 +70,16 @@ function buildRichBlocks(text: unknown): Block[] {
       flushTable();
       if (line.startsWith("__TABLE__:")) {
         flushList();
-        blocks.push({ type: "table", rows: JSON.parse(line.slice(10)) });
+        // 마커는 내부 정규화가 생성하지만 원본 지문 줄도 이 경로를 지난다 —
+        // 손상/우연한 "__TABLE__:" 텍스트로 JSON.parse가 던져 렌더 전체가 죽지 않게 방어.
+        try {
+          const rows = JSON.parse(line.slice(10));
+          if (Array.isArray(rows)) {
+            blocks.push({ type: "table", rows });
+            return;
+          }
+        } catch { /* 아래에서 일반 텍스트로 처리 */ }
+        blocks.push({ type: "text", text: line });
         return;
       }
       if (line.startsWith("__IMAGE__:")) {
@@ -80,7 +89,15 @@ function buildRichBlocks(text: unknown): Block[] {
       }
       if (line.startsWith("__CODE__:")) {
         flushList();
-        blocks.push({ type: "code", lines: JSON.parse(line.slice(9)) });
+        // __TABLE__과 동일한 방어 — 파싱 실패 시 일반 텍스트로 강등.
+        try {
+          const codeLines = JSON.parse(line.slice(9));
+          if (Array.isArray(codeLines)) {
+            blocks.push({ type: "code", lines: codeLines });
+            return;
+          }
+        } catch { /* 아래에서 일반 텍스트로 처리 */ }
+        blocks.push({ type: "text", text: line });
         return;
       }
       const listItem = parseStructuredItem(line);

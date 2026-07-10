@@ -71,6 +71,7 @@ ul { margin: 0; padding: 0; list-style: none; }
   display: grid;
   place-items: center;
   min-height: 100vh;
+  min-height: 100dvh; /* 모바일 주소창 변화 대응 — 미지원 브라우저는 위 100vh 폴백 */
   color: var(--muted);
   font-size: 16px;
   letter-spacing: 0.01em;
@@ -110,6 +111,7 @@ ul { margin: 0; padding: 0; list-style: none; }
 /* ── 제품 선택(홈) ────────────────────────────────────────────────────── */
 .product-gate {
   min-height: 100vh;
+  min-height: 100dvh; /* 모바일 주소창 변화 대응 — 미지원 브라우저는 위 100vh 폴백 */
   display: grid;
   place-items: center;
   padding: 24px;
@@ -173,6 +175,7 @@ ul { margin: 0; padding: 0; list-style: none; }
   margin: 0 auto;
   padding: 20px;
   min-height: 100vh;
+  min-height: 100dvh; /* 모바일 주소창 변화 대응 — 미지원 브라우저는 위 100vh 폴백 */
 }
 
 /* ── 사이드바 ─────────────────────────────────────────────────────────── */
@@ -1030,22 +1033,25 @@ body[data-theme="dark"] .table-image-frame {
   .mtb-brand img { width: 28px; height: 28px; border-radius: 9px; flex: none; }
   .mtb-brand small { display: block; font-size: 11px; font-weight: 800; color: var(--primary); line-height: 1.1; }
   .mtb-brand b { display: block; font-size: 13.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60vw; }
-  .mtb-menu { width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--line-strong); background: var(--surface); font-size: 16px; color: var(--text-2); flex: none; }
+  .mtb-menu { width: 44px; height: 44px; /* 터치 타깃 최소 44px */ border-radius: 11px; border: 1px solid var(--line-strong); background: var(--surface); font-size: 16px; color: var(--text-2); flex: none; }
   .mtb-info { display: flex; align-items: center; gap: 9px; }
   .mtb-chip { background: var(--primary); color: #fff; font-weight: 800; font-size: 12px; padding: 4px 12px; border-radius: 999px; }
   .mtb-meta { font-size: 12.5px; color: var(--muted); font-weight: 800; }
   .mtb-bar { flex: 1; height: 5px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
   .mtb-bar i { display: block; height: 100%; background: var(--primary); }
 
-  /* 한 칸 레이아웃 + 문제가 첫 화면(사이드바는 드로어로) */
+  /* 한 칸 레이아웃 + 문제가 첫 화면(사이드바는 드로어로)
+     하단 패딩은 액션바 높이 + iOS safe-area(홈 인디케이터)만큼 확보해 겹침을 막는다. */
   .app-shell {
     grid-template-columns: 1fr;
-    padding: 12px 12px 96px;
+    padding: 12px 12px calc(96px + env(safe-area-inset-bottom, 0px));
     gap: 14px;
   }
   .topbar #questionTitle { font-size: 19px; }
 
-  /* 사이드바 → 좌측 오프캔버스 드로어 */
+  /* 사이드바 → 좌측 오프캔버스 드로어.
+     닫힌 드로어는 transform으로 화면 밖일 뿐 DOM에 남아 Tab/스크린리더가 접근할 수 있다 —
+     visibility로 차단하되, transition 지연으로 슬라이드-아웃 애니메이션은 유지한다. */
   .sidebar {
     position: fixed;
     top: 0;
@@ -1055,10 +1061,19 @@ body[data-theme="dark"] .table-image-frame {
     border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
     overflow-y: auto;
     transform: translateX(-104%);
-    transition: transform 0.24s ease;
+    visibility: hidden;
+    transition: transform 0.24s ease, visibility 0s linear 0.24s;
     z-index: 60;
   }
-  .app-shell[data-drawer="open"] .sidebar { transform: translateX(0); }
+  .app-shell[data-drawer="open"] .sidebar {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform 0.24s ease, visibility 0s;
+  }
+
+  /* 터치 타깃 최소 44px(WCAG 2.5.5) — 드로어 내 모드 세그먼트·액션 버튼. */
+  .segmented button { min-height: 44px; }
+  .actions > button { min-height: 44px; }
   .drawer-backdrop {
     display: block;
     position: fixed;

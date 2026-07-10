@@ -170,7 +170,8 @@ export const QuestionWorkspace = () => {
 
   const safeIndex = Math.min(Math.max(index, 0), total - 1);
   const currentQuestion = currentQuestions[safeIndex];
-  const isMulti = currentQuestion.answer.length > 1;
+  // 보기 없는 단답형도 동의어 정답을 배열로 가질 수 있다 — 보기가 있을 때만 복수정답 표기(QuestionCard와 동일 기준).
+  const isMulti = currentQuestion.options.length > 0 && currentQuestion.answer.length > 1;
 
   const goPrev = () => setIndex((i) => Math.max(0, i - 1));
   const goNext = () => setIndex((i) => Math.min(total - 1, i + 1));

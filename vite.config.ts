@@ -15,6 +15,9 @@ function emitIndexHtml() {
         entry.fileName = 'index.html';
         bundle['index.html'] = entry;
         delete bundle['index.vite.html'];
+      } else {
+        // rollup 내부 키가 바뀌면 dist/index.html이 조용히 누락돼 빈 배포가 된다 — 빌드를 실패시킨다.
+        throw new Error('[emit-index-html] index.vite.html 엔트리를 찾지 못했습니다 — dist/index.html이 생성되지 않습니다.');
       }
     },
   };
@@ -34,15 +37,24 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
         cleanupOutdatedCaches: true,
       },
+      // 아이콘은 globPatterns가 이미 precache에 담는다 — 매니페스트 경유 중복 주입을 끈다.
+      // (중복 엔트리는 revision이 갈리는 순간 workbox install이 통째로 실패하는 시한폭탄)
+      includeManifestIcons: false,
       manifest: {
         name: 'ISTQB/CSTS Practice App',
         short_name: 'Practice',
+        description: 'ISTQB·CSTS 자격증 기출 문제풀이 CBT 학습 앱',
+        lang: 'ko',
         theme_color: '#166064',
         background_color: '#f5f7f2',
         display: 'standalone',
+        // PNG를 우선 선언 — SVG-only 매니페스트는 일부 Android 런처/구형 WebView에서
+        // 설치 아이콘 렌더가 불안정하다. maskable은 안전영역 검증 전이라 선언하지 않는다.
         icons: [
-          { src: 'icons/icon-192.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
-          { src: 'icons/icon-512.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-192.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any' },
+          { src: 'icons/icon-512.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any' }
         ]
       }
     }),
