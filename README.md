@@ -1,13 +1,13 @@
 # ISTQB / CSTS 문제 풀이 앱 — 기능 & QA 포트폴리오
 
 ![CI](https://github.com/WindowHyun/ISTQB/actions/workflows/ci.yml/badge.svg)
-![tests](https://img.shields.io/badge/tests-86%20unit%20%2B%20266%20e2e-brightgreen)
+![tests](https://img.shields.io/badge/tests-112%20unit%20%2B%20273%20e2e-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT%20(code)-yellow)
 ![stack](https://img.shields.io/badge/React%2019-TypeScript-blue)
 
 ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **12세트·626문항**을 푸는 오프라인 CBT 문제 풀이 앱입니다.
 
-> **한 줄 요약** — 단순 기능 구현을 넘어 **테스트 자동화(유닛 86 + E2E 266) · 데이터 정합성 검증 ·
+> **한 줄 요약** — 단순 기능 구현을 넘어 **테스트 자동화(유닛 112 + E2E 273) · 데이터 정합성 검증 ·
 > 결함 근본원인 분석(RCA) · CI 품질 게이트**로 품질을 책임진 1인 프로젝트입니다.
 > "무엇을 만들었는가"보다 **"품질을 어떻게 보장했는가"** 를 보여주는 사례입니다.
 
@@ -24,7 +24,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 - [주요 기능](#주요-기능)
 - [데모 자료 (GIF · 스크린샷)](#데모-자료-gif--스크린샷)
 - [테스트 전략](#테스트-전략)
-- [테스트 자동화 상세 (E2E 266)](#테스트-자동화-상세-e2e-255)
+- [테스트 자동화 상세 (E2E 273)](#테스트-자동화-상세-e2e-273)
 - [결함 발견 & 근본원인 분석](#결함-발견--근본원인-분석-case-studies)
 - [CI 품질 게이트](#ci-품질-게이트)
 - [품질 지표](#품질-지표-metrics)
@@ -39,7 +39,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 
 ## 하이라이트 (Quality Engineering)
 
-- **테스트 자동화 352개** — Vitest 유닛 86 + Playwright **E2E 266**(스모크·모드·문항유형·네비·설정·영속성·엣지·반응형·접근성·**대용량 import**·**표/그림 문항**·**라이트박스/콘솔**·**저장 불가 환경**). 전체 시나리오: [`docs/e2e-test-scenarios.md`](docs/e2e-test-scenarios.md).
+- **테스트 자동화 385개** — Vitest 유닛 112 + Playwright **E2E 273**(스모크·모드·문항유형·네비·설정·영속성·엣지·반응형·접근성·**대용량 import**·**표/그림 문항**·**라이트박스/콘솔**·**저장 불가 환경**). 전체 시나리오: [`docs/e2e-test-scenarios.md`](docs/e2e-test-scenarios.md).
 - **PDF ↔ 데이터 전수 정합성 검증** — 626문항 정답·보기·stem을 **공식 PDF와 1:1 대조**(대조 가능 600문항 불일치 0). 더해 `npm run verify`로 정답·이미지·스키마 자동 점검 + 전 문항 렌더 스윕(404·예외·깨진 이미지 0).
 - **자격증별 컷스코어·접근성** — ISTQB 65% / CSTS 환산 52.5점 합격 판정, 색각 대비 글리프·포커스 트랩·reduced-motion 등 a11y 반영.
 - **결함 RCA & 회귀 방지** — PDF 원본 ↔ 앱 렌더를 전수 대조해 결함을 찾고, 반복 결함의 근본원인을 분석해 **클래스 단위**로 차단(케이스별 회귀 테스트 추가).
@@ -49,7 +49,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 
 | QA 역량 | 본 프로젝트에서 한 일 | 근거 |
 |---------|----------------------|------|
-| 테스트 자동화 | Playwright **E2E 266개** + Vitest **유닛 86개** 작성·CI 연동 | `e2e/`, `src/**/*.test.ts` |
+| 테스트 자동화 | Playwright **E2E 273개** + Vitest **유닛 112개** 작성·CI 연동 | `e2e/`, `src/**/*.test.ts` |
 | 테스트 설계 | 모드·문항유형·네비·설정·영속성·엣지(경계·격리·복원·대용량 import)·표/그림·반응형·접근성으로 시나리오 분해 | [`docs/e2e-test-scenarios.md`](docs/e2e-test-scenarios.md) |
 | 회귀 방지 | 결함 수정마다 회귀 테스트 추가, CI 머지 게이트 | 파서 회귀 케이스, 9-job CI |
 | 결함 발견·RCA | **PDF 원본 ↔ 앱 렌더 전수 대조**로 결함 식별, 반복 결함 근본원인 분석 | 아래 [Case Studies](#결함-발견--근본원인-분석-case-studies) |
@@ -65,15 +65,17 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 - **연습 · 시험 · 랜덤 · 오답** 4가지 모드
 - 연습 모드: 답 선택 후 즉시 정답/해설 확인 / 시험·랜덤·오답 모드: 채점 후 결과 확인
 - 오답 모드에서 `오답 다시풀기` 전까지 기존 오답 기록 보호
-- **시험 진행 중 다른 모드로 변경 시 경고**(이동 / 뒤로가기 선택)
+- **시험 시작 게이트 + 응시 중 잠금**(Phase 1) — 시험 모드는 "시험 시작"을 눌러야 응시 개시(타이머 0부터), 응시 중(채점 전)에는 문제 세트·다른 모드 변경이 잠기고 🔒 안내 표시 · 채점하면 잠금 해제
 - 앱을 껐다 켜도 풀이 상태·모드 복원(localStorage / IndexedDB), **재접속·세트 변경 시 시험 답안이 있으면 “이어풀기 / 새로 풀기” 선택** (랜덤 모드는 매번 새로 추첨 — 항상 새로 시작)
 - **시험 채점 후 재응시** — 다른 모드로 갔다 오거나 재접속하면 잠금이 풀려 같은 시험을 다시 풀 수 있음
 - 풀이 기록 JSON **내보내기 / 가져오기**
 - **자격증별 합격 컷스코어** — ISTQB 65%(40문항 기준 26) / CSTS 환산 52.5점, 채점 후 합/불 결과 요약(값 줄바꿈 없이 한 줄 표기)
 - **미응답 채점 확인 · 제출 전 검토** — 미응답이 있으면 채점 전 확인 모달에서 문항 팔레트로 미응답 문항으로 바로 이동
-- **오답 노트** — 채점 회차를 **세트별로 모아** 선택 → 그 세트의 **문제번호 · 내가 고른 답 · 정답** 표시(읽기 전용)
+- **오답 노트** — 채점 회차를 **세트별로 모아** 선택 → 그 세트의 **문제번호 · 내가 고른 답 · 정답** 표시(읽기 전용), **전 회차 오답 합집합**으로 누적(Phase 3)
+- **학습 누적 — 회차 비교 · 성장 이력**(Phase 2) — 채점 결과에 **직전 회차 대비 ▲/▼ %p**(첫 응시 안내), 학습 통계에 **세트별 회차 타임라인**(1회차→2회차… 정답률·모드·첫→최신 성장폭)
+- **챕터별 약점 분석 · 집중 연습**(Phase 3) — 626문항 **챕터 태깅**(ISTQB 6챕터 / CSTS 6도메인, Phase 0) 기반으로 **챕터별 정답률**(약점 강조)·성장 추이·가중 평균을 학습 통계에 표시하고, 챕터 단위 **집중 연습**으로 바로 진입
 - **그림 확대 라이트박스**(새 탭 이탈 없이 인앱 확대, Esc/배경 닫기·포커스 트랩)
-- **학습 통계 대시보드**(응시 이력·평균/최고 정답률) · **이어풀기 안내 배너**(중간 위치 복원 시 처음부터/계속하기)
+- **학습 통계 대시보드**(응시 이력·평균/최고 정답률·챕터별 약점·회차 타임라인) · **이어풀기 안내 배너**(중간 위치 복원 시 처음부터/계속하기)
 - PDF에서 추출한 **표·그림·코드 블록·목록**을 이미지/구조화 블록으로 렌더링(마크다운 표 → HTML `<table>`)
 - 다크모드(그림 흰 배경 보정) · 반응형(모바일 드로어·하단 액션바·점프핀) · **색각 대비 글리프**
 - 단답형·복수정답·진위형 등 다양한 문항 유형 지원
@@ -109,17 +111,17 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 ## 테스트 전략
 
 ```
-        ▲  E2E (Playwright) — 266개: 사용자 플로우·엣지·크로스뷰포트·A11y
+        ▲  E2E (Playwright) — 273개: 사용자 플로우·엣지·크로스뷰포트·A11y
        ───
       ─────  통합/렌더 — jsdom 렌더 테스트(파서·RichText)
-     ───────  유닛 (Vitest) — 86개: 정답판정·파서·컷스코어·저장·타이머·토스트·store 액션·store↔storage 연동
+     ───────  유닛 (Vitest) — 112개: 정답판정·파서·컷스코어·챕터/회차 통계·저장·타이머·토스트·store 액션·store↔storage 연동
     ─────────  데이터 검증 — verify + PDF 전수 대조(정답·이미지·스키마, 626문항)
 ```
 
 - **계층별 역할 분리**: 로직은 유닛, 화면 흐름은 E2E, 데이터는 정합성 스크립트로 검증.
 - **환경 제약 대응**: 로컬 브라우저 다운로드가 막힌 상황에서 **CI를 신뢰 검증 계층**으로 활용하고, jsdom 렌더 테스트로 정적 검사(tsc/lint)가 못 잡는 런타임 크래시까지 검출.
 
-## 테스트 자동화 상세 (E2E 266)
+## 테스트 자동화 상세 (E2E 273)
 
 - **카테고리**: 스모크 · 모드 · 네비게이션 · 설정 · 문항유형 · 콘텐츠 · **영속성/백업** · **엣지(경계·격리·복원·모달·반응형)** · **대용량/비정상 import** · **특정 표/그림 문항** · **라이트박스/화면 콘솔** · **저장 불가 환경** · **접근성**.
 - **특징**: headless 실행, 결정적 타게팅(특정 세트·문항 고정), 공용 헬퍼(`e2e/helpers.ts`)로 중복 제거, 실제 qid로 백업을 생성해 import 복원까지 검증.
@@ -155,17 +157,17 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 ## CI 품질 게이트
 
 - GitHub Actions **9 job**(push/PR 병렬):
-  - **기능·품질 6** — `lint`(ESLint+tsc) · `verify(데이터)` · `unit`(+커버리지 임계값 게이트) · `build`(+번들 크기 예산) · `e2e`(기능 266) · `nonfunctional`(성능·부하·메모리·타이머·오프라인·데이터 내구성·장기 스케일 12, CI 완화 예산).
+  - **기능·품질 6** — `lint`(ESLint+tsc) · `verify(데이터)` · `unit`(+커버리지 임계값 게이트) · `build`(+번들 크기 예산) · `e2e`(기능 273) · `nonfunctional`(성능·부하·메모리·타이머·오프라인·데이터 내구성·장기 스케일 12, CI 완화 예산).
   - **보안 3** — `audit`(의존성 취약점, 배포 번들 기준) · `secrets`(gitleaks 시크릿 스캔) · `codeql`(JS/TS 정적분석: XSS·프로토타입 오염 등).
 - 모든 job 통과해야 머지 → **결함·취약점의 main 유입 차단**. 동시성·캐시·최소권한(CodeQL만 job 레벨 `security-events: write`) 설정.
 - 각 CI 워크플로의 동작 방식·코드 설명(CI·매일 예약 E2E·Android 배포): [`docs/ci/`](docs/ci/README.md).
 
 ## 품질 지표 (Metrics)
 
-- 자동화 테스트: **유닛 86 + E2E 266 = 331** (전 문항 626 렌더 스윕 별도).
+- 자동화 테스트: **유닛 112 + E2E 273 = 385** (전 문항 626 렌더 스윕 별도).
 - 유닛 커버리지(로직 계층 `store`·`utils`): **Stmts ~70% · Branch ~62% · Funcs ~76% · Lines ~71%**. CI에서 임계값(stmt 68·branch 60·func 73·line 69) 게이트로 회귀 차단(핵심 로직 파서/정답판정/저장 집중, 컴포넌트는 E2E 담당).
 - 데이터 무결성: 626문항 정답·이미지·스키마 `verify` 통과, 전수 스윕 결과 **404·예외·깨진 이미지 0**.
-- 번들: main JS **229KB(gzip 73KB)**, JS 합계 265KB(gzip 86KB), CSS 31KB(gzip 7KB). CI 번들 예산(JS 330KB·CSS 45KB)으로 회귀 감시.
+- 번들: main JS **260KB(gzip 83KB)**, JS 합계 281KB(gzip 92KB), CSS 38KB(gzip 8KB). CI 번들 예산(JS 330KB·CSS 45KB)으로 회귀 감시.
 
 ## 아키텍처
 
@@ -186,13 +188,13 @@ flowchart LR
   REACT --> CAP
 
   subgraph 품질["품질 게이트 (GitHub Actions · 9 job)"]
-    CI["기능·품질: lint · verify · unit(86) · build · e2e(266) · nonfunctional(12)<br/>보안: audit · secrets · codeql"]
+    CI["기능·품질: lint · verify · unit(112) · build · e2e(273) · nonfunctional(12)<br/>보안: audit · secrets · codeql"]
   end
   REACT -.검증.-> CI
   SRC -.정합성 verify.-> CI
 ```
 
-- **데이터 정본**: `www/data/index.json`(세트 인덱스) + `www/data/{istqb,csts}/*.json`(세트별 문제). 공통 스키마는 `id` 기반 `stem` / `options` / `explanation` 블록 구조.
+- **데이터 정본**: `www/data/index.json`(세트 인덱스) + `www/data/{istqb,csts}/*.json`(세트별 문제). 공통 스키마는 `id` 기반 `stem` / `options` / `explanation` 블록 구조이며, **626문항 전부 `chapter`(대단원) 태깅**(정의: `www/data/taxonomy.json` — ISTQB 6챕터·CSTS 6도메인)되어 약점 분석의 기반이 됩니다. `verify`가 `chapter` 값을 taxonomy에 대조 검증합니다.
 - **단일 런타임(React)**: 웹·APK 모두 React 앱(`dist/index.html`) — 웹은 Vercel, APK는 Capacitor가 `dist`를 패키징. 레거시 바닐라 앱은 제거됨. `www/`는 **콘텐츠 자산 정본**(data·images) 전용.
 
 ## 포함된 문제
@@ -241,9 +243,9 @@ npm run dev      # React 앱 개발 서버 (index.vite.html 기준)
 기타 명령:
 
 ```bash
-npm test            # Vitest 유닛 테스트 (56개)
+npm test            # Vitest 유닛 테스트 (112개)
 npm run test:cov    # 유닛 테스트 + 커버리지(임계값 게이트)
-npm run test:e2e    # Playwright React E2E (266개)
+npm run test:e2e    # Playwright React E2E (273개)
 npm run verify      # 데이터 정합성 검증 (626문항 정답·이미지·스키마)
 npm run build       # tsc 타입 검사 후 dist/ 정적 빌드
 npm run size        # 번들 크기 예산 검사 (build 후)
