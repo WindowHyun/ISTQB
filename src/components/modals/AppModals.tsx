@@ -127,7 +127,9 @@ export const AppModals = () => {
   // 세트별 "전 회차 오답의 합집합" — 최신 회차만 보여주면 같은 세트를 랜덤으로
   // 재채점했을 때 이전 시험 회차의 오답이 노트에서 사라진다(QA 지적 해소).
   // 같은 문항이 여러 회차에서 틀렸으면 가장 최근 회차의 내 답을 대표로 쓴다.
-  const wrongNoteBySet: ExamHistory[] = (() => {
+  // useMemo: AppModals는 answers를 구독(useQuizSession)해 답안 클릭마다 리렌더되므로,
+  // 메모 없이는 오답노트가 닫혀 있어도 매 클릭 전체 이력 정렬·병합을 재계산한다.
+  const wrongNoteBySet: (ExamHistory & { attemptCount: number })[] = React.useMemo(() => {
     const bySet = new Map<string, ExamHistory[]>();
     for (const h of Object.values(productHistories)) {
       if ((h.wrongItems?.length ?? 0) === 0) continue;
@@ -135,7 +137,7 @@ export const AppModals = () => {
       list.push(h);
       bySet.set(h.setId, list);
     }
-    const merged: ExamHistory[] = [];
+    const merged: (ExamHistory & { attemptCount: number })[] = [];
     for (const [sid, hs] of bySet) {
       hs.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)); // 최신 우선
       const items = new Map<number, NonNullable<ExamHistory['wrongItems']>[number]>();
@@ -149,10 +151,11 @@ export const AppModals = () => {
         id: `merged-${sid}`,
         wrongItems: Array.from(items.values()).sort((a, b) => a.number - b.number),
         total: undefined, // 합산 뷰에서 회차별 total 표기는 의미가 없다
+        attemptCount: hs.length, // 합산에 관여한 회차 수(라벨 표기용)
       });
     }
     return merged.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  })();
+  }, [productHistories]);
   const selectedWrong = wrongNoteSetId
     ? wrongNoteBySet.find((h) => h.setId === wrongNoteSetId) ?? null
     : null;
@@ -220,6 +223,13 @@ export const AppModals = () => {
   // 약점 챕터 집중 연습(Phase 3): 통계에서 챕터를 고르면 현재 세트를 그 챕터로
   // 필터해 연습 모드로 진입한다. setMode가 필터를 초기화하므로 필터는 그 뒤에 건다.
   const handlePracticeChapter = (chapter: string) => {
+    // 응시 중 잠금 — 학습 통계 버튼은 잠금 중에도 열리므로, 여기서 막지 않으면
+    // setMode+resetTimer로 잠금을 우회해 시험 타이머가 소실된다(사이드바 disabled와 동일 정책).
+    const s = useQuizStore.getState();
+    if (s.mode === 'exam' && s.examStarted[s.setId] && !s.graded[`${s.setId}-exam`]) {
+      showToast('시험 응시 중에는 집중 연습을 시작할 수 없습니다. 먼저 채점하세요.', 'info');
+      return;
+    }
     setStatsOpen(false);
     setMode('practice');
     setChapterFilter(chapter);
@@ -300,10 +310,11 @@ export const AppModals = () => {
                       onClick={() => setWrongNoteSetId(h.setId)}
                     >
                       <span className="wns-title">{h.setTitle || h.setId}</span>
+                      {/* 합산 뷰 라벨 — 최신 회차의 모드를 그대로 쓰면 시험+랜덤 합집합이
+                          단일 모드 출처처럼 오표기된다. 회차 수 + 최근 날짜로 중립 표기. */}
                       <span className="wns-meta">
-                        {MODE_LABEL[h.mode] || h.mode} · 오답 {h.wrongItems?.length ?? 0}
-                        {h.total != null ? ` / ${h.total}` : ''}
-                        {h.createdAt ? ` · ${new Date(h.createdAt).toLocaleDateString('ko-KR')}` : ''}
+                        전 회차 합산({h.attemptCount}회) · 오답 {h.wrongItems?.length ?? 0}
+                        {h.createdAt ? ` · 최근 ${new Date(h.createdAt).toLocaleDateString('ko-KR')}` : ''}
                       </span>
                       <span className="wns-arrow" aria-hidden="true">›</span>
                     </button>
@@ -405,8 +416,7 @@ export const AppModals = () => {
                 <h4 className="wrong-note-set">
                   {selectedWrong.setTitle || selectedWrong.setId}
                   <small>
-                    {MODE_LABEL[selectedWrong.mode] || selectedWrong.mode} · 오답 {selectedWrong.wrongItems?.length ?? 0}
-                    {selectedWrong.total != null ? ` / ${selectedWrong.total}` : ''}
+                    전 회차 합산({selectedWrong.attemptCount}회) · 오답 {selectedWrong.wrongItems?.length ?? 0}
                   </small>
                 </h4>
                 <ul className="wrong-note-list">
@@ -560,6 +570,7 @@ export const AppModals = () => {
           elapsedSeconds={resultElapsedSeconds}
           attemptRound={attemptCompare.round}
           previousRate={attemptCompare.previousRate}
+          modeLabel={MODE_LABEL[mode] ?? mode}
           onClose={() => setResultOpen(false)}
           onOpenWrongNote={() => { setResultOpen(false); setWrongNoteOpen(true); }}
         />

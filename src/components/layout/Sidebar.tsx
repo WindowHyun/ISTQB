@@ -56,6 +56,10 @@ export const Sidebar = () => {
   // 모바일 드로어 안에서 컨트롤을 조작하면 드로어를 닫아 문제로 복귀한다.
   const closeDrawer = () => setDrawerOpen(false);
 
+  // 응시 중(시험 시작 후 채점 전) 잠금 — 세트·모드 변경을 막아 채점 기준이 흔들리지 않게 한다.
+  // disabled 처리(세트 select·모드 버튼)뿐 아니라 setMode를 호출하는 다른 핸들러도 이 값을 확인한다.
+  const examLocked = mode === 'exam' && !!examStarted && !isGraded;
+
   const handleSetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     // 세트를 바꿔도 현재 모드는 유지한다(연습으로 초기화하지 않음, #2).
     const newSetId = e.target.value;
@@ -94,6 +98,12 @@ export const Sidebar = () => {
   };
 
   const handleRetryWrong = () => {
+    // 응시 중 잠금 — 이 버튼은 세그먼트 밖이라 disabled에 걸리지 않지만 setMode+resetTimer를
+    // 호출하므로, 여기서 막지 않으면 잠금을 우회해 시험 타이머가 소실된다.
+    if (examLocked) {
+      showToast('시험 응시 중에는 오답 풀기를 시작할 수 없습니다. 먼저 채점하세요.', 'info');
+      return;
+    }
     // 현재 세트에 오답이 없으면 빈 오답 모드로 이동하지 않고 안내만 한다(모드 유지).
     // 오답 대상은 useQuestions의 review 모드와 동일한 합집합 기준으로 판정한다.
     const { reviewIds } = useQuizStore.getState();
@@ -115,8 +125,6 @@ export const Sidebar = () => {
   const productSubtitle = activeProduct === 'istqb' ? 'ISTQB FL v4.0' : 'CSTS';
   const productBadge = (activeProduct || '').toUpperCase();
   const showGradeSection = mode === 'exam' || mode === 'random';
-  // 응시 중(시험 시작 후 채점 전) 잠금 — 세트·모드 변경을 막아 채점 기준이 흔들리지 않게 한다.
-  const examLocked = mode === 'exam' && !!examStarted && !isGraded;
 
   return (
     <aside className="sidebar" aria-label="시험 설정">

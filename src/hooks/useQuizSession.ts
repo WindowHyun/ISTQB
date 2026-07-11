@@ -11,9 +11,10 @@ import { saveHistoryToDB } from '../utils/storage';
 export function useQuizSession() {
   // 슬라이스 구독(O1) — elapsedSeconds는 구독하지 않고 채점 시점에 getState()로 읽는다
   // (구독하면 이 훅을 쓰는 모든 컴포넌트가 타이머 틱마다 리렌더된다).
-  const { mode, setId, answers, graded, addHistory, setReviewIds, setGraded, setResultOpen, setConfirmGradeOpen } =
+  const { mode, setId, answers, graded, examStarted, addHistory, setReviewIds, setGraded, setResultOpen, setConfirmGradeOpen } =
     useQuizStore(useShallow((s) => ({
       mode: s.mode, setId: s.setId, answers: s.answers, graded: s.graded,
+      examStarted: s.examStarted[s.setId],
       addHistory: s.addHistory, setReviewIds: s.setReviewIds, setGraded: s.setGraded,
       setResultOpen: s.setResultOpen, setConfirmGradeOpen: s.setConfirmGradeOpen,
     })));
@@ -32,7 +33,11 @@ export function useQuizSession() {
 
   const gradeKey = `${setId}-${mode}`;
   const isGraded = Boolean(graded[gradeKey]);
-  const canGrade = (mode === 'exam' || mode === 'random') && !isGraded && total > 0;
+  // 시험은 시작 게이트 통과(또는 이어풀기 답안 존재) 전에는 채점 불가 — 게이트는
+  // 워크스페이스만 가리므로, 이 조건이 없으면 사이드바 '채점하기'로 응시한 적 없는
+  // 시험이 0/N 유령 회차로 기록된다.
+  const examUnderway = mode !== 'exam' || !!examStarted || answered > 0;
+  const canGrade = (mode === 'exam' || mode === 'random') && !isGraded && total > 0 && examUnderway;
   const progressPercent = total ? Math.round((answered / total) * 100) : 0;
 
   // 채점된 시험/랜덤 또는 오답 모드에서 틀린 문항 목록(오답노트·네비 표시용).

@@ -185,7 +185,10 @@ export function sanitizeHistory(value: unknown): ExamHistory | null {
       if (!isPlainObject(cell)) continue;
       const c = finiteNumber(cell.c);
       const t = finiteNumber(cell.t);
-      if (c !== undefined && t !== undefined) chapterStats[ch] = { c, t };
+      // correct/total과 동일 규칙 — 음수 거부, 정답 수는 출제 수를 넘지 못하게 클램프
+      // (손상 백업의 {c:100,t:1}이 챕터 정답률 10000%·약점 정렬 왜곡으로 새는 것 차단).
+      if (c === undefined || t === undefined || c < 0 || t < 0) continue;
+      chapterStats[ch] = { c: Math.min(c, t), t };
     }
     if (Object.keys(chapterStats).length) out.chapterStats = chapterStats;
   }
@@ -227,10 +230,16 @@ export function sanitizeUiState(value: unknown): Partial<QuizState> {
   return out;
 }
 
+// 직전에 복원한 제품 — 같은 제품 게이트 왕복인지(세션 상태 보존) 제품 전환인지(초기화) 구분.
+// 새로고침이면 모듈이 리셋돼 null이므로 리로드 경로는 자연히 "초기화"로 판정된다.
+let lastRestoredProduct: 'istqb' | 'csts' | null = null;
+
 export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts') {
+  const sameProductRevisit = lastRestoredProduct === activeProduct;
+  lastRestoredProduct = activeProduct;
   // temporarily set the product to fetch the correct keys
   useQuizStore.getState().setActiveProduct(activeProduct);
-  
+
   try {
     let uiState = {};
     let answers = {};
@@ -259,10 +268,23 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
     
     const restoredUi = sanitizeUiState(uiState);
     const sanitizedAnswers = sanitizeAnswers(answers);
+    // 시험 답안이 남아 있는 세트는 "응시 개시됨"으로 복원한다 — examStarted는 영속화하지
+    // 않지만, 진행 중 답안의 존재가 곧 응시 개시의 증거다. 이것이 없으면 새로고침 한 번으로
+    // 응시 중 세트/모드 잠금이 풀리고(구 확인 모달 대비 회귀), 답안을 모두 지웠을 때
+    // 시작 게이트가 재출현해 타이머를 소거하는 부작용도 생긴다.
+    const restoredExamStarted: Record<string, boolean> = {};
+    for (const key of Object.keys(sanitizedAnswers)) {
+      const sep = key.indexOf('-exam-');
+      if (sep > 0) restoredExamStarted[key.slice(0, sep)] = true;
+    }
     useQuizStore.getState().hydrate({
       // 제품 전환 시 이전 제품의 세션 상태(채점 여부·응시 게이트·오답 대상·챕터 필터)가
       // 새 제품으로 새어들지 않도록 기본값으로 깔고, 이 제품의 복원값(restoredUi)으로 덮는다.
-      graded: {}, examStarted: {}, reviewIds: {}, chapterFilter: null,
+      // 단, 같은 제품 게이트 왕복(리로드 아님)에서는 세션 내 채점 상태를 보존한다 —
+      // 소거하면 '채점하기'가 재노출돼 동일 답안 재채점으로 회차가 중복 적재된다.
+      graded: sameProductRevisit ? useQuizStore.getState().graded : {},
+      examStarted: restoredExamStarted,
+      reviewIds: {}, chapterFilter: null,
       ...restoredUi,
       answers: sanitizedAnswers,
       histories,

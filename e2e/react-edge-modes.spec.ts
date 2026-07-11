@@ -176,6 +176,49 @@ test.describe("시험 시작 게이트·응시 중 잠금", () => {
     await expect(page.getByTestId("set-select")).toBeDisabled();
   });
 
+  test("응시 중 새로고침 후 이어풀기하면 잠금이 유지된다(리로드 우회 방지)", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await enterExam(page);
+    await page.locator("#options .option").first().click();
+    await page.waitForTimeout(800); // 디바운스 저장 플러시
+    await page.reload();
+    await page.getByRole("button", { name: "ISTQB" }).click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    await page.getByTestId("resume-keep").click(); // 이어풀기
+    // 시험 답안이 남아 있으므로 응시 개시 상태가 복원되어 잠금이 유지된다.
+    await expect(page.getByTestId("set-select")).toBeDisabled();
+    await expect(page.locator('.segmented button[data-mode="practice"]')).toBeDisabled();
+    await expect(page.getByTestId("exam-lock-hint")).toBeVisible();
+  });
+
+  test("시작 게이트 중에는 채점 버튼이 노출되지 않는다(유령 회차 방지)", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click(); // 게이트 화면(시작 전)
+    await expect(page.getByTestId("exam-start-gate")).toBeVisible();
+    // 시작 전에는 canGrade가 false — 사이드바 '채점하기'로 0/N 유령 채점이 불가능하다.
+    await expect(page.getByTestId("grade-button")).toHaveCount(0);
+    // 시작하면 채점 버튼이 나타난다.
+    await page.getByTestId("exam-start-btn").click();
+    await expect(page.getByTestId("grade-button")).toBeVisible();
+  });
+
+  test("응시 중 '오답 다시 풀기'는 잠금에 막힌다(우회 방지)", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    // 오답 기록을 만들어 둔다(채점 → 잠금 해제 → 재응시 진입).
+    await enterExam(page);
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+    // 재응시: 연습 갔다가 시험 재진입(초기화) 후 시작.
+    await modeBtn(page, "연습").click();
+    await enterExam(page);
+    await page.locator("#options .option").first().click();
+    // 잠금 상태에서 '오답 다시 풀기'를 눌러도 모드가 바뀌지 않는다(토스트 안내).
+    await page.getByRole("button", { name: "오답 다시 풀기" }).click();
+    await expect(page.locator('.segmented button[data-mode="exam"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("set-select")).toBeDisabled();
+  });
+
   test("응시 중 활성 '시험' 탭 재클릭은 위치를 초기화하지 않는다(락 우회 방지)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await enterExam(page);

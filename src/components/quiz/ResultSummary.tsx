@@ -11,6 +11,9 @@ interface ResultSummaryProps {
   // Phase 2 학습 누적 — 같은 세트·모드 기준 이번이 몇 회차인지, 직전 회차 정답률(%).
   attemptRound?: number;
   previousRate?: number | null;
+  // 회차 기준 모드 라벨(예: '시험') — 통계의 세트 타임라인(모드 혼합 회차)과 기준이
+  // 다르므로, 어떤 기준의 회차인지 명시해 두 화면의 번호 차이를 오해하지 않게 한다.
+  modeLabel?: string;
   onClose: () => void;
   onOpenWrongNote: () => void;
 }
@@ -23,6 +26,7 @@ export const ResultSummary = ({
   elapsedSeconds,
   attemptRound,
   previousRate,
+  modeLabel,
   onClose,
   onOpenWrongNote,
 }: ResultSummaryProps) => {
@@ -47,7 +51,7 @@ export const ResultSummary = ({
 
         {attemptRound != null && attemptRound > 0 && (
           <p className={`result-compare ${trend}`} data-testid="result-compare">
-            <span className="rc-round">{attemptRound}회차</span>
+            <span className="rc-round">{modeLabel ? `${modeLabel} ` : ''}{attemptRound}회차</span>
             {hasPrev ? (
               <>
                 <span className="rc-delta" data-testid="result-delta">{deltaLabel}</span>
