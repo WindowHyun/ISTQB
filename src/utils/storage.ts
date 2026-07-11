@@ -44,6 +44,21 @@ function persistenceKey() {
   return getActiveProduct() === "csts" ? "csts-fl-v1-sample-history-snapshot" : "istqb-fl-v4-sample-history-snapshot";
 }
 
+// 저장 공간 임박 경고(Phase 4) — 세션당 1회. 실패 시점(무통지 유실 직전)이 아니라
+// 이력이 성공적으로 쌓이는 시점에 미리 내보내기(백업)를 유도한다.
+let storageWarned = false;
+async function warnIfStorageAlmostFull() {
+  if (storageWarned) return;
+  try {
+    const est = await navigator.storage?.estimate?.();
+    if (!est || !est.quota || est.usage == null) return;
+    if (est.usage / est.quota >= 0.9) {
+      storageWarned = true;
+      showToast('저장 공간이 거의 찼습니다. 설정에서 "기록 내보내기"로 백업해 두세요.', 'info');
+    }
+  } catch { /* estimate 미지원 환경(구형 브라우저) 무시 */ }
+}
+
 export async function saveHistoryToDB(history: ExamHistory) {
   try {
     const db = await getDb();
@@ -56,6 +71,7 @@ export async function saveHistoryToDB(history: ExamHistory) {
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(tx.error);
     });
+    void warnIfStorageAlmostFull();
   } catch (err) {
     console.error("IndexedDB save failed", err);
     showToast("채점 이력 저장에 실패했습니다.", "error");
@@ -362,9 +378,16 @@ export const saveAnswers = debounce((answers: Record<string, string[]>) => {
   }
 }, 500);
 
+// 백업 파일 스키마 버전(Phase 4) — 구조가 바뀌면 올린다. import는 이보다 높은(미래)
+// 버전을 거부해 알 수 없는 구조가 절반만 적용되는 사고를 막는다(버전 없음 = 구버전, 허용).
+const BACKUP_SCHEMA_VERSION = 1;
+
 export async function exportUserData() {
   const state = useQuizStore.getState();
   const data = {
+    schemaVersion: BACKUP_SCHEMA_VERSION,
+    exportedAt: new Date().toISOString(),
+    product: getActiveProduct(),
     state: {
       mode: state.mode,
       setId: state.setId,
@@ -402,17 +425,24 @@ export async function importUserData(file: File): Promise<boolean> {
       try {
         const text = e.target?.result as string;
         const data = JSON.parse(text);
+        if (!isPlainObject(data)) {
+          console.error("백업 형식이 올바르지 않습니다(객체 아님) — 가져오기를 중단합니다.");
+          resolve(false);
+          return;
+        }
+        // 미래 스키마 버전 거부 — 알 수 없는 구조를 절반만 적용하는 것보다 안전하다.
+        if (typeof data.schemaVersion === "number" && data.schemaVersion > BACKUP_SCHEMA_VERSION) {
+          console.error(
+            `백업 스키마 v${data.schemaVersion}은 이 앱 버전(v${BACKUP_SCHEMA_VERSION})보다 새롭습니다 — 앱을 업데이트한 뒤 가져오세요.`,
+          );
+          resolve(false);
+          return;
+        }
         const product = getActiveProduct();
 
-        // activeProduct를 함께 넣어 saveUiState의 early-return을 피하고, 즉시 flush로 디바운스 우회(#59).
-        if (data.state) {
-          saveUiState({ ...data.state, activeProduct: product });
-          saveUiState.flush();
-        }
-        if (data.answers) {
-          saveAnswers(data.answers);
-          saveAnswers.flush();
-        }
+        // 원자성(Phase 4): 실패할 수 있는 IndexedDB(이력) 커밋을 먼저 끝내고, 성공한 뒤에만
+        // localStorage(UI 상태·답안)를 덮는다 — 역순이면 커밋 실패로 "실패" 토스트가 떠도
+        // UI 상태·답안은 이미 백업본으로 바뀐 반쪽 적용 상태가 남는다.
         let importedHistories = 0;
         if (data.histories) {
           const db = await getDb();
@@ -436,11 +466,23 @@ export async function importUserData(file: File): Promise<boolean> {
           });
           if (!committed) {
             // put 호출 수(importedHistories)와 무관하게 커밋이 실패하면 아무것도 저장되지
-            // 않았다 — "가져오기 완료 N건"으로 오보고하지 않고 실패로 처리한다.
+            // 않았고 localStorage도 아직 건드리지 않았다 — 온전한 실패로 처리한다.
             console.error("이력 트랜잭션 커밋 실패(쿼터 초과 등) — 가져오기를 실패로 처리합니다.");
             resolve(false);
             return;
           }
+        }
+
+        // 이력 커밋 성공 후에만 localStorage 반영.
+        // activeProduct를 함께 넣어 saveUiState의 early-return을 피하고, 즉시 flush로 디바운스 우회(#59).
+        if (data.state) {
+          saveUiState({ ...data.state, activeProduct: product });
+          saveUiState.flush();
+        }
+        if (data.answers) {
+          // 원시 저장만 하고 실제 유입은 복원 단계의 sanitizeAnswers가 정제한다(종전 동작 동일).
+          saveAnswers(data.answers as Record<string, string[]>);
+          saveAnswers.flush();
         }
 
         console.info(`[data] 백업 가져오기 완료: ${file.name} · 이력 ${importedHistories}건`);
