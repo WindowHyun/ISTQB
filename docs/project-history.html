@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISTQB/CSTS CBT — 진행 기록 (테스트 · 기획 · 커밋)</title>
+<style>
+  :root {
+    --bg: #f6f8fb; --surface: #ffffff; --surface-2: #f1f5f9;
+    --text: #0f172a; --text-2: #334155; --muted: #64748b;
+    --line: #e2e8f0; --primary: #2563eb; --primary-soft: #eff6ff;
+    --success: #16a34a; --success-soft: #f0fdf4;
+    --danger: #dc2626; --danger-soft: #fef2f2;
+    --warn: #a16207; --warn-soft: #fefce8;
+    --violet: #6d28d9; --violet-soft: #f5f3ff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b1220; --surface: #131c2b; --surface-2: #1a2436;
+      --text: #e6edf6; --text-2: #c2cede; --muted: #8a99ad;
+      --line: #2a3852; --primary: #60a5fa; --primary-soft: #16243c;
+      --success: #4ade80; --success-soft: #11241a;
+      --danger: #f87171; --danger-soft: #2a1414;
+      --warn: #fbbf24; --warn-soft: #2a2110;
+      --violet: #a78bfa; --violet-soft: #1e1b31;
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.65; font-size: 15px;
+    padding: 32px 16px 80px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  header.hero { margin-bottom: 28px; }
+  .eyebrow { color: var(--primary); font-weight: 800; font-size: 13px; letter-spacing: .04em; }
+  h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 4px 0 8px; }
+  .hero p { color: var(--muted); font-size: 14px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 18px 0 34px; }
+  .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+  .kpi b { display: block; font-size: 22px; font-weight: 800; }
+  .kpi span { font-size: 12px; color: var(--muted); font-weight: 700; }
+  section { margin-bottom: 40px; }
+  h2 { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 4px; padding-top: 8px; }
+  .sec-desc { color: var(--muted); font-size: 13.5px; margin-bottom: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin-bottom: 12px; }
+  .card h3 { font-size: 15px; font-weight: 800; margin-bottom: 6px; }
+  .card p, .card li { font-size: 14px; color: var(--text-2); }
+  .card ul { padding-left: 18px; margin-top: 6px; }
+  .card li { margin-bottom: 3px; }
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 800; margin-right: 6px; vertical-align: 1px; }
+  .tag.blue { background: var(--primary-soft); color: var(--primary); }
+  .tag.green { background: var(--success-soft); color: var(--success); }
+  .tag.red { background: var(--danger-soft); color: var(--danger); }
+  .tag.warn { background: var(--warn-soft); color: var(--warn); }
+  .tag.violet { background: var(--violet-soft); color: var(--violet); }
+  .table-scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 640px; }
+  th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 800; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--surface-2); white-space: nowrap; }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--text-2); }
+  tr:last-child td { border-bottom: 0; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  code, .mono { font-family: ui-monospace, 'SF Mono', Consolas, monospace; font-size: 12.5px; background: var(--surface-2); padding: 1px 6px; border-radius: 6px; color: var(--text-2); white-space: nowrap; }
+  .asis-tobe { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .asis, .tobe { border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+  .asis { background: var(--danger-soft); border: 1px solid var(--line); }
+  .tobe { background: var(--success-soft); border: 1px solid var(--line); }
+  .asis b { color: var(--danger); } .tobe b { color: var(--success); }
+  @media (max-width: 640px) { .asis-tobe { grid-template-columns: 1fr; } }
+  .commit-msg { min-width: 320px; }
+  .pending { border-left: 4px solid var(--warn); }
+  footer { margin-top: 40px; color: var(--muted); font-size: 12.5px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">ISTQB / CSTS CBT 문제풀이 앱 — 개발·QA 진행 기록</p>
+  <h1>테스트 · 기획 변경 · 커밋 이력 종합 리포트</h1>
+  <p>기간 2026-07-03 ~ 07-12 · 브랜치 <code>claude/code-analysis-issues-f2p2se</code> (main 병합 대기) · 이 문서는 브랜치 작업분 42커밋 기준</p>
+</header>
+
+<div class="kpis">
+  <div class="kpi"><b>42</b><span>브랜치 커밋</span></div>
+  <div class="kpi"><b>302</b><span>기능 E2E (Playwright)</span></div>
+  <div class="kpi"><b>148</b><span>유닛 (Vitest, 속성 21 포함)</span></div>
+  <div class="kpi"><b>12</b><span>비기능 E2E</span></div>
+  <div class="kpi"><b>93.2%</b><span>뮤테이션 스코어 (break 85)</span></div>
+  <div class="kpi"><b>10</b><span>CI 병렬 job</span></div>
+</div>
+
+<!-- ══════════════ 1. 테스트 수행 기록 ══════════════ -->
+<section>
+  <h2>1. 어떤 테스트를 진행했나</h2>
+  <p class="sec-desc">계층(무엇으로 검증하나)과 라운드(언제 무엇을 점검했나) 두 축으로 기록.</p>
+
+  <div class="card">
+    <h3>테스트 계층 (현재 상시 운영 — CI 게이트)</h3>
+    <div class="table-scroll" style="border:0"><table>
+      <tr><th>계층</th><th>도구·규모</th><th>검증 대상</th></tr>
+      <tr><td><span class="tag blue">기능 E2E</span></td><td>Playwright 302개 · 스펙 34파일</td><td>스모크·4개 풀이 모드·문항유형(진위/단답/복수정답)·네비·설정·영속성/백업·모달·콘텐츠(표/그림/라이트박스)·반응형(375/768/320px)·접근성(ARIA·키보드·포커스 트랩)·PWA</td></tr>
+      <tr><td><span class="tag blue">상태 전이</span></td><td>react-transition 15테스트 / 39전이</td><td>게이트(S0)→연습(S1)→시험 3단계(S2)→랜덤(S3)→오답(S4) 전이 전수 — 리로드·이어풀기·재응시 경로 포함</td></tr>
+      <tr><td><span class="tag blue">유닛</span></td><td>Vitest 148개</td><td>정답판정·컷스코어·파서·챕터/회차 통계·오답 극복 판정·저장(sanitize/복원)·타이머·store 액션</td></tr>
+      <tr><td><span class="tag blue">통합</span></td><td>store↔storage 연동 44 + jsdom 렌더</td><td>hydrate/복원 경로·제품 전환 격리·백업 가져오기 원자성</td></tr>
+      <tr><td><span class="tag blue">비기능</span></td><td>Playwright 12개 (NF1~NF12)</td><td>초기 로드(DCL/FCP/LCP)·문항 이동/채점 시간·입력 폭주·JS 힙·타이머 정확도·오프라인(PWA)·데이터 내구성·장기 스케일</td></tr>
+      <tr><td><span class="tag violet">속성 기반</span></td><td>fast-check 21개</td><td>매 실행 새 입력 생성 — 채점 순수성·통계 정렬 결정성·경계값. <b>실결함 1건 검출</b>(타임라인 정렬 비결정성)</td></tr>
+      <tr><td><span class="tag violet">뮤테이션</span></td><td>Stryker 296뮤턴트 · 스코어 93.2%</td><td>테스트 스위트 자체의 결함 검출력 실측(채점·통계 4개 유틸) — CI break 85 게이트</td></tr>
+      <tr><td><span class="tag violet">시드 랜덤 스모크</span></td><td>E2E 1개 (매일 조합 회전)</td><td>무작위 세트·답 조합의 점수를 원본 JSON(독립 오라클)과 대조 — <code>SMOKE_SEED</code>로 재현</td></tr>
+      <tr><td><span class="tag green">데이터 검증</span></td><td>verify 12파일 + PDF 전수 대조</td><td>626문항 정답·이미지·스키마·챕터 태깅 taxonomy 대조 — 공식 PDF와 1:1 대조(불일치 0)</td></tr>
+      <tr><td><span class="tag green">보안(CI)</span></td><td>npm audit · gitleaks · CodeQL</td><td>배포 번들 취약점·시크릿 유출·정적 분석(XSS/프로토타입 오염)</td></tr>
+    </table></div>
+    <p style="margin-top:10px">※ 속성·뮤테이션·시드 스모크 3계층은 <b>살충제 패러독스 대응</b>으로 도입 — 같은 테스트만 반복하면 검출력이 떨어진다는 지적(사용자)에 대한 답.</p>
+  </div>
+
+  <div class="card">
+    <h3>점검 라운드 이력 (감사 → 수정 사이클)</h3>
+    <div class="table-scroll" style="border:0"><table>
+      <tr><th>라운드</th><th>방식</th><th>결과</th></tr>
+      <tr><td>멀티에이전트 검증 ①</td><td>진행 영역 담당자 분류 검증</td><td>Phase 완료분 정상 동작 확인</td></tr>
+      <tr><td>멀티에이전트 검증 ②</td><td>20년차 개발 5 + 기획·PM·디자인·QA 에이전트</td><td>시각 결함 2건 발견 → 수정(033f44e)</td></tr>
+      <tr><td>전체 재점검 1차</td><td>기능·구조 전수(코드 수정 금지 → 리스트업)</td><td>5건 → 우선순위 수정(d87fd28)</td></tr>
+      <tr><td>전체 재점검 2차</td><td>PC/MO 화면·전 함수 점검</td><td>15건 → 수정(512f4d8)</td></tr>
+      <tr><td>구조화 코드리뷰</td><td>Severity/File/Line/Why 형식, 로직·회귀·보안·커버리지</td><td>확정 결함 9건 → 수정(53c32c0)</td></tr>
+      <tr><td>전이 전수조사</td><td>상태 전이 39건 스펙화 + 기획 대조</td><td>스펙 추가(a1d30ef) · 기획 일치 확인</td></tr>
+      <tr><td>재점검 3차</td><td>Phase 4 후 백업·세션 정합</td><td>7건 → 수정(ee2db2d)</td></tr>
+      <tr><td>잔여 일괄(AS-IS/TO-BE)</td><td>설계 결정 A·접근성 B·인프라 C·구조 부채 D·문서 E</td><td>26건 반영(e30b2e4)</td></tr>
+      <tr><td>4-롤 최종 인수</td><td>기획·개발·디자인·QA 관점 확인·리스트업</td><td>전원 수용(개발은 위생 2건 수정 후) → d1c0026</td></tr>
+      <tr><td>역할 리뷰 잔여분</td><td>기획 3·디자인 5·개발 3·QA 1</td><td>12건 반영 + 뮤테이션 CI 편입(c59f94e)</td></tr>
+      <tr><td>흐름·기획 리뷰</td><td>흐름도/기획 관점 문제 발굴 → AS-IS/TO-BE 목업 화면</td><td>6건(S1~S6) 전부 구현(d154a76)</td></tr>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3>테스트가 실제로 잡은 대표 결함</h3>
+    <ul>
+      <li><b>속성 기반</b> — 마지막 응시 시각 동률 세트의 통계 정렬이 입력 순서에 좌우되는 비결정성(setId 타이브레이크로 수정)</li>
+      <li><b>뮤테이션</b> — 초기 스코어 85.8%에서 생존 뮤턴트 분석 → 킬러 테스트 7건 추가로 93.5%까지(동등 뮤턴트 16건 판정)</li>
+      <li><b>E2E 전이</b> — 응시 중 리로드 잠금 우회, 챕터 연습의 잠금 우회 등 시험 무결성 구멍</li>
+      <li><b>PDF 전수 대조</b> — stem 조각남·이미지 결함·ISTQB 챕터 분류 6건 오류(공식 LO 대조로 교정)</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════ 2. 기획 변경 이력 ══════════════ -->
+<section>
+  <h2>2. 어떤 기획이 수정되었나</h2>
+  <p class="sec-desc">단순 문제풀이 앱 → 학습 사이클(응시 → 분석 → 보완 → 재측정)을 가진 CBT로 확장.</p>
+
+  <div class="card">
+    <h3><span class="tag blue">Phase 0</span> 문항 분류 체계 (07-09)</h3>
+    <p>626문항 전체에 대단원(chapter) 태깅 — ISTQB 6챕터 / CSTS 6도메인(taxonomy.json). 키워드 추론 + 수동 오버라이드 전수 분류, 공식 정답 PDF의 학습목표(LO)로 대조해 6건 교정. 약점 분석의 데이터 기반.</p>
+  </div>
+  <div class="card">
+    <h3><span class="tag blue">Phase 1</span> 시험 시작 게이트 + 응시 중 잠금 (07-09)</h3>
+    <p>시험 모드는 "시험 시작"을 눌러야 응시 개시(타이머 0부터). 응시 중(채점 전)에는 세트·모드 변경 잠금 + 🔒 안내. 새로고침해도 답안 존재 = 응시 개시로 보고 잠금 유지(리로드 우회 방지).</p>
+  </div>
+  <div class="card">
+    <h3><span class="tag blue">Phase 2</span> 학습 누적 — 회차 비교·성장 이력 (07-10)</h3>
+    <p>채점 결과에 직전 회차 대비 ▲/▼ %p(첫 응시 안내), 학습 통계에 세트별 회차 타임라인(1회차→N회차 정답률·성장폭). 표본 왜곡 방지를 위해 델타는 같은 모드끼리만 비교.</p>
+  </div>
+  <div class="card">
+    <h3><span class="tag blue">Phase 3</span> 챕터 약점 분석·집중 연습·오답 누적 (07-09~10)</h3>
+    <p>챕터별 정답률(약점 강조·자격증별 컷 기준 ISTQB 65%/CSTS 75%)·가중 평균. 챕터 집중 연습 진입(세트에 챕터가 없으면 보유 세트로 자동 전환). 오답노트는 전 회차 합집합 누적.</p>
+  </div>
+  <div class="card">
+    <h3><span class="tag blue">Phase 4</span> 영속화 강화 (07-11)</h3>
+    <p>백업 스키마 버전(v1, 미래 버전 거부)·가져오기 원자성(IDB 커밋 후 localStorage, 부분 성공 안내)·저장공간 90% 경고. 손상 백업 방어(클램프·프로토타입 오염 키 차단).</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="tag red">정책 결정·개정</span> 주요 기획 판단</h3>
+    <ul>
+      <li><b>랜덤 이어풀기 없음(F4)</b> — 진입·재접속마다 새 추첨(같은 세션 내 재풀이는 같은 추첨). 07-12에 재추첨 안내 토스트·'새 문제 뽑기' 명시 버튼으로 보완</li>
+      <li><b>채점한 시험 재접속 정책(#1 → S4 개정)</b> — "재접속하면 다시 풀 수 있게 초기화"에서 "채점 완료 회차는 가드 모달(지난 결과 보기/새 회차 시작)"로 개정 — 동일 답안 재채점의 회차 중복 적립 차단</li>
+      <li><b>진입 시 항상 제품 게이트(#5)</b> — 저장된 진행은 제품 선택 후 복원</li>
+      <li><b>연습은 통계 무기록</b> — 정답률 갱신은 시험·랜덤·미니 시험 채점으로(배너에 명시)</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3><span class="tag green">S1~S6</span> 흐름·기획 리뷰 반영 (07-12, 최종 배치)</h3>
+    <div class="asis-tobe"><div class="asis"><b>AS-IS</b> 잠금 중 탈출구가 '설정→처음 화면으로' 비공식 우회로뿐</div><div class="tobe"><b>TO-BE(S2)</b> 공식 '응시 포기' 버튼+확인 모달(기록 없음), 처음 화면 이동도 확인 경유</div></div>
+    <div class="asis-tobe"><div class="asis"><b>AS-IS</b> 채점 후 새로고침 → 미채점처럼 보여 중복 회차 적립 가능</div><div class="tobe"><b>TO-BE(S4)</b> '채점 완료된 회차' 가드 — 지난 결과 보기 / 새 회차 시작만 제공</div></div>
+    <div class="asis-tobe"><div class="asis"><b>AS-IS</b> 약점 연습해도 통계 갱신 안 됨(재측정 수단 없음)</div><div class="tobe"><b>TO-BE(S3)</b> 챕터 미니 시험(10문항 추첨·챕터 통계 반영) — 학습 루프 완성</div></div>
+    <div class="asis-tobe"><div class="asis"><b>AS-IS</b> 랜덤 새로고침 시 무통보 초기화 / 새 추첨 방법이 숨은 규칙</div><div class="tobe"><b>TO-BE(S1·S5)</b> 재추첨 정책 토스트 안내 + '🔀 새 문제 뽑기' 버튼</div></div>
+    <div class="asis-tobe"><div class="asis"><b>AS-IS</b> 한 번 틀린 문항은 오답노트에 영구히 '복습 대상'처럼 잔존</div><div class="tobe"><b>TO-BE(S6)</b> 최근 시험 2회 연속 정답이면 '✓ 극복' 배지+흐림(목록엔 유지)</div></div>
+  </div>
+
+  <div class="card pending">
+    <h3><span class="tag warn">결정 대기</span> 사용자 판단 필요 항목</h3>
+    <ul>
+      <li><b>F — 선택 기능 5종</b>: 카운트다운 타이머 · 제출 전 리뷰 화면 · 문항 플래그 · 오답 복습 스케줄 · 자동 백업 (지시 시 진행)</li>
+      <li><b>G — main 병합</b>: 명시적 지시("병합해줘") 전까지 금지 유지 — 현재 브랜치에 42커밋 대기</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══════════════ 3. 커밋 이력 ══════════════ -->
+<section>
+  <h2>3. 커밋 기록 (브랜치 42커밋 · 332파일 변경)</h2>
+  <p class="sec-desc">최신순. <code>claude/code-analysis-issues-f2p2se</code> — main 대비 +9,616 / −43,033 라인(레거시 런타임 제거 포함).</p>
+  <div class="table-scroll"><table>
+    <tr><th>해시</th><th>일시</th><th class="commit-msg">내용</th></tr>
+    <tr><td><code>d154a76</code></td><td class="num">07-12 08:13</td><td>feat: 흐름·기획 개선 S1~S6 — 응시 포기, 채점완료 가드, 챕터 미니 시험 외</td></tr>
+    <tr><td><code>c59f94e</code></td><td class="num">07-12 07:05</td><td>feat: 역할 리뷰 잔여 12건 반영 + 뮤테이션 테스트 CI 편입</td></tr>
+    <tr><td><code>da765e6</code></td><td class="num">07-12 06:23</td><td>test: 살충제 패러독스 대응 — 속성 기반·뮤테이션·시드 랜덤 스모크 도입</td></tr>
+    <tr><td><code>d1c0026</code></td><td class="num">07-12 05:02</td><td>chore: 개발 최종 리뷰 후속 — gradlew 실행권한·오커밋 산출물 정리</td></tr>
+    <tr><td><code>8b395c2</code></td><td class="num">07-12 04:43</td><td>docs: e2e 시나리오 문서 수치 최신화(266→292)</td></tr>
+    <tr><td><code>e30b2e4</code></td><td class="num">07-12 02:40</td><td>feat: 잔여 영역 일괄 반영 — 설계 결정(A)·접근성(B)·인프라(C)·구조 부채(D)·문서(E)</td></tr>
+    <tr><td><code>ee2db2d</code></td><td class="num">07-12 01:28</td><td>fix: 재점검 발견 7건 수정 — 백업/세션 상태 정합·표기·방어 강화</td></tr>
+    <tr><td><code>fc9094f</code></td><td class="num">07-11 15:25</td><td>feat: Phase 4 — 영속화 강화(백업 원자성·스키마 버전·쿼터 경고)</td></tr>
+    <tr><td><code>a1d30ef</code></td><td class="num">07-11 00:55</td><td>test: 상태 전이(State Transition) 전수조사 스펙 추가 — 15경로/39전이</td></tr>
+    <tr><td><code>53c32c0</code></td><td class="num">07-11 00:39</td><td>fix: 코드리뷰 확정 결함 9건 우선순위 수정 — 시험 무결성·데이터·표기</td></tr>
+    <tr><td><code>512f4d8</code></td><td class="num">07-10 15:27</td><td>fix: 재점검 이슈 15건 우선순위 수정 — 기능·견고성·접근성·PWA</td></tr>
+    <tr><td><code>fe77e16</code></td><td class="num">07-10 10:18</td><td>docs: README·AGENTS 최신화 — Phase 0~3 기능·테스트 수치 반영</td></tr>
+    <tr><td><code>d87fd28</code></td><td class="num">07-10 09:57</td><td>fix: 전체 재점검 우선순위 결함 5건 교정(기능 무결성·견고성·접근성)</td></tr>
+    <tr><td><code>033f44e</code></td><td class="num">07-10 08:24</td><td>fix(ui): Phase 1·2 시각 결함 2건 — 시험 시작 CTA·직전 회차 비교 스타일</td></tr>
+    <tr><td><code>f5e9784</code></td><td class="num">07-10 08:11</td><td>feat: Phase 2 — 학습 누적(회차 타임라인 + 직전 회차 대비)</td></tr>
+    <tr><td><code>b0d6457</code></td><td class="num">07-09 14:06</td><td>feat: Phase 1 — 시험 시작 게이트 + 응시 중 세트/모드 잠금</td></tr>
+    <tr><td><code>819b88c</code></td><td class="num">07-09 08:20</td><td>feat: Phase 3 — 챕터별 약점 분석·집중 연습·오답노트 전 회차 합산</td></tr>
+    <tr><td><code>75ebefd</code></td><td class="num">07-09 07:58</td><td>fix(data): ISTQB 챕터 6건 교정 — 공식 정답 PDF의 학습목표(LO)로 전수 대조</td></tr>
+    <tr><td><code>d93aa51</code></td><td class="num">07-09 07:41</td><td>feat(data): Phase 0 완성 — CSTS 440문항 챕터 전수 분류(626 전체 100%)</td></tr>
+    <tr><td><code>0890270</code></td><td class="num">07-09 07:34</td><td>chore(data): CSTS 분류 도메인을 6개(ISTQB 평행)로 정리 — 정적 테스트 분리</td></tr>
+    <tr><td><code>af2b188</code></td><td class="num">07-09 07:21</td><td>feat(data): Phase 0 정확도 보강 — ISTQB 186문항 챕터 전수 분류(override 100%)</td></tr>
+    <tr><td><code>46f60de</code></td><td class="num">07-09 07:00</td><td>feat(data): Phase 0 — 문항 대단원(chapter) 분류 태깅 토대 구축</td></tr>
+    <tr><td><code>15c8183</code></td><td class="num">07-08 15:57</td><td>ci: 워크플로 최신화 — 액션 메이저 업그레이드·Node 24·데일리에 비기능 스위트 추가 (#141)</td></tr>
+    <tr><td><code>e1d3c6e</code></td><td class="num">07-08 15:35</td><td>fix: 모바일 UX 5건 — 팝업 z-index·드로어 닫기, 세그먼트 정렬, 라이트박스 잘림 외 (#140)</td></tr>
+    <tr><td><code>dce1373</code></td><td class="num">07-08 14:57</td><td>feat: 화면 콘솔 성공 진단 로그 + 파괴적 액션 완료 토스트 (#139)</td></tr>
+    <tr><td><code>865e49f</code></td><td class="num">07-08 10:49</td><td>fix: 코드 분석에서 확인한 결함 일괄 수정(영속성·제품 스코프·로드 경합·표시 일관성) (#138)</td></tr>
+    <tr><td><code>a0dbb21</code></td><td class="num">07-07 17:52</td><td>test: 테스트 자산 보강(유닛 65→86)·verify 경고 0·lint 경고 0·NF 장기 스케일 (#137)</td></tr>
+    <tr><td><code>26e6091</code></td><td class="num">07-07 16:25</td><td>feat: 오답노트 문항 보기에 ‹ › 이전/다음 오답 이동 추가 (#136)</td></tr>
+    <tr><td><code>edb01c6</code></td><td class="num">07-07 16:09</td><td>fix: 신고 문항 표시 수정(밑줄·마커·줄바꿈·들여쓰기) + 오답노트 문항 보기 (#135)</td></tr>
+    <tr><td><code>f841337</code></td><td class="num">07-07 15:19</td><td>ci: 비기능 테스트를 전용 잡으로 CI에 편입(성능·부하·메모리·복원력) (#134)</td></tr>
+    <tr><td><code>4d91ab2</code></td><td class="num">07-07 15:19</td><td>fix(storage): IndexedDB 견고성 3종 + 디바운스 경합 방어 (#133)</td></tr>
+    <tr><td><code>e28265c</code></td><td class="num">07-07 15:19</td><td>fix: 모달 중 화살표 키 무시 · 합격 기준 라벨 세트 문항수 반영 (#132)</td></tr>
+    <tr><td><code>3abb155</code></td><td class="num">07-05 19:44</td><td>ci: 커버리지 임계값·번들 예산·safeStorage 테스트 + 문서 최신화 (#131)</td></tr>
+    <tr><td><code>c903126</code></td><td class="num">07-05 19:12</td><td>ci: 보안 게이트 3종 추가(npm audit·gitleaks·CodeQL) — ci.yml 통합 (#130)</td></tr>
+    <tr><td><code>9ffa721</code></td><td class="num">07-05 19:00</td><td>fix: 저장 불가 환경에서도 정상 동작 — localStorage 안전 래퍼 (#129)</td></tr>
+    <tr><td><code>37a0d35</code></td><td class="num">07-04 17:01</td><td>chore: 생성물 public/ 자산 추적 해제 + 오펀 문서 제거 (#128)</td></tr>
+    <tr><td><code>861f97d</code></td><td class="num">07-04 16:44</td><td>docs(ci): CI 문서를 docs/ci/ 워크플로별로 재구성 (#127)</td></tr>
+    <tr><td><code>1c28304</code></td><td class="num">07-04 16:32</td><td>docs: CI E2E 파이프라인 동작 방식·코드 설명 문서 추가 (#126)</td></tr>
+    <tr><td><code>da39388</code></td><td class="num">07-04 16:21</td><td>docs: 최신화 — 테스트 253/유닛 52, 랜덤 이어풀기 없음, 세트명 오타 수정 (#125)</td></tr>
+    <tr><td><code>d4ded9c</code></td><td class="num">07-04 15:15</td><td>feat(random): 랜덤 모드 이어풀기 제거 — 진입마다 새로 시작(F4) (#124)</td></tr>
+    <tr><td><code>5175fc9</code></td><td class="num">07-04 15:08</td><td>perf(store)+chore(legacy): 매초 전역 리렌더 제거(O1) + 레거시 런타임 정리(C8) (#123)</td></tr>
+    <tr><td><code>27ee898</code></td><td class="num">07-03 16:29</td><td>fix: 코드리뷰 결함 + PDF 대조 stem 조각남 복원(ISTQB·CSTS, 정답 불변) (#122)</td></tr>
+  </table></div>
+</section>
+
+<footer>
+  ISTQB/CSTS CBT 진행 기록 · 2026-07-12 생성 · 브랜치 <code>claude/code-analysis-issues-f2p2se</code> · main 병합은 사용자 지시 대기
+</footer>
+
+</div>
+</body>
+</html>
