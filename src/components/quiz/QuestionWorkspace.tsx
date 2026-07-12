@@ -10,30 +10,25 @@ import { ErrorState } from '../common/ErrorState';
 export const QuestionWorkspace = () => {
   // 슬라이스 구독(O1) — elapsedSeconds를 구독하지 않으므로 타이머 틱에 리렌더되지 않는다.
   const {
-    index, setId, mode, setIndex, tickTimer, startTimer, resetTimer,
+    index, setId, mode, setIndex, tickTimer, startTimer, beginSession,
     navCollapsed, setNavCollapsed, setPaletteOpen, setResultOpen,
     resumeNotice, setResumeNotice, chapterFilter, setChapterFilter,
-    examStarted, setExamStarted, setDrawerOpen,
+    setExamStarted, setDrawerOpen,
   } = useQuizStore(useShallow((s) => ({
     index: s.index, setId: s.setId, mode: s.mode, setIndex: s.setIndex,
-    tickTimer: s.tickTimer, startTimer: s.startTimer, resetTimer: s.resetTimer,
+    tickTimer: s.tickTimer, startTimer: s.startTimer, beginSession: s.beginSession,
     navCollapsed: s.navCollapsed, setNavCollapsed: s.setNavCollapsed,
     setPaletteOpen: s.setPaletteOpen, setResultOpen: s.setResultOpen,
     resumeNotice: s.resumeNotice, setResumeNotice: s.setResumeNotice,
     chapterFilter: s.chapterFilter, setChapterFilter: s.setChapterFilter,
-    examStarted: s.examStarted[s.setId], setExamStarted: s.setExamStarted,
+    setExamStarted: s.setExamStarted,
     setDrawerOpen: s.setDrawerOpen,
   })));
   const {
     appData, currentQuestions, answered, isGraded, canGrade, requestGrade,
+    showExamGate, // 시험 단계 파생은 useQuizSession이 단일 원천(잠금과 동일 규칙 집합)
     loadError, retryLoad,
   } = useQuizSession();
-
-  // 시험 시작 게이트: "완전히 새로 시작하는 시험"에서만 보여준다.
-  // - examStarted: 이번 세션에서 시작 버튼을 눌렀으면 게이트 없음.
-  // - answered>0: 새로고침으로 답안이 복원된(이어풀기) 경우 이미 시작한 것이므로 게이트 없음.
-  //   (examStarted는 비영속이라 복원 후 false지만, 답이 있으면 게이트를 건너뛰어 이어풀기와 충돌하지 않는다.)
-  const showExamGate = mode === 'exam' && !examStarted && !isGraded && answered === 0;
 
   useEffect(() => {
     // 채점 후에는 타이머를 정지한다 — 결과가 나온 뒤에도 시간이 계속 오르면
@@ -147,8 +142,7 @@ export const QuestionWorkspace = () => {
   if (showExamGate) {
     const startExam = () => {
       setExamStarted(setId, true);
-      setIndex(0);
-      resetTimer();
+      beginSession(); // 위치 1번 + 타이머 0(세션 개시 의례 단일 액션)
       setDrawerOpen(false);
     };
     return (

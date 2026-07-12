@@ -3,6 +3,9 @@ import { safeGetItem, safeSetItem } from '../utils/safeStorage';
 
 export type ThemePref = 'system' | 'light' | 'dark';
 
+// ⚠ 계약: 이 키와 해석 규칙(system→matchMedia, body[data-theme])은
+// index.vite.html의 프리페인트 스크립트에 인라인으로 복제되어 있다(게이트 화면 FOUC 방지).
+// 키·값·적용 대상을 바꾸면 프리페인트 쪽도 함께 갱신할 것.
 const STORAGE_KEY = 'istqb-theme';
 
 /**

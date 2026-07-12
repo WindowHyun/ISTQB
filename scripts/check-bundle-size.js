@@ -13,22 +13,27 @@ const path = require("path");
 
 const KB = 1024;
 const BUDGET = {
-  js: 330 * KB, // 현재 ~265KB
-  css: 45 * KB, // 현재 ~31KB
+  // dist 루트의 서비스워커(sw.js·workbox-*.js ≈25KB)까지 포함한 실제 첫 로드 페이로드 기준.
+  js: 330 * KB, // 현재 ~308KB(assets ~283KB + SW ~25KB)
+  css: 45 * KB, // 현재 ~39KB
 };
 
-const assetsDir = path.join(__dirname, "..", "dist", "assets");
+const distDir = path.join(__dirname, "..", "dist");
+const assetsDir = path.join(distDir, "assets");
 
-function sumBytes(ext) {
-  if (!fs.existsSync(assetsDir)) return null;
+function sumBytesIn(dir, ext) {
+  if (!fs.existsSync(dir)) return null;
   return fs
-    .readdirSync(assetsDir)
-    .filter((f) => f.endsWith(ext))
-    .reduce((sum, f) => sum + fs.statSync(path.join(assetsDir, f)).size, 0);
+    .readdirSync(dir)
+    .filter((f) => f.endsWith(ext) && fs.statSync(path.join(dir, f)).isFile())
+    .reduce((sum, f) => sum + fs.statSync(path.join(dir, f)).size, 0);
 }
 
-const js = sumBytes(".js");
-const css = sumBytes(".css");
+const assetsJs = sumBytesIn(assetsDir, ".js");
+// 서비스워커도 브라우저가 내려받는 JS다 — assets만 세면 SW 비대화가 예산을 우회한다.
+const rootJs = sumBytesIn(distDir, ".js") ?? 0;
+const js = assetsJs === null ? null : assetsJs + rootJs;
+const css = sumBytesIn(assetsDir, ".css");
 
 if (js === null) {
   console.error("[bundle-size] dist/assets 가 없습니다. 먼저 `npm run build` 를 실행하세요.");

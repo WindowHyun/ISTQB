@@ -29,14 +29,26 @@ const plan = [
 ];
 
 let count = 0;
+const missing = [];
 for (const [asset, targets] of plan) {
   const src = path.join(srcRoot, asset);
-  if (!fs.existsSync(src)) continue;
+  // 정본 누락은 조용히 건너뛰지 않는다 — 절반만 동기화된 배포가 "성공"으로 넘어가는 것 방지.
+  if (!fs.existsSync(src)) { missing.push(asset); continue; }
   for (const t of targets) {
     const dst = path.join(root, t, asset);
+    // 원자적 교체 — 대상을 먼저 지우고 복사하면 중간 크래시 시 자산이 삭제된 채 남는다.
+    // 임시 폴더에 복사를 끝낸 뒤 rename으로 교체해 "긴 작업(복사)" 중단이 대상을 해치지 않게 한다.
+    const tmp = `${dst}.tmp-sync`;
+    fs.rmSync(tmp, { recursive: true, force: true });
+    fs.mkdirSync(path.dirname(tmp), { recursive: true });
+    fs.cpSync(src, tmp, { recursive: true });
     fs.rmSync(dst, { recursive: true, force: true });
-    fs.cpSync(src, dst, { recursive: true });
+    fs.renameSync(tmp, dst);
     count++;
   }
+}
+if (missing.length) {
+  console.error(`[sync-assets] 정본 폴더 누락: ${missing.map((m) => `www/${m}`).join(', ')} — 동기화를 실패로 처리합니다.`);
+  process.exit(1);
 }
 console.log(`[sync-assets] www/ 정본에서 ${count}개 자산 폴더 동기화 완료`);

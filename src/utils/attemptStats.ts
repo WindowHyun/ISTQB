@@ -14,7 +14,9 @@ export interface AttemptEntry {
   rate: number; // displayRatePercent(내림)
   elapsedSeconds?: number;
   createdAt: number;
-  // 같은 세트의 직전 회차 대비 정답률 변화(%p). 1회차는 null.
+  // 같은 세트 안에서 "같은 모드"의 직전 회차 대비 정답률 변화(%p).
+  // 시험(전 문항)과 랜덤(40문항 추첨)은 표본이 달라 교차 비교가 왜곡되므로
+  // 다른 모드 회차는 건너뛴다. 같은 모드의 첫 회차는 null.
   deltaFromPrev: number | null;
 }
 
@@ -25,8 +27,18 @@ export interface SetTimeline {
   best: number; // 최고 정답률(%)
   first: number; // 첫 회차 정답률(%)
   latest: number; // 최신 회차 정답률(%)
-  improvement: number; // 최신 - 첫(성장폭, %p)
+  // 성장폭(%p) — 최신 회차와 "같은 모드"의 첫 회차 대비. 같은 모드 회차가 1개뿐이면
+  // 비교 대상이 없어 null(모드 혼합 세트에서 시험↔랜덤 간 %p 비교 왜곡 방지).
+  improvement: number | null;
   lastAt: number; // 최신 회차 시각(정렬용)
+}
+
+// ▲/▼/± 델타 라벨 — 결과 모달(직전 대비)과 통계 타임라인(성장폭)이 공유해
+// 표기 규칙이 화면마다 어긋나지 않게 한다.
+export function formatDeltaPp(delta: number): { label: string; dir: 'up' | 'down' | 'same' } {
+  if (delta > 0) return { label: `▲ +${delta}%p`, dir: 'up' };
+  if (delta < 0) return { label: `▼ ${delta}%p`, dir: 'down' };
+  return { label: '± 0%p', dir: 'same' };
 }
 
 function isScored(h: ExamHistory): h is ExamHistory & { correct: number; total: number } {
@@ -51,9 +63,12 @@ export function buildSetTimelines(
   for (const [setId, hs] of bySet) {
     // 오래된 → 최신. createdAt 동률/결측 시 id로 타이브레이크해 회차 번호를 결정적으로 만든다.
     hs.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0) || a.id.localeCompare(b.id));
-    let prevRate: number | null = null;
+    // 직전 대비는 같은 모드끼리만 비교(시험 70 vs 랜덤 40 표본 차이로 인한 %p 왜곡 방지).
+    const prevRateByMode: Record<string, number> = Object.create(null);
+    const firstRateByMode: Record<string, number> = Object.create(null);
     const attempts: AttemptEntry[] = hs.map((h, i) => {
       const rate = displayRatePercent(h.correct, h.total);
+      const prev = prevRateByMode[h.mode];
       const entry: AttemptEntry = {
         id: h.id,
         round: i + 1,
@@ -63,12 +78,15 @@ export function buildSetTimelines(
         rate,
         elapsedSeconds: h.elapsedSeconds,
         createdAt: h.createdAt ?? 0,
-        deltaFromPrev: prevRate === null ? null : rate - prevRate,
+        deltaFromPrev: prev === undefined ? null : rate - prev,
       };
-      prevRate = rate;
+      prevRateByMode[h.mode] = rate;
+      if (firstRateByMode[h.mode] === undefined) firstRateByMode[h.mode] = rate;
       return entry;
     });
     const rates = attempts.map((a) => a.rate);
+    const latestAttempt = attempts[attempts.length - 1];
+    const firstSameMode = firstRateByMode[latestAttempt.mode];
     timelines.push({
       setId,
       title: titleOf(setId),
@@ -76,8 +94,11 @@ export function buildSetTimelines(
       best: Math.max(...rates),
       first: rates[0],
       latest: rates[rates.length - 1],
-      improvement: rates[rates.length - 1] - rates[0],
-      lastAt: attempts[attempts.length - 1].createdAt,
+      // 같은 모드 회차가 2개 이상일 때만 성장폭을 말할 수 있다.
+      improvement: attempts.filter((a) => a.mode === latestAttempt.mode).length >= 2
+        ? latestAttempt.rate - firstSameMode
+        : null,
+      lastAt: latestAttempt.createdAt,
     });
   }
   // 가장 최근에 응시한 세트를 위로.

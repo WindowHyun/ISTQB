@@ -81,8 +81,13 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
   const locked = isGraded; // 채점 후 잠금(연습/오답은 잠그지 않음)
 
   const handleSelect = useCallback((key: string) => {
-    if (isGraded) return;
-    let newSelected = [...selected];
+    // 현재 선택·채점 상태는 이벤트 시점에 스토어에서 직접 읽는다 — selected를 의존성에
+    // 넣으면 답을 고를 때마다 핸들러 참조가 바뀌어 모든 OptionItem이 리렌더되고
+    // React.memo가 실효를 잃는다(파일 상단 주석의 O1 의도 유지).
+    const state = useQuizStore.getState();
+    if (state.graded[`${state.setId}-${state.mode}`]) return;
+    const current = state.answers[answerKey] || [];
+    let newSelected = [...current];
     if (isMulti) {
       if (newSelected.includes(key)) {
         newSelected = newSelected.filter((k) => k !== key);
@@ -94,8 +99,8 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
       newSelected = [key];
       if (immediate) setShowFeedback(true);
     }
-    setAnswer(answerKey, newSelected);
-  }, [isGraded, isMulti, immediate, question.answer.length, selected, answerKey, setAnswer]);
+    state.setAnswer(answerKey, newSelected);
+  }, [isMulti, immediate, question.answer.length, answerKey]);
 
   const handleShortInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setAnswer(answerKey, e.target.value ? [e.target.value] : []);

@@ -1,6 +1,7 @@
 import { Modal } from '../common/Modal';
 import { formatClock } from '../../utils/time';
 import { evaluatePass, Certification } from '../../utils/scoring';
+import { formatDeltaPp } from '../../utils/attemptStats';
 
 interface ResultSummaryProps {
   setTitle: string;
@@ -16,6 +17,8 @@ interface ResultSummaryProps {
   modeLabel?: string;
   onClose: () => void;
   onOpenWrongNote: () => void;
+  /** 원클릭 재응시(A3) — 답안 초기화 후 시험은 게이트부터, 랜덤은 같은 추첨을 새로 푼다. */
+  onRetry?: () => void;
 }
 
 export const ResultSummary = ({
@@ -29,15 +32,15 @@ export const ResultSummary = ({
   modeLabel,
   onClose,
   onOpenWrongNote,
+  onRetry,
 }: ResultSummaryProps) => {
   const { passed, ratePercent, criterionLabel, scoreLabel } = evaluatePass(certification, correct, total);
   const wrong = total - correct;
 
   // 직전 회차 대비 변화(%p) — 첫 응시(previousRate null)면 "첫 응시"로 안내한다.
+  // 라벨/방향 규칙은 formatDeltaPp 공용(통계 타임라인과 표기 일치).
   const hasPrev = previousRate != null;
-  const delta = hasPrev ? ratePercent - (previousRate as number) : 0;
-  const trend = delta > 0 ? 'up' : delta < 0 ? 'down' : 'same';
-  const deltaLabel = delta > 0 ? `▲ +${delta}%p` : delta < 0 ? `▼ ${delta}%p` : '± 0%p';
+  const { label: deltaLabel, dir: trend } = formatDeltaPp(hasPrev ? ratePercent - (previousRate as number) : 0);
 
   return (
     <Modal title="채점 결과" onClose={onClose}>
@@ -74,6 +77,11 @@ export const ResultSummary = ({
           {wrong > 0 && (
             <button type="button" className="primary" onClick={onOpenWrongNote}>
               오답 노트 보기
+            </button>
+          )}
+          {onRetry && (
+            <button type="button" data-testid="result-retry" onClick={onRetry}>
+              다시 풀기
             </button>
           )}
           <button type="button" onClick={onClose}>닫기</button>

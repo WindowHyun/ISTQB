@@ -1,6 +1,7 @@
 import type { Question } from '../hooks/useQuestions';
 import type { ExamHistory } from '../store/useQuizStore';
 import { isQuestionCorrect } from './answer';
+import { displayRatePercent } from './scoring';
 
 // 챕터(대단원)별 정답 집계 — Phase 3 약점 분석의 계산 계층.
 // { 챕터명: { c: 정답 수, t: 출제 수 } }. 챕터 미태깅 문항은 집계에서 제외한다.
@@ -39,7 +40,8 @@ export function aggregateChapterStats(histories: ExamHistory[]): ChapterStats {
 }
 
 // 문항 수 가중 평균 정답률(%) — 회차별 %의 단순 평균은 문항 수가 다른 회차
-// (랜덤 40 vs 시험 70)를 왜곡하므로 정답 합/출제 합으로 계산한다. 표시는 내림.
+// (랜덤 40 vs 시험 70)를 왜곡하므로 정답 합/출제 합으로 계산한다.
+// 표시 내림 규칙은 scoring.displayRatePercent 하나만 쓴다(화면 간 % 일치 정책의 단일 원천).
 export function weightedRatePercent(histories: ExamHistory[]): number | null {
   let c = 0;
   let t = 0;
@@ -50,5 +52,5 @@ export function weightedRatePercent(histories: ExamHistory[]): number | null {
     }
   }
   if (!t) return null;
-  return Math.floor((c / t) * 100 + 1e-9);
+  return displayRatePercent(c, t);
 }

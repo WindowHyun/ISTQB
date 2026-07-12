@@ -26,7 +26,7 @@ describe('questionLoader', () => {
     expect(a).toEqual({ sets: [] });
     expect(b).toEqual({ sets: [] });
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith('data/index.json');
+    expect(fetchMock).toHaveBeenCalledWith('/data/index.json');
   });
 
   it('실패(비 2xx)는 reject하고 캐시에서 비워져 다음 호출이 재시도한다', async () => {
@@ -46,7 +46,7 @@ describe('questionLoader', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
     const a = await loader.loadSetQuestions('./istqb/a.json');
-    expect(fetchMock).toHaveBeenCalledWith('data/istqb/a.json');
+    expect(fetchMock).toHaveBeenCalledWith('/data/istqb/a.json');
     expect(a).toEqual([{ number: 1 }]);
     const b = await loader.loadSetQuestions('csts/b.json');
     expect(b).toEqual([{ number: 2 }]);

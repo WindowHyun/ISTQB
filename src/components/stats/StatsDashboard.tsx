@@ -5,7 +5,7 @@ import { SetSummary } from '../../hooks/useQuestions';
 import { formatClock } from '../../utils/time';
 import { displayRatePercent } from '../../utils/scoring';
 import { aggregateChapterStats, weightedRatePercent } from '../../utils/chapterStats';
-import { buildSetTimelines } from '../../utils/attemptStats';
+import { buildSetTimelines, formatDeltaPp } from '../../utils/attemptStats';
 import { ConfirmButtons } from '../common/ConfirmButtons';
 
 // 챕터 정답률이 이 미만이면 '약점'으로 강조한다(ISTQB 합격 컷 65%와 동일 기준).
@@ -107,7 +107,8 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
 
             {chapterRows.length > 0 && (
               <section className="stats-chapters" aria-label="챕터별 정답률" data-testid="stats-chapters">
-                <h4>챕터별 정답률 <small>낮은 순 — 약점부터</small></h4>
+                {/* 진단은 전 세트 합산, '연습' 진입은 현재 세트 한정 — 기준 차이를 라벨로 명시(A1). */}
+                <h4>챕터별 정답률 <small>전 세트 합산 · 낮은 순 — 연습은 현재 세트에서 진행</small></h4>
                 <ul>
                   {chapterRows.map((ch) => (
                     <li key={ch.name} className={ch.rate < WEAK_THRESHOLD ? 'weak' : ''} data-testid="stats-chapter-row">
@@ -145,6 +146,10 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
             {trend.length >= 2 && (
               <section className="stats-trend" aria-label="정답률 추이" data-testid="stats-trend">
                 <h4>정답률 추이 <small>최근 {trend.length}회 (왼쪽이 과거)</small></h4>
+                {/* 스크린리더용 요약(B2) — 막대는 aria-hidden이라 값이 전달되지 않는다. */}
+                <p className="sr-only">
+                  최근 {trend.length}회 정답률: {trend.map((r) => `${r.rate}%`).join(' → ')}
+                </p>
                 <div className="trend-bars">
                   {trend.map((r) => (
                     <i
@@ -166,12 +171,13 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
                     <div className="stl-head">
                       <span className="stl-title">{tl.title}</span>
                       <span className="stl-count">{tl.attempts.length}회차</span>
-                      {tl.attempts.length >= 2 && (
+                      {/* 성장폭은 같은 모드 회차 간 비교일 때만 표시(A2) — 라벨 규칙은 공용 formatDeltaPp. */}
+                      {tl.improvement != null && (
                         <span
-                          className={`stl-improve ${tl.improvement > 0 ? 'up' : tl.improvement < 0 ? 'down' : 'same'}`}
-                          title="첫 회차 대비 최신 회차 정답률 변화"
+                          className={`stl-improve ${formatDeltaPp(tl.improvement).dir}`}
+                          title="같은 모드의 첫 회차 대비 최신 회차 정답률 변화"
                         >
-                          {tl.improvement > 0 ? `▲ +${tl.improvement}%p` : tl.improvement < 0 ? `▼ ${tl.improvement}%p` : '± 0%p'}
+                          {formatDeltaPp(tl.improvement).label}
                         </span>
                       )}
                     </div>

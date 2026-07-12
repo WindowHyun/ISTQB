@@ -33,6 +33,13 @@ export function useQuizSession() {
 
   const gradeKey = `${setId}-${mode}`;
   const isGraded = Boolean(graded[gradeKey]);
+  // 시험 단계 파생 상태의 단일 원천 — 게이트(QuestionWorkspace)·잠금(Sidebar)·
+  // 통계 연습 버튼(AppModals)이 모두 이 값을 쓴다. 규칙을 한 곳만 고치면 되게 한다.
+  // - showExamGate: 완전히 새로 시작하는 시험(시작 전·미채점·답안 없음)에서만 게이트 노출.
+  //   answered>0(이어풀기 복원)은 이미 응시 개시로 본다.
+  // - examLocked: 응시 중(시작 후 미채점)에는 세트/모드 전이를 잠근다.
+  const showExamGate = mode === 'exam' && !examStarted && !isGraded && answered === 0;
+  const examLocked = mode === 'exam' && !!examStarted && !isGraded;
   // 시험은 시작 게이트 통과(또는 이어풀기 답안 존재) 전에는 채점 불가 — 게이트는
   // 워크스페이스만 가리므로, 이 조건이 없으면 사이드바 '채점하기'로 응시한 적 없는
   // 시험이 0/N 유령 회차로 기록된다.
@@ -115,6 +122,8 @@ export function useQuizSession() {
     correctCount,
     isGraded,
     canGrade,
+    showExamGate,
+    examLocked,
     progressPercent,
     wrongQuestions,
     handleGrade,

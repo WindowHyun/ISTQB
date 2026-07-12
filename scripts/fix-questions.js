@@ -27,8 +27,6 @@ dataDirs.forEach(dir => {
       const raw = fs.readFileSync(filePath, 'utf8');
       const data = JSON.parse(raw);
       
-      let fileModCount = 0;
-      let fileReviewCount = 0;
 
       if (data.questions && Array.isArray(data.questions)) {
         const normalizedQuestions = data.questions.map(q => {
@@ -37,7 +35,6 @@ dataDirs.forEach(dir => {
           
           if (requiresManualReview) {
             totalRequiresReview++;
-            fileReviewCount++;
             reviewItems.push({
               file: path.join(dir, file),
               id: q.id || q.number,

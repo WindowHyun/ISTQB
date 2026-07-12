@@ -18,7 +18,7 @@
     "cap:add:android": "npx cap add android",
     "cap:sync": "npx cap sync android",
     "android:open": "npx cap open android",
-    "android:release": "cd android && gradlew.bat assembleRelease",
+    "android:release": "cd android && ./gradlew assembleRelease",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",

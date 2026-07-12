@@ -1,5 +1,3 @@
-const fs = require('fs');
-
 /**
  * Normalizes question data, fixing newlines and separating options.
  * @param {Object} rawQuestion The raw question object

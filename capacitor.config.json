@@ -2,7 +2,6 @@
   "appId": "com.local.istqbfl",
   "appName": "ISTQB FL",
   "webDir": "dist",
-  "bundledWebRuntime": false,
   "server": {
     "androidScheme": "https"
   },

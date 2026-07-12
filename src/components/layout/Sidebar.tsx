@@ -20,22 +20,50 @@ export const Sidebar = () => {
   // 렌더에 쓰는 값만 슬라이스 구독(O1) — 타이머(elapsedSeconds)·답안(answers) 변경에 리렌더되지 않는다.
   // 이벤트 핸들러에서만 필요한 graded/answers는 호출 시점에 getState()로 읽는다.
   const {
-    mode, setId, activeProduct, examStarted,
-    setMode, setSetId, setIndex, resetTimer, clearAnswers,
+    mode, setId, activeProduct, drawerOpen,
+    setMode, setSetId, beginSession, clearAnswers,
     setStatsOpen, setSettingsOpen, setWrongNoteOpen, setResultOpen, setDrawerOpen,
     setResumePrompt,
   } = useQuizStore(useShallow((s) => ({
-    mode: s.mode, setId: s.setId, activeProduct: s.activeProduct,
-    examStarted: s.examStarted[s.setId],
-    setMode: s.setMode, setSetId: s.setSetId, setIndex: s.setIndex,
-    resetTimer: s.resetTimer, clearAnswers: s.clearAnswers,
+    mode: s.mode, setId: s.setId, activeProduct: s.activeProduct, drawerOpen: s.drawerOpen,
+    setMode: s.setMode, setSetId: s.setSetId, beginSession: s.beginSession,
+    clearAnswers: s.clearAnswers,
     setStatsOpen: s.setStatsOpen, setSettingsOpen: s.setSettingsOpen,
     setWrongNoteOpen: s.setWrongNoteOpen, setResultOpen: s.setResultOpen,
     setDrawerOpen: s.setDrawerOpen,
     setResumePrompt: s.setResumePrompt,
   })));
+  const asideRef = React.useRef<HTMLElement>(null);
+
+  // 모바일 드로어 포커스 관리(B1) — 열리면 첫 컨트롤로 포커스 이동 + Tab 순환 트랩,
+  // 닫히면 연 버튼(☰)으로 포커스 복귀. 데스크톱에서는 drawerOpen이 항상 false라 무영향.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const aside = asideRef.current;
+    if (!aside) return;
+    const opener = document.activeElement as HTMLElement | null;
+    const focusables = () =>
+      Array.from(aside.querySelectorAll<HTMLElement>('button, select, [href], input, [tabindex]:not([tabindex="-1"])'))
+        .filter((el) => !el.hasAttribute('disabled'));
+    focusables()[0]?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const list = focusables();
+      if (!list.length) return;
+      const first = list[0];
+      const last = list[list.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      opener?.focus?.();
+    };
+  }, [drawerOpen]);
   const {
     appData, total, answered, correctCount, isGraded, canGrade, progressPercent,
+    examLocked, // 응시 중 잠금 — useQuizSession이 단일 원천(게이트와 동일 규칙 집합)
     requestGrade,
   } = useQuizSession();
 
@@ -56,16 +84,11 @@ export const Sidebar = () => {
   // 모바일 드로어 안에서 컨트롤을 조작하면 드로어를 닫아 문제로 복귀한다.
   const closeDrawer = () => setDrawerOpen(false);
 
-  // 응시 중(시험 시작 후 채점 전) 잠금 — 세트·모드 변경을 막아 채점 기준이 흔들리지 않게 한다.
-  // disabled 처리(세트 select·모드 버튼)뿐 아니라 setMode를 호출하는 다른 핸들러도 이 값을 확인한다.
-  const examLocked = mode === 'exam' && !!examStarted && !isGraded;
-
   const handleSetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     // 세트를 바꿔도 현재 모드는 유지한다(연습으로 초기화하지 않음, #2).
     const newSetId = e.target.value;
     setSetId(newSetId);
-    setIndex(0);
-    resetTimer();
+    beginSession();
     closeDrawer();
     if (mode === 'random') {
       // 랜덤은 이어풀기 없음 — 세트를 바꾸면 그 세트의 랜덤 답안을 비우고 새로 시작한다(F4).
@@ -80,10 +103,18 @@ export const Sidebar = () => {
   };
 
   const handleModeChange = (newMode: typeof mode) => {
-    // 같은 모드 버튼 재클릭은 무시한다 — 응시 중(잠금) 활성 '시험' 탭은 비활성화되지
-    // 않으므로, 재클릭 시 아래 setIndex(0)+resetTimer()로 타이머·위치가 초기화돼 잠금이
-    // 무력화되던 문제를 막는다(연습/랜덤의 자기 초기화도 함께 제거).
-    if (newMode === mode) { closeDrawer(); return; }
+    if (newMode === mode) {
+      // 같은 모드 재클릭: 응시 중(잠금)에는 무시해 setIndex/타이머 초기화로 잠금이
+      // 무력화되지 않게 한다. 단, "채점 완료" 상태의 시험/랜덤 재클릭은 원클릭
+      // 재응시(초기화)로 동작한다 — 모드 왕복 없이 다시 풀 수 있는 진입로(A5).
+      const gradedNow = useQuizStore.getState().graded[`${setId}-${mode}`];
+      if ((mode === 'exam' || mode === 'random') && gradedNow) {
+        clearAnswers(setId, mode); // exam이면 examStarted도 해제돼 시작 게이트가 다시 뜬다
+        beginSession();
+      }
+      closeDrawer();
+      return;
+    }
     // 랜덤은 진입마다 재추첨되어 이어풀기가 무의미하므로 들어올 때마다 초기화한다(랜덤은 이어풀기 없음, F4).
     if (newMode === 'random') {
       clearAnswers(setId, 'random');
@@ -92,8 +123,7 @@ export const Sidebar = () => {
       clearAnswers(setId, 'exam');
     }
     setMode(newMode);
-    setIndex(0);
-    resetTimer();
+    beginSession();
     closeDrawer();
   };
 
@@ -117,8 +147,7 @@ export const Sidebar = () => {
     // 오답 다시 풀기: 이전 재풀이 답안을 비우고 오답(review) 모드로 전환해 틀린 문항만 새로 푼다.
     clearAnswers(setId, 'review');
     setMode('review');
-    setIndex(0);
-    resetTimer();
+    beginSession();
     closeDrawer();
   };
 
@@ -127,7 +156,14 @@ export const Sidebar = () => {
   const showGradeSection = mode === 'exam' || mode === 'random';
 
   return (
-    <aside className="sidebar" aria-label="시험 설정">
+    <aside
+      ref={asideRef}
+      className="sidebar"
+      aria-label="시험 설정"
+      // 모바일 드로어로 열렸을 때만 dialog 시맨틱(☰ 버튼의 aria-haspopup="dialog" 선언과 일치).
+      role={drawerOpen ? 'dialog' : undefined}
+      aria-modal={drawerOpen || undefined}
+    >
       <div className="brand">
         <img src={LOGO_SRC} alt="" />
         <div className="brand-text">

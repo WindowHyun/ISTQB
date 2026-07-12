@@ -2,8 +2,8 @@ import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 
-// 플랫 설정. 앱 코드(src/)와 E2E(e2e/)만 린트한다.
-// 레거시 바닐라(script.js 등)와 node 스크립트(scripts/)는 별도 환경이라 제외.
+// 플랫 설정. 앱 코드(src/)·E2E(e2e/)·파이프라인 스크립트(scripts/)를 린트한다.
+// 레거시 바닐라(script.js 등)는 제외. scripts/는 CJS Node 환경으로 별도 블록.
 export default tseslint.config(
   {
     ignores: [
@@ -13,7 +13,6 @@ export default tseslint.config(
       'public/**',
       'android/**',
       'coverage/**',
-      'scripts/**',
       'docs/**',
       'script.js',
       'service-worker.js',
@@ -36,6 +35,19 @@ export default tseslint.config(
     rules: {
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+    },
+  },
+  {
+    // 데이터 파이프라인/빌드 스크립트 — 정적 분석 사각지대였던 영역(오타·미정의 참조가
+    // CI를 통과해 릴리스 시점에야 드러나던 문제). CJS Node 환경으로 기본 검사만 적용.
+    files: ['scripts/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'commonjs',
+      globals: { ...globals.node },
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off', // CJS 스크립트는 require 사용
     },
   },
 );

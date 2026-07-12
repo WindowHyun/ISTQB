@@ -1,14 +1,14 @@
 apply plugin: 'com.android.application'
 
+def releaseStorePath = System.getenv("ISTQB_RELEASE_STORE_FILE")
+def releaseStorePassword = System.getenv("ISTQB_RELEASE_STORE_PASSWORD")
+def releaseKeyAlias = System.getenv("ISTQB_RELEASE_KEY_ALIAS")
+def releaseKeyPassword = System.getenv("ISTQB_RELEASE_KEY_PASSWORD")
+def hasReleaseSigning = releaseStorePath && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+
 android {
     namespace "com.local.istqbfl"
     compileSdk rootProject.ext.compileSdkVersion
-
-    def releaseStorePath = System.getenv("ISTQB_RELEASE_STORE_FILE")
-    def releaseStorePassword = System.getenv("ISTQB_RELEASE_STORE_PASSWORD")
-    def releaseKeyAlias = System.getenv("ISTQB_RELEASE_KEY_ALIAS")
-    def releaseKeyPassword = System.getenv("ISTQB_RELEASE_KEY_PASSWORD")
-    def hasReleaseSigning = releaseStorePath && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
 
     signingConfigs {
         release {
@@ -61,6 +61,21 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+}
+
+// 서명 env 없이 release 빌드가 "성공"하면 설치 불가한 미서명 APK를 정상 산출물로
+// 오인한다 — release 태스크가 실제 그래프에 포함될 때만 명시적으로 실패시킨다
+// (debug 빌드·sync 등 다른 태스크에는 영향 없음).
+gradle.taskGraph.whenReady { graph ->
+    def buildingRelease = graph.allTasks.any { task ->
+        (task.name.startsWith('assemble') || task.name.startsWith('bundle')) &&
+            task.name.toLowerCase().contains('release')
+    }
+    if (buildingRelease && !hasReleaseSigning) {
+        throw new GradleException(
+            "release 서명 환경변수(ISTQB_RELEASE_STORE_FILE/STORE_PASSWORD/KEY_ALIAS/KEY_PASSWORD)가 없습니다 — " +
+            "미서명 APK 산출을 중단합니다. 키를 설정하거나 assembleDebug를 사용하세요.")
+    }
 }
 
 apply from: 'capacitor.build.gradle'

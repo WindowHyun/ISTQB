@@ -48,6 +48,20 @@ export async function submitGrade(page: Page, testid = "grade-button") {
   if (await confirm.count()) await confirm.click();
 }
 
+// 채점 결과 요약 모달 닫기 — 스펙마다 반복되던 시퀀스의 공용 헬퍼.
+export async function closeResult(page: Page) {
+  await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+}
+
+// "응시 1회 완료"(시험 진입→1문항 응답→채점→결과 닫기) — 회차 누적이 필요한
+// 시나리오(통계·오답노트·타임라인)의 공용 준비 시퀀스.
+export async function completeAttempt(page: Page) {
+  await enterExam(page);
+  await page.locator("#options .option").first().click();
+  await submitGrade(page);
+  await closeResult(page);
+}
+
 // 문제 번호 팔레트로 특정 문항 이동.
 export async function gotoQuestion(page: Page, num: number) {
   const nav = page.locator("#questionNav button");

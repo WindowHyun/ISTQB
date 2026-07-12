@@ -58,31 +58,40 @@ const MODE_LABEL: Record<string, string> = {
   review: '오답',
 };
 
+// 오답노트 합산 뷰 전용 타입 — 여러 회차의 오답 합집합이라 특정 회차(ExamHistory)가
+// 아니다. 렌더에 필요한 필드만 담아 도메인 객체를 가짜 id로 위조하지 않는다.
+interface WrongNoteSetView {
+  setId: string;
+  setTitle?: string;
+  attemptCount: number; // 합산에 관여한 회차 수
+  latestCreatedAt?: number; // 최근 회차 시각(정렬·표기)
+  wrongItems: NonNullable<ExamHistory['wrongItems']>;
+}
+
 // 앱 루트에 렌더되는 모든 오버레이(설정·통계·오답노트·결과·문항이동).
 // 드로어(transform)의 자식이 아니어서 position:fixed 오버레이가 정상 동작한다.
 export const AppModals = () => {
   // 슬라이스 구독(O1). elapsedSeconds는 결과 모달이 열려 있을 때만 반영해
   // 닫혀 있는 동안 타이머 틱으로 리렌더되지 않게 한다(열려 있으면 기존처럼 초 단위 갱신).
   const {
-    setId, mode, activeProduct, histories, examLocked, resultElapsedSeconds,
+    setId, mode, activeProduct, histories, resultElapsedSeconds,
     settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, resumePrompt,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
-    setMode, setIndex, resetTimer, clearAnswers, setReviewIds, setChapterFilter, setResumePrompt,
+    setMode, beginSession, clearAnswers, setReviewIds, setChapterFilter, setResumePrompt,
   } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, activeProduct: s.activeProduct, histories: s.histories,
-    // 응시 중 잠금(파생 boolean) — 통계의 챕터 '연습' 버튼 비활성화에 사용.
-    examLocked: s.mode === 'exam' && !!s.examStarted[s.setId] && !s.graded[`${s.setId}-exam`],
     resultElapsedSeconds: s.resultOpen ? s.elapsedSeconds : 0,
     settingsOpen: s.settingsOpen, statsOpen: s.statsOpen, wrongNoteOpen: s.wrongNoteOpen,
     resultOpen: s.resultOpen, paletteOpen: s.paletteOpen, confirmGradeOpen: s.confirmGradeOpen,
     resumePrompt: s.resumePrompt,
     setSettingsOpen: s.setSettingsOpen, setStatsOpen: s.setStatsOpen, setWrongNoteOpen: s.setWrongNoteOpen,
     setResultOpen: s.setResultOpen, setPaletteOpen: s.setPaletteOpen, setDrawerOpen: s.setDrawerOpen,
-    setConfirmGradeOpen: s.setConfirmGradeOpen, setMode: s.setMode, setIndex: s.setIndex,
-    resetTimer: s.resetTimer, clearAnswers: s.clearAnswers, setReviewIds: s.setReviewIds,
+    setConfirmGradeOpen: s.setConfirmGradeOpen, setMode: s.setMode, beginSession: s.beginSession,
+    clearAnswers: s.clearAnswers, setReviewIds: s.setReviewIds,
     setChapterFilter: s.setChapterFilter, setResumePrompt: s.setResumePrompt,
   })));
-  const { appData, total, answered, correctCount, gradeAndShow } = useQuizSession();
+  // examLocked — useQuizSession이 단일 원천(게이트·사이드바 잠금과 동일 규칙 집합).
+  const { appData, total, answered, correctCount, gradeAndShow, examLocked } = useQuizSession();
   const { pref: themePref, setPref: setThemePref } = useTheme();
   const [fontSize, setFontSize] = useState<FontSize>(
     () => (safeGetItem('istqb-q-font') as FontSize) || 'normal',
@@ -120,18 +129,20 @@ export const AppModals = () => {
     return out;
   }, [histories, sets, activeProduct]);
   // Phase 2 — 결과 모달의 "직전 회차 대비" 비교(현재 세트·모드의 최신 회차 기준).
+  // productHistories(메모화·제품 필터)를 입력으로 써 다른 제품 이력 변경에는 재계산하지 않는다.
   const attemptCompare = React.useMemo(
-    () => latestAttemptComparison(Object.values(histories), setId, mode),
-    [histories, setId, mode],
+    () => latestAttemptComparison(Object.values(productHistories), setId, mode),
+    [productHistories, setId, mode],
   );
   const fmtAns = (arr: string[]) =>
     arr.length ? arr.map((s) => s.toUpperCase()).join(', ') : '미응답';
   // 세트별 "전 회차 오답의 합집합" — 최신 회차만 보여주면 같은 세트를 랜덤으로
   // 재채점했을 때 이전 시험 회차의 오답이 노트에서 사라진다(QA 지적 해소).
   // 같은 문항이 여러 회차에서 틀렸으면 가장 최근 회차의 내 답을 대표로 쓴다.
+  // 전용 뷰 타입(WrongNoteSetView) — 도메인 ExamHistory를 가짜 id(merged-*)로 위조하지 않는다.
   // useMemo: AppModals는 answers를 구독(useQuizSession)해 답안 클릭마다 리렌더되므로,
   // 메모 없이는 오답노트가 닫혀 있어도 매 클릭 전체 이력 정렬·병합을 재계산한다.
-  const wrongNoteBySet: (ExamHistory & { attemptCount: number })[] = React.useMemo(() => {
+  const wrongNoteBySet: WrongNoteSetView[] = React.useMemo(() => {
     const bySet = new Map<string, ExamHistory[]>();
     for (const h of Object.values(productHistories)) {
       if ((h.wrongItems?.length ?? 0) === 0) continue;
@@ -139,7 +150,7 @@ export const AppModals = () => {
       list.push(h);
       bySet.set(h.setId, list);
     }
-    const merged: (ExamHistory & { attemptCount: number })[] = [];
+    const merged: WrongNoteSetView[] = [];
     for (const [sid, hs] of bySet) {
       hs.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)); // 최신 우선
       const items = new Map<number, NonNullable<ExamHistory['wrongItems']>[number]>();
@@ -149,14 +160,14 @@ export const AppModals = () => {
         }
       }
       merged.push({
-        ...hs[0],
-        id: `merged-${sid}`,
+        setId: sid,
+        setTitle: hs[0].setTitle,
+        attemptCount: hs.length,
+        latestCreatedAt: hs[0].createdAt,
         wrongItems: Array.from(items.values()).sort((a, b) => a.number - b.number),
-        total: undefined, // 합산 뷰에서 회차별 total 표기는 의미가 없다
-        attemptCount: hs.length, // 합산에 관여한 회차 수(라벨 표기용)
       });
     }
-    return merged.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    return merged.sort((a, b) => (b.latestCreatedAt || 0) - (a.latestCreatedAt || 0));
   }, [productHistories]);
   const selectedWrong = wrongNoteSetId
     ? wrongNoteBySet.find((h) => h.setId === wrongNoteSetId) ?? null
@@ -226,17 +237,15 @@ export const AppModals = () => {
   // 필터해 연습 모드로 진입한다. setMode가 필터를 초기화하므로 필터는 그 뒤에 건다.
   const handlePracticeChapter = (chapter: string) => {
     // 응시 중 잠금 — 학습 통계 버튼은 잠금 중에도 열리므로, 여기서 막지 않으면
-    // setMode+resetTimer로 잠금을 우회해 시험 타이머가 소실된다(사이드바 disabled와 동일 정책).
-    const s = useQuizStore.getState();
-    if (s.mode === 'exam' && s.examStarted[s.setId] && !s.graded[`${s.setId}-exam`]) {
+    // setMode+beginSession으로 잠금을 우회해 시험 타이머가 소실된다(버튼 disabled와 이중 방어).
+    if (examLocked) {
       showToast('시험 응시 중에는 집중 연습을 시작할 수 없습니다. 먼저 채점하세요.', 'info');
       return;
     }
     setStatsOpen(false);
     setMode('practice');
     setChapterFilter(chapter);
-    setIndex(0);
-    resetTimer();
+    beginSession();
   };
 
   const handleResetMode = () => {
@@ -267,8 +276,7 @@ export const AppModals = () => {
                 data-testid="resume-fresh"
                 onClick={() => {
                   clearAnswers(setId, mode);
-                  setIndex(0);
-                  resetTimer();
+                  beginSession();
                   setResumePrompt(false);
                 }}
               >
@@ -302,9 +310,14 @@ export const AppModals = () => {
               <p>표시할 오답이 없습니다. (시험·랜덤 모드에서 채점하면 기록됩니다)</p>
             ) : !selectedWrong ? (
               // 1단계: 오답이 있는 세트 선택
+              <>
+              {/* 노트(전 회차 누적)와 '오답 다시 풀기'(최근 채점 기준)의 범위 차이 안내(A4). */}
+              <p className="stats-hint">
+                오답 노트는 전 회차 누적 기록이에요. 사이드바의 ‘오답 다시 풀기’는 최근 채점 기준으로 출제됩니다.
+              </p>
               <ul className="wrong-note-sets" data-testid="wrong-note-sets">
                 {wrongNoteBySet.map((h) => (
-                  <li key={h.id}>
+                  <li key={h.setId}>
                     <button
                       type="button"
                       className="wrong-note-set-btn"
@@ -316,13 +329,14 @@ export const AppModals = () => {
                           단일 모드 출처처럼 오표기된다. 회차 수 + 최근 날짜로 중립 표기. */}
                       <span className="wns-meta">
                         전 회차 합산({h.attemptCount}회) · 오답 {h.wrongItems?.length ?? 0}
-                        {h.createdAt ? ` · 최근 ${new Date(h.createdAt).toLocaleDateString('ko-KR')}` : ''}
+                        {h.latestCreatedAt ? ` · 최근 ${new Date(h.latestCreatedAt).toLocaleDateString('ko-KR')}` : ''}
                       </span>
                       <span className="wns-arrow" aria-hidden="true">›</span>
                     </button>
                   </li>
                 ))}
               </ul>
+              </>
             ) : selectedWrongItem ? (
               // 3단계: 선택한 오답 문항 보기(지문·보기 + 내 답/정답 하이라이트, 읽기 전용)
               <div data-testid="wrong-note-question">
@@ -576,6 +590,12 @@ export const AppModals = () => {
           modeLabel={MODE_LABEL[mode] ?? mode}
           onClose={() => setResultOpen(false)}
           onOpenWrongNote={() => { setResultOpen(false); setWrongNoteOpen(true); }}
+          onRetry={() => {
+            // 원클릭 재응시(A3) — 답안 초기화 후 시험은 시작 게이트부터, 랜덤은 같은 추첨을 새로 푼다.
+            clearAnswers(setId, mode);
+            beginSession();
+            setResultOpen(false);
+          }}
         />
       )}
     </>

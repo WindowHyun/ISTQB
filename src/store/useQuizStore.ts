@@ -71,6 +71,10 @@ export interface QuizState {
   tickTimer: () => void;
   startTimer: () => void;
   resetTimer: () => void;
+  // 세션 개시 의례(위치 1번 + 타이머 0) — 세트/모드 전환·시험 시작·집중 연습 진입 등
+  // 모든 "새 풀이 세션" 진입점이 이 액션 하나를 호출한다(호출부마다 setIndex+resetTimer를
+  // 복제하다 한 곳이 빠지는 버그 클래스 차단).
+  beginSession: () => void;
   setNavCollapsed: (collapsed: boolean) => void;
   setChapterFilter: (chapter: string | null) => void;
   setDrawerOpen: (open: boolean) => void;
@@ -85,6 +89,16 @@ export interface QuizState {
   resetToGate: () => void;
   hydrate: (state: Partial<QuizState>) => void;
 }
+
+// 세션 스코프 상태의 기본값 — "제품 전환/복원(hydrate) 시 초기화해야 할 것" 목록의
+// 단일 원천(storage.restorePersistentSnapshot이 사용). 세션 스코프 필드를 추가하면
+// 여기에 함께 넣는다. (resetToGate는 graded/reviewIds를 세션 내 보존하는 별개 정책)
+export const SESSION_SCOPE_DEFAULTS = {
+  graded: {} as Record<string, boolean>,
+  examStarted: {} as Record<string, boolean>,
+  reviewIds: {} as Record<string, string[]>,
+  chapterFilter: null as string | null,
+};
 
 export const useQuizStore = create<QuizState>((set) => ({
   activeProduct: null,
@@ -167,6 +181,7 @@ export const useQuizStore = create<QuizState>((set) => ({
   }),
   startTimer: () => set({ startedAt: Date.now(), lastTick: Date.now() }),
   resetTimer: () => set({ elapsedSeconds: 0, lastTick: Date.now() }),
+  beginSession: () => set({ index: 0, elapsedSeconds: 0, lastTick: Date.now() }),
   setNavCollapsed: (navCollapsed) => set({ navCollapsed }),
   setChapterFilter: (chapterFilter) => set({ chapterFilter }),
   setDrawerOpen: (drawerOpen) => set({ drawerOpen }),

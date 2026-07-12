@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { enterExam, modeBtn, openSet, submitGrade } from "./helpers";
+import { closeResult, enterExam, modeBtn, openSet, submitGrade } from "./helpers";
 
 // 엣지: 모드 전환(격리·리셋·잠금·빈 오답).
 test.describe("엣지-모드", () => {
@@ -217,6 +217,23 @@ test.describe("시험 시작 게이트·응시 중 잠금", () => {
     await page.getByRole("button", { name: "오답 다시 풀기" }).click();
     await expect(page.locator('.segmented button[data-mode="exam"]')).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByTestId("set-select")).toBeDisabled();
+  });
+
+  test("채점 후 '다시 풀기'(결과 모달)·활성 탭 재클릭으로 원클릭 재응시가 된다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await enterExam(page);
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    // 결과 모달 '다시 풀기'(A3) → 답안 초기화 + 시작 게이트부터 재응시.
+    await page.getByTestId("result-retry").click();
+    await expect(page.getByTestId("exam-start-gate")).toBeVisible();
+    // 재응시·채점 후, 채점 완료 상태의 활성 '시험' 탭 재클릭(A5)도 재응시 진입로다.
+    await page.getByTestId("exam-start-btn").click();
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    await closeResult(page);
+    await page.locator('.segmented button[data-mode="exam"]').click();
+    await expect(page.getByTestId("exam-start-gate")).toBeVisible();
   });
 
   test("응시 중 활성 '시험' 탭 재클릭은 위치를 초기화하지 않는다(락 우회 방지)", async ({ page }) => {

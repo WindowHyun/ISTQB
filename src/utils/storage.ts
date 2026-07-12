@@ -1,4 +1,4 @@
-import { useQuizStore, QuizState, QuizMode, ExamHistory } from '../store/useQuizStore';
+import { useQuizStore, QuizState, QuizMode, ExamHistory, SESSION_SCOPE_DEFAULTS } from '../store/useQuizStore';
 import debounce from 'lodash-es/debounce';
 import { showToast } from './toast';
 
@@ -318,15 +318,15 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
       if (sep > 0) restoredExamStarted[key.slice(0, sep)] = true;
     }
     useQuizStore.getState().hydrate({
-      // 제품 전환 시 이전 제품의 세션 상태(채점 여부·응시 게이트·오답 대상·챕터 필터)가
-      // 새 제품으로 새어들지 않도록 기본값으로 깔고, 이 제품의 복원값(restoredUi)으로 덮는다.
-      // 단, 같은 제품 게이트 왕복(리로드 아님)에서는 세션 내 채점 상태를 보존한다 —
+      // 세션 스코프 기본값(목록의 단일 원천은 스토어의 SESSION_SCOPE_DEFAULTS)을 깔아
+      // 이전 제품의 상태가 새 제품으로 새어들지 않게 하고, 이 제품의 값으로 덮는다.
+      ...SESSION_SCOPE_DEFAULTS,
+      // 채점 상태: 같은 제품 게이트 왕복이면 세션 값 유지, 제품 재방문이면 세션 캐시 복원 —
       // 소거하면 '채점하기'가 재노출돼 동일 답안 재채점으로 회차가 중복 적재된다.
       graded: sameProductRevisit
         ? useQuizStore.getState().graded
         : (sessionGraded[activeProduct] ?? {}),
       examStarted: restoredExamStarted,
-      reviewIds: {}, chapterFilter: null,
       ...restoredUi,
       answers: sanitizedAnswers,
       histories,

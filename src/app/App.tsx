@@ -10,6 +10,18 @@ import { AppModals } from '../components/modals/AppModals';
 const Sidebar = React.lazy(() => import('../components/layout/Sidebar').then(module => ({ default: module.Sidebar })));
 const QuestionWorkspace = React.lazy(() => import('../components/quiz/QuestionWorkspace').then(module => ({ default: module.QuestionWorkspace })));
 
+const MODE_ANNOUNCE_LABEL: Record<string, string> = {
+  practice: '연습', exam: '시험', random: '랜덤', review: '오답',
+};
+
+// 모드 전환 라이브 알림(B4) — 모드 버튼의 aria-pressed로는 전달되지 않는 프로그램적
+// 전환(챕터 집중 연습 진입 등)도 스크린리더가 인지하게 한다. 시각적으로는 숨김.
+const ModeAnnouncer = () => {
+  const mode = useQuizStore((s) => s.mode);
+  const label = MODE_ANNOUNCE_LABEL[mode];
+  return <span className="sr-only" role="status">{label ? `${label} 모드` : ''}</span>;
+};
+
 export const App = () => {
   // 슬라이스 구독(O1) — 앱 셸이 타이머 틱·답안 변경에 리렌더되지 않는다.
   const { mode, activeProduct, drawerOpen, setMode, setActiveProduct, setDrawerOpen, resetToGate } =
@@ -78,8 +90,11 @@ export const App = () => {
   return (
     <ErrorBoundary>
       <Suspense fallback={<div className="loading">워크스페이스 로딩 중...</div>}>
+        {/* 키보드 사용자용 본문 바로가기(B3) — 포커스될 때만 보인다. */}
+        <a className="skip-link" href="#questionStem">본문 바로가기</a>
         <MobileTopBar />
         <main className="app-shell" data-drawer={drawerOpen ? 'open' : 'closed'} aria-label={`${activeProduct.toUpperCase()} 문제풀이 앱`}>
+          <ModeAnnouncer />
           <Sidebar />
           {drawerOpen && <div className="drawer-backdrop" onClick={() => setDrawerOpen(false)} aria-hidden="true" />}
           <QuestionWorkspace />
