@@ -164,7 +164,7 @@ test.describe("학습 UX — 시험 모드 이어풀기/유지(#1·#2·#6)", () 
     await expect(page.locator("#progressText")).toHaveText("0 / 40");
   });
 
-  test("채점한 시험은 재접속하면 다시 풀 수 있다(잠금 미유지, #1 롤백)", async ({ page }) => {
+  test("채점한 시험은 재접속 시 '채점 완료' 가드를 거쳐 새 회차로 다시 풀 수 있다(#1 개정, S4)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await enterExam(page);
     await page.locator("#options .option").first().click();
@@ -174,9 +174,13 @@ test.describe("학습 UX — 시험 모드 이어풀기/유지(#1·#2·#6)", () 
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-    await page.getByTestId("resume-keep").click(); // 이어풀기
-    await expect(page.locator('.segmented button[data-mode="exam"]')).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator("#options .option").first()).toBeEnabled(); // 잠금 미유지
+    // 채점 완료 회차는 미채점처럼 보이지 않는다 — 같은 답안 재채점(중복 회차) 차단 가드.
+    await expect(page.getByTestId("graded-resume-modal")).toBeVisible();
+    await page.getByTestId("graded-resume-fresh").click(); // 새 회차 시작
+    await expect(page.getByTestId("exam-start-gate")).toBeVisible();
+    await page.getByTestId("exam-start-btn").click();
+    await expect(page.locator("#options .option").first()).toBeEnabled();
+    await expect(page.locator("#progressText")).toHaveText("0 / 40");
   });
 });
 

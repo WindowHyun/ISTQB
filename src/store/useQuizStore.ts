@@ -20,6 +20,9 @@ export interface ExamHistory {
   wrongItems?: { number: number; myAnswer: string[]; correctAnswer: string[] }[];
   // 챕터별 정답 집계(Phase 3 약점 분석). 채점 시점에 기록 — 과거 기록엔 없을 수 있다.
   chapterStats?: Record<string, { c: number; t: number }>;
+  // 챕터 미니 시험(랜덤 모드 + 챕터 필터) 회차 표식. 세트 전체 회차가 아니므로
+  // 타임라인·직전 대비 비교에서는 같은 챕터끼리만 비교한다(챕터 통계에는 그대로 반영).
+  chapter?: string;
 }
 
 export interface QuizState {
@@ -53,6 +56,13 @@ export interface QuizState {
   resumeNotice: boolean;
   // 시험/랜덤 모드로 복원했고 이전 답안이 있을 때 "이어풀기/새로 풀기" 선택 모달을 띄울지 여부.
   resumePrompt: boolean;
+  // 응시 포기 확인 모달 — 응시 중 잠금의 공식 탈출구(답안 삭제·회차 기록 없음).
+  quitExamOpen: boolean;
+  // 복원한 시험 답안이 최신 채점 회차와 동일할 때 띄우는 "채점 완료된 회차" 안내.
+  // 같은 답안 재채점으로 회차가 중복 적립되는 것을 막는다. null이면 비표시.
+  gradedResume: { correct: number | null; total: number | null } | null;
+  // 랜덤 '새 문제 뽑기' 트리거 — 증가하면 useQuestions가 현재 추첨을 버리고 재추첨한다.
+  randomNonce: number;
 
   // Actions
   setActiveProduct: (product: 'istqb' | 'csts') => void;
@@ -86,6 +96,9 @@ export interface QuizState {
   setConfirmGradeOpen: (open: boolean) => void;
   setResumeNotice: (show: boolean) => void;
   setResumePrompt: (show: boolean) => void;
+  setQuitExamOpen: (open: boolean) => void;
+  setGradedResume: (info: QuizState['gradedResume']) => void;
+  redrawRandom: () => void;
   resetToGate: () => void;
   hydrate: (state: Partial<QuizState>) => void;
 }
@@ -127,6 +140,9 @@ export const useQuizStore = create<QuizState>((set) => ({
   confirmGradeOpen: false,
   resumeNotice: false,
   resumePrompt: false,
+  quitExamOpen: false,
+  gradedResume: null,
+  randomNonce: 0,
 
   setActiveProduct: (activeProduct) => set({ activeProduct }),
   // 모드/세트가 바뀌면 챕터 필터는 의미를 잃으므로 함께 해제한다(필터는 현재 연습 세션 한정).
@@ -195,12 +211,15 @@ export const useQuizStore = create<QuizState>((set) => ({
   setConfirmGradeOpen: (confirmGradeOpen) => set({ confirmGradeOpen }),
   setResumeNotice: (resumeNotice) => set({ resumeNotice }),
   setResumePrompt: (resumePrompt) => set({ resumePrompt }),
+  setQuitExamOpen: (quitExamOpen) => set({ quitExamOpen }),
+  setGradedResume: (gradedResume) => set({ gradedResume }),
+  redrawRandom: () => set((state) => ({ randomNonce: state.randomNonce + 1 })),
   // 진입/캐시 복원 시 항상 최초 화면(제품 선택 게이트)으로 — 오버레이도 모두 닫는다.
   resetToGate: () => set({
     mode: 'home', activeProduct: null,
     drawerOpen: false, settingsOpen: false, statsOpen: false,
     wrongNoteOpen: false, resultOpen: false, paletteOpen: false, confirmGradeOpen: false,
-    resumeNotice: false, resumePrompt: false,
+    resumeNotice: false, resumePrompt: false, quitExamOpen: false, gradedResume: null,
     // 제품 게이트로 돌아가면 시험 시작 상태도 리셋(다음 진입 시 시작 게이트 재노출).
     examStarted: {}, chapterFilter: null,
   }),

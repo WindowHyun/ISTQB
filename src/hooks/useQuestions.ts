@@ -49,7 +49,13 @@ export interface AppData {
 //    채점 화면·점수가 새 추첨 기준으로 뒤바뀐다.
 // 2) 이 훅을 쓰는 모든 컴포넌트(사이드바·워크스페이스·팔레트)가 동일한 추첨을 공유.
 // 랜덤 모드를 벗어나면 폐기되어 다음 진입 때 새로 뽑는다.
-let randomDraw: { setId: string; questions: Question[] } | null = null;
+// chapter: 챕터 미니 시험(랜덤+챕터 필터)의 추첨 스코프. nonce: '새 문제 뽑기' 세대 —
+// 스토어 randomNonce와 어긋나면 같은 세트·챕터라도 재추첨한다.
+let randomDraw: { setId: string; chapter: string | null; nonce: number; questions: Question[] } | null = null;
+
+// 챕터 미니 시험은 10문항(재측정용 짧은 세션), 일반 랜덤은 40문항(모의고사 규모).
+const MINI_TEST_SIZE = 10;
+const RANDOM_DRAW_SIZE = 40;
 
 export function useQuestions() {
   const [appData, setAppData] = useState<AppData | null>(null);
@@ -58,8 +64,9 @@ export function useQuestions() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   // 슬라이스 구독(O1) — 타이머 틱·답안 변경에 이 훅이 리렌더를 유발하지 않는다.
-  const { setId, mode, reviewIds, chapterFilter } = useQuizStore(useShallow((s) => ({
+  const { setId, mode, reviewIds, chapterFilter, randomNonce } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, reviewIds: s.reviewIds, chapterFilter: s.chapterFilter,
+    randomNonce: s.randomNonce,
   })));
 
   // 다른 인스턴스의 "다시 시도"가 성공하면 이 인스턴스도 캐시에서 다시 읽어 복구한다 —
@@ -97,14 +104,17 @@ export function useQuestions() {
 
     function applyMode(questions: Question[]) {
       if (mode === 'random') {
-        if (randomDraw?.setId === setId) {
+        // 챕터 필터가 있으면 미니 시험(해당 챕터 10문항 추첨) — 약점 재측정 세션.
+        const chapter = chapterFilter ?? null;
+        if (randomDraw?.setId === setId && randomDraw.chapter === chapter && randomDraw.nonce === randomNonce) {
           setCurrentQuestions(randomDraw.questions);
           return;
         }
-        const shuffled = shuffleQuestions(questions);
-        const take = Math.min(40, shuffled.length);
+        const pool = chapter ? questions.filter((q) => q.chapter === chapter) : questions;
+        const shuffled = shuffleQuestions(pool);
+        const take = Math.min(chapter ? MINI_TEST_SIZE : RANDOM_DRAW_SIZE, shuffled.length);
         const drawn = shuffled.slice(0, take);
-        randomDraw = { setId, questions: drawn };
+        randomDraw = { setId, chapter, nonce: randomNonce, questions: drawn };
         setCurrentQuestions(drawn);
       } else if (mode === 'review') {
         // 시험·랜덤 각각의 오답 합집합(+구버전 setId 단독 키 호환)을 복습 대상으로 한다.
@@ -141,7 +151,7 @@ export function useQuestions() {
         setCurrentQuestions([]);
       });
     return () => { cancelled = true; };
-  }, [appData, setId, mode, reviewIds, chapterFilter, reloadKey]);
+  }, [appData, setId, mode, reviewIds, chapterFilter, randomNonce, reloadKey]);
 
   // 실패 배너의 "다시 시도" — 에러를 지우고 두 로드 effect를 재실행한다.
   const retryLoad = () => {

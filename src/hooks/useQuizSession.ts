@@ -90,6 +90,9 @@ export function useQuizSession() {
       wrongItems,
       // 챕터별 정답 집계(약점 분석용) — 채점 시점의 문항·답안으로 확정 저장.
       chapterStats: buildChapterStats(currentQuestions, answers, answerKeyOf),
+      // 챕터 미니 시험(랜덤+필터) 표식 — 타임라인·회차 비교에서 세트 전체 회차와 분리된다.
+      // (연습은 채점이 없고 시험 모드 진입 시 setMode가 필터를 해제하므로 랜덤에서만 값이 실린다)
+      chapter: useQuizStore.getState().chapterFilter ?? undefined,
     };
     addHistory(history);
     // 채점 이력을 IndexedDB에 영속화(새로고침 후 통계 대시보드에서 조회).

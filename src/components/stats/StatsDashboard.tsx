@@ -26,13 +26,15 @@ interface StatsDashboardProps {
   onClear: () => void;
   /** 챕터 집중 연습 진입(현재 세트를 해당 챕터로 필터해 연습 모드로). */
   onPracticeChapter: (chapter: string) => void;
+  /** 챕터 미니 시험 진입(해당 챕터 10문항 추첨, 채점 시 챕터 통계에 반영). */
+  onMiniTestChapter: (chapter: string) => void;
   /** 시험 응시 중(잠금)이면 연습 진입 버튼을 비활성화한다(핸들러 가드와 이중 방어). */
   practiceLocked?: boolean;
   /** 현재 제품(약점 임계값 결정 — istqb 65% / csts 75%). */
   certification?: 'istqb' | 'csts' | null;
 }
 
-export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeChapter, practiceLocked, certification }: StatsDashboardProps) => {
+export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeChapter, onMiniTestChapter, practiceLocked, certification }: StatsDashboardProps) => {
   const weakThreshold = WEAK_THRESHOLD_BY_CERT[certification ?? 'istqb'] ?? 65;
   const rows = useMemo(() => {
     const titleOf = (setId: string) => sets.find((s) => s.id === setId)?.title || setId;
@@ -111,8 +113,9 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
 
             {chapterRows.length > 0 && (
               <section className="stats-chapters" aria-label="챕터별 정답률" data-testid="stats-chapters">
-                {/* 진단은 전 세트 합산, '연습' 진입은 현재 세트 한정 — 기준 차이를 라벨로 명시(A1). */}
-                <h4>챕터별 정답률 <small>전 세트 합산 · 낮은 순 — 연습은 현재 세트에서 진행</small></h4>
+                {/* 진단은 전 세트 합산, '연습'·'미니 시험' 진입은 현재 세트 한정 — 기준 차이를 라벨로 명시(A1).
+                    연습은 기록 없음 / 미니 시험(10문항)은 채점 시 챕터 통계에 반영 — 약점 재측정 경로. */}
+                <h4>챕터별 정답률 <small>전 세트 합산 · 낮은 순 — 연습은 기록 없음 · 미니 시험은 통계 반영</small></h4>
                 <ul>
                   {chapterRows.map((ch) => (
                     <li key={ch.name} className={ch.rate < weakThreshold ? 'weak' : ''} data-testid="stats-chapter-row">
@@ -128,10 +131,22 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
                         disabled={practiceLocked}
                         title={practiceLocked
                           ? '시험 응시 중에는 집중 연습을 시작할 수 없습니다. 먼저 채점하세요.'
-                          : `현재 세트에서 '${ch.name}' 문항만 연습`}
+                          : `현재 세트에서 '${ch.name}' 문항만 연습 (통계 미기록)`}
                         onClick={() => onPracticeChapter(ch.name)}
                       >
                         연습
+                      </button>
+                      <button
+                        type="button"
+                        className="sc-minitest"
+                        data-testid="chapter-minitest-btn"
+                        disabled={practiceLocked}
+                        title={practiceLocked
+                          ? '시험 응시 중에는 미니 시험을 시작할 수 없습니다. 먼저 채점하세요.'
+                          : `'${ch.name}' 10문항 미니 시험 — 채점하면 챕터 통계에 반영`}
+                        onClick={() => onMiniTestChapter(ch.name)}
+                      >
+                        미니 시험
                       </button>
                     </li>
                   ))}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSetTimelines, latestAttemptComparison, formatDeltaPp } from './attemptStats';
+import { buildSetTimelines, latestAttemptComparison, formatDeltaPp, overcomeNumbers } from './attemptStats';
 import type { ExamHistory } from '../store/useQuizStore';
 
 // 회차 이력 헬퍼 — createdAt으로 시간순을 통제한다.
@@ -107,5 +107,83 @@ describe('formatDeltaPp', () => {
     expect(formatDeltaPp(5)).toEqual({ label: '▲ +5%p', dir: 'up' });
     expect(formatDeltaPp(-3)).toEqual({ label: '▼ -3%p', dir: 'down' });
     expect(formatDeltaPp(0)).toEqual({ label: '± 0%p', dir: 'same' });
+  });
+});
+
+describe('챕터 미니 시험 회차(chapter 표식)', () => {
+  it('buildSetTimelines는 미니 회차를 타임라인에서 제외한다(10문항 표본이 세트 회차와 섞이지 않게)', () => {
+    const tl = buildSetTimelines(
+      [
+        h({ id: 'e1', setId: 'A', correct: 20, total: 40, createdAt: 100 }),
+        h({ id: 'm1', setId: 'A', mode: 'random', chapter: '테스트 기초', correct: 9, total: 10, createdAt: 200 }),
+      ],
+      titleOf,
+    );
+    expect(tl).toHaveLength(1);
+    expect(tl[0].attempts).toHaveLength(1);
+    expect(tl[0].attempts[0].id).toBe('e1');
+  });
+
+  it('latestAttemptComparison은 같은 챕터 미니끼리만 회차를 센다(일반 랜덤과 분리)', () => {
+    const hist = [
+      h({ id: 'r1', setId: 'A', mode: 'random', correct: 20, total: 40, createdAt: 100 }), // 일반 랜덤 50%
+      h({ id: 'm1', setId: 'A', mode: 'random', chapter: '테스트 기초', correct: 5, total: 10, createdAt: 200 }), // 미니 50%
+      h({ id: 'm2', setId: 'A', mode: 'random', chapter: '테스트 기초', correct: 8, total: 10, createdAt: 300 }), // 미니 80%
+    ];
+    // 미니 스코프: m1→m2 두 회차, 직전은 m1(50%)
+    expect(latestAttemptComparison(hist, 'A', 'random', '테스트 기초')).toEqual({ round: 2, previousRate: 50 });
+    // 일반 랜덤 스코프: r1 하나뿐(첫 응시) — 미니가 직전으로 잡히지 않는다
+    expect(latestAttemptComparison(hist, 'A', 'random')).toEqual({ round: 1, previousRate: null });
+    // 다른 챕터 미니는 0회차
+    expect(latestAttemptComparison(hist, 'A', 'random', '정적 테스트')).toEqual({ round: 0, previousRate: null });
+  });
+});
+
+describe('overcomeNumbers(오답 극복 판정)', () => {
+  const wrong = (...nums: number[]) => nums.map((n) => ({ number: n, myAnswer: ['a'], correctAnswer: ['b'] }));
+
+  it('최근 시험 2회 연속 정답(wrongItems에 없음)이면 극복이다', () => {
+    const hist = [
+      h({ id: 'e1', setId: 'A', correct: 0, total: 40, createdAt: 100, wrongItems: wrong(1, 2) }),
+      h({ id: 'e2', setId: 'A', correct: 39, total: 40, createdAt: 200, wrongItems: wrong(2) }),
+      h({ id: 'e3', setId: 'A', correct: 39, total: 40, createdAt: 300, wrongItems: wrong(2) }),
+    ];
+    const out = overcomeNumbers(hist, 'A', [1, 2]);
+    expect(out.has(1)).toBe(true); // e2·e3에서 정답
+    expect(out.has(2)).toBe(false); // 여전히 오답
+  });
+
+  it('시험 회차가 2회 미만이면 극복 없음(연속 2회를 말할 수 없다)', () => {
+    const hist = [h({ id: 'e1', setId: 'A', correct: 39, total: 40, createdAt: 100, wrongItems: wrong(2) })];
+    expect(overcomeNumbers(hist, 'A', [1]).size).toBe(0);
+  });
+
+  it('랜덤·미니 회차는 근거로 쓰지 않는다(추첨 포함 여부를 알 수 없음)', () => {
+    const hist = [
+      h({ id: 'e1', setId: 'A', correct: 0, total: 40, createdAt: 100, wrongItems: wrong(1) }),
+      h({ id: 'r1', setId: 'A', mode: 'random', correct: 40, total: 40, createdAt: 200, wrongItems: [] }),
+      h({ id: 'r2', setId: 'A', mode: 'random', correct: 40, total: 40, createdAt: 300, wrongItems: [] }),
+    ];
+    // 시험은 e1 하나뿐 → 판정 불가
+    expect(overcomeNumbers(hist, 'A', [1]).size).toBe(0);
+  });
+
+  it('최근 2회 중 한 회라도 다시 틀리면 극복이 아니다', () => {
+    const hist = [
+      h({ id: 'e1', setId: 'A', correct: 39, total: 40, createdAt: 100, wrongItems: wrong(1) }),
+      h({ id: 'e2', setId: 'A', correct: 40, total: 40, createdAt: 200, wrongItems: [] }),
+      h({ id: 'e3', setId: 'A', correct: 39, total: 40, createdAt: 300, wrongItems: wrong(1) }),
+    ];
+    expect(overcomeNumbers(hist, 'A', [1]).size).toBe(0);
+  });
+
+  it('wrongItems가 없는 과거(legacy) 회차는 근거에서 제외한다', () => {
+    const hist = [
+      h({ id: 'e1', setId: 'A', correct: 0, total: 40, createdAt: 100, wrongItems: wrong(1) }),
+      h({ id: 'e2', setId: 'A', correct: 40, total: 40, createdAt: 200 }), // legacy(스냅샷 없음)
+      h({ id: 'e3', setId: 'A', correct: 40, total: 40, createdAt: 300, wrongItems: [] }),
+    ];
+    // 근거 가능한 시험은 e1·e3 — e1에서 틀렸으므로 극복 아님
+    expect(overcomeNumbers(hist, 'A', [1]).size).toBe(0);
   });
 });

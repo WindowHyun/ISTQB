@@ -83,7 +83,8 @@ export const QuestionWorkspace = () => {
       const s = useQuizStore.getState();
       if (
         s.settingsOpen || s.statsOpen || s.wrongNoteOpen || s.resultOpen || s.paletteOpen ||
-        s.confirmGradeOpen || s.resumePrompt || s.drawerOpen
+        s.confirmGradeOpen || s.resumePrompt || s.drawerOpen ||
+        s.quitExamOpen || s.gradedResume !== null
       ) {
         return;
       }
@@ -185,11 +186,19 @@ export const QuestionWorkspace = () => {
 
       {chapterFilter && (
         <div className="chapter-filter-banner" data-testid="chapter-filter-banner" role="status">
-          <span className="cf-text">
-            <strong>{chapterFilter}</strong> 챕터만 연습 중 — {total}문항
-            {/* 연습은 이력에 집계되지 않는다(무기록) — 정답률 갱신 경로를 안내해 기대 어긋남 방지. */}
-            <small className="cf-hint">연습은 통계에 기록되지 않아요 — 시험·랜덤 채점으로 정답률을 갱신하세요.</small>
-          </span>
+          {mode === 'random' ? (
+            // 챕터 미니 시험(랜덤+필터) — 연습과 달리 채점되어 챕터 통계에 반영된다.
+            <span className="cf-text">
+              <strong>{chapterFilter}</strong> 미니 시험 — {total}문항
+              <small className="cf-hint">채점하면 챕터 통계에 반영돼요 — 약점 보완 후 재측정에 쓰세요.</small>
+            </span>
+          ) : (
+            <span className="cf-text">
+              <strong>{chapterFilter}</strong> 챕터만 연습 중 — {total}문항
+              {/* 연습은 이력에 집계되지 않는다(무기록) — 정답률 갱신 경로를 안내해 기대 어긋남 방지. */}
+              <small className="cf-hint">연습은 통계에 기록되지 않아요 — 미니 시험·시험 채점으로 정답률을 갱신하세요.</small>
+            </span>
+          )}
           <button
             type="button"
             className="cf-clear"

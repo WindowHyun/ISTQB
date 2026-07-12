@@ -707,6 +707,20 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 }
 .wrong-note-item-btn:hover { border-color: var(--primary); background: var(--surface); }
 @media (max-width: 560px) { .wrong-note-item-btn { grid-template-columns: 1fr; } }
+/* 극복(최근 시험 2회 연속 정답) 문항 — 목록에는 남기되 흐리게 + 배지로 상태 구분. */
+.wn-overcome .wrong-note-item-btn { opacity: 0.62; grid-template-columns: auto 1fr 1fr auto auto; }
+.wn-overcome .wrong-note-item-btn:hover { opacity: 1; }
+.wn-overcome-tag {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--success-50);
+  border: 1px solid var(--success-200);
+  color: var(--success);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+@media (max-width: 560px) { .wn-overcome .wrong-note-item-btn { grid-template-columns: 1fr; } }
 
 /* ── 오답 노트 3단계: 팝업 내 문항 보기(읽기 전용) ───────────────────── */
 .wrong-note-question-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
@@ -791,6 +805,19 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 
 /* 응시 중 잠금 힌트 */
 .exam-lock-hint { margin-top: 8px; font-size: 12px; font-weight: 700; color: var(--muted); }
+/* 응시 포기 — 파괴적 액션(답안 삭제)이므로 danger 톤, 확인 모달을 거친다. */
+.quit-exam-btn {
+  margin-top: 8px;
+  width: 100%;
+  padding: 9px;
+  border-radius: 10px;
+  border: 1px solid var(--danger-200);
+  background: var(--danger-50);
+  color: var(--danger);
+  font-weight: 800;
+  font-size: 13px;
+}
+.quit-exam-btn:hover { border-color: var(--danger); }
 .sidebar-controls[data-exam-locked="true"] .panel select:disabled,
 .sidebar-controls[data-exam-locked="true"] .segmented button:disabled {
   opacity: 0.5;
@@ -930,6 +957,8 @@ body[data-theme="dark"] .table-image-frame {
   border: 1px solid var(--line-strong); background: var(--surface); color: var(--text-2);
 }
 .confirm-actions button.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+/* 파괴적 확정(응시 포기 등) — primary와 구분되는 danger 톤. */
+.confirm-actions button.danger { background: var(--danger); color: #fff; border-color: var(--danger); }
 
 /* 토스트(#4) */
 .toast-host {
@@ -1253,7 +1282,8 @@ body[data-theme="dark"] .mtb-chip { background: #1e40af; }
 .stats-chapters ul { display: flex; flex-direction: column; gap: 6px; }
 .stats-chapters li {
   display: grid;
-  grid-template-columns: minmax(90px, 1.1fr) 2fr auto auto;
+  /* 이름 · 바 · 정답률 · 연습 · 미니 시험 */
+  grid-template-columns: minmax(90px, 1.1fr) 2fr auto auto auto;
   align-items: center;
   gap: 10px;
   padding: 7px 10px;
@@ -1279,6 +1309,18 @@ body[data-theme="dark"] .mtb-chip { background: #1e40af; }
   color: var(--text-2);
 }
 .sc-practice:hover { color: var(--primary); border-color: var(--primary); }
+/* 미니 시험 — 통계에 반영되는 재측정 세션이라 연습보다 한 단계 강조. */
+.sc-minitest {
+  border: 1px solid var(--primary-100);
+  background: var(--primary-50, var(--surface-3));
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary);
+}
+.sc-minitest:hover { border-color: var(--primary); }
+.sc-practice:disabled, .sc-minitest:disabled { opacity: 0.5; cursor: not-allowed; }
 .stats-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
 
 /* 정답률 추이 미니 바(왼쪽=과거) */

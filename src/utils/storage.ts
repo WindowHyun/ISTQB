@@ -197,6 +197,8 @@ export function sanitizeHistory(value: unknown): ExamHistory | null {
   const createdAt = finiteNumber(value.createdAt);
   if (createdAt !== undefined) out.createdAt = createdAt;
   if (typeof value.setTitle === "string") out.setTitle = value.setTitle;
+  // 챕터 미니 시험 표식 — 없으면 세트 전체 회차(구버전 포함)로 취급된다.
+  if (typeof value.chapter === "string" && value.chapter) out.chapter = value.chapter;
   if (isPlainObject(value.chapterStats)) {
     // 챕터 집계는 { 챕터명: {c,t} } — 유한 숫자 셀만 통과(손상 백업의 NaN 유입 차단).
     const chapterStats: Record<string, { c: number; t: number }> = {};
@@ -266,6 +268,30 @@ const sessionGraded: Partial<Record<'istqb' | 'csts', QuizState['graded']>> = {}
 function invalidateSessionRestoreCache(product: 'istqb' | 'csts') {
   lastRestoredProduct = null;
   delete sessionGraded[product];
+}
+
+// 복원한 시험 답안이 최신 채점 회차(같은 세트·시험 모드)의 답안 스냅샷과 완전히
+// 일치하면 그 회차를 돌려준다(아니면 null). 키 집합과 각 키의 선택 배열까지 비교한다 —
+// 채점 이력의 answers는 채점 시점 스냅샷이므로 "동일 = 아직 새 응시를 시작하지 않음".
+export function findGradedExamMatch(
+  histories: Record<string, ExamHistory>,
+  setId: string,
+  answers: Record<string, string[]>,
+): ExamHistory | null {
+  const latest = Object.values(histories)
+    .filter((h) => h.setId === setId && h.mode === 'exam' && !h.chapter)
+    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0) || b.id.localeCompare(a.id))[0];
+  if (!latest || !latest.answers) return null;
+  const prefix = `${setId}-exam-`;
+  const restored = Object.entries(answers).filter(([k]) => k.startsWith(prefix));
+  const recorded = Object.entries(latest.answers).filter(([k]) => k.startsWith(prefix));
+  if (!restored.length || restored.length !== recorded.length) return null;
+  const recordedMap = new Map(recorded);
+  for (const [k, v] of restored) {
+    const rv = recordedMap.get(k);
+    if (!rv || rv.length !== v.length || rv.some((x, i) => x !== v[i])) return null;
+  }
+  return latest;
 }
 
 export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts') {
@@ -343,18 +369,43 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
     if (m === 'random') {
       // 랜덤은 재접속 시 재추첨되어 이어풀기가 무의미하므로 이전 답안을 비우고
       // 처음부터 새로 시작한다(랜덤은 이어풀기 없음). 선택 모달·배너도 띄우지 않는다.
+      const hadRandomProgress = Object.keys(sanitizedAnswers).some((k) =>
+        k.startsWith(`${sid}-random-`),
+      );
       store.clearAnswers(sid, 'random');
       store.setIndex(0);
       store.setResumePrompt(false);
       store.setResumeNotice(false);
+      // 무통보 초기화 방지 — 진행이 실제로 사라진 경우에만 정책을 1회 안내한다.
+      if (hadRandomProgress) {
+        showToast('랜덤은 접속할 때마다 새로 추첨돼요 — 이전 진행은 초기화되었습니다.', 'info');
+      }
     } else {
       // 시험 모드로 복원했고 이전 답안이 남아 있으면 "이어풀기/새로 풀기" 선택 모달을 띄운다.
       const hasExamProgress =
         m === 'exam' &&
         Object.keys(sanitizedAnswers).some((k) => k.startsWith(`${sid}-${m}-`));
-      store.setResumePrompt(hasExamProgress);
-      // 선택 모달이 뜨는 경우엔 위치 배너는 띄우지 않는다(중복 방지). 그 외엔 첫 문항이 아니면 배너(#A).
-      store.setResumeNotice(!hasExamProgress && (restoredUi.index ?? 0) > 0);
+      // 복원한 시험 답안이 "최신 채점 회차의 답안"과 동일하면 이미 채점을 마친 회차다 —
+      // graded는 비영속(#1)이라 새로고침 후 미채점처럼 보이고, 이어풀기→재채점하면
+      // 같은 답안이 중복 회차로 적립된다. 채점 상태를 복원하고 전용 안내 모달로 분기한다.
+      // (채점 후 시험 답안은 잠금돼 변할 수 없으므로 "답안 동일 = 그 회차 그대로"가 성립)
+      const gradedMatch =
+        hasExamProgress && !store.graded[`${sid}-exam`]
+          ? findGradedExamMatch(histories, sid, sanitizedAnswers)
+          : null;
+      if (gradedMatch) {
+        useQuizStore.getState().setGraded(`${sid}-exam`, true);
+        useQuizStore.getState().setGradedResume({
+          correct: gradedMatch.correct ?? null,
+          total: gradedMatch.total ?? null,
+        });
+        store.setResumePrompt(false);
+        store.setResumeNotice(false);
+      } else {
+        store.setResumePrompt(hasExamProgress);
+        // 선택 모달이 뜨는 경우엔 위치 배너는 띄우지 않는다(중복 방지). 그 외엔 첫 문항이 아니면 배너(#A).
+        store.setResumeNotice(!hasExamProgress && (restoredUi.index ?? 0) > 0);
+      }
     }
   } catch (e) {
     console.error("Failed to restore snapshot:", e);

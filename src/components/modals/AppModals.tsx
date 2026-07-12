@@ -10,7 +10,7 @@ import { isDebugEnabled, setDebugEnabled } from '../../utils/debugLog';
 import { Modal } from '../common/Modal';
 import { ConfirmButtons } from '../common/ConfirmButtons';
 import { StatsDashboard } from '../stats/StatsDashboard';
-import { latestAttemptComparison } from '../../utils/attemptStats';
+import { latestAttemptComparison, overcomeNumbers } from '../../utils/attemptStats';
 import { ResultSummary } from '../quiz/ResultSummary';
 import { QuestionPalette } from '../quiz/QuestionPalette';
 import { Question } from '../../hooks/useQuestions';
@@ -66,6 +66,9 @@ interface WrongNoteSetView {
   attemptCount: number; // 합산에 관여한 회차 수
   latestCreatedAt?: number; // 최근 회차 시각(정렬·표기)
   wrongItems: NonNullable<ExamHistory['wrongItems']>;
+  // '극복'(최근 시험 2회 연속 정답) 판정된 문항 번호 — 누적 노트에서 상태를 구분해
+  // 한 번 틀린 문항이 영구히 '복습 대상'처럼 보이는 문제를 푼다(목록에는 남긴다).
+  overcome: Set<number>;
 }
 
 // 앱 루트에 렌더되는 모든 오버레이(설정·통계·오답노트·결과·문항이동).
@@ -74,21 +77,26 @@ export const AppModals = () => {
   // 슬라이스 구독(O1). elapsedSeconds는 결과 모달이 열려 있을 때만 반영해
   // 닫혀 있는 동안 타이머 틱으로 리렌더되지 않게 한다(열려 있으면 기존처럼 초 단위 갱신).
   const {
-    setId, mode, activeProduct, histories, resultElapsedSeconds,
+    setId, mode, activeProduct, histories, resultElapsedSeconds, chapterFilter,
     settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, resumePrompt,
+    quitExamOpen, gradedResume,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
     setMode, beginSession, clearAnswers, setReviewIds, setSetId, setChapterFilter, setResumePrompt,
+    setQuitExamOpen, setGradedResume,
   } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, activeProduct: s.activeProduct, histories: s.histories,
     resultElapsedSeconds: s.resultOpen ? s.elapsedSeconds : 0,
+    chapterFilter: s.chapterFilter,
     settingsOpen: s.settingsOpen, statsOpen: s.statsOpen, wrongNoteOpen: s.wrongNoteOpen,
     resultOpen: s.resultOpen, paletteOpen: s.paletteOpen, confirmGradeOpen: s.confirmGradeOpen,
     resumePrompt: s.resumePrompt,
+    quitExamOpen: s.quitExamOpen, gradedResume: s.gradedResume,
     setSettingsOpen: s.setSettingsOpen, setStatsOpen: s.setStatsOpen, setWrongNoteOpen: s.setWrongNoteOpen,
     setResultOpen: s.setResultOpen, setPaletteOpen: s.setPaletteOpen, setDrawerOpen: s.setDrawerOpen,
     setConfirmGradeOpen: s.setConfirmGradeOpen, setMode: s.setMode, beginSession: s.beginSession,
     clearAnswers: s.clearAnswers, setReviewIds: s.setReviewIds, setSetId: s.setSetId,
     setChapterFilter: s.setChapterFilter, setResumePrompt: s.setResumePrompt,
+    setQuitExamOpen: s.setQuitExamOpen, setGradedResume: s.setGradedResume,
   })));
   // examLocked — useQuizSession이 단일 원천(게이트·사이드바 잠금과 동일 규칙 집합).
   const { appData, total, answered, correctCount, gradeAndShow, examLocked } = useQuizSession();
@@ -101,6 +109,9 @@ export const AppModals = () => {
   const [wrongNoteSetId, setWrongNoteSetId] = useState<string | null>(null);
   // 오답 노트 3단계: 선택한 오답 문항 번호(null이면 오답 목록 화면). 팝업 안에서 문제를 다시 본다.
   const [wrongNoteQuestionNo, setWrongNoteQuestionNo] = useState<number | null>(null);
+  // 응시 중 '처음 화면으로' 확인 — 잠금을 옆문으로 조용히 우회하지 않게 명시적 확인을 거친다
+  // (답안은 저장되므로 파괴적이지 않음 → 로컬 상태로 충분, 다른 컴포넌트가 열 일 없음).
+  const [confirmHomeOpen, setConfirmHomeOpen] = useState(false);
 
   useEffect(() => {
     document.body.dataset.qfont = fontSize;
@@ -130,9 +141,11 @@ export const AppModals = () => {
   }, [histories, sets, activeProduct]);
   // Phase 2 — 결과 모달의 "직전 회차 대비" 비교(현재 세트·모드의 최신 회차 기준).
   // productHistories(메모화·제품 필터)를 입력으로 써 다른 제품 이력 변경에는 재계산하지 않는다.
+  // 챕터 미니 시험(랜덤+필터)은 같은 챕터 미니 회차끼리만 비교한다(표본 불일치 왜곡 방지).
+  const compareChapter = mode === 'random' ? (chapterFilter ?? null) : null;
   const attemptCompare = React.useMemo(
-    () => latestAttemptComparison(Object.values(productHistories), setId, mode),
-    [productHistories, setId, mode],
+    () => latestAttemptComparison(Object.values(productHistories), setId, mode, compareChapter),
+    [productHistories, setId, mode, compareChapter],
   );
   const fmtAns = (arr: string[]) =>
     arr.length ? arr.map((s) => s.toUpperCase()).join(', ') : '미응답';
@@ -159,12 +172,20 @@ export const AppModals = () => {
           if (!items.has(it.number)) items.set(it.number, it); // 최신 회차 기록이 대표
         }
       }
+      const wrongList = Array.from(items.values()).sort((a, b) => a.number - b.number);
       merged.push({
         setId: sid,
         setTitle: hs[0].setTitle,
         attemptCount: hs.length,
         latestCreatedAt: hs[0].createdAt,
-        wrongItems: Array.from(items.values()).sort((a, b) => a.number - b.number),
+        wrongItems: wrongList,
+        // 극복 판정은 오답이 있는 회차만이 아니라 전 이력(만점 회차 포함) 기준이어야 한다 —
+        // bySet은 wrongItems>0 회차만 모으므로 productHistories 전체를 넘긴다.
+        overcome: overcomeNumbers(
+          Object.values(productHistories),
+          sid,
+          wrongList.map((it) => it.number),
+        ),
       });
     }
     return merged.sort((a, b) => (b.latestCreatedAt || 0) - (a.latestCreatedAt || 0));
@@ -194,9 +215,25 @@ export const AppModals = () => {
   };
 
   const handleHome = () => {
+    // 응시 중(잠금)에는 바로 이동하지 않고 확인을 거친다 — 사이드바 잠금과의 일관성.
+    // 답안은 저장되며 시험 탭 복귀 시 이어풀 수 있으므로 안내만 하고 막지는 않는다.
+    if (examLocked) {
+      // 설정 모달을 먼저 닫는다 — JSX 뒤에 렌더되는 설정 모달이 확인 모달 위를 덮는다.
+      setSettingsOpen(false);
+      setConfirmHomeOpen(true);
+      return;
+    }
     setSettingsOpen(false);
     setDrawerOpen(false);
     setMode('home');
+  };
+
+  // 응시 포기(확인 후) — 답안·시작 상태를 지우고 시작 게이트로 되돌린다. 회차 기록 없음.
+  const confirmQuitExam = () => {
+    clearAnswers(setId, 'exam');
+    beginSession();
+    setQuitExamOpen(false);
+    showToast('응시를 포기했습니다 — 회차 기록은 남지 않았어요.', 'info');
   };
 
   const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -233,15 +270,17 @@ export const AppModals = () => {
     showToast('현재 자격증의 응시 이력을 모두 삭제했습니다.', 'success');
   };
 
-  // 약점 챕터 집중 연습(Phase 3): 통계에서 챕터를 고르면 그 챕터로 필터해 연습 모드로
-  // 진입한다. 진단은 전 세트 합산이므로, 현재 세트에 해당 챕터 문항이 없으면 그 챕터가
-  // 있는 세트로 자동 전환한다(빈 필터 화면 착지 방지). setMode가 필터를 초기화하므로
-  // 필터는 그 뒤에 건다.
-  const handlePracticeChapter = async (chapter: string) => {
+  // 약점 챕터 집중 세션(Phase 3): 통계에서 챕터를 고르면 그 챕터로 필터해 진입한다.
+  // - 연습(practice): 즉시 피드백, 통계 무기록.
+  // - 미니 시험(random): 챕터 문항 10개 추첨, 채점 시 챕터 통계에 반영 — 약점
+  //   "발견→보완→재측정" 루프의 재측정 단계를 담당한다.
+  // 진단은 전 세트 합산이므로, 현재 세트에 해당 챕터 문항이 없으면 그 챕터가 있는
+  // 세트로 자동 전환한다(빈 필터 화면 착지 방지). setMode가 필터를 초기화하므로 필터는 그 뒤에 건다.
+  const startChapterSession = async (chapter: string, target: 'practice' | 'random') => {
     // 응시 중 잠금 — 학습 통계 버튼은 잠금 중에도 열리므로, 여기서 막지 않으면
     // setMode+beginSession으로 잠금을 우회해 시험 타이머가 소실된다(버튼 disabled와 이중 방어).
     if (examLocked) {
-      showToast('시험 응시 중에는 집중 연습을 시작할 수 없습니다. 먼저 채점하세요.', 'info');
+      showToast('시험 응시 중에는 챕터 세션을 시작할 수 없습니다. 먼저 채점하세요.', 'info');
       return;
     }
     setStatsOpen(false);
@@ -262,10 +301,16 @@ export const AppModals = () => {
         }
       }
     } catch { /* 세트 로드 실패 시 현재 세트 유지 — 빈 필터 안내가 그레이스풀 처리 */ }
-    setMode('practice');
+    if (target === 'random') {
+      // 미니 시험은 새 추첨으로 시작 — 세트가 방금 바뀌었을 수 있어 현재 setId를 다시 읽는다.
+      clearAnswers(useQuizStore.getState().setId, 'random');
+    }
+    setMode(target);
     setChapterFilter(chapter);
     beginSession();
   };
+  const handlePracticeChapter = (chapter: string) => startChapterSession(chapter, 'practice');
+  const handleMiniTestChapter = (chapter: string) => startChapterSession(chapter, 'random');
 
   const handleResetMode = () => {
     clearAnswers(setId, mode);
@@ -308,6 +353,85 @@ export const AppModals = () => {
                 onClick={() => setResumePrompt(false)}
               >
                 이어풀기
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {quitExamOpen && (
+        <Modal title="응시 포기" onClose={() => setQuitExamOpen(false)}>
+          <div className="modal-body confirm-body" data-testid="quit-exam-modal">
+            <p>
+              응시를 포기할까요? 지금까지의 답안은 삭제되고 <strong>회차 기록은 남지 않습니다</strong>.
+              다음에 시험을 시작하면 처음부터 진행됩니다.
+            </p>
+            <div className="confirm-actions">
+              <button type="button" onClick={() => setQuitExamOpen(false)}>계속 응시</button>
+              <button type="button" className="danger" data-testid="quit-exam-confirm" onClick={confirmQuitExam}>
+                포기하기
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {confirmHomeOpen && (
+        <Modal title="처음 화면으로" onClose={() => setConfirmHomeOpen(false)}>
+          <div className="modal-body confirm-body" data-testid="confirm-home-modal">
+            <p>
+              시험 응시 중입니다. 이동해도 답안은 저장되며, 시험 탭으로 돌아오면
+              <strong> 이어풀 수 있어요</strong>. 이동할까요?
+            </p>
+            <div className="confirm-actions">
+              <button type="button" onClick={() => setConfirmHomeOpen(false)}>계속 응시</button>
+              <button
+                type="button"
+                className="primary"
+                data-testid="confirm-home-go"
+                onClick={() => {
+                  setConfirmHomeOpen(false);
+                  setSettingsOpen(false);
+                  setDrawerOpen(false);
+                  setMode('home');
+                }}
+              >
+                이동
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {gradedResume && (
+        <Modal title="채점 완료된 회차" onClose={() => setGradedResume(null)}>
+          <div className="modal-body confirm-body" data-testid="graded-resume-modal">
+            <p>
+              이 시험은 <strong>이미 채점을 마친 회차</strong>예요
+              {gradedResume.correct != null && gradedResume.total != null
+                ? ` (${gradedResume.correct} / ${gradedResume.total})`
+                : ''}.
+              같은 답안을 다시 채점하면 회차가 중복으로 쌓여 통계가 왜곡됩니다.
+            </p>
+            <div className="confirm-actions">
+              <button
+                type="button"
+                data-testid="graded-resume-view"
+                onClick={() => { setGradedResume(null); setResultOpen(true); }}
+              >
+                지난 결과 보기
+              </button>
+              <button
+                type="button"
+                className="primary"
+                data-testid="graded-resume-fresh"
+                onClick={() => {
+                  clearAnswers(setId, 'exam');
+                  beginSession();
+                  setGradedResume(null);
+                }}
+              >
+                새 회차 시작
               </button>
             </div>
           </div>
@@ -454,9 +578,17 @@ export const AppModals = () => {
                     전 회차 합산({selectedWrong.attemptCount}회) · 오답 {selectedWrong.wrongItems?.length ?? 0}
                   </small>
                 </h4>
+                {selectedWrong.overcome.size > 0 && (
+                  // 극복 문항이 실제로 있을 때만 범례를 노출한다(항상 보이면 소음).
+                  <p className="stats-hint" data-testid="wrong-note-overcome-hint">
+                    ✓ 극복 = 최근 시험 2회 연속 정답 — 목록에는 남지만 흐리게 표시돼요.
+                  </p>
+                )}
                 <ul className="wrong-note-list">
-                  {(selectedWrong.wrongItems ?? []).map((it, idx) => (
-                    <li key={`${it.number}-${idx}`}>
+                  {(selectedWrong.wrongItems ?? []).map((it, idx) => {
+                    const overcome = selectedWrong.overcome.has(it.number);
+                    return (
+                    <li key={`${it.number}-${idx}`} className={overcome ? 'wn-overcome' : undefined}>
                       <button
                         type="button"
                         className="wrong-note-item wrong-note-item-btn"
@@ -466,10 +598,14 @@ export const AppModals = () => {
                         <span className="wn-num">문제 {it.number}</span>
                         <span className="wn-mine">내 답 {fmtAns(it.myAnswer)}</span>
                         <span className="wn-correct">정답 {fmtAns(it.correctAnswer)}</span>
+                        {overcome && (
+                          <span className="wn-overcome-tag" data-testid="wrong-note-overcome-tag">✓ 극복</span>
+                        )}
                         <span className="wns-arrow" aria-hidden="true">›</span>
                       </button>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               </div>
             )}
@@ -572,6 +708,7 @@ export const AppModals = () => {
           onClose={() => setStatsOpen(false)}
           onClear={handleClearHistories}
           onPracticeChapter={handlePracticeChapter}
+          onMiniTestChapter={handleMiniTestChapter}
           practiceLocked={examLocked}
           certification={activeProduct}
         />
@@ -607,7 +744,9 @@ export const AppModals = () => {
           elapsedSeconds={resultElapsedSeconds}
           attemptRound={attemptCompare.round}
           previousRate={attemptCompare.previousRate}
-          modeLabel={MODE_LABEL[mode] ?? mode}
+          // 챕터 미니 시험(랜덤+필터)은 회차 라벨도 구분 — "랜덤 N회차"로 표기하면
+          // 세트 전체 랜덤과 섞여 보인다(회차 번호는 같은 챕터 미니끼리만 센다).
+          modeLabel={compareChapter ? `${compareChapter} 미니` : (MODE_LABEL[mode] ?? mode)}
           onClose={() => setResultOpen(false)}
           onOpenWrongNote={() => { setResultOpen(false); setWrongNoteOpen(true); }}
           onRetry={() => {

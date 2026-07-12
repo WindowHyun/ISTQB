@@ -145,15 +145,17 @@ test.describe("전이 — S2E 시험(게이트→응시중→채점후)", () => 
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
     await page.getByTestId("resume-keep").click();
     await expect(page.getByTestId("set-select")).toBeDisabled(); // 잠금 복원(T22)
-    // 채점 후 리로드 — graded는 비영속이라 응시중 상태로 복원(보기 enabled, 재채점 가능)
+    // 채점 후 리로드 — 최신 회차와 동일 답안이면 '채점 완료된 회차' 가드로 복원(T30 개정, S4).
+    // 재응시는 '새 회차 시작' 경유 — 같은 답안 재채점으로 회차가 중복 적립되지 않는다.
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
     await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-    await page.getByTestId("resume-keep").click();
-    await expect(page.locator("#options .option").first()).toBeEnabled(); // 재응시 허용(T30)
+    await expect(page.getByTestId("graded-resume-modal")).toBeVisible();
+    await page.getByTestId("graded-resume-fresh").click();
+    await expect(page.getByTestId("exam-start-gate")).toBeVisible(); // 재응시는 게이트부터(T30)
   });
 
   test("T23/T28: 새로 풀기 → 게이트 재노출 / 채점후 재진입 → 초기화된 게이트", async ({ page }) => {

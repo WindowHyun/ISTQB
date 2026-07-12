@@ -23,7 +23,7 @@ export const Sidebar = () => {
     mode, setId, activeProduct, drawerOpen,
     setMode, setSetId, beginSession, clearAnswers,
     setStatsOpen, setSettingsOpen, setWrongNoteOpen, setResultOpen, setDrawerOpen,
-    setResumePrompt,
+    setResumePrompt, setQuitExamOpen, redrawRandom,
   } = useQuizStore(useShallow((s) => ({
     mode: s.mode, setId: s.setId, activeProduct: s.activeProduct, drawerOpen: s.drawerOpen,
     setMode: s.setMode, setSetId: s.setSetId, beginSession: s.beginSession,
@@ -31,7 +31,8 @@ export const Sidebar = () => {
     setStatsOpen: s.setStatsOpen, setSettingsOpen: s.setSettingsOpen,
     setWrongNoteOpen: s.setWrongNoteOpen, setResultOpen: s.setResultOpen,
     setDrawerOpen: s.setDrawerOpen,
-    setResumePrompt: s.setResumePrompt,
+    setResumePrompt: s.setResumePrompt, setQuitExamOpen: s.setQuitExamOpen,
+    redrawRandom: s.redrawRandom,
   })));
   const asideRef = React.useRef<HTMLElement>(null);
 
@@ -110,8 +111,7 @@ export const Sidebar = () => {
       const gradedNow = useQuizStore.getState().graded[`${setId}-${mode}`];
       if ((mode === 'exam' || mode === 'random') && gradedNow) {
         // exam이면 examStarted도 해제돼 시작 게이트가 다시 뜬다.
-        // 랜덤은 같은 추첨을 다시 푼다 — 새 추첨을 원하면 다른 모드를 경유해 재진입
-        // (진입마다 재추첨하는 기존 정책, 결과 모달 '다시 풀기'도 동일).
+        // 랜덤은 같은 추첨을 다시 푼다 — 새 추첨은 '새 문제 뽑기' 버튼(명시 액션)으로.
         clearAnswers(setId, mode);
         beginSession();
       }
@@ -214,6 +214,23 @@ export const Sidebar = () => {
                 결과 요약
               </button>
             )}
+            {mode === 'random' && (
+              // 새 추첨은 명시 액션으로 노출 — "같은 추첨 재사용" 규칙(재클릭·다시 풀기)이
+              // UI에 드러나지 않아 새 조합을 받을 방법을 학습할 수 없던 문제 해소.
+              <button
+                type="button"
+                className="subtle"
+                data-testid="random-redraw"
+                onClick={() => {
+                  clearAnswers(setId, 'random');
+                  redrawRandom();
+                  beginSession();
+                  closeDrawer();
+                }}
+              >
+                🔀 새 문제 뽑기
+              </button>
+            )}
           </div>
           <p className="action-hint" aria-live="polite">
             {isGraded ? <span data-testid="score">점수 {correctCount} / {total}</span> : '답안 선택 후 채점하세요.'}
@@ -258,7 +275,18 @@ export const Sidebar = () => {
             ))}
           </div>
           {examLocked && (
-            <p className="exam-lock-hint" data-testid="exam-lock-hint">🔒 시험 응시 중 — 채점 후 세트·모드를 변경할 수 있습니다.</p>
+            <>
+              <p className="exam-lock-hint" data-testid="exam-lock-hint">🔒 시험 응시 중 — 채점 후 세트·모드를 변경할 수 있습니다.</p>
+              {/* 응시 포기 — 잠금의 공식 탈출구. 없으면 '설정→처음 화면으로'가 비공식 우회로가 된다. */}
+              <button
+                type="button"
+                className="quit-exam-btn"
+                data-testid="quit-exam-btn"
+                onClick={() => { closeDrawer(); setQuitExamOpen(true); }}
+              >
+                응시 포기…
+              </button>
+            </>
           )}
         </section>
 

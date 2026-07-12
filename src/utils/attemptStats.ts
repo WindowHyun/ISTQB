@@ -54,6 +54,9 @@ export function buildSetTimelines(
   const bySet = new Map<string, (ExamHistory & { correct: number; total: number })[]>();
   for (const h of histories) {
     if (!isScored(h)) continue;
+    // 챕터 미니 시험 회차는 세트 전체 회차가 아니다 — 타임라인·성장폭에 섞이면
+    // 10문항 표본이 40~70문항 회차와 %p 비교돼 왜곡된다(챕터 통계에는 별도로 반영됨).
+    if (h.chapter) continue;
     const list = bySet.get(h.setId) ?? [];
     list.push(h);
     bySet.set(h.setId, list);
@@ -101,8 +104,10 @@ export function buildSetTimelines(
       lastAt: latestAttempt.createdAt,
     });
   }
-  // 가장 최근에 응시한 세트를 위로.
-  return timelines.sort((a, b) => b.lastAt - a.lastAt);
+  // 가장 최근에 응시한 세트를 위로. 동시각(같은 ms) 동률은 setId로 타이브레이크 —
+  // 없으면 정렬이 입력 순서에 좌우돼 통계 화면의 세트 순서가 렌더마다 흔들릴 수 있다
+  // (속성 테스트 '정렬 결정성'이 실제로 찾아낸 반례).
+  return timelines.sort((a, b) => b.lastAt - a.lastAt || a.setId.localeCompare(b.setId));
 }
 
 export interface AttemptComparison {
@@ -112,13 +117,16 @@ export interface AttemptComparison {
 
 // 결과 모달의 "직전 회차 대비" 비교용 — 같은 세트·모드의 최신 회차를 이번 회차로 보고
 // 그 직전 회차 정답률을 돌려준다. 채점 직후 histories에 현재 회차가 이미 포함돼 있다는 전제.
+// chapter: 챕터 미니 시험이면 같은 챕터 미니 회차끼리만 비교(null이면 일반 회차끼리만) —
+// 10문항 미니와 세트 전체 회차가 서로의 "직전"으로 잡히는 표본 왜곡 방지.
 export function latestAttemptComparison(
   histories: ExamHistory[],
   setId: string,
   mode: string,
+  chapter: string | null = null,
 ): AttemptComparison {
   const same = histories
-    .filter((h) => h.setId === setId && h.mode === mode && isScored(h))
+    .filter((h) => h.setId === setId && h.mode === mode && (h.chapter ?? null) === chapter && isScored(h))
     // 타임라인과 동일한 결정적 정렬(createdAt → id) — 동률 시 "직전 회차"가 흔들리지 않게.
     .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0) || a.id.localeCompare(b.id));
   if (!same.length) return { round: 0, previousRate: null };
@@ -127,4 +135,25 @@ export function latestAttemptComparison(
     round: same.length,
     previousRate: prev ? displayRatePercent(prev.correct as number, prev.total as number) : null,
   };
+}
+
+// 오답 '극복' 판정 — 같은 세트의 최근 시험 2회에서 연속으로 맞힌 문항 번호를 돌려준다.
+// 시험 모드만 근거로 쓴다: 시험은 전 문항을 포함하므로 "wrongItems에 없음 = 맞힘"이
+// 성립하지만, 랜덤/미니는 추첨에 그 문항이 포함됐는지 이력만으로 알 수 없다(보수적 제외).
+// wrongItems가 없는 과거(legacy) 회차는 근거 불충분으로 제외한다.
+export function overcomeNumbers(
+  histories: ExamHistory[],
+  setId: string,
+  numbers: number[],
+): Set<number> {
+  const recentExams = histories
+    .filter((h) => h.setId === setId && h.mode === 'exam' && !h.chapter && Array.isArray(h.wrongItems))
+    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0) || b.id.localeCompare(a.id))
+    .slice(0, 2);
+  const out = new Set<number>();
+  if (recentExams.length < 2) return out; // 연속 2회를 말할 수 없으면 극복 없음
+  for (const n of numbers) {
+    if (recentExams.every((h) => !h.wrongItems!.some((w) => w.number === n))) out.add(n);
+  }
+  return out;
 }

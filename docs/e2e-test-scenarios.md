@@ -1,4 +1,4 @@
-# React E2E 테스트 시나리오 (294개)
+# React E2E 테스트 시나리오 (302개)
 
 > 대상: React 앱(`index.vite.html` → Vercel `dist` 배포본). Playwright로 자동화.
 > 실행: CI `react` 프로젝트(`testMatch: /react-.*\.spec\.ts/`) — `npm run test:e2e`.
@@ -8,7 +8,7 @@
 
 ---
 
-## 스펙 파일 인덱스 (총 294 — Phase 1~4·전이·랜덤 스모크 추가분은 하단 표 참고)
+## 스펙 파일 인덱스 (총 302 — Phase 1~4·전이·랜덤 스모크·흐름 UX 추가분은 하단 표 참고)
 
 | 스펙 파일 | 개수 | 영역 |
 |-----------|------|------|
@@ -169,7 +169,7 @@
   figure=ISTQB-A Q23, 보기 표=CSTS-2404 Q33, 가나다라=CSTS-2018 Q10.
 - 진입 시 항상 제품 선택 게이트가 뜨므로(설계상) 새로고침 복원은 "재선택 후 복원"으로 검증.
 - 저장 불가 환경(엣지-영속성): `addInitScript`로 `localStorage.setItem`이 예외를 던지도록 모사해 제품 선택·문항 진입·테마/글자 크기 설정이 크래시 없이 동작하는지 검증(`safeStorage` 래퍼 회귀).
-- 로컬 검증: 설치된 chromium headless 기준 **292/292 통과**(+비기능 12). CI는 자체 브라우저로 동일 실행.
+- 로컬 검증: 설치된 chromium headless 기준 **302/302 통과**(+비기능 12). CI는 자체 브라우저로 동일 실행.
 
 ---
 
@@ -191,3 +191,10 @@
 | P4-1 | 백업 가져오기 스키마 버전 검증·원자성(유닛: storage.import.test) | 유닛 |
 | ST-* | 상태 전이 전수(S0 게이트/S1 연습/S2E 시험 3단계/S3 랜덤/S4 오답 × 전이 39건) | react-transition |
 | RS-1 | 시드 랜덤 스모크 — 매 실행 다른 세트·답 조합, 원본 JSON 기준 기대 점수와 UI 점수 일치(`SMOKE_SEED` 재현) | react-random-smoke |
+| S2-1 | 응시 포기: 응시 중 '응시 포기'→확인→답안 삭제·게이트 복귀·회차 기록 없음 | react-flow-ux |
+| S2-2 | 응시 중 '처음 화면으로'는 확인 모달 경유(무단 우회 차단) | react-flow-ux |
+| S4-1 | 채점 후 새로고침 → '채점 완료된 회차' 가드(지난 결과 보기/새 회차 시작) — 중복 회차 차단 | react-flow-ux · react-study-ux · react-transition |
+| S3-1 | 챕터 미니 시험: 10문항 추첨·'미니' 회차 라벨·세트 타임라인 미포함 | react-flow-ux |
+| S5-1 | 랜덤 '새 문제 뽑기' — 답안 초기화+재추첨 | react-flow-ux |
+| S1-1 | 랜덤 새로고침 재추첨 정책 토스트 안내 | react-flow-ux |
+| S6-1 | 오답 '극복' 배지(최근 시험 2회 연속 정답) + 범례 | react-flow-ux |
