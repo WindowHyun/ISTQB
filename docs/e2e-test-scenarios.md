@@ -13,7 +13,7 @@
 | 스펙 파일 | 개수 | 영역 |
 |-----------|------|------|
 | `react-smoke / react-grade / react-feedback / react-functional` | 10 | 스모크·핵심 흐름 |
-| `react-modes` | 5 | 풀이 모드 |
+| `react-modes` | 6 | 풀이 모드 |
 | `react-navigation` | 6 | 네비게이션 |
 | `react-settings` | 6 | 설정 |
 | `react-qtypes` | 6 | 문항 유형(진위형·단답형·복수정답) |
@@ -27,8 +27,8 @@
 | `react-debug` | 3 | 화면 콘솔(`?debug`) |
 | `react-final` | 18 | 최종점검 회귀 |
 | `react-edge-nav` | 14 | 엣지: 경계 네비게이션 |
-| `react-edge-modes` | 20 | 엣지: 모드 격리·리셋·잠금·시험 전환 가드 |
-| `react-edge-grade` | 16 | 엣지: 미응답 확인·컷스코어·복수정답·진위형·단답형 |
+| `react-edge-modes` | 23 | 엣지: 모드 격리·리셋·잠금·시험 전환 가드 |
+| `react-edge-grade` | 17 | 엣지: 미응답 확인·컷스코어·복수정답·진위형·단답형 |
 | `react-edge-persist` | 16 | 엣지: 복원·가져오기·테마/콘솔 지속·**저장 불가 환경(localStorage 예외)** |
 | `react-edge-modal` | 18 | 엣지: 모달 Esc/백드롭·통계·토글·**오답노트 문항 보기** |
 | `react-edge-content` | 19 | 엣지: 라이트박스·표·콘솔·토스트·**콘텐츠 표시 수정 회귀(밑줄·들여쓰기·병합)** |
@@ -37,6 +37,12 @@
 | `react-edge-import` | 9 | 엣지: 대용량/비정상 import 견고성 |
 | `react-pwa` | 2 | PWA 새 버전 업데이트 배너 |
 | `react-study-ux` | 24 | 이어풀기 배너·제출 전 검토·오답노트 재설계(세트 선택)·시험 모드 유지/재응시·이어풀기·새로풀기 선택·결과 nowrap·피드백 aria-live |
+| `react-transition` | 15 | 상태 전이 전수(S0~S4 × 39전이) |
+| `react-phase2` | 3 | 회차 비교·타임라인·델타 방향(데이터 오라클) |
+| `react-weakness` | 2 | 챕터 약점 분석·오답 전 회차 합산 |
+| `react-flow-ux` | 8 | 응시 포기·채점완료 가드·미니 시험·새 문제 뽑기·재추첨 토스트·극복 배지 |
+| `react-guide` | 2 | 사이트 사용법(게이트·설정 진입점) |
+| `react-random-smoke` | 1 | 시드 랜덤 스모크(JSON 오라클, `SMOKE_SEED` 재현) |
 
 > 아래는 초기 핵심 70개의 상세 G·W·T이며, 이후 엣지·확장 196개는 위 인덱스의 각 스펙 파일에 동일한 G·W·T 구조로 구현되어 있습니다.
 

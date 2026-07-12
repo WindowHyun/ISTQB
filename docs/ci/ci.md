@@ -47,10 +47,10 @@ env:
 | job | 이름 | 하는 일 | 차단 기준 |
 | --- | --- | --- | --- |
 | `audit` | Dependency audit (npm) | `npm audit --omit=dev --audit-level=high`(배포 번들) + 전체 트리 정보성 보고 | **프로덕션 의존성**에 high+ 취약점 |
-| `secrets` | Secret scan (gitleaks) | `gitleaks/gitleaks-action@v2`로 전체 커밋 히스토리에서 API 키·토큰·비밀번호 유출 탐지 | 시크릿 패턴 매칭 |
+| `secrets` | Secret scan (gitleaks) | `gitleaks/gitleaks-action@v3`로 전체 커밋 히스토리에서 API 키·토큰·비밀번호 유출 탐지 | 시크릿 패턴 매칭 |
 | `codeql` | CodeQL (static analysis) | `github/codeql-action` JS/TS 정적 분석(`security-and-quality`: XSS·프로토타입 오염·안전하지 않은 DOM 등) → Security 탭 업로드 | 분석 오류 시(경보는 Security 탭, 머지 차단은 브랜치 보호 설정에 따름) |
 
-품질 6개 job은 공통으로: `checkout@v4` → `setup-node@v4`(node 22, `cache: npm`) → `npm ci` → 각자 명령.
+품질 6개 job은 공통으로: `checkout@v6` → `setup-node@v6`(node 24, `cache: npm`) → `npm ci` → 각자 명령.
 모든 job이 성공해야 머지 게이트를 통과한다(브랜치 보호 설정에 따름).
 
 **설계 근거 — `audit`가 왜 `--omit=dev`인가:** 이 앱은 클라이언트 SPA라 사용자에게 실제로 나가는 코드는 **프로덕션 의존성**뿐이다. `pdfjs-dist`·`undici` 등 high 취약점은 빌드/스크립트용 dev 툴링에만 있어 배포물에 포함되지 않으므로, 차단은 프로덕션 트리 기준으로 하고 dev 트리는 `continue-on-error` 정보성 단계로 남겨 가시성만 확보한다.
@@ -73,12 +73,12 @@ e2e:
   runs-on: ubuntu-latest
   timeout-minutes: 20
   steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with: { node-version: 22, cache: npm }
+    - uses: actions/checkout@v6
+    - uses: actions/setup-node@v6
+      with: { node-version: 24, cache: npm }
     - run: npm ci
     - name: Cache Playwright browsers
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
@@ -88,7 +88,7 @@ e2e:
     - run: npm run test:e2e
     - name: Upload Playwright report
       if: ${{ failure() }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with: { name: playwright-report, path: playwright-report/, retention-days: 7, if-no-files-found: ignore }
 ```
 

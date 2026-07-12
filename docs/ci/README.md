@@ -13,7 +13,7 @@
 
 ## 공통 규칙
 
-- 러너: `ubuntu-latest`. Node는 CI/Daily가 **22**, Android가 **20**(+ JDK 17).
+- 러너: `ubuntu-latest`. Node는 CI/Daily/Android 모두 **24**(Android는 + JDK 17).
 - 의존성: 전부 `npm ci`(락파일 고정 설치).
 - 권한 최소화: CI 최상위는 `contents: read`. `codeql` job만 결과 업로드용 `security-events: write`를 job 레벨로 부여. Daily는 실패 이슈 작성을 위해 `issues: write` 추가.
 - 보안 스캔은 공개 저장소라 CodeQL·gitleaks 모두 무료로 동작. `audit`는 배포 번들(프로덕션 의존성) high+ 취약점만 차단.

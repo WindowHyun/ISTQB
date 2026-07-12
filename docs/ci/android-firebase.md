@@ -23,16 +23,16 @@ on:
 
 | 단계 | 명령/액션 | 설명 |
 | --- | --- | --- |
-| Checkout | `actions/checkout@v4` | 소스 |
-| Setup Node | `actions/setup-node@v4` (node **20**, `cache: npm`) | CI(22)와 달리 20 |
+| Checkout | `actions/checkout@v6` | 소스 |
+| Setup Node | `actions/setup-node@v6` (node **24**, `cache: npm`) | CI와 동일 24 |
 | Install deps | `npm ci` | 의존성 |
 | **Build web** | `npm run build` | React → `dist` |
-| Setup JDK 17 | `actions/setup-java@v4` (temurin 17) | Gradle 빌드용 |
+| Setup JDK 17 | `actions/setup-java@v5` (temurin 17) | Gradle 빌드용 |
 | Setup Android SDK | `android-actions/setup-android@v3` | Android SDK |
 | **Capacitor sync** | `npx cap sync android` | **`dist`를 `android/app/src/main/assets/public`로 복사**(webDir=dist) |
 | **Build debug APK** | `cd android && ./gradlew assembleDebug --no-daemon` | debug APK 생성 |
 | **Upload to Firebase** | `wzieba/Firebase-Distribution-Github-Action@v1` | App Distribution 업로드 |
-| Upload APK artifact | `actions/upload-artifact@v4` | APK 백업(Actions 아티팩트) |
+| Upload APK artifact | `actions/upload-artifact@v7` | APK 백업(Actions 아티팩트) |
 
 핵심: **웹(React `dist`)을 먼저 빌드해야** `cap sync`가 최신 산출물을 APK에 담는다(`webDir: dist`).
 

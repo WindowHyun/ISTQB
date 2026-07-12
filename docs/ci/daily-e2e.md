@@ -35,16 +35,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with: { node-version: 24, cache: npm }
       - run: npm ci
-      - uses: actions/cache@v4          # ~/.cache/ms-playwright (락파일 해시 키)
+      - uses: actions/cache@v6          # ~/.cache/ms-playwright (락파일 해시 키)
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - name: Upload Playwright report
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with: { name: playwright-report-daily, path: playwright-report/, retention-days: 14 }
       - name: Notify on failure (open/append issue)
         if: ${{ failure() && github.event_name == 'schedule' }}

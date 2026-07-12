@@ -41,7 +41,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 
 - **테스트 자동화 453개** — Vitest 유닛 148 + Playwright **E2E 305**(스모크·모드·문항유형·네비·설정·영속성·엣지·반응형·접근성·**상태 전이 전수**·**대용량 import**·**표/그림 문항**·**라이트박스/콘솔**·**저장 불가 환경**). 전체 시나리오: [`docs/e2e-test-scenarios.md`](docs/e2e-test-scenarios.md).
 - **살충제 패러독스 대응 3계층** — **속성 기반 테스트 21**(fast-check: 매 실행 새 입력 생성) + **뮤테이션 테스트**(Stryker, 채점·통계 핵심 로직 스코어 **93.2%**, CI break 85 게이트) + **시드 랜덤 스모크 E2E**(매일 다른 세트·답 조합, 원본 JSON을 독립 오라클로 사용·시드 로그로 재현 가능).
-- **PDF ↔ 데이터 전수 정합성 검증** — 626문항 정답·보기·stem을 **공식 PDF와 1:1 대조**(대조 가능 600문항 불일치 0). 더해 `npm run verify`로 정답·이미지·스키마 자동 점검 + 전 문항 렌더 스윕(404·예외·깨진 이미지 0).
+- **PDF ↔ 데이터 전수 정합성 검증** — 626문항 스템·보기를 **원본 PDF 13종과 조각 단위(2,530개) 전수 대조**해 불일치 3건을 발견·교정(잔여 0 — 의도적 재구성 1건 제외). 정답도 공식 PDF 1:1 대조 완료. 더해 `npm run verify`로 정답·이미지·스키마 자동 점검 + 전 문항 렌더 스윕(404·예외·깨진 이미지 0).
 - **자격증별 컷스코어·접근성** — ISTQB 65% / CSTS 환산 52.5점 합격 판정, 색각 대비 글리프·포커스 트랩·reduced-motion 등 a11y 반영.
 - **결함 RCA & 회귀 방지** — PDF 원본 ↔ 앱 렌더를 전수 대조해 결함을 찾고, 반복 결함의 근본원인을 분석해 **클래스 단위**로 차단(케이스별 회귀 테스트 추가).
 - **CI 품질 게이트** — GitHub Actions **10-job** 통과 시에만 머지: 기능·품질 7(lint·verify·unit·**mutation**·build·e2e·**nonfunctional**) + **보안 3(의존성 감사·시크릿 스캔·CodeQL 정적분석)**. unit은 커버리지 임계값, mutation은 뮤테이션 스코어(break 85), build는 번들 크기 예산, nonfunctional은 성능·부하·메모리·타이머·오프라인·데이터 내구성까지 게이트. 추가로 **매일 예약 E2E**(`daily-e2e.yml`, KST 09:17)가 회귀를 상시 감시하고 실패 시 이슈로 알림.
@@ -170,9 +170,9 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 
 - 자동화 테스트: **유닛 148 + E2E 305 = 452** (전 문항 626 렌더 스윕 별도).
 - 뮤테이션 스코어(채점·통계 핵심 4개 유틸): **93.2%**(296개 뮤턴트 중 276 kill) — CI break 85 게이트로 테스트 효력 저하를 차단.
-- 유닛 커버리지(로직 계층 `store`·`utils`): **Stmts ~70% · Branch ~62% · Funcs ~76% · Lines ~71%**. CI에서 임계값(stmt 68·branch 60·func 73·line 69) 게이트로 회귀 차단(핵심 로직 파서/정답판정/저장 집중, 컴포넌트는 E2E 담당).
+- 유닛 커버리지(로직 계층 `store`·`utils`): **Stmts ~77% · Branch ~66% · Funcs ~81% · Lines ~79%**. CI에서 임계값(stmt 68·branch 60·func 73·line 69) 게이트로 회귀 차단(핵심 로직 파서/정답판정/저장 집중, 컴포넌트는 E2E 담당).
 - 데이터 무결성: 626문항 정답·이미지·스키마 `verify` 통과, 전수 스윕 결과 **404·예외·깨진 이미지 0**.
-- 번들: main JS **260KB(gzip 83KB)**, JS 합계 281KB(gzip 92KB), CSS 38KB(gzip 8KB). CI 번들 예산(JS 330KB·CSS 45KB)으로 회귀 감시.
+- 번들: main JS **275KB(gzip 88KB)**, JS 합계 318.6KB, CSS 41KB(gzip 8KB). CI 번들 예산(JS 330KB·CSS 45KB)으로 회귀 감시.
 
 ## 아키텍처
 
@@ -250,7 +250,7 @@ npm run dev      # React 앱 개발 서버 (index.vite.html 기준)
 ```bash
 npm test            # Vitest 유닛 테스트 (120개)
 npm run test:cov    # 유닛 테스트 + 커버리지(임계값 게이트)
-npm run test:e2e    # Playwright React E2E (292개)
+npm run test:e2e    # Playwright React E2E (305개)
 npm run verify      # 데이터 정합성 검증 (626문항 정답·이미지·스키마)
 npm run build       # tsc 타입 검사 후 dist/ 정적 빌드
 npm run size        # 번들 크기 예산 검사 (build 후)

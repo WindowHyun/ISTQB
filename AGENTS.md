@@ -22,7 +22,7 @@
 - 데이터, JavaScript, UI, 앱 동작을 변경한 뒤에는 `npm run verify`를 실행합니다.
 - UI/렌더링/이미지/표/선택지 변경은 `docs/harness/ui-render-harness.md`에 따라 React E2E·스크린샷으로 확인합니다.
 - Android 또는 패키징되는 웹 에셋 변경은 `npm run cap:sync`와 `docs/harness/android-build-harness.md`의 Android 빌드 점검 필요 여부를 판단합니다.
-- React 앱(운영 배포)·렌더링·풀이 동작 변경은 `npm test`(유닛 120개)와 `npm run test:e2e`(React E2E 292개, `docs/e2e-test-scenarios.md`)로 회귀를 검증합니다.
+- React 앱(운영 배포)·렌더링·풀이 동작 변경은 `npm test`(유닛 148개)와 `npm run test:e2e`(React E2E 305개, `docs/e2e-test-scenarios.md`)로 회귀를 검증합니다.
 - 요청된 변경에서 기존 하네스가 잡지 못하는 결함 유형이 드러나면, 작업 완료로 보기 전에 하네스를 보강하거나 보강안을 제시합니다.
 
 ## 보고 기준

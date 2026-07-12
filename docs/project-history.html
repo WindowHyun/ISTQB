@@ -78,12 +78,12 @@
 <header class="hero">
   <p class="eyebrow">ISTQB / CSTS CBT 문제풀이 앱 — 개발·QA 진행 기록</p>
   <h1>테스트 · 기획 변경 · 커밋 이력 종합 리포트</h1>
-  <p>기간 2026-07-03 ~ 07-12 · 브랜치 <code>claude/code-analysis-issues-f2p2se</code> (main 병합 대기) · 이 문서는 브랜치 작업분 42커밋 기준</p>
+  <p>기간 2026-07-03 ~ 07-12 · <code>claude/code-analysis-issues-f2p2se</code> → main 병합 2회 완료 · 46커밋 기준</p>
 </header>
 
 <div class="kpis">
-  <div class="kpi"><b>42</b><span>브랜치 커밋</span></div>
-  <div class="kpi"><b>302</b><span>기능 E2E (Playwright)</span></div>
+  <div class="kpi"><b>46</b><span>프로젝트 커밋</span></div>
+  <div class="kpi"><b>305</b><span>기능 E2E (Playwright)</span></div>
   <div class="kpi"><b>148</b><span>유닛 (Vitest, 속성 21 포함)</span></div>
   <div class="kpi"><b>12</b><span>비기능 E2E</span></div>
   <div class="kpi"><b>93.2%</b><span>뮤테이션 스코어 (break 85)</span></div>
@@ -99,7 +99,7 @@
     <h3>테스트 계층 (현재 상시 운영 — CI 게이트)</h3>
     <div class="table-scroll" style="border:0"><table>
       <tr><th>계층</th><th>도구·규모</th><th>검증 대상</th></tr>
-      <tr><td><span class="tag blue">기능 E2E</span></td><td>Playwright 302개 · 스펙 34파일</td><td>스모크·4개 풀이 모드·문항유형(진위/단답/복수정답)·네비·설정·영속성/백업·모달·콘텐츠(표/그림/라이트박스)·반응형(375/768/320px)·접근성(ARIA·키보드·포커스 트랩)·PWA</td></tr>
+      <tr><td><span class="tag blue">기능 E2E</span></td><td>Playwright 305개 · 스펙 35파일</td><td>스모크·4개 풀이 모드·문항유형(진위/단답/복수정답)·네비·설정·영속성/백업·모달·콘텐츠(표/그림/라이트박스)·반응형(375/768/320px)·접근성(ARIA·키보드·포커스 트랩)·PWA</td></tr>
       <tr><td><span class="tag blue">상태 전이</span></td><td>react-transition 15테스트 / 39전이</td><td>게이트(S0)→연습(S1)→시험 3단계(S2)→랜덤(S3)→오답(S4) 전이 전수 — 리로드·이어풀기·재응시 경로 포함</td></tr>
       <tr><td><span class="tag blue">유닛</span></td><td>Vitest 148개</td><td>정답판정·컷스코어·파서·챕터/회차 통계·오답 극복 판정·저장(sanitize/복원)·타이머·store 액션</td></tr>
       <tr><td><span class="tag blue">통합</span></td><td>store↔storage 연동 44 + jsdom 렌더</td><td>hydrate/복원 경로·제품 전환 격리·백업 가져오기 원자성</td></tr>
@@ -128,6 +128,8 @@
       <tr><td>4-롤 최종 인수</td><td>기획·개발·디자인·QA 관점 확인·리스트업</td><td>전원 수용(개발은 위생 2건 수정 후) → d1c0026</td></tr>
       <tr><td>역할 리뷰 잔여분</td><td>기획 3·디자인 5·개발 3·QA 1</td><td>12건 반영 + 뮤테이션 CI 편입(c59f94e)</td></tr>
       <tr><td>흐름·기획 리뷰</td><td>흐름도/기획 관점 문제 발굴 → AS-IS/TO-BE 목업 화면</td><td>6건(S1~S6) 전부 구현(d154a76)</td></tr>
+      <tr><td>PDF 원본 전수 대조</td><td>스템·보기 2,530조각 ↔ PDF 13종 + 렌더 스윕 626 + 밑줄 육안 대조</td><td>실불일치 3건 발견 → 교정(23dc62f), 잔여 0</td></tr>
+      <tr><td>모바일 웹 점검</td><td>375px 13화면 투어 + 가로 넘침 검사 + 반응형 E2E 21</td><td>UI 결함 1건(통계 버튼 꺾임)+경미 2건 → 수정(5a3a3d3)</td></tr>
     </table></div>
   </div>
 
@@ -187,21 +189,34 @@
     <div class="asis-tobe"><div class="asis"><b>AS-IS</b> 한 번 틀린 문항은 오답노트에 영구히 '복습 대상'처럼 잔존</div><div class="tobe"><b>TO-BE(S6)</b> 최근 시험 2회 연속 정답이면 '✓ 극복' 배지+흐림(목록엔 유지)</div></div>
   </div>
 
+  <div class="card">
+    <h3><span class="tag green">이후 추가</span> 사용설명서 · 데이터 교정 · 모바일 보정 (07-12)</h3>
+    <ul>
+      <li><b>사이트 사용법(사용설명서)</b> — 최초 화면 하단 📖 버튼·설정 진입점, 기능별 가이드 7섹션</li>
+      <li><b>PDF 대조 데이터 교정 3건</b> — B Q30 번호 목록 복원(문제 성립 회복)·C Q31 수식 결합·2018 Q5 어구 원문 일치</li>
+      <li><b>모바일 UI 보정</b> — 통계 버튼 세로 꺾임 수정, 오답노트 간격, 미니 시험 칩 표기 + README 스크린샷 PC/모바일 쌍 9종</li>
+    </ul>
+  </div>
+
   <div class="card pending">
     <h3><span class="tag warn">결정 대기</span> 사용자 판단 필요 항목</h3>
     <ul>
       <li><b>F — 선택 기능 5종</b>: 카운트다운 타이머 · 제출 전 리뷰 화면 · 문항 플래그 · 오답 복습 스케줄 · 자동 백업 (지시 시 진행)</li>
-      <li><b>G — main 병합</b>: 명시적 지시("병합해줘") 전까지 금지 유지 — 현재 브랜치에 42커밋 대기</li>
+      <li><b>G — main 병합</b>: 07-12 사용자 지시로 2회 병합 완료(15c8183→bccc263→23dc62f). 이후 신규 작업은 브랜치에서 지시 대기</li>
     </ul>
   </div>
 </section>
 
 <!-- ══════════════ 3. 커밋 이력 ══════════════ -->
 <section>
-  <h2>3. 커밋 기록 (브랜치 42커밋 · 332파일 변경)</h2>
-  <p class="sec-desc">최신순. <code>claude/code-analysis-issues-f2p2se</code> — main 대비 +9,616 / −43,033 라인(레거시 런타임 제거 포함).</p>
+  <h2>3. 커밋 기록 (46커밋)</h2>
+  <p class="sec-desc">최신순. 07-12 사용자 지시로 main에 2회 병합 완료(23dc62f까지), 이후 커밋은 브랜치 대기.</p>
   <div class="table-scroll"><table>
     <tr><th>해시</th><th>일시</th><th class="commit-msg">내용</th></tr>
+    <tr><td><code>5a3a3d3</code></td><td class="num">07-12 10:52</td><td>fix(mobile): 모바일 UI 3건 수정 + README 스크린샷 PC/모바일 분리 기록</td></tr>
+    <tr><td><code>23dc62f</code></td><td class="num">07-12 10:05</td><td>fix(data): PDF 전수 대조에서 발견한 원본 불일치 3건 교정</td></tr>
+    <tr><td><code>5f7f269</code></td><td class="num">07-12 09:33</td><td>feat: 사이트 사용법(사용설명서) — 최초 화면 하단·설정 진입점</td></tr>
+    <tr><td><code>bccc263</code></td><td class="num">07-12 08:36</td><td>docs: 진행 기록 종합 리포트 HTML — 테스트·기획 변경·커밋 이력</td></tr>
     <tr><td><code>d154a76</code></td><td class="num">07-12 08:13</td><td>feat: 흐름·기획 개선 S1~S6 — 응시 포기, 채점완료 가드, 챕터 미니 시험 외</td></tr>
     <tr><td><code>c59f94e</code></td><td class="num">07-12 07:05</td><td>feat: 역할 리뷰 잔여 12건 반영 + 뮤테이션 테스트 CI 편입</td></tr>
     <tr><td><code>da765e6</code></td><td class="num">07-12 06:23</td><td>test: 살충제 패러독스 대응 — 속성 기반·뮤테이션·시드 랜덤 스모크 도입</td></tr>
@@ -248,7 +263,7 @@
 </section>
 
 <footer>
-  ISTQB/CSTS CBT 진행 기록 · 2026-07-12 생성 · 브랜치 <code>claude/code-analysis-issues-f2p2se</code> · main 병합은 사용자 지시 대기
+  ISTQB/CSTS CBT 진행 기록 · 2026-07-12 생성 · 브랜치 <code>claude/code-analysis-issues-f2p2se</code> · 문서 생성 후 이력은 계속 갱신됨
 </footer>
 
 </div>
