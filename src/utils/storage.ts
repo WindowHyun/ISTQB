@@ -1,4 +1,4 @@
-import { useQuizStore, QuizState, QuizMode, ExamHistory, SESSION_SCOPE_DEFAULTS } from '../store/useQuizStore';
+import { useQuizStore, QuizState, QuizMode, ExamHistory, sessionScopeDefaults } from '../store/useQuizStore';
 import debounce from 'lodash-es/debounce';
 import { showToast } from './toast';
 
@@ -318,9 +318,9 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
       if (sep > 0) restoredExamStarted[key.slice(0, sep)] = true;
     }
     useQuizStore.getState().hydrate({
-      // 세션 스코프 기본값(목록의 단일 원천은 스토어의 SESSION_SCOPE_DEFAULTS)을 깔아
+      // 세션 스코프 기본값(목록의 단일 원천은 스토어의 sessionScopeDefaults)을 깔아
       // 이전 제품의 상태가 새 제품으로 새어들지 않게 하고, 이 제품의 값으로 덮는다.
-      ...SESSION_SCOPE_DEFAULTS,
+      ...sessionScopeDefaults(),
       // 채점 상태: 같은 제품 게이트 왕복이면 세션 값 유지, 제품 재방문이면 세션 캐시 복원 —
       // 소거하면 '채점하기'가 재노출돼 동일 답안 재채점으로 회차가 중복 적재된다.
       graded: sameProductRevisit

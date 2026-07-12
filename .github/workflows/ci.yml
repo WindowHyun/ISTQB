@@ -81,6 +81,33 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  # 살충제 패러독스 대응 계층 — 채점·통계 핵심 유틸에 뮤테이션 테스트를 돌려
+  # "테스트가 여전히 결함을 죽이는지"를 검증한다(break 기준은 stryker.config.json).
+  mutation:
+    name: Mutation tests (Stryker)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run mutation tests
+        run: npm run test:mutation
+      - name: Upload mutation report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: mutation-report
+          path: reports/mutation/
+          retention-days: 7
+          if-no-files-found: ignore
+
   build:
     name: Build (tsc + vite)
     runs-on: ubuntu-latest

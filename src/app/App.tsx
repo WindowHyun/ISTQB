@@ -55,6 +55,17 @@ export const App = () => {
     return () => document.removeEventListener('keydown', onKey);
   }, [drawerOpen, setDrawerOpen]);
 
+  // 드로어를 연 채 뷰포트가 데스크톱 폭(>880px)이 되면 닫는다 — 상시 사이드바로 전환된
+  // 뒤에도 dialog/포커스 트랩·백드롭이 남는 잔존 상태를 방지(CSS 브레이크포인트와 동일 기준).
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const mq = window.matchMedia('(min-width: 881px)');
+    const onChange = (e: MediaQueryListEvent) => { if (e.matches) setDrawerOpen(false); };
+    if (mq.matches) { setDrawerOpen(false); return; }
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [drawerOpen, setDrawerOpen]);
+
   const handleProductSelect = async (product: 'istqb' | 'csts') => {
     // 제품을 바꾸기 전에 이전 제품의 대기 중 저장을 지금 flush한다(#P1-1 방어).
     // 디바운스 저장은 실행 시점의 activeProduct로 키를 정하므로, 남은 저장이 새 제품 키에

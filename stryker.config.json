@@ -10,8 +10,9 @@
     "src/utils/chapterStats.ts",
     "src/utils/attemptStats.ts"
   ],
-  "reporters": ["clear-text", "progress"],
-  "thresholds": { "high": 90, "low": 75, "break": null },
+  "reporters": ["clear-text", "progress", "html"],
+  "_comment_break": "break 85: 현재 스코어 93.5% 대비 여유를 두되, 테스트 효력이 유의미하게 무뎌지면 CI가 실패한다.",
+  "thresholds": { "high": 90, "low": 75, "break": 85 },
   "tempDirName": ".stryker-tmp",
   "cleanTempDir": true
 }

@@ -109,7 +109,10 @@ export const Sidebar = () => {
       // 재응시(초기화)로 동작한다 — 모드 왕복 없이 다시 풀 수 있는 진입로(A5).
       const gradedNow = useQuizStore.getState().graded[`${setId}-${mode}`];
       if ((mode === 'exam' || mode === 'random') && gradedNow) {
-        clearAnswers(setId, mode); // exam이면 examStarted도 해제돼 시작 게이트가 다시 뜬다
+        // exam이면 examStarted도 해제돼 시작 게이트가 다시 뜬다.
+        // 랜덤은 같은 추첨을 다시 푼다 — 새 추첨을 원하면 다른 모드를 경유해 재진입
+        // (진입마다 재추첨하는 기존 정책, 결과 모달 '다시 풀기'도 동일).
+        clearAnswers(setId, mode);
         beginSession();
       }
       closeDrawer();
@@ -173,6 +176,17 @@ export const Sidebar = () => {
           </p>
           <h1 id="productTitle">{currentSet?.title || '문제 풀이'}</h1>
         </div>
+        {/* 모바일 드로어 전용 닫기 버튼(CSS로 데스크톱 숨김) — 터치 스크린리더 사용자는
+            백드롭(aria-hidden)·Esc 외의 명시적 탈출 UI가 필요하다. */}
+        <button
+          type="button"
+          className="drawer-close"
+          aria-label="메뉴 닫기"
+          data-testid="drawer-close"
+          onClick={closeDrawer}
+        >
+          ✕
+        </button>
       </div>
 
       {showGradeSection && (

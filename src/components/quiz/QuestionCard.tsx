@@ -117,7 +117,8 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
 
   return (
     <>
-      <div id="questionStem" className="question-stem">
+      {/* tabIndex=-1: 스킵 링크(#questionStem)의 포커스 이동 대상 — 구형 브라우저/VO 견고성. */}
+      <div id="questionStem" className="question-stem" tabIndex={-1}>
         <RichText content={question.stem} />
       </div>
 

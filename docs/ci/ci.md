@@ -28,17 +28,18 @@ env:
 - `permissions: contents: read` — 최소 권한(읽기 전용).
 - `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` — `npm ci` 시 브라우저 자동 다운로드 차단(브라우저는 e2e job에서 명시 설치).
 
-## job 구성 (9개, 병렬·독립)
+## job 구성 (10개, 병렬·독립)
 
-### 기능·품질 게이트 (6)
+### 기능·품질 게이트 (7)
 
 | job | 이름 | 실행 명령 | 산출물 |
 | --- | --- | --- | --- |
 | `lint` | Lint & Typecheck | `npm run lint` + `npm run typecheck`(`tsc --noEmit`) | — |
 | `verify-data` | Verify data & content | `npm run verify` (626문항 정답·이미지·스키마·콘텐츠 감사) | — |
 | `unit` | Unit tests (vitest) | `npm run test:cov` (유닛 + 커버리지, **임계값 게이트**: stmt 68·branch 60·func 73·line 69) | `coverage/`(7일) |
+| `mutation` | Mutation tests (Stryker) | `npm run test:mutation` (채점·통계 핵심 4개 유틸에 뮤턴트 주입 — **뮤테이션 스코어 break 85 게이트**, 살충제 패러독스 대응) | `reports/mutation/`(7일) |
 | `build` | Build (tsc + vite) | `npm run build` → **`npm run size`**(번들 예산: JS 330KB·CSS 45KB) | `dist/`(7일) |
-| `e2e` | E2E smoke (Playwright) | `npm run test:e2e`(`--project=react`, 기능 266) | 실패 시 `playwright-report/`(7일) |
+| `e2e` | E2E smoke (Playwright) | `npm run test:e2e`(`--project=react`, 기능 294 — 시드 랜덤 스모크 포함) | 실패 시 `playwright-report/`(7일) |
 | `nonfunctional` | Non-functional (Playwright) | `npm run test:nf`(`--project=nonfunctional`, 성능·부하·메모리·타이머·오프라인·데이터 내구성·장기 스케일 12) | 실패 시 `playwright-report-nf/`(7일) |
 
 ### 보안 게이트 (3, 체크리스트 #4)
@@ -158,4 +159,4 @@ CI=1 npm run test:e2e
 
 ## 요약
 
-**push/PR → 9 job 병렬 → 모두 통과해야 머지.** 기능·품질 6개(lint·verify-data·unit·build·e2e·nonfunctional) + 보안 3개(audit·secrets·codeql). e2e는 `npm ci`(브라우저 skip) → 브라우저 캐시/설치 → `playwright test --project=react`가 `build+preview`로 `dist`를 4173에 서빙하고 → `react-*.spec.ts` 266개를 Chromium으로 병렬 실행(CI 재시도 1) → 실패 시 HTML 리포트 아티팩트를 남긴다. nonfunctional은 같은 서버로 `--project=nonfunctional` 12건(성능·부하·메모리·타이머·오프라인·데이터 내구성)을 CI 완화 예산으로 실행한다. 보안 job은 배포 번들의 취약 의존성(audit)·유출 시크릿(gitleaks)·정적 분석 경보(CodeQL)를 각각 차단한다.
+**push/PR → 10 job 병렬 → 모두 통과해야 머지.** 기능·품질 7개(lint·verify-data·unit·mutation·build·e2e·nonfunctional) + 보안 3개(audit·secrets·codeql). e2e는 `npm ci`(브라우저 skip) → 브라우저 캐시/설치 → `playwright test --project=react`가 `build+preview`로 `dist`를 4173에 서빙하고 → `react-*.spec.ts` 294개를 Chromium으로 병렬 실행(CI 재시도 1) → 실패 시 HTML 리포트 아티팩트를 남긴다. nonfunctional은 같은 서버로 `--project=nonfunctional` 12건(성능·부하·메모리·타이머·오프라인·데이터 내구성)을 CI 완화 예산으로 실행한다. 보안 job은 배포 번들의 취약 의존성(audit)·유출 시크릿(gitleaks)·정적 분석 경보(CodeQL)를 각각 차단한다.

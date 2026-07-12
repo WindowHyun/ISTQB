@@ -77,7 +77,7 @@ export const AppModals = () => {
     setId, mode, activeProduct, histories, resultElapsedSeconds,
     settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, resumePrompt,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
-    setMode, beginSession, clearAnswers, setReviewIds, setChapterFilter, setResumePrompt,
+    setMode, beginSession, clearAnswers, setReviewIds, setSetId, setChapterFilter, setResumePrompt,
   } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, activeProduct: s.activeProduct, histories: s.histories,
     resultElapsedSeconds: s.resultOpen ? s.elapsedSeconds : 0,
@@ -87,7 +87,7 @@ export const AppModals = () => {
     setSettingsOpen: s.setSettingsOpen, setStatsOpen: s.setStatsOpen, setWrongNoteOpen: s.setWrongNoteOpen,
     setResultOpen: s.setResultOpen, setPaletteOpen: s.setPaletteOpen, setDrawerOpen: s.setDrawerOpen,
     setConfirmGradeOpen: s.setConfirmGradeOpen, setMode: s.setMode, beginSession: s.beginSession,
-    clearAnswers: s.clearAnswers, setReviewIds: s.setReviewIds,
+    clearAnswers: s.clearAnswers, setReviewIds: s.setReviewIds, setSetId: s.setSetId,
     setChapterFilter: s.setChapterFilter, setResumePrompt: s.setResumePrompt,
   })));
   // examLocked — useQuizSession이 단일 원천(게이트·사이드바 잠금과 동일 규칙 집합).
@@ -233,9 +233,11 @@ export const AppModals = () => {
     showToast('현재 자격증의 응시 이력을 모두 삭제했습니다.', 'success');
   };
 
-  // 약점 챕터 집중 연습(Phase 3): 통계에서 챕터를 고르면 현재 세트를 그 챕터로
-  // 필터해 연습 모드로 진입한다. setMode가 필터를 초기화하므로 필터는 그 뒤에 건다.
-  const handlePracticeChapter = (chapter: string) => {
+  // 약점 챕터 집중 연습(Phase 3): 통계에서 챕터를 고르면 그 챕터로 필터해 연습 모드로
+  // 진입한다. 진단은 전 세트 합산이므로, 현재 세트에 해당 챕터 문항이 없으면 그 챕터가
+  // 있는 세트로 자동 전환한다(빈 필터 화면 착지 방지). setMode가 필터를 초기화하므로
+  // 필터는 그 뒤에 건다.
+  const handlePracticeChapter = async (chapter: string) => {
     // 응시 중 잠금 — 학습 통계 버튼은 잠금 중에도 열리므로, 여기서 막지 않으면
     // setMode+beginSession으로 잠금을 우회해 시험 타이머가 소실된다(버튼 disabled와 이중 방어).
     if (examLocked) {
@@ -243,6 +245,23 @@ export const AppModals = () => {
       return;
     }
     setStatsOpen(false);
+    try {
+      const hasChapter = async (path?: string) => {
+        if (!path) return false;
+        const qs = peekSetQuestions(path) ?? (await loadSetQuestions(path));
+        return qs.some((q) => q.chapter === chapter);
+      };
+      if (!(await hasChapter(sets.find((s) => s.id === setId)?.path))) {
+        for (const s of sets) {
+          if (s.id === setId) continue;
+          if (await hasChapter(s.path)) {
+            setSetId(s.id);
+            showToast(`'${chapter}' 문항이 있는 ${s.title}(으)로 이동했습니다.`, 'info');
+            break;
+          }
+        }
+      }
+    } catch { /* 세트 로드 실패 시 현재 세트 유지 — 빈 필터 안내가 그레이스풀 처리 */ }
     setMode('practice');
     setChapterFilter(chapter);
     beginSession();
@@ -554,6 +573,7 @@ export const AppModals = () => {
           onClear={handleClearHistories}
           onPracticeChapter={handlePracticeChapter}
           practiceLocked={examLocked}
+          certification={activeProduct}
         />
       )}
 

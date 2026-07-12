@@ -8,8 +8,9 @@ import { aggregateChapterStats, weightedRatePercent } from '../../utils/chapterS
 import { buildSetTimelines, formatDeltaPp } from '../../utils/attemptStats';
 import { ConfirmButtons } from '../common/ConfirmButtons';
 
-// 챕터 정답률이 이 미만이면 '약점'으로 강조한다(ISTQB 합격 컷 65%와 동일 기준).
-const WEAK_THRESHOLD = 65;
+// 챕터 정답률이 합격 컷 미만이면 '약점'으로 강조한다 — 자격증별 컷과 동일 기준
+// (ISTQB 65% / CSTS 75%). 고정 65는 CSTS에서 66~74% 약점을 놓친다.
+const WEAK_THRESHOLD_BY_CERT: Record<string, number> = { istqb: 65, csts: 75 };
 
 const MODE_LABEL: Record<string, string> = {
   exam: '시험',
@@ -27,9 +28,12 @@ interface StatsDashboardProps {
   onPracticeChapter: (chapter: string) => void;
   /** 시험 응시 중(잠금)이면 연습 진입 버튼을 비활성화한다(핸들러 가드와 이중 방어). */
   practiceLocked?: boolean;
+  /** 현재 제품(약점 임계값 결정 — istqb 65% / csts 75%). */
+  certification?: 'istqb' | 'csts' | null;
 }
 
-export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeChapter, practiceLocked }: StatsDashboardProps) => {
+export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeChapter, practiceLocked, certification }: StatsDashboardProps) => {
+  const weakThreshold = WEAK_THRESHOLD_BY_CERT[certification ?? 'istqb'] ?? 65;
   const rows = useMemo(() => {
     const titleOf = (setId: string) => sets.find((s) => s.id === setId)?.title || setId;
     return Object.values(histories)
@@ -111,7 +115,7 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
                 <h4>챕터별 정답률 <small>전 세트 합산 · 낮은 순 — 연습은 현재 세트에서 진행</small></h4>
                 <ul>
                   {chapterRows.map((ch) => (
-                    <li key={ch.name} className={ch.rate < WEAK_THRESHOLD ? 'weak' : ''} data-testid="stats-chapter-row">
+                    <li key={ch.name} className={ch.rate < weakThreshold ? 'weak' : ''} data-testid="stats-chapter-row">
                       <span className="sc-name">{ch.name}</span>
                       <span className="sc-bar" aria-hidden="true">
                         <i style={{ width: `${ch.rate}%` }} />
@@ -150,12 +154,12 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
                 <p className="sr-only">
                   최근 {trend.length}회 정답률: {trend.map((r) => `${r.rate}%`).join(' → ')}
                 </p>
-                <div className="trend-bars">
+                <div className="trend-bars" aria-hidden="true">
                   {trend.map((r) => (
                     <i
                       key={r.id}
                       style={{ height: `${Math.max(r.rate ?? 0, 4)}%` }}
-                      className={(r.rate ?? 0) < WEAK_THRESHOLD ? 'weak' : ''}
+                      className={(r.rate ?? 0) < weakThreshold ? 'weak' : ''}
                       title={`${r.title} · ${r.rate}%`}
                     />
                   ))}
@@ -183,7 +187,7 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
                     </div>
                     <ol className="stl-rounds">
                       {tl.attempts.map((at) => (
-                        <li key={at.id} className={at.rate < WEAK_THRESHOLD ? 'weak' : ''}>
+                        <li key={at.id} className={at.rate < weakThreshold ? 'weak' : ''}>
                           <span className="stl-round-no">{at.round}회</span>
                           <span className="stl-round-mode">{MODE_LABEL[at.mode] || at.mode}</span>
                           <span className="stl-round-rate">{at.rate}%</span>

@@ -51,4 +51,40 @@ test.describe("학습 누적 — 회차 비교·타임라인(Phase 2)", () => {
     // 회차 칩(1회/2회)이 렌더된다.
     await expect(item.locator(".stl-rounds li")).toHaveCount(2);
   });
+
+  // QA12 — 델타 "존재"만이 아니라 "방향"을 검증한다. 오라클은 UI가 아니라 원본 JSON:
+  // 데이터 기준으로 점수를 올리고(오답→정답) 내려서(정답→오답) ▲/▼가 실변화와 일치하는지 본다.
+  test("직전 대비 델타의 방향(▲/▼)이 데이터 기준 점수 변화와 일치한다", async ({ page }) => {
+    const res = await page.request.get("/data/istqb/sample-a.json");
+    expect(res.ok()).toBeTruthy();
+    const q1 = (await res.json()).questions[0];
+    const correctIdxs: number[] = q1.answer.map((k: string) =>
+      q1.options.findIndex((o: { key: string }) => o.key.toLowerCase() === k.toLowerCase()));
+    expect(correctIdxs.every((i) => i >= 0)).toBeTruthy();
+    const wrongIdx = q1.options.findIndex(
+      (o: { key: string }) => !q1.answer.some((k: string) => k.toLowerCase() === o.key.toLowerCase()));
+    expect(wrongIdx).toBeGreaterThanOrEqual(0);
+
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+
+    // 1회차(기준): 1번 문항 오답 → 0점.
+    await enterExam(page);
+    await page.locator("#options .option").nth(wrongIdx).click();
+    await submitGrade(page);
+    const delta = page.getByTestId("result-delta");
+
+    // 2회차: 다시 풀기 → 시작 게이트 재통과 → 1번 정답 → 점수 상승 = ▲.
+    await page.getByTestId("result-retry").click();
+    await page.getByTestId("exam-start-btn").click();
+    for (const idx of correctIdxs) await page.locator("#options .option").nth(idx).click();
+    await submitGrade(page);
+    await expect(delta).toContainText("▲");
+
+    // 3회차: 다시 오답 → 점수 하락 = ▼.
+    await page.getByTestId("result-retry").click();
+    await page.getByTestId("exam-start-btn").click();
+    await page.locator("#options .option").nth(wrongIdx).click();
+    await submitGrade(page);
+    await expect(delta).toContainText("▼");
+  });
 });

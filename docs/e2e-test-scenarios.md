@@ -1,4 +1,4 @@
-# React E2E 테스트 시나리오 (292개)
+# React E2E 테스트 시나리오 (294개)
 
 > 대상: React 앱(`index.vite.html` → Vercel `dist` 배포본). Playwright로 자동화.
 > 실행: CI `react` 프로젝트(`testMatch: /react-.*\.spec\.ts/`) — `npm run test:e2e`.
@@ -8,7 +8,7 @@
 
 ---
 
-## 스펙 파일 인덱스 (총 292 — Phase 1~4·전이 추가분은 하단 표 참고)
+## 스펙 파일 인덱스 (총 294 — Phase 1~4·전이·랜덤 스모크 추가분은 하단 표 참고)
 
 | 스펙 파일 | 개수 | 영역 |
 |-----------|------|------|
@@ -185,7 +185,9 @@
 | P1-6 | 채점 후 '다시 풀기'(결과 모달)·활성 탭 재클릭 = 원클릭 재응시 | react-edge-modes |
 | P2-1 | 첫 응시 "첫 응시" 안내, 재응시 "모드 N회차 · 직전 대비 ▲/▼%p" | react-phase2 |
 | P2-2 | 학습 통계 세트별 회차 타임라인 누적(회차 칩·같은 모드 성장폭) | react-phase2 |
+| P2-3 | 델타 방향 검증 — 데이터(JSON) 오라클로 점수를 올리고/내려 ▲·▼가 실변화와 일치 | react-phase2 |
 | P3-1 | 채점 → 챕터별 정답률(약점순) → '연습'으로 챕터 집중 연습 진입 | react-weakness |
 | P3-2 | 오답노트 전 회차 합산 — 최신 회차 정답도 과거 오답이면 유지 | react-weakness |
 | P4-1 | 백업 가져오기 스키마 버전 검증·원자성(유닛: storage.import.test) | 유닛 |
 | ST-* | 상태 전이 전수(S0 게이트/S1 연습/S2E 시험 3단계/S3 랜덤/S4 오답 × 전이 39건) | react-transition |
+| RS-1 | 시드 랜덤 스모크 — 매 실행 다른 세트·답 조합, 원본 JSON 기준 기대 점수와 UI 점수 일치(`SMOKE_SEED` 재현) | react-random-smoke |

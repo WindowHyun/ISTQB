@@ -93,12 +93,14 @@ export interface QuizState {
 // 세션 스코프 상태의 기본값 — "제품 전환/복원(hydrate) 시 초기화해야 할 것" 목록의
 // 단일 원천(storage.restorePersistentSnapshot이 사용). 세션 스코프 필드를 추가하면
 // 여기에 함께 넣는다. (resetToGate는 graded/reviewIds를 세션 내 보존하는 별개 정책)
-export const SESSION_SCOPE_DEFAULTS = {
+// 함수형인 이유: 상수 객체면 중첩 {}가 모듈 공유 참조로 hydrate에 유입돼, 어딘가에서
+// 직접 변이하는 코드가 생기는 순간 제품 간 상태가 오염되는 잠복 결함이 된다.
+export const sessionScopeDefaults = () => ({
   graded: {} as Record<string, boolean>,
   examStarted: {} as Record<string, boolean>,
   reviewIds: {} as Record<string, string[]>,
   chapterFilter: null as string | null,
-};
+});
 
 export const useQuizStore = create<QuizState>((set) => ({
   activeProduct: null,
