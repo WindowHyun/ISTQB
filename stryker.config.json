@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "뮤테이션 테스팅 — 테스트 스위트의 결함 검출력(효력)을 실측한다(살충제 패러독스 대응). 코드에 인위적 결함(뮤턴트)을 심고 테스트가 죽이는지 측정. 대상은 채점·통계 핵심 순수 로직으로 스코프(전체 대상은 실행 시간 과다).",
+  "testRunner": "vitest",
+  "vitest": { "configFile": "vitest.stryker.config.ts" },
+  "coverageAnalysis": "perTest",
+  "mutate": [
+    "src/utils/answer.ts",
+    "src/utils/scoring.ts",
+    "src/utils/chapterStats.ts",
+    "src/utils/attemptStats.ts"
+  ],
+  "reporters": ["clear-text", "progress"],
+  "thresholds": { "high": 90, "low": 75, "break": null },
+  "tempDirName": ".stryker-tmp",
+  "cleanTempDir": true
+}

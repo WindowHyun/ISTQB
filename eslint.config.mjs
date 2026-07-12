@@ -13,6 +13,7 @@ export default tseslint.config(
       'public/**',
       'android/**',
       'coverage/**',
+      '.stryker-tmp/**',
       'docs/**',
       'script.js',
       'service-worker.js',

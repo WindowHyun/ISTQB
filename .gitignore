@@ -55,3 +55,4 @@ coverage/
 /public/source-visuals/
 /public/icons/
 reports/
+.stryker-tmp/
