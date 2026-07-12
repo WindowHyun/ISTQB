@@ -1512,27 +1512,15 @@
       "stem": [
         {
           "type": "paragraph",
-          "text": "각 반복주기가 시작될 때 팀은 반복주기 중에 완료해야 하는 작업량(M/D)을 추정한"
+          "text": "각 반복주기가 시작될 때 팀은 반복주기 중에 완료해야 하는 작업량(M/D)을 추정한다."
         },
         {
           "type": "paragraph",
-          "text": "다. E(n)이 반복주기 n의 예상 작업량이고 A(n)은 반복주기 n에서 수행한 실제 작업량을 나타낸다고 하자."
-        },
-        {
-          "type": "paragraph",
-          "text": "세 번째 반복주기부터 팀은 외삽법(extrapolation)을 기반으로 한 추정 모델을 사용한"
-        },
-        {
-          "type": "paragraph",
-          "text": "다."
+          "text": "E(n)이 반복주기 n의 예상 작업량이고 A(n)은 반복주기 n에서 수행한 실제 작업량을 나타낸다고 하자. 세 번째 반복주기부터 팀은 외삽법(extrapolation)을 기반으로 한 다음과 같은 추정 모델을 사용한다."
         },
         {
           "type": "formula",
-          "text": "E(n) = (3 * A(n -"
-        },
-        {
-          "type": "formula",
-          "text": "1) + A(n - 2)) / 4"
+          "text": "E(n) = (3 * A(n - 1) + A(n - 2)) / 4"
         },
         {
           "type": "paragraph",
