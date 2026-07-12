@@ -1,4 +1,4 @@
-# React E2E 테스트 시나리오 (304개)
+# React E2E 테스트 시나리오 (305개)
 
 > 대상: React 앱(`index.vite.html` → Vercel `dist` 배포본). Playwright로 자동화.
 > 실행: CI `react` 프로젝트(`testMatch: /react-.*\.spec\.ts/`) — `npm run test:e2e`.
@@ -8,7 +8,7 @@
 
 ---
 
-## 스펙 파일 인덱스 (총 304 — Phase 1~4·전이·랜덤 스모크·흐름 UX 추가분은 하단 표 참고)
+## 스펙 파일 인덱스 (총 305 — Phase 1~4·전이·랜덤 스모크·흐름 UX 추가분은 하단 표 참고)
 
 | 스펙 파일 | 개수 | 영역 |
 |-----------|------|------|
@@ -32,7 +32,7 @@
 | `react-edge-persist` | 16 | 엣지: 복원·가져오기·테마/콘솔 지속·**저장 불가 환경(localStorage 예외)** |
 | `react-edge-modal` | 18 | 엣지: 모달 Esc/백드롭·통계·토글·**오답노트 문항 보기** |
 | `react-edge-content` | 19 | 엣지: 라이트박스·표·콘솔·토스트·**콘텐츠 표시 수정 회귀(밑줄·들여쓰기·병합)** |
-| `react-edge-responsive` | 12 | 엣지: 드로어·점프핀·하단바·320px·768px |
+| `react-edge-responsive` | 15 | 엣지: 드로어·점프핀·하단바·320px·768px·통계 버튼 줄바꿈 회귀 |
 | `react-edge-figtable` | 13 | 엣지: 특정 표/그림 문항 |
 | `react-edge-import` | 9 | 엣지: 대용량/비정상 import 견고성 |
 | `react-pwa` | 2 | PWA 새 버전 업데이트 배너 |
@@ -169,7 +169,7 @@
   figure=ISTQB-A Q23, 보기 표=CSTS-2404 Q33, 가나다라=CSTS-2018 Q10.
 - 진입 시 항상 제품 선택 게이트가 뜨므로(설계상) 새로고침 복원은 "재선택 후 복원"으로 검증.
 - 저장 불가 환경(엣지-영속성): `addInitScript`로 `localStorage.setItem`이 예외를 던지도록 모사해 제품 선택·문항 진입·테마/글자 크기 설정이 크래시 없이 동작하는지 검증(`safeStorage` 래퍼 회귀).
-- 로컬 검증: 설치된 chromium headless 기준 **304/304 통과**(+비기능 12). CI는 자체 브라우저로 동일 실행.
+- 로컬 검증: 설치된 chromium headless 기준 **305/305 통과**(+비기능 12). CI는 자체 브라우저로 동일 실행.
 
 ---
 

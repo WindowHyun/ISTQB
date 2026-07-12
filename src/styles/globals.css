@@ -716,6 +716,8 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 @media (max-width: 560px) {
   .wrong-note-item { grid-template-columns: 1fr; gap: 4px; }
   .wn-correct { text-align: left; }
+  /* 한 줄로 흐를 때 '내 답'과 '정답' 사이 숨통 — 붙어 보이는 답답함 해소. */
+  .wn-mine { margin-right: 10px; }
 }
 /* 2단계 목록 항목을 버튼화(클릭 → 3단계 문항 보기). 기존 카드 룩 유지. */
 .wrong-note-item-btn {
@@ -1343,6 +1345,14 @@ body[data-theme="dark"] .mtb-chip { background: #1e40af; }
 }
 .sc-minitest:hover { border-color: var(--primary); }
 .sc-practice:disabled, .sc-minitest:disabled { opacity: 0.5; cursor: not-allowed; }
+/* 버튼 라벨은 절대 줄바꿈하지 않는다 — 좁은 그리드 셀에서 '미/니/시/험' 세로 꺾임 방지. */
+.sc-practice, .sc-minitest { white-space: nowrap; }
+/* 좁은 화면: 5열 그리드가 버튼 폭을 짓누르므로 막대를 생략하고
+   [이름(신축) · 정답률 · 연습 · 미니 시험] 한 줄 배치로 재배열한다. */
+@media (max-width: 640px) {
+  .stats-chapters li { grid-template-columns: minmax(0, 1fr) auto auto auto; }
+  .stats-chapters .sc-bar { display: none; }
+}
 .stats-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
 
 /* 정답률 추이 미니 바(왼쪽=과거) */

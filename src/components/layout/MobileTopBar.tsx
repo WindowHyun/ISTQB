@@ -13,8 +13,9 @@ const LOGO_SRC =
 // 모바일 전용 상단바(CSS로 ≤880px에서만 노출). 모드·진행·시간을 상시 노출하고 ☰로 컨트롤 드로어를 연다.
 export const MobileTopBar = () => {
   // 슬라이스 구독(O1) — 타이머는 TimerClock이 단독 구독한다.
-  const { mode, setId, activeProduct, setDrawerOpen } = useQuizStore(useShallow((s) => ({
-    mode: s.mode, setId: s.setId, activeProduct: s.activeProduct, setDrawerOpen: s.setDrawerOpen,
+  const { mode, setId, activeProduct, chapterFilter, setDrawerOpen } = useQuizStore(useShallow((s) => ({
+    mode: s.mode, setId: s.setId, activeProduct: s.activeProduct,
+    chapterFilter: s.chapterFilter, setDrawerOpen: s.setDrawerOpen,
   })));
   const { appData, total, answered, progressPercent } = useQuizSession();
   const setTitle = appData?.sets.find((s) => s.id === setId)?.title || '문제 풀이';
@@ -41,7 +42,10 @@ export const MobileTopBar = () => {
         </button>
       </div>
       <div className="mtb-info">
-        <span className="mtb-chip">{MODE_LABEL[mode] || mode}</span>
+        {/* 챕터 미니 시험(랜덤+필터)은 일반 랜덤과 구분해 표기 — 결과 모달 라벨과 일관. */}
+        <span className="mtb-chip">
+          {mode === 'random' && chapterFilter ? '미니 시험' : (MODE_LABEL[mode] || mode)}
+        </span>
         {/* 라이브 영역을 진행률에만 둔다 — 타이머를 포함하면 스크린리더가 매초 시간을 낭독한다. */}
         <span className="mtb-meta" aria-live="polite">{answered} / {total}</span>
         <span className="mtb-meta">⏱ <TimerClock /></span>

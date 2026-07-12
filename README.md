@@ -1,13 +1,13 @@
 # ISTQB / CSTS 문제 풀이 앱 — 기능 & QA 포트폴리오
 
 ![CI](https://github.com/WindowHyun/ISTQB/actions/workflows/ci.yml/badge.svg)
-![tests](https://img.shields.io/badge/tests-148%20unit%20%2B%20304%20e2e-brightgreen)
+![tests](https://img.shields.io/badge/tests-148%20unit%20%2B%20305%20e2e-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT%20(code)-yellow)
 ![stack](https://img.shields.io/badge/React%2019-TypeScript-blue)
 
 ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **12세트·626문항**을 푸는 오프라인 CBT 문제 풀이 앱입니다.
 
-> **한 줄 요약** — 단순 기능 구현을 넘어 **테스트 자동화(유닛 148 + E2E 304) · 데이터 정합성 검증 ·
+> **한 줄 요약** — 단순 기능 구현을 넘어 **테스트 자동화(유닛 148 + E2E 305) · 데이터 정합성 검증 ·
 > 결함 근본원인 분석(RCA) · CI 품질 게이트**로 품질을 책임진 1인 프로젝트입니다.
 > "무엇을 만들었는가"보다 **"품질을 어떻게 보장했는가"** 를 보여주는 사례입니다.
 
@@ -24,7 +24,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 - [주요 기능](#주요-기능)
 - [데모 자료 (GIF · 스크린샷)](#데모-자료-gif--스크린샷)
 - [테스트 전략](#테스트-전략)
-- [테스트 자동화 상세 (E2E 304)](#테스트-자동화-상세-e2e-304)
+- [테스트 자동화 상세 (E2E 305)](#테스트-자동화-상세-e2e-305)
 - [결함 발견 & 근본원인 분석](#결함-발견--근본원인-분석-case-studies)
 - [CI 품질 게이트](#ci-품질-게이트)
 - [품질 지표](#품질-지표-metrics)
@@ -39,7 +39,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 
 ## 하이라이트 (Quality Engineering)
 
-- **테스트 자동화 452개** — Vitest 유닛 148 + Playwright **E2E 304**(스모크·모드·문항유형·네비·설정·영속성·엣지·반응형·접근성·**상태 전이 전수**·**대용량 import**·**표/그림 문항**·**라이트박스/콘솔**·**저장 불가 환경**). 전체 시나리오: [`docs/e2e-test-scenarios.md`](docs/e2e-test-scenarios.md).
+- **테스트 자동화 453개** — Vitest 유닛 148 + Playwright **E2E 305**(스모크·모드·문항유형·네비·설정·영속성·엣지·반응형·접근성·**상태 전이 전수**·**대용량 import**·**표/그림 문항**·**라이트박스/콘솔**·**저장 불가 환경**). 전체 시나리오: [`docs/e2e-test-scenarios.md`](docs/e2e-test-scenarios.md).
 - **살충제 패러독스 대응 3계층** — **속성 기반 테스트 21**(fast-check: 매 실행 새 입력 생성) + **뮤테이션 테스트**(Stryker, 채점·통계 핵심 로직 스코어 **93.2%**, CI break 85 게이트) + **시드 랜덤 스모크 E2E**(매일 다른 세트·답 조합, 원본 JSON을 독립 오라클로 사용·시드 로그로 재현 가능).
 - **PDF ↔ 데이터 전수 정합성 검증** — 626문항 정답·보기·stem을 **공식 PDF와 1:1 대조**(대조 가능 600문항 불일치 0). 더해 `npm run verify`로 정답·이미지·스키마 자동 점검 + 전 문항 렌더 스윕(404·예외·깨진 이미지 0).
 - **자격증별 컷스코어·접근성** — ISTQB 65% / CSTS 환산 52.5점 합격 판정, 색각 대비 글리프·포커스 트랩·reduced-motion 등 a11y 반영.
@@ -50,7 +50,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 
 | QA 역량 | 본 프로젝트에서 한 일 | 근거 |
 |---------|----------------------|------|
-| 테스트 자동화 | Playwright **E2E 304개** + Vitest **유닛 148개**(속성 기반 21 포함) 작성·CI 연동 | `e2e/`, `src/**/*.test.ts` |
+| 테스트 자동화 | Playwright **E2E 305개** + Vitest **유닛 148개**(속성 기반 21 포함) 작성·CI 연동 | `e2e/`, `src/**/*.test.ts` |
 | 테스트 설계 | 모드·문항유형·네비·설정·영속성·엣지(경계·격리·복원·대용량 import)·표/그림·반응형·접근성으로 시나리오 분해 | [`docs/e2e-test-scenarios.md`](docs/e2e-test-scenarios.md) |
 | 회귀 방지 | 결함 수정마다 회귀 테스트 추가, CI 머지 게이트 | 파서 회귀 케이스, 10-job CI |
 | 결함 발견·RCA | **PDF 원본 ↔ 앱 렌더 전수 대조**로 결함 식별, 반복 결함 근본원인 분석 | 아래 [Case Studies](#결함-발견--근본원인-분석-case-studies) |
@@ -97,23 +97,24 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 | 모드 전환·번호 팔레트·키보드 네비 | ![네비](docs/gifs/05-nav.gif) |
 | 단답형 입력·정답 확인 | ![단답형](docs/gifs/06-shortanswer.gif) |
 
-### 정적 스크린샷
+### 정적 스크린샷 (PC / 모바일)
 
-| 화면 | 파일 |
-|------|------|
-| 제품 선택(게이트) | [`01-gate.png`](docs/screenshots/01-gate.png) |
-| 풀이 화면(연습) | [`02-practice.png`](docs/screenshots/02-practice.png) |
-| 채점 결과(정답 공개) | [`03-graded.png`](docs/screenshots/03-graded.png) |
-| 오답노트 | [`04-wrongnote.png`](docs/screenshots/04-wrongnote.png) |
-| 설정 모달 | [`05-settings.png`](docs/screenshots/05-settings.png) |
-| 그림 문항(상태도) | [`06-figure.png`](docs/screenshots/06-figure.png) |
-| 단답형 입력 | [`07-shortanswer.png`](docs/screenshots/07-shortanswer.png) |
-| 모바일 뷰 | [`08-mobile.png`](docs/screenshots/08-mobile.png) |
+| 화면 | PC | 모바일 |
+|------|----|--------|
+| 제품 선택(게이트) | [`pc/01-gate.png`](docs/screenshots/pc/01-gate.png) | [`mobile/01-gate.png`](docs/screenshots/mobile/01-gate.png) |
+| 풀이 화면(연습·즉시 피드백) | [`pc/02-practice.png`](docs/screenshots/pc/02-practice.png) | [`mobile/02-practice.png`](docs/screenshots/mobile/02-practice.png) |
+| 채점 결과(점수·합불·회차 비교) | [`pc/03-graded.png`](docs/screenshots/pc/03-graded.png) | [`mobile/03-graded.png`](docs/screenshots/mobile/03-graded.png) |
+| 오답노트(전 회차 누적) | [`pc/04-wrongnote.png`](docs/screenshots/pc/04-wrongnote.png) | [`mobile/04-wrongnote.png`](docs/screenshots/mobile/04-wrongnote.png) |
+| 설정 모달 | [`pc/05-settings.png`](docs/screenshots/pc/05-settings.png) | [`mobile/05-settings.png`](docs/screenshots/mobile/05-settings.png) |
+| 그림 문항(상태도) | [`pc/06-figure.png`](docs/screenshots/pc/06-figure.png) | [`mobile/06-figure.png`](docs/screenshots/mobile/06-figure.png) |
+| 단답형 입력 | [`pc/07-shortanswer.png`](docs/screenshots/pc/07-shortanswer.png) | [`mobile/07-shortanswer.png`](docs/screenshots/mobile/07-shortanswer.png) |
+| 학습 통계(약점·미니 시험·타임라인) | [`pc/08-stats.png`](docs/screenshots/pc/08-stats.png) | [`mobile/08-stats.png`](docs/screenshots/mobile/08-stats.png) |
+| 사이트 사용법(사용설명서) | [`pc/09-guide.png`](docs/screenshots/pc/09-guide.png) | [`mobile/09-guide.png`](docs/screenshots/mobile/09-guide.png) |
 
 ## 테스트 전략
 
 ```
-        ▲  E2E (Playwright) — 304개: 사용자 플로우·엣지·크로스뷰포트·A11y·시드 랜덤 스모크
+        ▲  E2E (Playwright) — 305개: 사용자 플로우·엣지·크로스뷰포트·A11y·시드 랜덤 스모크
        ───
       ─────  통합/렌더 — jsdom 렌더 테스트(파서·RichText)
      ───────  유닛 (Vitest) — 148개: 정답판정·파서·컷스코어·챕터/회차 통계·저장·타이머·토스트·store 액션·store↔storage 연동·속성 기반 21
@@ -124,7 +125,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 - **살충제 패러독스 대응**: 고정 케이스가 무뎌지는 것을 막기 위해 ①속성 기반(fast-check — 매 실행 새 입력) ②뮤테이션(Stryker — 테스트의 결함 검출력 실측, 스코어 93.2%·CI break 85) ③시드 랜덤 스모크 E2E(매일 다른 조합, 데이터(JSON)를 독립 오라클로 사용, `SMOKE_SEED`로 재현)를 병행.
 - **환경 제약 대응**: 로컬 브라우저 다운로드가 막힌 상황에서 **CI를 신뢰 검증 계층**으로 활용하고, jsdom 렌더 테스트로 정적 검사(tsc/lint)가 못 잡는 런타임 크래시까지 검출.
 
-## 테스트 자동화 상세 (E2E 304)
+## 테스트 자동화 상세 (E2E 305)
 
 - **카테고리**: 스모크 · 모드 · 네비게이션 · 설정 · 문항유형 · 콘텐츠 · **영속성/백업** · **엣지(경계·격리·복원·모달·반응형)** · **대용량/비정상 import** · **특정 표/그림 문항** · **라이트박스/화면 콘솔** · **저장 불가 환경** · **접근성**.
 - **특징**: headless 실행, 결정적 타게팅(특정 세트·문항 고정), 공용 헬퍼(`e2e/helpers.ts`)로 중복 제거, 실제 qid로 백업을 생성해 import 복원까지 검증.
@@ -160,14 +161,14 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 ## CI 품질 게이트
 
 - GitHub Actions **10 job**(push/PR 병렬):
-  - **기능·품질 7** — `lint`(ESLint+tsc) · `verify(데이터)` · `unit`(+커버리지 임계값 게이트) · `mutation`(Stryker 뮤테이션 스코어 break 85 게이트) · `build`(+번들 크기 예산) · `e2e`(기능 304) · `nonfunctional`(성능·부하·메모리·타이머·오프라인·데이터 내구성·장기 스케일 12, CI 완화 예산).
+  - **기능·품질 7** — `lint`(ESLint+tsc) · `verify(데이터)` · `unit`(+커버리지 임계값 게이트) · `mutation`(Stryker 뮤테이션 스코어 break 85 게이트) · `build`(+번들 크기 예산) · `e2e`(기능 305) · `nonfunctional`(성능·부하·메모리·타이머·오프라인·데이터 내구성·장기 스케일 12, CI 완화 예산).
   - **보안 3** — `audit`(의존성 취약점, 배포 번들 기준) · `secrets`(gitleaks 시크릿 스캔) · `codeql`(JS/TS 정적분석: XSS·프로토타입 오염 등).
 - 모든 job 통과해야 머지 → **결함·취약점의 main 유입 차단**. 동시성·캐시·최소권한(CodeQL만 job 레벨 `security-events: write`) 설정.
 - 각 CI 워크플로의 동작 방식·코드 설명(CI·매일 예약 E2E·Android 배포): [`docs/ci/`](docs/ci/README.md).
 
 ## 품질 지표 (Metrics)
 
-- 자동화 테스트: **유닛 148 + E2E 304 = 452** (전 문항 626 렌더 스윕 별도).
+- 자동화 테스트: **유닛 148 + E2E 305 = 452** (전 문항 626 렌더 스윕 별도).
 - 뮤테이션 스코어(채점·통계 핵심 4개 유틸): **93.2%**(296개 뮤턴트 중 276 kill) — CI break 85 게이트로 테스트 효력 저하를 차단.
 - 유닛 커버리지(로직 계층 `store`·`utils`): **Stmts ~70% · Branch ~62% · Funcs ~76% · Lines ~71%**. CI에서 임계값(stmt 68·branch 60·func 73·line 69) 게이트로 회귀 차단(핵심 로직 파서/정답판정/저장 집중, 컴포넌트는 E2E 담당).
 - 데이터 무결성: 626문항 정답·이미지·스키마 `verify` 통과, 전수 스윕 결과 **404·예외·깨진 이미지 0**.
@@ -192,7 +193,7 @@ flowchart LR
   REACT --> CAP
 
   subgraph 품질["품질 게이트 (GitHub Actions · 10 job)"]
-    CI["기능·품질: lint · verify · unit(148) · mutation(93.2%) · build · e2e(304) · nonfunctional(12)<br/>보안: audit · secrets · codeql"]
+    CI["기능·품질: lint · verify · unit(148) · mutation(93.2%) · build · e2e(305) · nonfunctional(12)<br/>보안: audit · secrets · codeql"]
   end
   REACT -.검증.-> CI
   SRC -.정합성 verify.-> CI
