@@ -193,6 +193,28 @@ ul { margin: 0; padding: 0; list-style: none; }
   color: #fff;
 }
 .product-button.primary:hover { background: var(--primary-600); }
+/* 게이트 하단 사용설명서 버튼 — 제품 선택을 방해하지 않는 보조 톤, 터치 타깃 44px. */
+.gate-guide-btn {
+  margin-top: 18px;
+  width: 100%;
+  min-height: 44px;
+  padding: 11px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--text-2);
+  font-weight: 700;
+  font-size: 14px;
+}
+.gate-guide-btn:hover { color: var(--primary); border-color: var(--primary); }
+
+/* 사용설명서 본문 — 섹션별 카드형, 모달 안에서 스크롤. */
+.guide-body { display: flex; flex-direction: column; gap: 14px; }
+.guide-section h4 { font-size: 14.5px; font-weight: 800; margin-bottom: 6px; }
+.guide-section ul, .guide-section ol { padding-left: 20px; display: flex; flex-direction: column; gap: 5px; }
+.guide-section li { font-size: 13.5px; color: var(--text-2); line-height: 1.65; }
+.guide-section li strong { color: var(--text); }
+.guide-section { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); }
 
 /* ── 앱 셸 레이아웃 ───────────────────────────────────────────────────── */
 .app-shell {

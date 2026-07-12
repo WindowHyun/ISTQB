@@ -9,6 +9,7 @@ import { showToast } from '../../utils/toast';
 import { isDebugEnabled, setDebugEnabled } from '../../utils/debugLog';
 import { Modal } from '../common/Modal';
 import { ConfirmButtons } from '../common/ConfirmButtons';
+import { UserGuide } from '../common/UserGuide';
 import { StatsDashboard } from '../stats/StatsDashboard';
 import { latestAttemptComparison, overcomeNumbers } from '../../utils/attemptStats';
 import { ResultSummary } from '../quiz/ResultSummary';
@@ -112,6 +113,8 @@ export const AppModals = () => {
   // 응시 중 '처음 화면으로' 확인 — 잠금을 옆문으로 조용히 우회하지 않게 명시적 확인을 거친다
   // (답안은 저장되므로 파괴적이지 않음 → 로컬 상태로 충분, 다른 컴포넌트가 열 일 없음).
   const [confirmHomeOpen, setConfirmHomeOpen] = useState(false);
+  // 사용설명서 — 게이트 하단 버튼과 동일한 문서를 설정에서도 연다(풀이 중 재열람 경로).
+  const [guideOpen, setGuideOpen] = useState(false);
 
   useEffect(() => {
     document.body.dataset.qfont = fontSize;
@@ -639,6 +642,14 @@ export const AppModals = () => {
               <button type="button" className="settings-action" onClick={handleHome}>
                 처음 화면으로 (ISTQB/CSTS 선택)
               </button>
+              <button
+                type="button"
+                className="settings-action"
+                data-testid="guide-open-settings"
+                onClick={() => { setSettingsOpen(false); setGuideOpen(true); }}
+              >
+                📖 사이트 사용법
+              </button>
             </section>
 
             <section className="settings-group">
@@ -734,6 +745,8 @@ export const AppModals = () => {
           </div>
         </Modal>
       )}
+
+      {guideOpen && <UserGuide onClose={() => setGuideOpen(false)} />}
 
       {resultOpen && (
         <ResultSummary

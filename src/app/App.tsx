@@ -4,6 +4,7 @@ import { useQuizStore } from '../store/useQuizStore';
 import { restorePersistentSnapshot, flushPersist } from '../utils/storage';
 import { safeSetItem } from '../utils/safeStorage';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
+import { UserGuide } from '../components/common/UserGuide';
 import { MobileTopBar } from '../components/layout/MobileTopBar';
 import { AppModals } from '../components/modals/AppModals';
 
@@ -31,6 +32,8 @@ export const App = () => {
       setDrawerOpen: s.setDrawerOpen, resetToGate: s.resetToGate,
     })));
   const [isRestored, setIsRestored] = useState(false);
+  // 사용설명서 — 게이트 화면은 앱 셸(AppModals) 밖이라 로컬 상태로 연다.
+  const [guideOpen, setGuideOpen] = useState(false);
 
   useEffect(() => {
     // 진입 시 항상 제품 선택 화면(게이트)을 먼저 보여준다(#5).
@@ -93,7 +96,18 @@ export const App = () => {
             <button className="product-button primary" onClick={() => handleProductSelect('istqb')}>ISTQB</button>
             <button className="product-button" onClick={() => handleProductSelect('csts')}>CSTS</button>
           </div>
+          {/* 첫 방문자용 사용설명서 — 제품 선택 전에도 앱 사용법을 볼 수 있게 게이트 하단에 둔다. */}
+          <button
+            type="button"
+            className="gate-guide-btn"
+            aria-haspopup="dialog"
+            data-testid="guide-open"
+            onClick={() => setGuideOpen(true)}
+          >
+            📖 사이트 사용법
+          </button>
         </div>
+        {guideOpen && <UserGuide onClose={() => setGuideOpen(false)} />}
       </section>
     );
   }
