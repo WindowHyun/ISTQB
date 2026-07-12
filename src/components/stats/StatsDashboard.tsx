@@ -25,9 +25,11 @@ interface StatsDashboardProps {
   onClear: () => void;
   /** 챕터 집중 연습 진입(현재 세트를 해당 챕터로 필터해 연습 모드로). */
   onPracticeChapter: (chapter: string) => void;
+  /** 시험 응시 중(잠금)이면 연습 진입 버튼을 비활성화한다(핸들러 가드와 이중 방어). */
+  practiceLocked?: boolean;
 }
 
-export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeChapter }: StatsDashboardProps) => {
+export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeChapter, practiceLocked }: StatsDashboardProps) => {
   const rows = useMemo(() => {
     const titleOf = (setId: string) => sets.find((s) => s.id === setId)?.title || setId;
     return Object.values(histories)
@@ -118,7 +120,10 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
                         type="button"
                         className="sc-practice"
                         data-testid="chapter-practice-btn"
-                        title={`현재 세트에서 '${ch.name}' 문항만 연습`}
+                        disabled={practiceLocked}
+                        title={practiceLocked
+                          ? '시험 응시 중에는 집중 연습을 시작할 수 없습니다. 먼저 채점하세요.'
+                          : `현재 세트에서 '${ch.name}' 문항만 연습`}
                         onClick={() => onPracticeChapter(ch.name)}
                       >
                         연습

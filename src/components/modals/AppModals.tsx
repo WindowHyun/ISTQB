@@ -64,12 +64,14 @@ export const AppModals = () => {
   // 슬라이스 구독(O1). elapsedSeconds는 결과 모달이 열려 있을 때만 반영해
   // 닫혀 있는 동안 타이머 틱으로 리렌더되지 않게 한다(열려 있으면 기존처럼 초 단위 갱신).
   const {
-    setId, mode, activeProduct, histories, resultElapsedSeconds,
+    setId, mode, activeProduct, histories, examLocked, resultElapsedSeconds,
     settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, resumePrompt,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
     setMode, setIndex, resetTimer, clearAnswers, setReviewIds, setChapterFilter, setResumePrompt,
   } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, activeProduct: s.activeProduct, histories: s.histories,
+    // 응시 중 잠금(파생 boolean) — 통계의 챕터 '연습' 버튼 비활성화에 사용.
+    examLocked: s.mode === 'exam' && !!s.examStarted[s.setId] && !s.graded[`${s.setId}-exam`],
     resultElapsedSeconds: s.resultOpen ? s.elapsedSeconds : 0,
     settingsOpen: s.settingsOpen, statsOpen: s.statsOpen, wrongNoteOpen: s.wrongNoteOpen,
     resultOpen: s.resultOpen, paletteOpen: s.paletteOpen, confirmGradeOpen: s.confirmGradeOpen,
@@ -537,6 +539,7 @@ export const AppModals = () => {
           onClose={() => setStatsOpen(false)}
           onClear={handleClearHistories}
           onPracticeChapter={handlePracticeChapter}
+          practiceLocked={examLocked}
         />
       )}
 

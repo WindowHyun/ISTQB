@@ -44,6 +44,11 @@ function persistenceKey() {
   return getActiveProduct() === "csts" ? "csts-fl-v1-sample-history-snapshot" : "istqb-fl-v4-sample-history-snapshot";
 }
 
+// localStorage 쓰기 실패 추적 — saveUiState/saveAnswers는 일상 경로에선 조용히 실패해도
+// 되지만(디바운스 저장), 백업 가져오기에서는 "이력만 적용된 부분 성공"을 사용자에게
+// 알려야 하므로 이 플래그로 판정한다.
+let persistWriteFailed = false;
+
 // 저장 공간 임박 경고(Phase 4) — 세션당 1회. 실패 시점(무통지 유실 직전)이 아니라
 // 이력이 성공적으로 쌓이는 시점에 미리 내보내기(백업)를 유도한다.
 let storageWarned = false;
@@ -203,7 +208,8 @@ export function sanitizeHistory(value: unknown): ExamHistory | null {
       const t = finiteNumber(cell.t);
       // correct/total과 동일 규칙 — 음수 거부, 정답 수는 출제 수를 넘지 못하게 클램프
       // (손상 백업의 {c:100,t:1}이 챕터 정답률 10000%·약점 정렬 왜곡으로 새는 것 차단).
-      if (c === undefined || t === undefined || c < 0 || t < 0) continue;
+      // t=0 셀은 정보가 없으므로 폐기 — 통과시키면 통계에 "0% (0/0)" 유령 행이 생긴다.
+      if (c === undefined || t === undefined || c < 0 || t <= 0) continue;
       chapterStats[ch] = { c: Math.min(c, t), t };
     }
     if (Object.keys(chapterStats).length) out.chapterStats = chapterStats;
@@ -247,10 +253,26 @@ export function sanitizeUiState(value: unknown): Partial<QuizState> {
 }
 
 // 직전에 복원한 제품 — 같은 제품 게이트 왕복인지(세션 상태 보존) 제품 전환인지(초기화) 구분.
-// 새로고침이면 모듈이 리셋돼 null이므로 리로드 경로는 자연히 "초기화"로 판정된다.
+// 새로고침이면 모듈이 리셋돼 null이므로 리로드 경로는 자연히 "초기화"로 판정된다
+// (채점한 시험을 재접속하면 다시 풀 수 있어야 한다는 #1 롤백 동작 보존).
 let lastRestoredProduct: 'istqb' | 'csts' | null = null;
+// 세션 내 제품별 채점 상태 캐시 — A→B→A처럼 제품을 오가도 세션 채점 상태를 잃지 않아
+// "채점하기 재노출 → 동일 답안 재채점(유령 회차)" 경로를 막는다. 리로드 시 함께 초기화.
+const sessionGraded: Partial<Record<'istqb' | 'csts', QuizState['graded']>> = {};
+
+// 백업 가져오기 전용 — 재방문 판정·채점 캐시를 무효화한다. 가져온 백업에는 graded가
+// 없으므로(내보내기 대상 아님) 세션 graded를 보존하면 가져온 미채점 답안이
+// '채점됨'으로 표시되는 상태 불일치가 생긴다.
+function invalidateSessionRestoreCache(product: 'istqb' | 'csts') {
+  lastRestoredProduct = null;
+  delete sessionGraded[product];
+}
 
 export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts') {
+  // 떠나는 제품의 채점 상태를 세션 캐시에 보관(제품 재방문 시 복원).
+  if (lastRestoredProduct && lastRestoredProduct !== activeProduct) {
+    sessionGraded[lastRestoredProduct] = useQuizStore.getState().graded;
+  }
   const sameProductRevisit = lastRestoredProduct === activeProduct;
   lastRestoredProduct = activeProduct;
   // temporarily set the product to fetch the correct keys
@@ -288,6 +310,8 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
     // 않지만, 진행 중 답안의 존재가 곧 응시 개시의 증거다. 이것이 없으면 새로고침 한 번으로
     // 응시 중 세트/모드 잠금이 풀리고(구 확인 모달 대비 회귀), 답안을 모두 지웠을 때
     // 시작 게이트가 재출현해 타이머를 소거하는 부작용도 생긴다.
+    // 데이터 규약: 답안 키는 `${setId}-${mode}-${qid}`이고 setId·qid에는 '-exam-' 부분열이
+    // 없다(현행 12세트·626문항 전수 확인). 규약이 깨지면 아래 최초 일치 파싱이 오판한다.
     const restoredExamStarted: Record<string, boolean> = {};
     for (const key of Object.keys(sanitizedAnswers)) {
       const sep = key.indexOf('-exam-');
@@ -298,7 +322,9 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
       // 새 제품으로 새어들지 않도록 기본값으로 깔고, 이 제품의 복원값(restoredUi)으로 덮는다.
       // 단, 같은 제품 게이트 왕복(리로드 아님)에서는 세션 내 채점 상태를 보존한다 —
       // 소거하면 '채점하기'가 재노출돼 동일 답안 재채점으로 회차가 중복 적재된다.
-      graded: sameProductRevisit ? useQuizStore.getState().graded : {},
+      graded: sameProductRevisit
+        ? useQuizStore.getState().graded
+        : (sessionGraded[activeProduct] ?? {}),
       examStarted: restoredExamStarted,
       reviewIds: {}, chapterFilter: null,
       ...restoredUi,
@@ -356,6 +382,7 @@ export const saveUiState = debounce((state: Partial<QuizState>) => {
     snapshot.uiState = safeState;
     localStorage.setItem(persistenceKey(), JSON.stringify(snapshot));
   } catch (e) {
+    persistWriteFailed = true; // import 부분 성공 판정용(아래 importUserData 참고)
     console.error("saveUiState error", e);
   }
 }, 500);
@@ -374,6 +401,7 @@ export const saveAnswers = debounce((answers: Record<string, string[]>) => {
       localStorage.setItem(persistenceKey(), JSON.stringify(snapshot));
     }
   } catch (e) {
+    persistWriteFailed = true; // import 부분 성공 판정용
     console.error("saveAnswers error", e);
   }
 }, 500);
@@ -475,6 +503,7 @@ export async function importUserData(file: File): Promise<boolean> {
 
         // 이력 커밋 성공 후에만 localStorage 반영.
         // activeProduct를 함께 넣어 saveUiState의 early-return을 피하고, 즉시 flush로 디바운스 우회(#59).
+        persistWriteFailed = false;
         if (data.state) {
           saveUiState({ ...data.state, activeProduct: product });
           saveUiState.flush();
@@ -484,8 +513,16 @@ export async function importUserData(file: File): Promise<boolean> {
           saveAnswers(data.answers as Record<string, string[]>);
           saveAnswers.flush();
         }
+        if (persistWriteFailed) {
+          // 이력은 커밋됐지만 UI 상태/답안 저장이 실패(쿼터 등)한 부분 성공 — 조용히
+          // "완료"로 넘기지 않고 알린다(새로고침 시 이력은 유지, 풀던 위치·답안은 미복원).
+          showToast('이력은 가져왔지만 풀이 상태 저장에 실패했습니다(저장 공간 부족 가능). 공간 확보 후 다시 시도하세요.', 'error');
+        }
 
         console.info(`[data] 백업 가져오기 완료: ${file.name} · 이력 ${importedHistories}건`);
+        // 세션 채점 캐시 무효화 — 백업에는 graded가 없으므로 보존하면 가져온 미채점
+        // 답안이 '채점됨'으로 표시된다. 무효화 후 복원하면 온전한 미채점 상태로 유입.
+        invalidateSessionRestoreCache(product);
         await restorePersistentSnapshot(product);
         resolve(true);
       } catch (err) {

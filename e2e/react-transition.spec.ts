@@ -112,10 +112,9 @@ test.describe("전이 — S2E 시험(게이트→응시중→채점후)", () => 
     // 오답 다시 풀기 → 차단, 모드 유지
     await page.getByRole("button", { name: "오답 다시 풀기" }).click();
     await expect(page.locator('.segmented button[data-mode="exam"]')).toHaveAttribute("aria-pressed", "true");
-    // 통계 챕터 연습 → 차단(모달 유지·모드 유지)
+    // 통계 챕터 연습 → 잠금 중에는 버튼 자체가 비활성(핸들러 가드와 이중 방어)
     await page.getByTestId("stats-open").click();
-    await page.getByTestId("chapter-practice-btn").first().click();
-    await expect(page.getByTestId("stats-dashboard")).toBeVisible(); // 닫히지 않음(차단됨)
+    await expect(page.getByTestId("chapter-practice-btn").first()).toBeDisabled();
     await page.getByRole("dialog").getByRole("button", { name: "닫기" }).click();
     await expect(page.locator('.segmented button[data-mode="exam"]')).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByTestId("set-select")).toBeDisabled();
