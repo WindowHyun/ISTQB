@@ -1,4 +1,4 @@
-# React E2E 테스트 시나리오 (266개)
+# React E2E 테스트 시나리오 (292개)
 
 > 대상: React 앱(`index.vite.html` → Vercel `dist` 배포본). Playwright로 자동화.
 > 실행: CI `react` 프로젝트(`testMatch: /react-.*\.spec\.ts/`) — `npm run test:e2e`.
@@ -8,7 +8,7 @@
 
 ---
 
-## 스펙 파일 인덱스 (총 266)
+## 스펙 파일 인덱스 (총 292 — Phase 1~4·전이 추가분은 하단 표 참고)
 
 | 스펙 파일 | 개수 | 영역 |
 |-----------|------|------|
@@ -169,7 +169,7 @@
   figure=ISTQB-A Q23, 보기 표=CSTS-2404 Q33, 가나다라=CSTS-2018 Q10.
 - 진입 시 항상 제품 선택 게이트가 뜨므로(설계상) 새로고침 복원은 "재선택 후 복원"으로 검증.
 - 저장 불가 환경(엣지-영속성): `addInitScript`로 `localStorage.setItem`이 예외를 던지도록 모사해 제품 선택·문항 진입·테마/글자 크기 설정이 크래시 없이 동작하는지 검증(`safeStorage` 래퍼 회귀).
-- 로컬 검증: 설치된 chromium headless 기준 **266/266 통과**. CI는 자체 브라우저로 동일 실행.
+- 로컬 검증: 설치된 chromium headless 기준 **292/292 통과**(+비기능 12). CI는 자체 브라우저로 동일 실행.
 
 ---
 
