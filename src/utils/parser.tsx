@@ -14,7 +14,10 @@ type Block = {
 };
 
 // === Extracted Vanilla Parsers ===
-function buildRichBlocks(text: unknown): Block[] {
+// inline: 보기(option) 같은 단일 값 텍스트용 — 구조 마커(리스트) 해석을 끈다.
+// "33.3%"·"10.5 M/D" 같은 소수값이 하위 번호("1.1") 마커로 오인돼
+// 마커 스타일(굵은 강조)로 렌더되는 것을 막는다. 표·코드·이미지·밑줄은 그대로 동작.
+function buildRichBlocks(text: unknown, inline = false): Block[] {
     if (Array.isArray(text)) {
       // 파싱(보기 마커 인식 등) 전에 PDF 분할 조각을 먼저 이어붙인다.
       // 예: "…보증(Q"+"A) 부서라고 한"+"다." → "…보증(QA) 부서라고 한다." (한 문장)
@@ -30,6 +33,7 @@ function buildRichBlocks(text: unknown): Block[] {
     const lines = formatted
       .split("\n")
       .flatMap((line) =>
+        inline ||
         line.startsWith("__TABLE__:") ||
         line.startsWith("__CODE__:") ||
         line.startsWith("__IMAGE__:")
@@ -100,7 +104,7 @@ function buildRichBlocks(text: unknown): Block[] {
         blocks.push({ type: "text", text: line });
         return;
       }
-      const listItem = parseStructuredItem(line);
+      const listItem = inline ? null : parseStructuredItem(line);
       if (listItem) {
         pendingList.push(listItem);
         return;
@@ -811,9 +815,9 @@ function mergeTextContinuations(blocks: Block[]): Block[] {
 
 // 블록 목록을 대상 DOM에 렌더한다. (RichText가 호출하나 parser.tsx 추출 시 누락되어
 // 'renderRichText is not defined' 런타임 크래시를 유발했음 — 복원)
-function renderRichText(target: HTMLElement, text: unknown): void {
+function renderRichText(target: HTMLElement, text: unknown, inline = false): void {
   target.replaceChildren();
-  const blocks = mergeTextContinuations(buildRichBlocks(text));
+  const blocks = mergeTextContinuations(buildRichBlocks(text, inline));
   blocks.forEach((block) => {
     if (block.type === "image") {
       if (block.src) target.appendChild(renderReferenceImage(block.src));
@@ -835,7 +839,8 @@ function renderRichText(target: HTMLElement, text: unknown): void {
     line.className = "text-line";
     const value = block.text ?? "";
     // note/text 라인 중 하위 번호("1.1 …")로 시작하면 들여쓴다(구조화 리스트와 동일 규칙).
-    const sub = value.match(/^(\d+(?:\.\d+)+)\.?\s/);
+    // inline(보기 텍스트)에서는 "10.5 M/D" 같은 소수값이라 들여쓰지 않는다.
+    const sub = inline ? null : value.match(/^(\d+(?:\.\d+)+)\.?\s/);
     if (sub) {
       const depth = sub[1].split(".").length - 1;
       line.classList.add(`indent-${Math.min(depth, 3)}`);
@@ -846,12 +851,12 @@ function renderRichText(target: HTMLElement, text: unknown): void {
 }
 
 // === React Wrapper ===
-export const RichText = ({ content: text }: { content: unknown }) => {
+export const RichText = ({ content: text, inline = false }: { content: unknown; inline?: boolean }) => {
   const ref = useRef(null);
   useEffect(() => {
     if (ref.current) {
-      renderRichText(ref.current, text);
+      renderRichText(ref.current, text, inline);
     }
-  }, [text]);
+  }, [text, inline]);
   return <div ref={ref} className="rich-text-container" />;
 };

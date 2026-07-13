@@ -546,7 +546,7 @@ export const AppModals = () => {
                           return (
                             <div key={opt.key} className={cls} data-mine={mine || undefined} data-correct={correct || undefined}>
                               <span className="option-key">{opt.key.toUpperCase()}</span>
-                              <span className="option-text"><RichText content={opt.text} /></span>
+                              <span className="option-text"><RichText content={opt.text} inline /></span>
                               {(mine || correct) && (
                                 <span className="wn-tag">{correct ? (mine ? '내 답 · 정답' : '정답') : '내 답'}</span>
                               )}

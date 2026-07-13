@@ -10,12 +10,12 @@ beforeAll(() => {
   (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-async function renderRichTextEl(content: unknown): Promise<HTMLElement> {
+async function renderRichTextEl(content: unknown, inline = false): Promise<HTMLElement> {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   await act(async () => {
-    root.render(React.createElement(RichText, { content }));
+    root.render(React.createElement(RichText, { content, inline }));
   });
   // unmount는 호출자가 끝난 뒤 GC. 검증을 위해 DOM 스냅샷을 복제해 반환.
   const clone = container.cloneNode(true) as HTMLElement;
@@ -237,5 +237,28 @@ describe("RichText — formula 조각 병합", () => {
       { type: "formula", text: "4) + A(3)) / 5" },
     ]);
     expect(text).toContain("E(5) = (3*A(4) + A(3)) / 5");
+  });
+});
+
+describe("RichText — inline 모드(보기 텍스트) 회귀", () => {
+  // 보기 값 "33.3%"·"10.5 M/D"가 하위 번호("1.1") 마커로 오인되면
+  // 숫자 부분이 마커 스타일(강조)로 렌더된다 — inline에서는 구조 마커 해석을 끈다.
+  it("소수값 보기는 마커 강조 없이 통짜 텍스트로 렌더된다", async () => {
+    for (const v of ["33.3%", "10.5 M/D", "3.5시간"]) {
+      const el = await renderRichTextEl(v, true);
+      expect(el.querySelector(".structured-list")).toBeNull();
+      expect((el.textContent ?? "").replace(/\s+/g, "")).toBe(v.replace(/\s+/g, ""));
+    }
+  });
+
+  it("inline에서도 파이프 표 보기는 <table>로 렌더된다", async () => {
+    const el = await renderRichTextEl("| TC | OS |\n|---|---|\n| 1 | IBM |", true);
+    expect(el.querySelector("table")).not.toBeNull();
+    expect(el.textContent).toContain("IBM");
+  });
+
+  it("stem(비 inline) 하위 번호 리스트는 계속 마커로 해석된다", async () => {
+    const el = await renderRichTextEl("1. 기능적 요구사항\n1.1 기능 1", false);
+    expect(el.querySelector(".structured-list")).not.toBeNull();
   });
 });

@@ -41,7 +41,8 @@ const OptionItem = React.memo(({
     >
       <span className="option-key">{opt.key.toUpperCase()}</span>
       <span className="option-text">
-        <RichText content={opt.text} />
+        {/* inline: 보기 값("33.3%", "10.5 M/D")이 하위 번호 마커로 오인·강조되지 않게 */}
+        <RichText content={opt.text} inline />
       </span>
     </button>
   );
