@@ -82,7 +82,7 @@ firebase appdistribution:distribute \
   필요하면 APK 빌드용으로 SW를 비활성화하는 빌드 모드를 추가하는 것을 권장
   (`vite-plugin-pwa`의 `selfDestroying` 또는 환경변수로 PWA 플러그인 토글).
 - **데이터/이미지 경로**: React 앱은 `/images/…` 절대경로와 상대 `data/index.json`을 쓰며,
-  `cap sync`가 `dist`의 `data/`·`images/`·`figures/` 등을 함께 번들하므로 오프라인에서도
+  `cap sync`가 `dist`의 `data/`·`images/`·`csts-figures/` 등을 함께 번들하므로 오프라인에서도
   동작한다(번들 후 실기기 1회 점검 권장).
 - **레거시 분리**: 루트 `service-worker.js`(tombstone)·`www/`(레거시 바닐라 앱)은 그대로 둔다.
   웹 운영 배포(Vercel)는 영향 없음.

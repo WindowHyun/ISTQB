@@ -21,6 +21,12 @@
 npm run verify
 ```
 
+문제 데이터(`www/data/**`)를 수정했다면 원본 PDF 대조 게이트도 통과해야 합니다(CI `pdf-data` job과 동일).
+
+```bash
+python3 scripts/verify-pdf-data.py   # 텍스트 2,489조각 · 정답 626문항 · 밑줄 146곳 (pymupdf 필요)
+```
+
 이 명령은 문법 검사, 문제 검증, 콘텐츠 감사, 분류 마커 감사를 포함해야 합니다.
 
 ## 확인할 내용

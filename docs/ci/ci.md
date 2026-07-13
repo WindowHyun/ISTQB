@@ -1,7 +1,7 @@
 # CI (`ci.yml`) — 머지 품질 게이트
 
-`.github/workflows/ci.yml`. push/PR마다 **10개 job을 병렬**로 돌려 결함의 main 유입을 차단한다.
-기능·품질 게이트(lint·데이터·유닛·뮤테이션·빌드·e2e·비기능) 7개 + 보안 게이트(의존성 감사·시크릿 스캔·정적 분석) 3개.
+`.github/workflows/ci.yml`. push/PR마다 **11개 job을 병렬**로 돌려 결함의 main 유입을 차단한다.
+기능·품질 게이트(lint·데이터·PDF 대조·유닛·뮤테이션·빌드·e2e·비기능) 8개 + 보안 게이트(의존성 감사·시크릿 스캔·정적 분석) 3개.
 
 ## 트리거
 
@@ -28,14 +28,15 @@ env:
 - `permissions: contents: read` — 최소 권한(읽기 전용).
 - `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` — `npm ci` 시 브라우저 자동 다운로드 차단(브라우저는 e2e job에서 명시 설치).
 
-## job 구성 (10개, 병렬·독립)
+## job 구성 (11개, 병렬·독립)
 
-### 기능·품질 게이트 (7)
+### 기능·품질 게이트 (8)
 
 | job | 이름 | 실행 명령 | 산출물 |
 | --- | --- | --- | --- |
 | `lint` | Lint & Typecheck | `npm run lint` + `npm run typecheck`(`tsc --noEmit`) | — |
 | `verify-data` | Verify data & content | `npm run verify` (626문항 정답·이미지·스키마·콘텐츠 감사) | — |
+| `pdf-data` | Verify data against source PDFs | `python3 scripts/verify-pdf-data.py` (원본 PDF 13종에서 독립 추출해 **텍스트 2,489조각·정답 626문항·밑줄 146곳** 대조 — 데이터 수정이 원문을 훼손하면 차단. python 3.12 + pymupdf) | — |
 | `unit` | Unit tests (vitest) | `npm run test:cov` (유닛 + 커버리지, **임계값 게이트**: stmt 68·branch 60·func 73·line 69) | `coverage/`(7일) |
 | `mutation` | Mutation tests (Stryker) | `npm run test:mutation` (채점·통계 핵심 4개 유틸에 뮤턴트 주입 — **뮤테이션 스코어 break 85 게이트**, 살충제 패러독스 대응) | `reports/mutation/`(7일) |
 | `build` | Build (tsc + vite) | `npm run build` → **`npm run size`**(번들 예산: JS 330KB·CSS 45KB) | `dist/`(7일) |
@@ -50,7 +51,7 @@ env:
 | `secrets` | Secret scan (gitleaks) | `gitleaks/gitleaks-action@v3`로 전체 커밋 히스토리에서 API 키·토큰·비밀번호 유출 탐지 | 시크릿 패턴 매칭 |
 | `codeql` | CodeQL (static analysis) | `github/codeql-action` JS/TS 정적 분석(`security-and-quality`: XSS·프로토타입 오염·안전하지 않은 DOM 등) → Security 탭 업로드 | 분석 오류 시(경보는 Security 탭, 머지 차단은 브랜치 보호 설정에 따름) |
 
-품질 6개 job은 공통으로: `checkout@v6` → `setup-node@v6`(node 24, `cache: npm`) → `npm ci` → 각자 명령.
+품질 job은 공통으로: `checkout@v6` → `setup-node@v6`(node 24, `cache: npm`) → `npm ci` → 각자 명령(예외: `pdf-data`는 `setup-python@v6` + `pip install pymupdf`).
 모든 job이 성공해야 머지 게이트를 통과한다(브랜치 보호 설정에 따름).
 
 **설계 근거 — `audit`가 왜 `--omit=dev`인가:** 이 앱은 클라이언트 SPA라 사용자에게 실제로 나가는 코드는 **프로덕션 의존성**뿐이다. `pdfjs-dist`·`undici` 등 high 취약점은 빌드/스크립트용 dev 툴링에만 있어 배포물에 포함되지 않으므로, 차단은 프로덕션 트리 기준으로 하고 dev 트리는 `continue-on-error` 정보성 단계로 남겨 가시성만 확보한다.
@@ -159,4 +160,4 @@ CI=1 npm run test:e2e
 
 ## 요약
 
-**push/PR → 10 job 병렬 → 모두 통과해야 머지.** 기능·품질 7개(lint·verify-data·unit·mutation·build·e2e·nonfunctional) + 보안 3개(audit·secrets·codeql). e2e는 `npm ci`(브라우저 skip) → 브라우저 캐시/설치 → `playwright test --project=react`가 `build+preview`로 `dist`를 4173에 서빙하고 → `react-*.spec.ts` 305개를 Chromium으로 병렬 실행(CI 재시도 1) → 실패 시 HTML 리포트 아티팩트를 남긴다. nonfunctional은 같은 서버로 `--project=nonfunctional` 12건(성능·부하·메모리·타이머·오프라인·데이터 내구성)을 CI 완화 예산으로 실행한다. 보안 job은 배포 번들의 취약 의존성(audit)·유출 시크릿(gitleaks)·정적 분석 경보(CodeQL)를 각각 차단한다.
+**push/PR → 11 job 병렬 → 모두 통과해야 머지.** 기능·품질 8개(lint·verify-data·pdf-data·unit·mutation·build·e2e·nonfunctional) + 보안 3개(audit·secrets·codeql). e2e는 `npm ci`(브라우저 skip) → 브라우저 캐시/설치 → `playwright test --project=react`가 `build+preview`로 `dist`를 4173에 서빙하고 → `react-*.spec.ts` 305개를 Chromium으로 병렬 실행(CI 재시도 1) → 실패 시 HTML 리포트 아티팩트를 남긴다. nonfunctional은 같은 서버로 `--project=nonfunctional` 12건(성능·부하·메모리·타이머·오프라인·데이터 내구성)을 CI 완화 예산으로 실행한다. 보안 job은 배포 번들의 취약 의존성(audit)·유출 시크릿(gitleaks)·정적 분석 경보(CodeQL)를 각각 차단한다.
