@@ -248,7 +248,7 @@ npm run dev      # React 앱 개발 서버 (index.vite.html 기준)
 기타 명령:
 
 ```bash
-npm test            # Vitest 유닛 테스트 (120개)
+npm test            # Vitest 유닛 테스트 (148개)
 npm run test:cov    # 유닛 테스트 + 커버리지(임계값 게이트)
 npm run test:e2e    # Playwright React E2E (305개)
 npm run verify      # 데이터 정합성 검증 (626문항 정답·이미지·스키마)
@@ -257,6 +257,16 @@ npm run size        # 번들 크기 예산 검사 (build 후)
 ```
 
 > 운영 배포(Vercel)는 `buildCommand: npm run build` 후 `outputDirectory: dist`(React 앱)를 서빙합니다.
+
+### 접근 제한 (사이트 비밀번호)
+
+루트의 `middleware.ts`(Vercel Edge Middleware)가 **사이트 전체를 HTTP Basic Auth로 잠급니다** —
+페이지뿐 아니라 문제 데이터(`/data/*.json`)·이미지까지 인증 없이는 접근할 수 없습니다(기출 콘텐츠 저작권 보호).
+
+- 설정: Vercel 대시보드 → 프로젝트 → **Settings → Environment Variables**에 `SITE_USER` / `SITE_PASS` 등록 → 재배포.
+- 미설정 시 열리지 않고 503으로 차단됩니다(fail-closed — 보호가 조용히 풀리는 것 방지).
+- 브라우저가 인증을 기억하므로 기기당 최초 1회만 입력하면 되고, 최초 인증 후에는 PWA 오프라인 사용도 그대로 동작합니다.
+- 로컬 개발(`npm run dev`/`preview`)·E2E·CI에는 적용되지 않습니다(Vercel 전용 파일).
 
 ## 라이선스 / 데이터 저작권 / 데모 정책
 
