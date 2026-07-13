@@ -261,31 +261,21 @@ function buildRichBlocks(text: unknown, inline = false): Block[] {
     return wrapper;
   }
 
+  // 평문화된 표 텍스트를 표/이미지로 치환하는 레거시 경로.
+  // 2026-07 데이터 교정으로 A14·A21·A22·A33·B32·B38·C22·D32의 평문 표가 실제
+  // table/code 블록으로 복원되어 해당 치환기는 제거됨 — 남은 것은 아직 평문
+  // 패턴이거나 방어적으로 유지하는 항목이다(자산: source-visuals 4장).
   function normalizeKnownTables(text: string): string {
     return normalizePlanningPokerTable(
-      normalizeSortLogTable(
-        normalizeDecisionTable(
-          normalizeTraceabilityMatrix(
-            normalizeHotelTransitionTable(
-              normalizeDrivingDecisionTable(
-                normalizeClassificationDecisionTable(
-                  normalizeArteryDecisionTable(
-                    normalizeRestaurantPriorityTable(
-                      normalizeExecutionHistoryTable(
-                        normalizeTestPriorityTable(
-                          normalizeFinalGradeTable(
-                            normalizeProjectEffortTable(
-                              normalizeCstsIpoTable(
-                                normalizeTruthTable(
-                                  normalizeChoiceClassTable(
-                                    normalizeTrainingDecisionTable(text),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+      normalizeHotelTransitionTable(
+        normalizeClassificationDecisionTable(
+          normalizeArteryDecisionTable(
+            normalizeRestaurantPriorityTable(
+              normalizeProjectEffortTable(
+                normalizeCstsIpoTable(
+                  normalizeTruthTable(
+                    normalizeChoiceClassTable(
+                      normalizeTrainingDecisionTable(text),
                     ),
                   ),
                 ),
@@ -458,27 +448,6 @@ function buildRichBlocks(text: unknown, inline = false): Block[] {
     return text.replace(match[0], `\n__TABLE__:${JSON.stringify(rows)}\n`);
   }
 
-  function normalizeExecutionHistoryTable(text: string): string {
-    const pattern =
-      /첫 번째 실행\s+두 번째 실행\s+세 번째 실행\s+TC1\s+\((\d+)\)\s+(합격|실패)\s+\((\d+)\)\s+(합격|실패)\s+\((\d+)\)\s+(합격|실패)\s+TC2\s+\((\d+)\)\s+(합격|실패)\s+\((\d+)\)\s+(합격|실패)\s+\((\d+)\)\s+(합격|실패)\s+TC3\s+\((\d+)\)\s+(합격|실패)\s+\((\d+)\)\s+(합격|실패)\s+\((\d+)\)\s+(합격|실패)/;
-    const match = text.match(pattern);
-    if (!match) return text;
-    const rows = [["TC", "첫 번째 실행", "두 번째 실행", "세 번째 실행"]];
-    for (let row = 0; row < 3; row += 1) {
-      const offset = row * 6 + 1;
-      rows.push([
-        `TC${row + 1}`,
-        `(${match[offset]}) ${match[offset + 1]}`,
-        `(${match[offset + 2]}) ${match[offset + 3]}`,
-        `(${match[offset + 4]}) ${match[offset + 5]}`,
-      ]);
-    }
-    return text.replace(
-      match[0],
-      "\n__IMAGE__:source-visuals/A14-execution-history.png\n",
-    );
-  }
-
   function normalizeRestaurantPriorityTable(text: string): string {
     const header = "번호 커버되는 테스트 컨디션 우선순위 논리적 종속성";
     const start = text.indexOf(header);
@@ -521,17 +490,6 @@ function buildRichBlocks(text: unknown, inline = false): Block[] {
     );
   }
 
-  function normalizeDrivingDecisionTable(text: string): string {
-    const pattern =
-      /R1\s+R2\s+R3\s+C1:\s+첫 시험 도전\?\s+-\s+-\s+F\s+C2:\s+이론 시험 합격\?\s+T\s+F\s+-\s+C3:\s+실기 시험 합격\?\s+T\s+-\s+F\s+운전 면허 발급\?\s+X\s+운전 강습 추가 요청\?\s+X\s+시험 재-응시 요청\?\s+X/;
-    const match = text.match(pattern);
-    if (!match) return text;
-    return text.replace(
-      match[0],
-      "\n__IMAGE__:source-visuals/C22-driving-table.png\n",
-    );
-  }
-
   function normalizeHotelTransitionTable(text: string): string {
     const pattern =
       /이벤트\s+상태\s+예약 가능\s+예약 불가\s+객실 변경\s+취소\s+결제\s+S1:\s+요청 중\s+S2\s+S3\s+S2:\s+확인됨\s+S1\s+S4\s+S4\s+S3:\s+대기자 명단\s+S2\s+S4\s+S4:\s+종료/;
@@ -543,72 +501,6 @@ function buildRichBlocks(text: unknown, inline = false): Block[] {
     );
   }
 
-  function normalizeTraceabilityMatrix(text: string): string {
-    const pattern =
-      /Req 1\s+Req 2\s+Req 3\s+Req 4\s+Req 5\s+Req 6\s+Req 7\s+TC1\s+X\s+X\s+X\s+X\s+TC2\s+X\s+X\s+X\s+TC3\s+X\s+X\s+TC4\s+X/;
-    const match = text.match(pattern);
-    if (!match) return text;
-    return text.replace(
-      match[0],
-      "\n__IMAGE__:source-visuals/D32-traceability.png\n",
-    );
-  }
-
-  function normalizeDecisionTable(text: string): string {
-    if (!/조건\s+R1\s+R2\s+R3\s+R4\s+R5\s+R6\s+R7\s+R8/.test(text)) return text;
-    const pattern =
-      /조건\s+R1\s+R2\s+R3\s+R4\s+R5\s+R6\s+R7\s+R8\s+회원\s+([TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF])\s+반납기한 경과\s+([TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF])\s+15회 대여\s+([TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF]\s+[TF])\s+결과\s+20% 할인\s+([\sX]*?)\s+티셔츠 선물\s+([\sX]*?)(?=\s+고객 관리|\s+다음 중|$)/;
-    const match = text.match(pattern);
-    if (!match) return text;
-    return text.replace(
-      match[0],
-      "\n__IMAGE__:source-visuals/A22-decision-table.png\n",
-    );
-  }
-
-  function normalizeTestPriorityTable(text: string): string {
-    const header = "테스트 우선순위(1 = 가장 높은 우선순위)";
-    const headerIndex = text.indexOf(header);
-    if (headerIndex < 0) return text;
-
-    const tail = text.slice(headerIndex + header.length);
-    const rows = [["테스트 케이스", "설명", "우선순위"]];
-    const pattern = /TC(\d+)\s+(.+?)\s+(\d+)(?=\s+TC\d+\s+|\s+또한|또한|$)/g;
-    let match;
-    let consumed = 0;
-    while ((match = pattern.exec(tail))) {
-      rows.push([`TC${match[1]}`, match[2].trim(), match[3]]);
-      consumed = pattern.lastIndex;
-    }
-    if (rows.length < 3) return text;
-
-    const before = text.slice(0, headerIndex);
-    const after = tail.slice(consumed).trim();
-    return `${before.trim()}\n${header}\n__IMAGE__:source-visuals/B32-test-priority.png\n${after}`;
-  }
-
-  function normalizeFinalGradeTable(text: string): string {
-    const header = "최종 점수 최종 성적";
-    const headerIndex = text.indexOf(header);
-    if (headerIndex < 0) return text;
-
-    const tail = text.slice(headerIndex + header.length);
-    const rows = [["테스트 케이스", "최종 점수", "최종 성적"]];
-    const pattern =
-      /TC(\d+)\s+(\d+)\s+(.+?)(?=\s+TC\d+\s+\d+|\s+테스트 케이스로|\s+다음 중|$)/g;
-    let match;
-    let consumed = 0;
-    while ((match = pattern.exec(tail))) {
-      rows.push([`TC${match[1]}`, match[2], match[3].trim()]);
-      consumed = pattern.lastIndex;
-    }
-    if (rows.length < 3) return text;
-
-    const before = text.slice(0, headerIndex);
-    const after = tail.slice(consumed).trim();
-    return `${before.trim()}\n__IMAGE__:source-visuals/A21-final-grade.png\n${after}`;
-  }
-
   function normalizeProjectEffortTable(text: string): string {
     const pattern =
       /프로젝트 개발 노력\(\$\) 테스트 노력\(\$\)\s+P1\s+([\d,]+)\s+([\d,]+)\s+P2\s+([\d,]+)\s+([\d,]+)\s+P3\s+([\d,]+)\s+([\d,]+)\s+P4\s+([\d,]+)\s+([\d,]+)/;
@@ -618,38 +510,6 @@ function buildRichBlocks(text: unknown, inline = false): Block[] {
       match[0],
       "\n__IMAGE__:source-visuals/B31-project-effort.png\n",
     );
-  }
-
-  function normalizeSortLogTable(text: string): string {
-    if (!/테스트 실행 로그/.test(text) || !/TC1\s+실행/.test(text)) return text;
-    const questionSplit = text.match(/([\s\S]*?)(다음 중[\s\S]*)$/);
-    const mainText = questionSplit ? questionSplit[1] : text;
-    const questionText = questionSplit ? questionSplit[2] : "";
-    const introSplit = mainText.split(/환경 구성:/);
-    if (introSplit.length < 2) return text;
-
-    const rows = [["TC", "입력", "출력", "결과"]];
-    const logText = `환경 구성:${introSplit.slice(1).join("환경 구성:")}`;
-    const tcPattern =
-      /TC(\d+)\s+실행\.\s+입력:\s*([\s\S]*?)\s+출력:\s*([\s\S]*?)\s+결과:\s*(통과|실패)/g;
-    let match;
-    while ((match = tcPattern.exec(logText))) {
-      rows.push([
-        `TC${match[1]}`,
-        compactCell(match[2]),
-        compactCell(match[3]),
-        match[4],
-      ]);
-    }
-    if (rows.length === 1) return text;
-    return `${introSplit[0].trim()}\n__IMAGE__:source-visuals/B38-sort-log.png\n${questionText.trim()}`;
-  }
-
-  function compactCell(text: string): string {
-    return String(text || "")
-      .replace(/\d{1,2}:\d{2}:\d{2}\.\d{3}/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
   }
 
   

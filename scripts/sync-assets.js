@@ -23,7 +23,7 @@ const plan = [
   ["data", ["public", "dist"]],
   ["images", ["public", "dist"]],
   ["source-visuals", ["public", "dist"]],
-  ["figures", ["public", "dist"]],
+  // "figures"는 /images/questions figure 필드로 대체되어 폐기(2026-07 정리).
   ["csts-figures", ["public", "dist"]],
   ["icons", ["public", "dist"]],
 ];
