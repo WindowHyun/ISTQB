@@ -193,9 +193,17 @@ ul { margin: 0; padding: 0; list-style: none; }
   color: #fff;
 }
 .product-button.primary:hover { background: var(--primary-600); }
-/* 게이트 하단 사용설명서 버튼 — 제품 선택을 방해하지 않는 보조 톤, 터치 타깃 44px. */
-.gate-guide-btn {
+/* 게이트 하단 사용설명서·제보 링크 — 제품 선택을 방해하지 않는 보조 톤, 터치 타깃 44px. */
+.gate-links {
   margin-top: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 400px) {
+  .gate-links { grid-template-columns: 1fr; }
+}
+.gate-guide-btn {
   width: 100%;
   min-height: 44px;
   padding: 11px 16px;
@@ -207,6 +215,16 @@ ul { margin: 0; padding: 0; list-style: none; }
   font-size: 14px;
 }
 .gate-guide-btn:hover { color: var(--primary); border-color: var(--primary); }
+
+/* 외부 링크(a)를 버튼과 동일하게 — 구글시트 제보 링크가 버튼 묶음에 섞여 들어간다. */
+a.feedback-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+}
 
 /* 사용설명서 본문 — 섹션별 카드형, 모달 안에서 스크롤. */
 .guide-body { display: flex; flex-direction: column; gap: 14px; }

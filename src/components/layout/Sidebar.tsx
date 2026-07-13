@@ -5,6 +5,7 @@ import { useQuizSession } from '../../hooks/useQuizSession';
 import { useSetCounts } from '../../hooks/useSetCounts';
 import { TimerClock } from '../common/TimerClock';
 import { showToast } from '../../utils/toast';
+import { FEEDBACK_SHEET_URL } from '../../utils/links';
 
 const LOGO_SRC =
   'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%20role%3D%22img%22%20aria-label%3D%22Quiz%20mark%22%3E%0A%20%20%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%23166064%22/%3E%0A%20%20%3Cpath%20d%3D%22M18%2018h28v28H18z%22%20fill%3D%22%23f5f7f2%22/%3E%0A%20%20%3Cpath%20d%3D%22M24%2030l5%205%2011-13%22%20fill%3D%22none%22%20stroke%3D%22%23b55c3c%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%0A%20%20%3Cpath%20d%3D%22M22%2047h25%22%20stroke%3D%22%23f5f7f2%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22/%3E%0A%3C/svg%3E%0A';
@@ -333,6 +334,18 @@ export const Sidebar = () => {
           >
             ⚙ 설정
           </button>
+          {/* 이슈·보완점 제보 — 결함은 풀이 중에 발견되므로 항상 보이는 사이드바에 둔다.
+              새 탭으로 열어 풀이 세션(타이머·응시 잠금)을 끊지 않는다. */}
+          <a
+            className="settings-open-btn feedback-link"
+            href={FEEDBACK_SHEET_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid="feedback-link"
+            onClick={closeDrawer}
+          >
+            📝 이슈·보완점 제보
+          </a>
         </section>
       </div>
     </aside>
