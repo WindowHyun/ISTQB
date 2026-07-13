@@ -5,6 +5,7 @@ import { restorePersistentSnapshot, flushPersist } from '../utils/storage';
 import { safeSetItem } from '../utils/safeStorage';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { UserGuide } from '../components/common/UserGuide';
+import { FEEDBACK_SHEET_URL } from '../utils/links';
 import { MobileTopBar } from '../components/layout/MobileTopBar';
 import { AppModals } from '../components/modals/AppModals';
 
@@ -96,16 +97,27 @@ export const App = () => {
             <button className="product-button primary" onClick={() => handleProductSelect('istqb')}>ISTQB</button>
             <button className="product-button" onClick={() => handleProductSelect('csts')}>CSTS</button>
           </div>
-          {/* 첫 방문자용 사용설명서 — 제품 선택 전에도 앱 사용법을 볼 수 있게 게이트 하단에 둔다. */}
-          <button
-            type="button"
-            className="gate-guide-btn"
-            aria-haspopup="dialog"
-            data-testid="guide-open"
-            onClick={() => setGuideOpen(true)}
-          >
-            📖 사이트 사용법
-          </button>
+          {/* 첫 방문자용 사용설명서·제보 채널 — 제품 선택 전에도 접근할 수 있게 게이트 하단에 둔다. */}
+          <div className="gate-links">
+            <button
+              type="button"
+              className="gate-guide-btn"
+              aria-haspopup="dialog"
+              data-testid="guide-open"
+              onClick={() => setGuideOpen(true)}
+            >
+              📖 사이트 사용법
+            </button>
+            <a
+              className="gate-guide-btn feedback-link"
+              href={FEEDBACK_SHEET_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="feedback-link-gate"
+            >
+              📝 이슈·보완점 제보
+            </a>
+          </div>
         </div>
         {guideOpen && <UserGuide onClose={() => setGuideOpen(false)} />}
       </section>
