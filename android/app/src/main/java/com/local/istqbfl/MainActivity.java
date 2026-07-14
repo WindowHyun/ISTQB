@@ -29,8 +29,14 @@ import java.nio.charset.StandardCharsets;
 public class MainActivity extends BridgeActivity {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
-    configureSystemBars();
+    // 반드시 super.onCreate() 뒤에 시스템 바를 만진다 — 먼저 getDecorView()를 부르면
+    // 테마(windowNoTitle) 적용 전에 데코 뷰가 생성돼 네이티브 타이틀바("앱 이름")가
+    // 화면 상단에 나타나 웹 상단바(☰ 포함)를 가린다.
     super.onCreate(savedInstanceState);
+    configureSystemBars();
+    if (getSupportActionBar() != null) {
+      getSupportActionBar().hide();
+    }
     if (getBridge() != null && getBridge().getWebView() != null) {
       WebView webView = getBridge().getWebView();
       webView.addJavascriptInterface(new BackupBridge(this), "AndroidBackup");
