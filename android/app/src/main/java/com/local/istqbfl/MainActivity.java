@@ -34,7 +34,7 @@ public class MainActivity extends BridgeActivity {
     if (getBridge() != null && getBridge().getWebView() != null) {
       WebView webView = getBridge().getWebView();
       webView.addJavascriptInterface(new BackupBridge(this), "AndroidBackup");
-      injectStatusBarHeight(webView);
+      injectSafeAreaInsets(webView);
     }
   }
 
@@ -61,36 +61,46 @@ public class MainActivity extends BridgeActivity {
   }
 
   /**
-   * env(safe-area-inset-top)이 0을 리턴하는 일부 WebView 버전을 위한 안전망.
-   * 실제 상태바 높이(dp → px 변환 후 CSS px 값)를 JS로 주입합니다.
+   * Android WebView는 edge-to-edge에서도 env(safe-area-inset-*)이 0을 리턴한다.
+   * 실측 상태바/내비게이션바 높이를 CSS 변수(--safe-top/--safe-bottom)로 주입해
+   * globals.css의 안전영역 패딩이 동작하게 하는 안전망.
    */
-  private void injectStatusBarHeight(WebView webView) {
-    int statusBarHeightPx = 0;
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-      WindowInsets insets = getWindow().getDecorView().getRootWindowInsets();
-      if (insets != null) {
-        statusBarHeightPx = insets.getInsets(WindowInsets.Type.statusBars()).top;
-      }
-    } else {
-      int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
-      if (resourceId > 0) {
-        statusBarHeightPx = getResources().getDimensionPixelSize(resourceId);
-      }
+  private void injectSafeAreaInsets(WebView webView) {
+    // 초기 페이지 로드와의 경합(about:blank에 주입돼 유실) 대비 재시도 +
+    // 인셋 확정 시점(onApplyWindowInsets)에도 주입해 회전·바 변화를 따라간다.
+    webView.setOnApplyWindowInsetsListener((view, insets) -> {
+      evaluateSafeAreaJs(webView);
+      return view.onApplyWindowInsets(insets);
+    });
+    webView.post(() -> evaluateSafeAreaJs(webView));
+    webView.postDelayed(() -> evaluateSafeAreaJs(webView), 700);
+    webView.postDelayed(() -> evaluateSafeAreaJs(webView), 2000);
+  }
+
+  private void evaluateSafeAreaJs(WebView webView) {
+    // edge-to-edge(setDecorFitsSystemWindows(false))는 API 30+에서만 켠다 —
+    // 그 미만은 콘텐츠가 이미 시스템 바를 피하므로 주입하면 이중 여백이 된다.
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return;
+    int topPx = 0;
+    int bottomPx = 0;
+    WindowInsets insets = getWindow().getDecorView().getRootWindowInsets();
+    if (insets != null) {
+      topPx = insets.getInsets(WindowInsets.Type.statusBars()).top;
+      bottomPx = insets.getInsets(WindowInsets.Type.navigationBars()).bottom;
     }
     // WebView 내부는 CSS px 단위를 사용하므로 devicePixelRatio로 나눔
     float density = getResources().getDisplayMetrics().density;
-    float statusBarCssPx = statusBarHeightPx / density;
     final String js = String.format(
+      java.util.Locale.US,
       "(function(){" +
-      "  var h = %.1f;" +
-      "  if (h > 0 && getComputedStyle(document.documentElement)" +
-      "    .getPropertyValue('--safe-top').trim() === '0px') {" +
-      "    document.documentElement.style.setProperty('--safe-top', h + 'px');" +
-      "  }" +
+      "  var r = document.documentElement.style;" +
+      "  r.setProperty('--safe-top', '%.1fpx');" +
+      "  r.setProperty('--safe-bottom', '%.1fpx');" +
       "})()",
-      statusBarCssPx
+      topPx / density,
+      bottomPx / density
     );
-    webView.post(() -> webView.evaluateJavascript(js, null));
+    webView.evaluateJavascript(js, null);
   }
 
   public static class BackupBridge {

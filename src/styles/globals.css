@@ -38,6 +38,11 @@
 
   --font: "Pretendard", "Pretendard Variable", -apple-system, BlinkMacSystemFont,
     "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+
+  /* 시스템 바 안전영역 — APK(edge-to-edge WebView)에서는 env()가 0을 리턴하므로
+     MainActivity.injectStatusBarHeight()가 실측값을 인라인 스타일로 덮어쓴다. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
   --mono: "SFMono-Regular", "JetBrains Mono", "D2Coding", Consolas, monospace;
 }
 
@@ -1130,7 +1135,7 @@ body[data-theme="dark"] .table-image-frame {
     background: var(--surface);
     border-bottom: 1px solid var(--line);
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
-    padding: 11px 14px;
+    padding: calc(11px + var(--safe-top)) 14px 11px;
   }
   .mtb-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .mtb-brand { display: flex; align-items: center; gap: 9px; min-width: 0; }
@@ -1148,7 +1153,7 @@ body[data-theme="dark"] .table-image-frame {
      하단 패딩은 액션바 높이 + iOS safe-area(홈 인디케이터)만큼 확보해 겹침을 막는다. */
   .app-shell {
     grid-template-columns: 1fr;
-    padding: 12px 12px calc(96px + env(safe-area-inset-bottom, 0px));
+    padding: 12px 12px calc(96px + var(--safe-bottom));
     gap: 14px;
   }
   .topbar #questionTitle { font-size: 19px; }
@@ -1164,6 +1169,9 @@ body[data-theme="dark"] .table-image-frame {
     width: min(320px, 86vw);
     border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
     overflow-y: auto;
+    /* 드로어는 화면 최상단부터 그려지므로 상태바(안전영역)만큼 내용을 내린다. */
+    padding-top: calc(18px + var(--safe-top));
+    padding-bottom: calc(18px + var(--safe-bottom));
     transform: translateX(-104%);
     visibility: hidden;
     transition: transform 0.24s ease, visibility 0s linear 0.24s;
@@ -1233,7 +1241,7 @@ body[data-theme="dark"] .table-image-frame {
     position: fixed;
     left: 0; right: 0; bottom: 0;
     z-index: 45;
-    padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+    padding: 12px 14px calc(12px + var(--safe-bottom));
     background: var(--surface);
     border-top: 1px solid var(--line);
     box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.08);
@@ -1580,7 +1588,7 @@ body[data-theme="dark"] .mtb-chip { background: #1e40af; }
 .update-prompt {
   position: fixed;
   left: 50%;
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(16px + var(--safe-bottom));
   transform: translateX(-50%);
   z-index: 140;
   display: flex;
@@ -1619,5 +1627,5 @@ body[data-theme="dark"] .mtb-chip { background: #1e40af; }
 
 /* 화면 콘솔 FAB가 있으면 배너가 가리지 않도록 살짝 위로(모바일) */
 @media (max-width: 880px) {
-  .update-prompt { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+  .update-prompt { bottom: calc(80px + var(--safe-bottom)); }
 }
