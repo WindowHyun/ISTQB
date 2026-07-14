@@ -23,8 +23,28 @@ export default defineConfig({
     {
       // 비기능(성능·부하·메모리·복원력) — 전용 CI 잡에서 `--project=nonfunctional`로 실행.
       name: "nonfunctional",
-      testMatch: /nonfunctional\.spec\.ts/,
+      testMatch: /(^|\/)nonfunctional\.spec\.ts$/,
       use: { ...devices["Desktop Chrome"], baseURL: REACT_URL },
+    },
+    {
+      // APK(WebView) 기능 — Android 폰 프로파일 + WebView UA + 안전영역 주입 모사.
+      name: "apk",
+      testMatch: /apk-functional\.spec\.ts/,
+      use: {
+        ...devices["Pixel 7"],
+        baseURL: REACT_URL,
+        userAgent: `${devices["Pixel 7"].userAgent} wv`,
+      },
+    },
+    {
+      // APK(WebView) 비기능 — 성능·스트레스·메모리·복원력(모바일 프로파일).
+      name: "apk-nf",
+      testMatch: /apk-nonfunctional\.spec\.ts/,
+      use: {
+        ...devices["Pixel 7"],
+        baseURL: REACT_URL,
+        userAgent: `${devices["Pixel 7"].userAgent} wv`,
+      },
     },
   ],
   webServer: [
