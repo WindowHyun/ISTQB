@@ -47,11 +47,12 @@ jobs:
       - name: Build web (React → dist)
         run: npm run build
 
-      - name: Setup JDK 17
+      - name: Setup JDK 21
         uses: actions/setup-java@v5
         with:
+          # Capacitor 7의 capacitor-android가 Java 21을 요구한다(invalid source release: 21 방지).
           distribution: "temurin"
-          java-version: "17"
+          java-version: "21"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
