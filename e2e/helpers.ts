@@ -40,6 +40,17 @@ export async function enterExam(page: Page) {
   if (await start.count()) await start.click();
 }
 
+// 모바일(≤880px) 시험 진입 — 모드 세그먼트는 드로어 안에 있으므로 열고 탭한다
+// (모드 변경은 드로어를 자동으로 닫음). 게이트의 "시험 시작"까지 통과.
+export async function enterExamMobile(page: Page) {
+  await page.getByTestId("drawer-open").tap();
+  await modeBtn(page, "시험").tap();
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-drawer", "closed");
+  const start = page.getByTestId("exam-start-btn");
+  await start.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
+  if (await start.count()) await start.tap();
+}
+
 // 채점: 채점 버튼 클릭 후 미응답 경고 모달이 뜨면 확인까지 처리한다.
 export async function submitGrade(page: Page, testid = "grade-button") {
   await page.getByTestId(testid).click();

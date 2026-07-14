@@ -24,6 +24,7 @@
     "test:cov": "vitest run --coverage",
     "test:e2e": "playwright test --project=react",
     "test:nf": "playwright test --project=nonfunctional",
+    "test:apk": "playwright test --project=apk --project=apk-nf",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "fix:questions": "node scripts/fix-questions.js",
