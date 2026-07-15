@@ -478,11 +478,36 @@ export async function exportUserData() {
     answers: state.answers,
     histories: state.histories,
   };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const json = JSON.stringify(data, null, 2);
+  const fileName = `${getActiveProduct()}_backup_${new Date().getTime()}.json`;
+
+  // APK(Android WebView): 브라우저의 <a download> blob 다운로드는 WebView에서
+  // 동작하지 않는다(다운로드 리스너 없음). MainActivity가 노출한 네이티브 브리지로
+  // 공개 다운로드 폴더에 저장하고 결과를 토스트로 안내한다.
+  const bridge = typeof window !== 'undefined' ? window.AndroidBackup : undefined;
+  if (bridge && typeof bridge.saveBackup === 'function') {
+    try {
+      const res = JSON.parse(bridge.saveBackup(fileName, json)) as {
+        ok: boolean; fileName?: string; location?: string; error?: string;
+      };
+      if (res.ok) {
+        showToast(`백업을 저장했습니다 — ${res.location || res.fileName || fileName}`, 'success', 5000);
+      } else {
+        showToast(`백업 저장 실패: ${res.error || '알 수 없는 오류'}`, 'error', 5000);
+      }
+    } catch (e) {
+      console.error('AndroidBackup.saveBackup error', e);
+      showToast('백업 저장 중 오류가 발생했습니다.', 'error', 5000);
+    }
+    return;
+  }
+
+  // 웹(브라우저): blob 다운로드.
+  const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${getActiveProduct()}_backup_${new Date().getTime()}.json`;
+  a.download = fileName;
   a.click();
   URL.revokeObjectURL(url);
 }

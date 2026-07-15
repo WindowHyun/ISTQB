@@ -77,4 +77,28 @@ describe('importUserData (Phase 4)', () => {
     expect(typeof parsed.exportedAt).toBe('string');
     expect(['istqb', 'csts']).toContain(parsed.product);
   });
+
+  it('APK(Android WebView): 네이티브 브리지가 있으면 blob 다운로드 대신 saveBackup을 쓴다', async () => {
+    const s = await freshStorage();
+    // 웹 다운로드 경로가 호출되면 실패로 간주 — 네이티브 경로가 우선이어야 한다.
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    let sentName = '';
+    let sentPayload = '';
+    const saveBackup = vi.fn((name: string, payload: string) => {
+      sentName = name;
+      sentPayload = payload;
+      return JSON.stringify({ ok: true, fileName: name, location: '다운로드 폴더' });
+    });
+    (window as unknown as { AndroidBackup?: unknown }).AndroidBackup = { saveBackup };
+    try {
+      await s.exportUserData();
+      expect(saveBackup).toHaveBeenCalledTimes(1);
+      expect(clickSpy).not.toHaveBeenCalled(); // blob 다운로드로 폴백하지 않음
+      expect(sentName).toMatch(/_backup_\d+\.json$/);
+      const parsed = JSON.parse(sentPayload);
+      expect(parsed.schemaVersion).toBe(1);
+    } finally {
+      delete (window as unknown as { AndroidBackup?: unknown }).AndroidBackup;
+    }
+  });
 });
