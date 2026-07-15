@@ -50,13 +50,14 @@ test.describe("엣지-채점", () => {
     await expect(page.locator(".result-criterion")).toContainText("26 / 40문항(65%)");
   });
 
-  test("CSTS 결과는 환산 점수와 '환산 52.5점' 기준을 표시한다", async ({ page }) => {
+  test("CSTS 결과는 검정방법별 배점 합산 점수와 '100점 만점 기준 75점' 기준을 표시한다", async ({ page }) => {
     await openSet(page, "CSTS", "CSTS-FL-2402");
     await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
-    await expect(page.getByTestId("result-score")).toContainText("환산");
-    await expect(page.locator(".result-criterion")).toContainText("환산 52.5점");
+    // 4지선다·서답형 1.5점/진위형 1.0점 가중 점수 — "X / Y점" 형식(단순 정답률이 아님).
+    await expect(page.getByTestId("result-score")).toContainText("점");
+    await expect(page.locator(".result-criterion")).toContainText("100점 만점 기준 75점");
   });
 
   test("미응답으로 채점하면 0%·합격 기준 미달이 표시된다", async ({ page }) => {

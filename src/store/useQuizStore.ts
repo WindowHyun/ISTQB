@@ -20,6 +20,9 @@ export interface ExamHistory {
   wrongItems?: { number: number; myAnswer: string[]; correctAnswer: string[] }[];
   // 챕터별 정답 집계(Phase 3 약점 분석). 채점 시점에 기록 — 과거 기록엔 없을 수 있다.
   chapterStats?: Record<string, { c: number; t: number }>;
+  // CSTS 검정방법별 가중 점수(채점 시점 스냅샷) — 4지선다·서답형 1.5점/진위형 1.0점 배점.
+  // ISTQB 이력에는 없음(단순 정답률 기준이라 불필요). 과거(수정 전) CSTS 기록엔 없을 수 있다.
+  cstsWeighted?: { score: number; maxScore: number };
   // 챕터 미니 시험(랜덤 모드 + 챕터 필터) 회차 표식. 세트 전체 회차가 아니므로
   // 타임라인·직전 대비 비교에서는 같은 챕터끼리만 비교한다(챕터 통계에는 그대로 반영).
   chapter?: string;
