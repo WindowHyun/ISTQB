@@ -29,7 +29,7 @@ export const UserGuide = ({ onClose }: { onClose: () => void }) => (
         <h4>✅ 채점과 결과</h4>
         <ul>
           <li>미응답 문항이 있으면 채점 전에 <strong>확인 화면</strong>이 떠서 빈 문항으로 바로 이동해 마저 풀 수 있습니다(미응답은 오답 처리).</li>
-          <li>결과에는 점수·<strong>합격 여부</strong>(ISTQB 65% / CSTS 환산 52.5점)·소요 시간과 <strong>직전 회차 대비 ▲/▼</strong> 변화가 표시됩니다.</li>
+          <li>결과에는 점수·<strong>합격 여부</strong>(ISTQB 65% 이상 정답 / CSTS 검정방법별 배점 합산 75점 이상·100점 만점)·소요 시간과 <strong>직전 회차 대비 ▲/▼</strong> 변화가 표시됩니다.</li>
           <li><strong>다시 풀기</strong> 버튼(또는 활성 모드 탭 재클릭)으로 바로 재응시할 수 있습니다.</li>
         </ul>
       </section>
