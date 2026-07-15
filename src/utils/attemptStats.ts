@@ -45,6 +45,16 @@ function isScored(h: ExamHistory): h is ExamHistory & { correct: number; total: 
   return typeof h.total === 'number' && h.total > 0 && typeof h.correct === 'number';
 }
 
+// 이력 한 건의 표시용 정답률(%). CSTS는 채점 시점 가중 점수(cstsWeighted)가 있으면
+// 그 값을 우선한다 — 결과 모달의 "직전 회차 대비"가 합격 판정과 같은 기준(가중 점수)으로
+// 비교되게 한다. 과거(수정 전) 이력처럼 가중 점수가 없으면 단순 정답률로 근사한다.
+function scoredRate(h: ExamHistory): number {
+  if (h.cstsWeighted && h.cstsWeighted.maxScore > 0) {
+    return Math.floor((h.cstsWeighted.score / h.cstsWeighted.maxScore) * 100 + 1e-9);
+  }
+  return displayRatePercent(h.correct ?? 0, h.total ?? 0);
+}
+
 // 채점 이력을 세트별로 묶어 회차 타임라인을 만든다.
 // 각 세트 안에서 시간순으로 회차 번호를 매기고 직전 회차 대비 변화를 계산한다.
 export function buildSetTimelines(
@@ -133,7 +143,7 @@ export function latestAttemptComparison(
   const prev = same.length >= 2 ? same[same.length - 2] : null;
   return {
     round: same.length,
-    previousRate: prev ? displayRatePercent(prev.correct as number, prev.total as number) : null,
+    previousRate: prev ? scoredRate(prev) : null,
   };
 }
 

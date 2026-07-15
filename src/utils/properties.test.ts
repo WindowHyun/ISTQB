@@ -232,9 +232,9 @@ describe('뮤테이션 킬러 — 1차 생존 뮤턴트 사멸', () => {
 
   it('합격 기준·점수 라벨은 화면 계약 — 핵심 수치가 반드시 포함된다', () => {
     // 생존: criterionLabel/scoreLabel 빈 문자열 치환.
-    const csts = evaluatePass('csts', 60, 70);
-    expect(csts.criterionLabel).toContain('52.5');
-    expect(csts.scoreLabel).toContain('환산');
+    const csts = evaluatePass('csts', 70, 70, { score: 80, maxScore: 100 });
+    expect(csts.criterionLabel).toContain('75%');
+    expect(csts.scoreLabel).toContain('80');
     const istqb = evaluatePass('istqb', 26, 40);
     expect(istqb.criterionLabel).toContain('26 / 40');
     expect(istqb.scoreLabel).toContain('26 / 40');

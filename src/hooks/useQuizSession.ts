@@ -3,6 +3,7 @@ import { useQuizStore } from '../store/useQuizStore';
 import { useQuestions, Question } from './useQuestions';
 import { isQuestionCorrect } from '../utils/answer';
 import { buildChapterStats } from '../utils/chapterStats';
+import { computeCstsWeightedScore } from '../utils/scoring';
 import { saveHistoryToDB } from '../utils/storage';
 
 // 사이드바(통계·채점·진행률)와 워크스페이스(문항·네비)가 공유하는 파생 상태/액션.
@@ -30,6 +31,9 @@ export function useQuizSession() {
   const correctCount = currentQuestions.filter(
     (q) => isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type)
   ).length;
+  // CSTS 합격 판정용 가중 점수(4지선다·서답형 1.5점/진위형 1.0점) — evaluatePass가 소비한다.
+  // ISTQB는 전 문항이 동일 배점이라 결과가 단순 정답률과 같아 무해하지만, 실제로 쓰는 건 CSTS뿐이다.
+  const cstsWeighted = computeCstsWeightedScore(currentQuestions, answers, answerKeyOf);
 
   const gradeKey = `${setId}-${mode}`;
   const isGraded = Boolean(graded[gradeKey]);
@@ -90,6 +94,8 @@ export function useQuizSession() {
       wrongItems,
       // 챕터별 정답 집계(약점 분석용) — 채점 시점의 문항·답안으로 확정 저장.
       chapterStats: buildChapterStats(currentQuestions, answers, answerKeyOf),
+      // CSTS 합격 판정 가중 점수 스냅샷(직전 회차 대비 비교에서 재사용) — ISTQB는 저장하지 않는다.
+      cstsWeighted: useQuizStore.getState().activeProduct === 'csts' ? cstsWeighted : undefined,
       // 챕터 미니 시험(랜덤+필터) 표식 — 타임라인·회차 비교에서 세트 전체 회차와 분리된다.
       // (연습은 채점이 없고 시험 모드 진입 시 setMode가 필터를 해제하므로 랜덤에서만 값이 실린다)
       chapter: useQuizStore.getState().chapterFilter ?? undefined,
@@ -123,6 +129,7 @@ export function useQuizSession() {
     total,
     answered,
     correctCount,
+    cstsWeighted,
     isGraded,
     canGrade,
     showExamGate,

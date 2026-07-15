@@ -100,7 +100,7 @@ export const AppModals = () => {
     setQuitExamOpen: s.setQuitExamOpen, setGradedResume: s.setGradedResume,
   })));
   // examLocked — useQuizSession이 단일 원천(게이트·사이드바 잠금과 동일 규칙 집합).
-  const { appData, total, answered, correctCount, gradeAndShow, examLocked } = useQuizSession();
+  const { appData, total, answered, correctCount, cstsWeighted, gradeAndShow, examLocked } = useQuizSession();
   const { pref: themePref, setPref: setThemePref } = useTheme();
   const [fontSize, setFontSize] = useState<FontSize>(
     () => (safeGetItem('istqb-q-font') as FontSize) || 'normal',
@@ -754,6 +754,7 @@ export const AppModals = () => {
           certification={activeProduct}
           correct={correctCount}
           total={total}
+          cstsWeighted={cstsWeighted}
           elapsedSeconds={resultElapsedSeconds}
           attemptRound={attemptCompare.round}
           previousRate={attemptCompare.previousRate}

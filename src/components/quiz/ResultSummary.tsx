@@ -1,6 +1,6 @@
 import { Modal } from '../common/Modal';
 import { formatClock } from '../../utils/time';
-import { evaluatePass, Certification } from '../../utils/scoring';
+import { evaluatePass, Certification, CstsWeightedScore } from '../../utils/scoring';
 import { formatDeltaPp } from '../../utils/attemptStats';
 
 interface ResultSummaryProps {
@@ -8,6 +8,8 @@ interface ResultSummaryProps {
   certification: Certification;
   correct: number;
   total: number;
+  // CSTS 검정방법별 가중 점수 — 합격 판정의 실제 근거(정답률만으로는 판정 불가). ISTQB는 미사용.
+  cstsWeighted?: CstsWeightedScore;
   elapsedSeconds: number;
   // Phase 2 학습 누적 — 같은 세트·모드 기준 이번이 몇 회차인지, 직전 회차 정답률(%).
   attemptRound?: number;
@@ -26,6 +28,7 @@ export const ResultSummary = ({
   certification,
   correct,
   total,
+  cstsWeighted,
   elapsedSeconds,
   attemptRound,
   previousRate,
@@ -34,7 +37,7 @@ export const ResultSummary = ({
   onOpenWrongNote,
   onRetry,
 }: ResultSummaryProps) => {
-  const { passed, ratePercent, criterionLabel, scoreLabel } = evaluatePass(certification, correct, total);
+  const { passed, ratePercent, criterionLabel, scoreLabel } = evaluatePass(certification, correct, total, cstsWeighted);
   const wrong = total - correct;
 
   // 직전 회차 대비 변화(%p) — 첫 응시(previousRate null)면 "첫 응시"로 안내한다.
