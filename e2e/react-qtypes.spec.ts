@@ -32,6 +32,33 @@ test.describe("문항 유형", () => {
     await expect(page.locator("#feedback")).toContainText("정답");
   });
 
+  test("진위형 재분류(○/X) 문항은 텍스트 입력이 아닌 O/X 보기로 렌더된다", async ({ page }) => {
+    // 회귀: CSTS 2405 Q51 등은 '(○ / X)' 진위형인데 short_answer로 오분류돼 텍스트
+    // 입력창이 떴었다. type을 true_false로 정정한 뒤 O/X 보기와 즉시 피드백을 확인한다.
+    await openSet(page, "CSTS", "CSTS-FL-2405");
+    await modeBtn(page, "연습").click();
+    await gotoQuestion(page, 51);
+    await expect(page.locator(".short-answer-input")).toHaveCount(0); // 텍스트 입력 아님
+    const keys = (await page.locator("#options .option .option-key").allTextContents()).map((k) => k.trim().toUpperCase());
+    expect(keys.join("")).toBe("OX");
+    // 정답(X)을 고르면 즉시 피드백에 '정답'이 표시된다(문항 정답 = x).
+    await page.locator("#options .option").nth(1).click();
+    await expect(page.locator("#feedback")).toBeVisible({ timeout: 4_000 });
+    await expect(page.locator("#feedback")).toContainText("정답입니다");
+  });
+
+  test("단답형: 한 정답 문자열에 묶인 동의어 하나만 입력해도 정답", async ({ page }) => {
+    // 회귀: '공존성, Co-existence'처럼 동의어가 콤마로 묶인 정답도 '공존성' 단독 입력을 인정.
+    await openSet(page, "CSTS", "CSTS-FL-2403");
+    await modeBtn(page, "연습").click();
+    await gotoQuestion(page, 62);
+    await expect(page.locator(".short-answer-input")).toBeVisible();
+    await page.locator(".short-answer-input").fill("공존성");
+    await page.getByRole("button", { name: "정답 확인" }).click();
+    await expect(page.locator("#feedback")).toBeVisible({ timeout: 4_000 });
+    await expect(page.locator("#feedback")).toContainText("정답입니다");
+  });
+
   test("복수정답 문항은 안내 배지를 보여준다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await gotoQuestion(page, 6);

@@ -2392,7 +2392,7 @@
     {
       "id": "CSTS-FL-2404-051",
       "number": 51,
-      "type": "short_answer",
+      "type": "true_false",
       "stem": [
         {
           "type": "paragraph",
@@ -2401,7 +2401,7 @@
       ],
       "options": [],
       "answer": [
-        "X"
+        "x"
       ],
       "explanation": [
         {
@@ -2444,7 +2444,7 @@
     {
       "id": "CSTS-FL-2404-053",
       "number": 53,
-      "type": "short_answer",
+      "type": "true_false",
       "stem": [
         {
           "type": "paragraph",
@@ -2453,7 +2453,7 @@
       ],
       "options": [],
       "answer": [
-        "X"
+        "x"
       ],
       "explanation": [
         {

@@ -112,9 +112,32 @@ function validateQuestion(q, filePath, allIds, allNumbers) {
   }
 
   if (q.type === 'short_answer') {
-    const ans = Array.isArray(q.answer) ? q.answer[0] : q.answer;
+    const answers = Array.isArray(q.answer) ? q.answer : [q.answer];
+    const ans = answers[0];
     if (!ans || String(ans).trim() === '') {
       log('ERROR', filePath, qId, `short_answer 정답이 비어 있음`);
+    }
+
+    // (신규) 진위형(○/X) 오분류 감지 — 정답이 모두 단일 O/X 기호이면 사실상 true_false다.
+    // 이렇게 분류되면 O/X 버튼 대신 텍스트 입력창이 뜨고, 화면의 '○'를 입력하면 정답
+    // 'O'와 불일치해 오답 처리되며, 배점도 1.0(진위형)이 아닌 1.5(서답형)로 계산된다.
+    const oxAll =
+      answers.length > 0 &&
+      answers.every((a) => a != null && /^[oxOX○×]$/.test(String(a).trim()));
+    if (oxAll) {
+      log('ERROR', filePath, qId, `진위형(○/X)으로 보이는데 type이 short_answer임 — true_false로 변경 필요 (정답=${JSON.stringify(q.answer)})`);
+    }
+
+    // (신규) 여러 동의어가 한 정답 문자열에 콤마/공백 슬래시/"또는"/이중공백으로 뭉쳐 있으면
+    // 경고한다. 매칭 로직(isQuestionCorrect)이 분할 처리하지만, answer 배열의 개별 원소로
+    // 분리해 두는 편이 데이터 정합성·가독성에 좋다. (용어 내부 '조건/결정'은 공백 없는 슬래시라 제외)
+    const MASHED = /[,，]|\s+\/\s+|\s+또는\s+|\s{2,}/;
+    if (!oxAll) {
+      for (const a of answers) {
+        if (typeof a === 'string' && MASHED.test(a)) {
+          log('WARNING', filePath, qId, `서답형 정답에 여러 동의어가 한 문자열에 혼입 — answer 배열 원소로 분리 권장: ${a.slice(0, 40)}`);
+        }
+      }
     }
   }
 

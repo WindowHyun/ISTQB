@@ -17,14 +17,41 @@ export function normalizeText(value: string): string {
   return (value || '').replace(/\s+/g, '').toLowerCase();
 }
 
+// 서답형 정답키는 여러 허용답을 한 문자열에 콤마/슬래시(공백 포함)/"또는"/이중공백으로 묶어
+// 두는 경우가 있고(원본 공개답안 표기 규약), 괄호로 영문·대안을 병기한다
+// (예: "로그(Log)", "동등 분할(클래스), 동치 분할", "재테스팅 / retesting / 재테스트").
+// 종전 로직은 이 문자열 전체와의 완전일치만 정답으로 봐, 자연스러운 단일 답을 입력하면
+// 오답 처리됐다. 아래에서 개별 허용답으로 펼쳐 판정한다.
+// - 구분자 규약은 정답 대조 스크립트(verify-pdf-data.py: `[,/]|또는|\s{2,}`)와 맞춘다.
+//   단, 슬래시는 "조건/결정" 같은 용어 내부 구분과 섞이지 않도록 공백을 낀 경우만 분리한다.
+// - 전개는 후보를 늘리기만 하므로 종전에 맞던 입력을 틀리게 만들지 않는다(원문 전체도 후보에 포함).
+function shortAnswerCandidates(answer: string[]): string[] {
+  const out: string[] = [];
+  for (const raw of answer) {
+    const whole = String(raw);
+    out.push(whole); // 원문 전체(종전 완전일치 동작 보존)
+    for (const part of whole.split(/[,，]|\s+\/\s+|\s+또는\s+|\s{2,}/)) {
+      const t = part.trim();
+      if (!t) continue;
+      out.push(t);
+      const stripped = t.replace(/\([^)]*\)/g, '').trim(); // 괄호 제거: "로그(Log)" → "로그"
+      if (stripped) out.push(stripped);
+      const inner = t.match(/\(([^)]+)\)/g); // 괄호 내용도 허용: "로그(Log)" → "Log"
+      if (inner) for (const m of inner) out.push(m.slice(1, -1).trim());
+    }
+  }
+  return out;
+}
+
 // 문제 유형별 정답 판정.
-// - short_answer: 입력 텍스트를 정규화해 정답 중 하나와 일치하면 정답.
+// - short_answer: 입력 텍스트를 정규화해 허용답 후보(shortAnswerCandidates) 중 하나와 일치하면 정답.
 // - 그 외(multiple_choice / true_false): 키 배열 비교(isAnswerCorrect).
 export function isQuestionCorrect(answer: string[], selected: string[], type?: string): boolean {
   if (type === 'short_answer') {
     const got = normalizeText(selected[0] || '');
     if (!got) return false;
-    return Array.isArray(answer) && answer.some((a) => a.trim() !== '' && normalizeText(a) === got);
+    if (!Array.isArray(answer)) return false;
+    return shortAnswerCandidates(answer).some((c) => c !== '' && normalizeText(c) === got);
   }
   return isAnswerCorrect(answer, selected);
 }

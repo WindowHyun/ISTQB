@@ -2452,7 +2452,7 @@
     {
       "id": "CSTS-EL-SW-EXAMPLE-051",
       "number": 51,
-      "type": "short_answer",
+      "type": "true_false",
       "stem": [
         {
           "type": "paragraph",
@@ -2461,7 +2461,7 @@
       ],
       "options": [],
       "answer": [
-        "X"
+        "x"
       ],
       "explanation": [
         {
@@ -2478,7 +2478,7 @@
     {
       "id": "CSTS-EL-SW-EXAMPLE-052",
       "number": 52,
-      "type": "short_answer",
+      "type": "true_false",
       "stem": [
         {
           "type": "paragraph",
@@ -2487,7 +2487,7 @@
       ],
       "options": [],
       "answer": [
-        "O"
+        "o"
       ],
       "explanation": [
         {
@@ -2634,7 +2634,7 @@
     {
       "id": "CSTS-EL-SW-EXAMPLE-058",
       "number": 58,
-      "type": "short_answer",
+      "type": "true_false",
       "stem": [
         {
           "type": "paragraph",
@@ -2643,7 +2643,7 @@
       ],
       "options": [],
       "answer": [
-        "X"
+        "x"
       ],
       "explanation": [
         {
