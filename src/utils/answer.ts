@@ -43,11 +43,32 @@ function shortAnswerCandidates(answer: string[]): string[] {
   return out;
 }
 
+// 다답형 서답형의 한 입력 칸(파트) — 라벨 + 그 칸에서 허용하는 정답 동의어들.
+export interface AnswerPart {
+  label: string;
+  answer: string[];
+}
+
 // 문제 유형별 정답 판정.
 // - short_answer: 입력 텍스트를 정규화해 허용답 후보(shortAnswerCandidates) 중 하나와 일치하면 정답.
+//   parts(다답형: 서로 다른 답을 여러 칸에서 요구, 예 "동등분할 4개·경계값 7개")가 주어지면
+//   각 칸 selected[i]가 해당 파트 허용답과 모두 일치해야 정답이다(반쪽 답은 오답).
 // - 그 외(multiple_choice / true_false): 키 배열 비교(isAnswerCorrect).
-export function isQuestionCorrect(answer: string[], selected: string[], type?: string): boolean {
+export function isQuestionCorrect(
+  answer: string[],
+  selected: string[],
+  type?: string,
+  parts?: AnswerPart[],
+): boolean {
   if (type === 'short_answer') {
+    if (parts && parts.length) {
+      // 모든 파트가 채워지고 각각 정답이어야 한다.
+      return parts.every((p, i) => {
+        const got = normalizeText(selected[i] || '');
+        if (!got) return false;
+        return shortAnswerCandidates(p.answer).some((c) => c !== '' && normalizeText(c) === got);
+      });
+    }
     const got = normalizeText(selected[0] || '');
     if (!got) return false;
     if (!Array.isArray(answer)) return false;

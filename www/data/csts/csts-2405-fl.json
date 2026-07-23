@@ -2930,6 +2930,16 @@
       "answer": [
         "동등분할: 4개, 경계값 분석: 7개"
       ],
+      "answerParts": [
+        {
+          "label": "동등 분할",
+          "answer": ["4", "4개"]
+        },
+        {
+          "label": "경계값 분석",
+          "answer": ["7", "7개"]
+        }
+      ],
       "explanation": [
         {
           "type": "paragraph",

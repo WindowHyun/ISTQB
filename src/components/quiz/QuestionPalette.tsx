@@ -31,7 +31,7 @@ export const QuestionPalette = ({ withId, onJump }: QuestionPaletteProps) => {
         const selected = answers[answerKeyOf(q)] || [];
         const classes: string[] = [];
         if (i === safeIndex) classes.push('current');
-        if (isGraded) classes.push(isQuestionCorrect(q.answer, selected, q.type) ? 'correct' : 'missed');
+        if (isGraded) classes.push(isQuestionCorrect(q.answer, selected, q.type, q.answerParts) ? 'correct' : 'missed');
         else classes.push(selected.length > 0 ? 'answered' : 'unanswered');
         return (
           <button

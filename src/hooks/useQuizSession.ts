@@ -29,7 +29,7 @@ export function useQuizSession() {
     (q) => (answers[answerKeyOf(q)] || []).length > 0
   ).length;
   const correctCount = currentQuestions.filter(
-    (q) => isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type)
+    (q) => isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts)
   ).length;
   // CSTS 합격 판정용 가중 점수(4지선다·서답형 1.5점/진위형 1.0점) — evaluatePass가 소비한다.
   // ISTQB는 전 문항이 동일 배점이라 결과가 단순 정답률과 같아 무해하지만, 실제로 쓰는 건 CSTS뿐이다.
@@ -54,14 +54,14 @@ export function useQuizSession() {
   // 채점된 시험/랜덤 또는 오답 모드에서 틀린 문항 목록(오답노트·네비 표시용).
   const wrongQuestions = currentQuestions
     .map((q, i) => ({ q, i }))
-    .filter(({ q }) => !isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type));
+    .filter(({ q }) => !isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts));
 
   const handleGrade = () => {
     // 멱등성 가드 — 같은 tick 더블클릭 등으로 재진입해도 회차/통계가 이중 집계되지 않게 한다.
     // 버튼 disabled(canGrade)는 리렌더 이후에야 반영되므로 채점 상태를 직접 확인한다.
     if (useQuizStore.getState().graded[gradeKey]) return;
     const wrongQs = currentQuestions
-      .filter((q) => !isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type));
+      .filter((q) => !isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts));
     const wrongIds = wrongQs.map((q) => q.id || `legacy-${q.number}`);
     // 오답 노트(세트 전체 회차 리스트)용 상세를 채점 시점에 함께 저장한다(4A).
     const wrongItems = wrongQs.map((q) => ({

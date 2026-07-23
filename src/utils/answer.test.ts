@@ -54,6 +54,24 @@ describe("isQuestionCorrect", () => {
     expect(isQuestionCorrect(["로그(Log)"], ["Log"], "short_answer")).toBe(true);
     expect(isQuestionCorrect(["로그(Log)"], ["로그(Log)"], "short_answer")).toBe(true); // 원문 전체도 유지
   });
+
+  const parts = [
+    { label: "동등 분할", answer: ["4", "4개"] },
+    { label: "경계값 분석", answer: ["7", "7개"] },
+  ];
+  it("다답형: 모든 칸이 각 파트 정답과 일치해야 정답", () => {
+    expect(isQuestionCorrect([], ["4", "7"], "short_answer", parts)).toBe(true);
+    expect(isQuestionCorrect([], ["4개", "7개"], "short_answer", parts)).toBe(true);
+  });
+  it("다답형: 반쪽만 맞으면 오답", () => {
+    expect(isQuestionCorrect([], ["4", ""], "short_answer", parts)).toBe(false); // 두번째 미입력
+    expect(isQuestionCorrect([], ["4", "9"], "short_answer", parts)).toBe(false); // 두번째 오답
+    expect(isQuestionCorrect([], ["4"], "short_answer", parts)).toBe(false); // 칸 수 부족
+    expect(isQuestionCorrect([], [], "short_answer", parts)).toBe(false); // 미입력
+  });
+  it("다답형: 칸 순서가 뒤바뀌면 오답(파트별 위치 고정)", () => {
+    expect(isQuestionCorrect([], ["7", "4"], "short_answer", parts)).toBe(false);
+  });
   it("진위형(o/x)은 키 비교로 판정", () => {
     expect(isQuestionCorrect(["o"], ["o"], "true_false")).toBe(true);
     expect(isQuestionCorrect(["x"], ["o"], "true_false")).toBe(false);

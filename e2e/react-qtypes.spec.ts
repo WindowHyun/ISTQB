@@ -59,6 +59,25 @@ test.describe("문항 유형", () => {
     await expect(page.locator("#feedback")).toContainText("정답입니다");
   });
 
+  test("다답형 서답형: 라벨별 두 입력 칸이 뜨고 둘 다 맞아야 정답", async ({ page }) => {
+    // 2405 Q67은 '동등분할 수 + 경계값 수' 두 답을 요구하는 다답형 — answerParts로 라벨별
+    // 입력 칸을 렌더한다. 반쪽만 맞으면 오답, 두 칸 모두 맞아야 정답.
+    await openSet(page, "CSTS", "CSTS-FL-2405");
+    await modeBtn(page, "연습").click();
+    await gotoQuestion(page, 67);
+    const box = page.getByTestId("short-answer-multi");
+    await expect(box).toBeVisible();
+    const inputs = box.locator(".short-answer-input");
+    await expect(inputs).toHaveCount(2);
+    // 한 칸만 채우면 오답
+    await inputs.nth(0).fill("4");
+    await page.getByRole("button", { name: "정답 확인" }).click();
+    await expect(page.locator("#feedback")).toContainText("오답");
+    // 나머지 칸을 채우면 즉시 정답으로 갱신
+    await inputs.nth(1).fill("7");
+    await expect(page.locator("#feedback")).toContainText("정답입니다");
+  });
+
   test("복수정답 문항은 안내 배지를 보여준다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await gotoQuestion(page, 6);
