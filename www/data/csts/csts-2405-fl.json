@@ -2699,7 +2699,8 @@
       ],
       "options": [],
       "answer": [
-        "인수 테스트 사용자 인수 테스트"
+        "인수 테스트",
+        "사용자 인수 테스트"
       ],
       "explanation": [
         {
@@ -2871,6 +2872,24 @@
       "answer": [
         "나 –> 라 -> 가 -> 다"
       ],
+      "answerParts": [
+        {
+          "label": "1단계",
+          "answer": ["나", "(나)"]
+        },
+        {
+          "label": "2단계",
+          "answer": ["라", "(라)"]
+        },
+        {
+          "label": "3단계",
+          "answer": ["가", "(가)"]
+        },
+        {
+          "label": "4단계",
+          "answer": ["다", "(다)"]
+        }
+      ],
       "explanation": [
         {
           "type": "paragraph",
@@ -2999,7 +3018,8 @@
       ],
       "options": [],
       "answer": [
-        "고립화 Isolation"
+        "고립화",
+        "Isolation"
       ],
       "explanation": [
         {
