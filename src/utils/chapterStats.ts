@@ -20,7 +20,7 @@ export function buildChapterStats(
     if (!q.chapter) continue;
     const cell = (stats[q.chapter] ||= { c: 0, t: 0 });
     cell.t += 1;
-    if (isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type)) cell.c += 1;
+    if (isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts)) cell.c += 1;
   }
   return stats;
 }

@@ -589,6 +589,22 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 }
 .short-answer-check:hover { background: var(--primary-600); }
 
+/* 다답형 단답(라벨별 입력 칸) — 서로 다른 답 여러 개를 각 칸에서 요구 */
+.short-answer-multi { flex-direction: column; align-items: stretch; }
+.short-answer-part { display: flex; align-items: center; gap: 10px; }
+.short-answer-part .sap-label {
+  flex: 0 0 120px;
+  font-weight: 700;
+  color: var(--text);
+  font-size: 15px;
+}
+.short-answer-multi .short-answer-input { flex: 1 1 auto; }
+.short-answer-multi .short-answer-check { align-self: flex-start; margin-top: 2px; }
+@media (max-width: 520px) {
+  .short-answer-part { flex-direction: column; align-items: stretch; gap: 4px; }
+  .short-answer-part .sap-label { flex: none; }
+}
+
 /* 피드백/해설 */
 .feedback {
   display: flex;

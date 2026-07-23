@@ -68,6 +68,9 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
   const hasOptions = question.options.length > 0;
   const isTrueFalse = !hasOptions && question.type === 'true_false';
   const isShort = !hasOptions && question.type === 'short_answer';
+  // 다답형 서답형(서로 다른 답을 여러 칸에서 요구) — 라벨별 입력 칸을 렌더한다.
+  const parts = question.answerParts;
+  const isMultiPart = isShort && !!parts && parts.length > 0;
   const displayOptions = hasOptions
     ? question.options
     : isTrueFalse
@@ -107,9 +110,17 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
     setAnswer(answerKey, e.target.value ? [e.target.value] : []);
   };
 
-  const correct = isQuestionCorrect(question.answer, selected, question.type);
-  const answerDisplay = isShort || isTrueFalse
-    ? question.answer.join(', ').toUpperCase()
+  // 다답형: 파트 i의 입력만 바꾸고 나머지 칸 값은 보존한다(밀집 배열로 저장 — 구멍/undefined 방지).
+  // 모든 칸이 비면 빈 배열로 저장해 '답함' 집계에서 빠지게 한다.
+  const handlePartInput = (i: number, value: string) => {
+    const len = parts?.length ?? 0;
+    const next = Array.from({ length: len }, (_, k) => (k === i ? value : (selected[k] || '')));
+    setAnswer(answerKey, next.every((v) => v === '') ? [] : next);
+  };
+
+  const correct = isQuestionCorrect(question.answer, selected, question.type, parts);
+  const answerDisplay = isMultiPart
+    ? parts!.map((p) => `${p.label} ${p.answer[0] ?? ''}`).join(' · ')
     : question.answer.join(', ').toUpperCase();
 
   // figure 필드와 stem 내 이미지가 같은 파일을 가리키면 중복 렌더 방지(#2).
@@ -164,7 +175,36 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
           );
         })}
 
-        {isShort && (
+        {isMultiPart && (
+          // 다답형: 파트(라벨)별 입력 칸. 지문이 이미 항목을 명시하므로 라벨 노출은 스포일러가 아니다.
+          <div className="short-answer short-answer-multi" data-testid="short-answer-multi">
+            {parts!.map((p, i) => (
+              <label key={p.label} className="short-answer-part">
+                <span className="sap-label">{p.label}</span>
+                <input
+                  type="text"
+                  className="short-answer-input"
+                  value={selected[i] || ''}
+                  disabled={locked}
+                  placeholder="정답 입력"
+                  aria-label={`${p.label} 정답 입력`}
+                  onChange={(e) => handlePartInput(i, e.target.value)}
+                />
+              </label>
+            ))}
+            {immediate && !reveal && (
+              <button
+                type="button"
+                className="short-answer-check"
+                onClick={() => setShowFeedback(true)}
+              >
+                정답 확인
+              </button>
+            )}
+          </div>
+        )}
+
+        {isShort && !isMultiPart && (
           <div className="short-answer">
             <input
               type="text"

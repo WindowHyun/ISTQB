@@ -112,9 +112,51 @@ function validateQuestion(q, filePath, allIds, allNumbers) {
   }
 
   if (q.type === 'short_answer') {
-    const ans = Array.isArray(q.answer) ? q.answer[0] : q.answer;
+    const answers = Array.isArray(q.answer) ? q.answer : [q.answer];
+    const ans = answers[0];
     if (!ans || String(ans).trim() === '') {
       log('ERROR', filePath, qId, `short_answer 정답이 비어 있음`);
+    }
+
+    // (신규) 진위형(○/X) 오분류 감지 — 정답이 모두 단일 O/X 기호이면 사실상 true_false다.
+    // 이렇게 분류되면 O/X 버튼 대신 텍스트 입력창이 뜨고, 화면의 '○'를 입력하면 정답
+    // 'O'와 불일치해 오답 처리되며, 배점도 1.0(진위형)이 아닌 1.5(서답형)로 계산된다.
+    const oxAll =
+      answers.length > 0 &&
+      answers.every((a) => a != null && /^[oxOX○×]$/.test(String(a).trim()));
+    if (oxAll) {
+      log('ERROR', filePath, qId, `진위형(○/X)으로 보이는데 type이 short_answer임 — true_false로 변경 필요 (정답=${JSON.stringify(q.answer)})`);
+    }
+
+    // (신규) 여러 동의어가 한 정답 문자열에 콤마/공백 슬래시/"또는"/이중공백으로 뭉쳐 있으면
+    // 경고한다. 매칭 로직(isQuestionCorrect)이 분할 처리하지만, answer 배열의 개별 원소로
+    // 분리해 두는 편이 데이터 정합성·가독성에 좋다. (용어 내부 '조건/결정'은 공백 없는 슬래시라 제외)
+    const MASHED = /[,，]|\s+\/\s+|\s+또는\s+|\s{2,}/;
+    // 다답형(한 문항이 서로 다른 답 여러 개를 요구)은 answerParts(라벨별 입력 칸)로 구조화한다.
+    // 이 경우 answer(단일 문자열)는 PDF 대조·폴백용으로 남겨 두므로 혼입 경고에서 제외한다.
+    const hasParts = Array.isArray(q.answerParts) && q.answerParts.length > 0;
+    if (!oxAll && !hasParts) {
+      for (const a of answers) {
+        if (typeof a === 'string' && MASHED.test(a)) {
+          log('WARNING', filePath, qId, `서답형 정답에 여러 동의어가 한 문자열에 혼입 — answer 배열 원소로 분리 권장: ${a.slice(0, 40)}`);
+        }
+      }
+    }
+
+    // (신규) answerParts(다답형) 형식 검증 — 각 파트는 label(문자열)과 비어있지 않은 answer 배열을 가져야 한다.
+    if (q.answerParts !== undefined) {
+      if (!Array.isArray(q.answerParts) || q.answerParts.length < 2) {
+        log('ERROR', filePath, qId, `answerParts는 2개 이상의 파트 배열이어야 함`);
+      } else {
+        q.answerParts.forEach((p, i) => {
+          if (!p || typeof p.label !== 'string' || p.label.trim() === '') {
+            log('ERROR', filePath, qId, `answerParts[${i}].label 이 비어 있음`);
+          }
+          if (!Array.isArray(p.answer) || p.answer.length === 0 || p.answer.some((x) => typeof x !== 'string' || x.trim() === '')) {
+            log('ERROR', filePath, qId, `answerParts[${i}].answer 가 비어 있거나 문자열 배열이 아님`);
+          }
+        });
+      }
     }
   }
 

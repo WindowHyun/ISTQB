@@ -2391,7 +2391,7 @@
     {
       "id": "CSTS-FL-2405-051",
       "number": 51,
-      "type": "short_answer",
+      "type": "true_false",
       "stem": [
         {
           "type": "paragraph",
@@ -2400,7 +2400,7 @@
       ],
       "options": [],
       "answer": [
-        "X"
+        "x"
       ],
       "explanation": [
         {
@@ -2551,7 +2551,7 @@
     {
       "id": "CSTS-FL-2405-057",
       "number": 57,
-      "type": "short_answer",
+      "type": "true_false",
       "stem": [
         {
           "type": "paragraph",
@@ -2560,7 +2560,7 @@
       ],
       "options": [],
       "answer": [
-        "X"
+        "x"
       ],
       "explanation": [
         {
@@ -2668,7 +2668,8 @@
       ],
       "options": [],
       "answer": [
-        "신뢰성, reliability"
+        "신뢰성",
+        "reliability"
       ],
       "explanation": [
         {
@@ -2698,7 +2699,8 @@
       ],
       "options": [],
       "answer": [
-        "인수 테스트 사용자 인수 테스트"
+        "인수 테스트",
+        "사용자 인수 테스트"
       ],
       "explanation": [
         {
@@ -2814,7 +2816,10 @@
       ],
       "options": [],
       "answer": [
-        "결정/조건, 조건/분기 및 / 기준 좌우가 바뀌어도 정답"
+        "결정/조건",
+        "조건/결정",
+        "조건/분기",
+        "분기/조건"
       ],
       "explanation": [
         {
@@ -2866,6 +2871,24 @@
       "options": [],
       "answer": [
         "나 –> 라 -> 가 -> 다"
+      ],
+      "answerParts": [
+        {
+          "label": "1단계",
+          "answer": ["나", "(나)"]
+        },
+        {
+          "label": "2단계",
+          "answer": ["라", "(라)"]
+        },
+        {
+          "label": "3단계",
+          "answer": ["가", "(가)"]
+        },
+        {
+          "label": "4단계",
+          "answer": ["다", "(다)"]
+        }
       ],
       "explanation": [
         {
@@ -2926,6 +2949,16 @@
       "answer": [
         "동등분할: 4개, 경계값 분석: 7개"
       ],
+      "answerParts": [
+        {
+          "label": "동등 분할",
+          "answer": ["4", "4개"]
+        },
+        {
+          "label": "경계값 분석",
+          "answer": ["7", "7개"]
+        }
+      ],
       "explanation": [
         {
           "type": "paragraph",
@@ -2954,7 +2987,8 @@
       ],
       "options": [],
       "answer": [
-        "리그레션 또는 회귀"
+        "리그레션",
+        "회귀"
       ],
       "explanation": [
         {
@@ -2984,7 +3018,8 @@
       ],
       "options": [],
       "answer": [
-        "고립화 Isolation"
+        "고립화",
+        "Isolation"
       ],
       "explanation": [
         {

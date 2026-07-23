@@ -2392,7 +2392,7 @@
     {
       "id": "CSTS-FL-2404-051",
       "number": 51,
-      "type": "short_answer",
+      "type": "true_false",
       "stem": [
         {
           "type": "paragraph",
@@ -2401,7 +2401,7 @@
       ],
       "options": [],
       "answer": [
-        "X"
+        "x"
       ],
       "explanation": [
         {
@@ -2444,7 +2444,7 @@
     {
       "id": "CSTS-FL-2404-053",
       "number": 53,
-      "type": "short_answer",
+      "type": "true_false",
       "stem": [
         {
           "type": "paragraph",
@@ -2453,7 +2453,7 @@
       ],
       "options": [],
       "answer": [
-        "X"
+        "x"
       ],
       "explanation": [
         {
@@ -2669,7 +2669,9 @@
       ],
       "options": [],
       "answer": [
-        "에러(Error), 오류"
+        "에러",
+        "Error",
+        "오류"
       ],
       "explanation": [
         {
@@ -2729,7 +2731,8 @@
       ],
       "options": [],
       "answer": [
-        "복잡도 또는 순환 복잡도"
+        "복잡도",
+        "순환 복잡도"
       ],
       "explanation": [
         {
@@ -2755,7 +2758,9 @@
       ],
       "options": [],
       "answer": [
-        "V 모델, V&V 모델, Verification & Validation 모델"
+        "V 모델",
+        "V&V 모델",
+        "Verification & Validation 모델"
       ],
       "explanation": [
         {
@@ -2811,7 +2816,8 @@
       ],
       "options": [],
       "answer": [
-        "경험 기반 테스트, 경험 기반 테스팅"
+        "경험 기반 테스트",
+        "경험 기반 테스팅"
       ],
       "explanation": [
         {
@@ -2875,7 +2881,10 @@
       ],
       "options": [],
       "answer": [
-        "리그레션 테스팅 / regression testing / 회귀 테스트 / 회귀 테스팅"
+        "리그레션 테스팅",
+        "regression testing",
+        "회귀 테스트",
+        "회귀 테스팅"
       ],
       "explanation": [
         {
@@ -2926,7 +2935,8 @@
       ],
       "options": [],
       "answer": [
-        "심각도(결함 심각도),"
+        "심각도",
+        "결함 심각도"
       ],
       "explanation": [
         {
@@ -2956,7 +2966,13 @@
       ],
       "options": [],
       "answer": [
-        "테스트 매트릭(Test Metric), 테스트 메트릭스, 메트릭, 메트릭스, Metric(s)"
+        "테스트 매트릭",
+        "Test Metric",
+        "테스트 메트릭스",
+        "메트릭",
+        "메트릭스",
+        "Metric",
+        "Metrics"
       ],
       "explanation": [
         {

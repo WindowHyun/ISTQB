@@ -37,7 +37,7 @@ export function computeCstsWeightedScore(
   for (const q of questions) {
     const points = CSTS_TYPE_POINTS[q.type ?? ''] ?? CSTS_DEFAULT_POINTS;
     maxScore += points;
-    if (isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type)) score += points;
+    if (isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts)) score += points;
   }
   return { score, maxScore };
 }

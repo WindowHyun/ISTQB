@@ -2689,7 +2689,9 @@
       ],
       "options": [],
       "answer": [
-        "테스트 스크립트, test script, 스크립트(부분점수 0.7)"
+        "테스트 스크립트",
+        "test script",
+        "스크립트"
       ],
       "explanation": [
         {
@@ -2728,7 +2730,8 @@
       ],
       "options": [],
       "answer": [
-        "공존성, Co-existence"
+        "공존성",
+        "Co-existence"
       ],
       "explanation": [
         {
@@ -2805,7 +2808,8 @@
       ],
       "options": [],
       "answer": [
-        "V&V, 브이모델"
+        "V&V",
+        "브이모델"
       ],
       "explanation": [
         {
@@ -2835,7 +2839,8 @@
       ],
       "options": [],
       "answer": [
-        "감사, Audit"
+        "감사",
+        "Audit"
       ],
       "explanation": [
         {
@@ -2865,7 +2870,8 @@
       ],
       "options": [],
       "answer": [
-        "동등 분할(클래스), Equivalence partitioning"
+        "동등 분할",
+        "Equivalence partitioning"
       ],
       "explanation": [
         {
@@ -2891,7 +2897,9 @@
       ],
       "options": [],
       "answer": [
-        "결정표, decision table, 결정 테이블"
+        "결정표",
+        "decision table",
+        "결정 테이블"
       ],
       "explanation": [
         {
@@ -3002,7 +3010,11 @@
       ],
       "options": [],
       "answer": [
-        "결함 분석, 결함 판단, 테스트 결과 분석, 결과 분석, 테스트 실행 결과 분석"
+        "결함 분석",
+        "결함 판단",
+        "테스트 결과 분석",
+        "결과 분석",
+        "테스트 실행 결과 분석"
       ],
       "explanation": [
         {

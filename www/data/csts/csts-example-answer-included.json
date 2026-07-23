@@ -2452,7 +2452,7 @@
     {
       "id": "CSTS-EL-SW-EXAMPLE-051",
       "number": 51,
-      "type": "short_answer",
+      "type": "true_false",
       "stem": [
         {
           "type": "paragraph",
@@ -2461,7 +2461,7 @@
       ],
       "options": [],
       "answer": [
-        "X"
+        "x"
       ],
       "explanation": [
         {
@@ -2478,7 +2478,7 @@
     {
       "id": "CSTS-EL-SW-EXAMPLE-052",
       "number": 52,
-      "type": "short_answer",
+      "type": "true_false",
       "stem": [
         {
           "type": "paragraph",
@@ -2487,7 +2487,7 @@
       ],
       "options": [],
       "answer": [
-        "O"
+        "o"
       ],
       "explanation": [
         {
@@ -2634,7 +2634,7 @@
     {
       "id": "CSTS-EL-SW-EXAMPLE-058",
       "number": 58,
-      "type": "short_answer",
+      "type": "true_false",
       "stem": [
         {
           "type": "paragraph",
@@ -2643,7 +2643,7 @@
       ],
       "options": [],
       "answer": [
-        "X"
+        "x"
       ],
       "explanation": [
         {
@@ -2721,7 +2721,10 @@
       ],
       "options": [],
       "answer": [
-        "스크립트(Script) 또는 테스트 스크립트(Test Script)"
+        "스크립트",
+        "Script",
+        "테스트 스크립트",
+        "Test Script"
       ],
       "explanation": [
         {
@@ -2751,7 +2754,8 @@
       ],
       "options": [],
       "answer": [
-        "인수 테스트 사용자 인수 테스트"
+        "인수 테스트",
+        "사용자 인수 테스트"
       ],
       "explanation": [
         {
@@ -2781,7 +2785,9 @@
       ],
       "options": [],
       "answer": [
-        "호환성 Compatibility 상호 호환성"
+        "호환성",
+        "Compatibility",
+        "상호 호환성"
       ],
       "explanation": [
         {
@@ -2811,7 +2817,10 @@
       ],
       "options": [],
       "answer": [
-        "재테스팅 / retesting / 재테스트 / retest"
+        "재테스팅",
+        "retesting",
+        "재테스트",
+        "retest"
       ],
       "explanation": [
         {
@@ -2959,7 +2968,8 @@
       ],
       "options": [],
       "answer": [
-        "리그레션 또는 회귀"
+        "리그레션",
+        "회귀"
       ],
       "explanation": [
         {
