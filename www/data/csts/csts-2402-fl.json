@@ -2793,7 +2793,8 @@
       ],
       "options": [],
       "answer": [
-        "구조기반, Structure-based Test"
+        "구조기반",
+        "Structure-based Test"
       ],
       "explanation": [
         {
@@ -2823,7 +2824,14 @@
       ],
       "options": [],
       "answer": [
-        "단위 테스트(또는 테스팅), Unit Test(또는 Testing) 컴포넌트 테스트(또는 테스팅), Component Test(또는 Testing)"
+        "단위 테스트",
+        "단위 테스팅",
+        "Unit Test",
+        "Unit Testing",
+        "컴포넌트 테스트",
+        "컴포넌트 테스팅",
+        "Component Test",
+        "Component Testing"
       ],
       "explanation": [
         {
@@ -2849,7 +2857,9 @@
       ],
       "options": [],
       "answer": [
-        "0.982 또는 98.2%, 982/1000"
+        "0.982",
+        "98.2%",
+        "982/1000"
       ],
       "explanation": [
         {
@@ -2879,7 +2889,10 @@
       ],
       "options": [],
       "answer": [
-        "재테스팅 / retesting / 재테스트 / retest"
+        "재테스팅",
+        "retesting",
+        "재테스트",
+        "retest"
       ],
       "explanation": [
         {
@@ -2905,7 +2918,8 @@
       ],
       "options": [],
       "answer": [
-        "교정 활동, corrective action,"
+        "교정 활동",
+        "corrective action"
       ],
       "explanation": [
         {
@@ -2931,7 +2945,8 @@
       ],
       "options": [],
       "answer": [
-        "누락 결함, (요구사항이)구현되지 않은 결함"
+        "누락 결함",
+        "구현되지 않은 결함"
       ],
       "explanation": [
         {
@@ -2961,7 +2976,11 @@
       ],
       "options": [],
       "answer": [
-        "동등 분할(클래스), 동치 분할, 동등 클래스 분할, 등가 분할 Equivalence partitioning"
+        "동등 분할",
+        "동치 분할",
+        "동등 클래스 분할",
+        "등가 분할",
+        "Equivalence partitioning"
       ],
       "explanation": [
         {
@@ -2987,7 +3006,11 @@
       ],
       "options": [],
       "answer": [
-        "오류 추정, 에러 추정, 에러 추정 테스트, 오류 추정 기반 테스트, 오류 추정 기반 방법"
+        "오류 추정",
+        "에러 추정",
+        "에러 추정 테스트",
+        "오류 추정 기반 테스트",
+        "오류 추정 기반 방법"
       ],
       "explanation": [
         {
@@ -3038,7 +3061,8 @@
       ],
       "options": [],
       "answer": [
-        "테스트 계획서, 테스트 계획 산출물"
+        "테스트 계획서",
+        "테스트 계획 산출물"
       ],
       "explanation": [
         {

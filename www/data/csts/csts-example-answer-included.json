@@ -2721,7 +2721,10 @@
       ],
       "options": [],
       "answer": [
-        "스크립트(Script) 또는 테스트 스크립트(Test Script)"
+        "스크립트",
+        "Script",
+        "테스트 스크립트",
+        "Test Script"
       ],
       "explanation": [
         {
@@ -2811,7 +2814,10 @@
       ],
       "options": [],
       "answer": [
-        "재테스팅 / retesting / 재테스트 / retest"
+        "재테스팅",
+        "retesting",
+        "재테스트",
+        "retest"
       ],
       "explanation": [
         {
@@ -2959,7 +2965,8 @@
       ],
       "options": [],
       "answer": [
-        "리그레션 또는 회귀"
+        "리그레션",
+        "회귀"
       ],
       "explanation": [
         {

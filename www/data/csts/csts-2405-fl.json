@@ -2668,7 +2668,8 @@
       ],
       "options": [],
       "answer": [
-        "신뢰성, reliability"
+        "신뢰성",
+        "reliability"
       ],
       "explanation": [
         {
@@ -2814,7 +2815,10 @@
       ],
       "options": [],
       "answer": [
-        "결정/조건, 조건/분기 및 / 기준 좌우가 바뀌어도 정답"
+        "결정/조건",
+        "조건/결정",
+        "조건/분기",
+        "분기/조건"
       ],
       "explanation": [
         {
@@ -2954,7 +2958,8 @@
       ],
       "options": [],
       "answer": [
-        "리그레션 또는 회귀"
+        "리그레션",
+        "회귀"
       ],
       "explanation": [
         {

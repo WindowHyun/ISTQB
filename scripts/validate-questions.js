@@ -132,7 +132,10 @@ function validateQuestion(q, filePath, allIds, allNumbers) {
     // 경고한다. 매칭 로직(isQuestionCorrect)이 분할 처리하지만, answer 배열의 개별 원소로
     // 분리해 두는 편이 데이터 정합성·가독성에 좋다. (용어 내부 '조건/결정'은 공백 없는 슬래시라 제외)
     const MASHED = /[,，]|\s+\/\s+|\s+또는\s+|\s{2,}/;
-    if (!oxAll) {
+    // 다답형(한 문항이 서로 다른 답 여러 개를 요구) — 단일 입력 모델로 표현할 수 없어
+    // 원형을 유지한다. 동의어 분리 대상이 아니므로 혼입 경고에서 제외한다(UI/스키마 개선 대상).
+    const MASHED_EXEMPT = new Set(['CSTS-FL-2405-067']);
+    if (!oxAll && !MASHED_EXEMPT.has(qId)) {
       for (const a of answers) {
         if (typeof a === 'string' && MASHED.test(a)) {
           log('WARNING', filePath, qId, `서답형 정답에 여러 동의어가 한 문자열에 혼입 — answer 배열 원소로 분리 권장: ${a.slice(0, 40)}`);
