@@ -78,6 +78,22 @@ test.describe("문항 유형", () => {
     await expect(page.locator("#feedback")).toContainText("정답입니다");
   });
 
+  test("다답형: 한 칸만 채우면 팔레트에서 '미응답'으로 유지된다", async ({ page }) => {
+    // 부분 입력을 '답함'으로 세면 진행률이 부풀고 채점 전 미응답 경고에서 빠진다 —
+    // 모든 칸이 채워져야 '답함'으로 집계되는지 팔레트 색으로 확인한다.
+    await openSet(page, "CSTS", "CSTS-FL-2405");
+    await modeBtn(page, "연습").click();
+    await gotoQuestion(page, 67);
+    const paletteBtn = page.locator('#questionNav button', { hasText: /^67$/ });
+    await expect(paletteBtn).toHaveClass(/unanswered/);
+    const inputs = page.getByTestId("short-answer-multi").locator(".short-answer-input");
+    await inputs.nth(0).fill("4"); // 한 칸만
+    await expect(paletteBtn).toHaveClass(/unanswered/); // 여전히 미응답
+    await inputs.nth(1).fill("7"); // 두 칸 다
+    await expect(paletteBtn).toHaveClass(/answered/);
+    await expect(paletteBtn).not.toHaveClass(/unanswered/);
+  });
+
   test("복수정답 문항은 안내 배지를 보여준다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await gotoQuestion(page, 6);

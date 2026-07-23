@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isAnswerCorrect, isQuestionCorrect } from "./answer";
+import { isAnswerCorrect, isQuestionCorrect, isAnswered } from "./answer";
 
 // QuestionCard/QuestionWorkspace 공유 정답판정 로직 유닛 테스트 (#76).
 describe("isAnswerCorrect", () => {
@@ -71,6 +71,25 @@ describe("isQuestionCorrect", () => {
   });
   it("다답형: 칸 순서가 뒤바뀌면 오답(파트별 위치 고정)", () => {
     expect(isQuestionCorrect([], ["7", "4"], "short_answer", parts)).toBe(false);
+  });
+});
+
+describe("isAnswered", () => {
+  const parts = [
+    { label: "동등 분할", answer: ["4"] },
+    { label: "경계값 분석", answer: ["7"] },
+  ];
+  it("일반 문항은 선택이 하나라도 있으면 답함", () => {
+    expect(isAnswered(["a"])).toBe(true);
+    expect(isAnswered(["a", "b"])).toBe(true);
+    expect(isAnswered([])).toBe(false);
+  });
+  it("다답형은 모든 칸이 채워져야 답함(부분 입력은 미응답)", () => {
+    expect(isAnswered(["4", "7"], parts)).toBe(true);
+    expect(isAnswered(["4", ""], parts)).toBe(false); // 반쪽
+    expect(isAnswered(["4"], parts)).toBe(false); // 칸 부족
+    expect(isAnswered([], parts)).toBe(false);
+    expect(isAnswered([" ", "7"], parts)).toBe(false); // 공백만 입력은 미응답
   });
   it("진위형(o/x)은 키 비교로 판정", () => {
     expect(isQuestionCorrect(["o"], ["o"], "true_false")).toBe(true);
