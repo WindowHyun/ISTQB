@@ -1,7 +1,7 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
-import { isQuestionCorrect } from '../../utils/answer';
+import { isQuestionCorrect, isAnswered } from '../../utils/answer';
 
 interface QuestionPaletteProps {
   /** 인라인(데스크톱 본문) 팔레트엔 id="questionNav"를 부여(E2E·레거시 선택자 유지). */
@@ -32,7 +32,7 @@ export const QuestionPalette = ({ withId, onJump }: QuestionPaletteProps) => {
         const classes: string[] = [];
         if (i === safeIndex) classes.push('current');
         if (isGraded) classes.push(isQuestionCorrect(q.answer, selected, q.type, q.answerParts) ? 'correct' : 'missed');
-        else classes.push(selected.length > 0 ? 'answered' : 'unanswered');
+        else classes.push(isAnswered(selected, q.answerParts) ? 'answered' : 'unanswered');
         return (
           <button
             key={q.id || i}

@@ -77,3 +77,14 @@ export function isQuestionCorrect(
   return isAnswerCorrect(answer, selected);
 }
 
+// "답함" 집계 기준(진행률·미응답 경고·팔레트 색의 단일 원천).
+// 다답형(answerParts)은 모든 칸이 채워져야 답함으로 본다 — 한 칸만 채운 부분 입력을
+// "답함"으로 세면 진행률이 부풀고, 채점 전 "미응답 N개" 경고에서도 빠져 반쪽 답인 채로
+// 제출된다(채점은 모든 칸 일치를 요구하므로 오답). 일반 문항은 종전대로 하나라도 있으면 답함.
+export function isAnswered(selected: string[], parts?: AnswerPart[]): boolean {
+  if (parts && parts.length) {
+    return parts.every((_, i) => (selected[i] ?? '').trim() !== '');
+  }
+  return selected.length > 0;
+}
+

@@ -1,7 +1,7 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../store/useQuizStore';
 import { useQuestions, Question } from './useQuestions';
-import { isQuestionCorrect } from '../utils/answer';
+import { isQuestionCorrect, isAnswered } from '../utils/answer';
 import { buildChapterStats } from '../utils/chapterStats';
 import { computeCstsWeightedScore } from '../utils/scoring';
 import { saveHistoryToDB } from '../utils/storage';
@@ -26,7 +26,7 @@ export function useQuizSession() {
 
   const total = currentQuestions.length;
   const answered = currentQuestions.filter(
-    (q) => (answers[answerKeyOf(q)] || []).length > 0
+    (q) => isAnswered(answers[answerKeyOf(q)] || [], q.answerParts)
   ).length;
   const correctCount = currentQuestions.filter(
     (q) => isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts)
