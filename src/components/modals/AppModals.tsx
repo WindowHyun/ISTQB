@@ -83,7 +83,7 @@ export const AppModals = () => {
     quitExamOpen, gradedResume,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
     setMode, beginSession, clearAnswers, setReviewIds, setSetId, setChapterFilter, setResumePrompt,
-    setQuitExamOpen, setGradedResume,
+    setQuitExamOpen, setGradedResume, setRandomDraw,
   } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, activeProduct: s.activeProduct, histories: s.histories,
     resultElapsedSeconds: s.resultOpen ? s.elapsedSeconds : 0,
@@ -98,6 +98,7 @@ export const AppModals = () => {
     clearAnswers: s.clearAnswers, setReviewIds: s.setReviewIds, setSetId: s.setSetId,
     setChapterFilter: s.setChapterFilter, setResumePrompt: s.setResumePrompt,
     setQuitExamOpen: s.setQuitExamOpen, setGradedResume: s.setGradedResume,
+    setRandomDraw: s.setRandomDraw,
   })));
   // examLocked — useQuizSession이 단일 원천(게이트·사이드바 잠금과 동일 규칙 집합).
   const { appData, total, answered, correctCount, cstsWeighted, gradeAndShow, examLocked } = useQuizSession();
@@ -306,7 +307,9 @@ export const AppModals = () => {
     } catch { /* 세트 로드 실패 시 현재 세트 유지 — 빈 필터 안내가 그레이스풀 처리 */ }
     if (target === 'random') {
       // 미니 시험은 새 추첨으로 시작 — 세트가 방금 바뀌었을 수 있어 현재 setId를 다시 읽는다.
+      // 저장된 추첨을 비워 useQuestions가 이번 챕터로 새로 뽑게 한다(이전 미니 추첨 복원 방지).
       clearAnswers(useQuizStore.getState().setId, 'random');
+      setRandomDraw(null);
     }
     setMode(target);
     setChapterFilter(chapter);

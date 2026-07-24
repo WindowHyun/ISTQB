@@ -53,6 +53,20 @@ describe("sanitizeUiState", () => {
     expect(sanitizeUiState(undefined)).toEqual({});
     expect(sanitizeUiState(42)).toEqual({});
   });
+  it("randomDraw는 setId·ids가 유효할 때만 통과한다(새로고침 이어풀기용)", () => {
+    expect(
+      sanitizeUiState({ randomDraw: { setId: "S", chapter: null, ids: ["S-1", 2, "S-3"] } }).randomDraw,
+    ).toEqual({ setId: "S", chapter: null, ids: ["S-1", "S-3"] });
+    // chapter 문자열은 보존(미니 시험 스코프).
+    expect(
+      sanitizeUiState({ randomDraw: { setId: "S", chapter: "테스트 기법", ids: ["S-1"] } }).randomDraw,
+    ).toEqual({ setId: "S", chapter: "테스트 기법", ids: ["S-1"] });
+  });
+  it("손상된 randomDraw(빈 ids·setId 없음·비객체)는 버린다", () => {
+    expect(sanitizeUiState({ randomDraw: { setId: "S", ids: [] } }).randomDraw).toBeUndefined();
+    expect(sanitizeUiState({ randomDraw: { ids: ["S-1"] } }).randomDraw).toBeUndefined();
+    expect(sanitizeUiState({ randomDraw: "nope" }).randomDraw).toBeUndefined();
+  });
 });
 
 describe("sanitizeHistory", () => {

@@ -24,7 +24,7 @@ export const Sidebar = () => {
     mode, setId, activeProduct, drawerOpen,
     setMode, setSetId, beginSession, clearAnswers,
     setStatsOpen, setSettingsOpen, setWrongNoteOpen, setResultOpen, setDrawerOpen,
-    setResumePrompt, setQuitExamOpen, redrawRandom,
+    setResumePrompt, setQuitExamOpen, redrawRandom, setRandomDraw,
   } = useQuizStore(useShallow((s) => ({
     mode: s.mode, setId: s.setId, activeProduct: s.activeProduct, drawerOpen: s.drawerOpen,
     setMode: s.setMode, setSetId: s.setSetId, beginSession: s.beginSession,
@@ -33,7 +33,7 @@ export const Sidebar = () => {
     setWrongNoteOpen: s.setWrongNoteOpen, setResultOpen: s.setResultOpen,
     setDrawerOpen: s.setDrawerOpen,
     setResumePrompt: s.setResumePrompt, setQuitExamOpen: s.setQuitExamOpen,
-    redrawRandom: s.redrawRandom,
+    redrawRandom: s.redrawRandom, setRandomDraw: s.setRandomDraw,
   })));
   const asideRef = React.useRef<HTMLElement>(null);
 
@@ -119,9 +119,11 @@ export const Sidebar = () => {
       closeDrawer();
       return;
     }
-    // 랜덤은 진입마다 재추첨되어 이어풀기가 무의미하므로 들어올 때마다 초기화한다(랜덤은 이어풀기 없음, F4).
+    // 랜덤 모드 진입은 새 추첨으로 시작한다(이어풀기 없음, F4) — 저장된 추첨을 비워
+    // useQuestions가 새로 뽑게 한다. (새로고침 복원은 이 경로를 타지 않아 진행이 유지된다.)
     if (newMode === 'random') {
       clearAnswers(setId, 'random');
+      setRandomDraw(null);
     } else if (newMode === 'exam' && useQuizStore.getState().graded[`${setId}-exam`]) {
       // 이미 채점한 시험으로 다시 들어오면 새로 풀 수 있게 초기화한다(#1).
       clearAnswers(setId, 'exam');
