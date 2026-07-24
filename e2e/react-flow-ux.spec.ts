@@ -111,18 +111,21 @@ test.describe("랜덤 UX(S1·S5)", () => {
     await expect(page.locator("#progressText")).toHaveText("0 / 40");
   });
 
-  test("랜덤 진행 중 새로고침 → 재추첨 정책을 토스트로 안내한다(S1)", async ({ page }) => {
+  test("랜덤 진행 중 새로고침 → 같은 추첨으로 진행이 유지된다(S1)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await page.locator('.segmented button[data-mode="random"]').click();
     await page.waitForSelector("#options .option");
+    const before = (await page.locator("#questionTitle").textContent()) || "";
     await page.locator("#options .option").first().click();
-    await page.waitForTimeout(900); // debounce 저장 대기
+    await expect(page.locator("#progressText")).toHaveText("1 / 40");
+    await page.waitForTimeout(900); // debounce 저장 대기(추첨·답안)
 
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
-    await expect(page.getByTestId("toast")).toContainText("새로 추첨");
-    // 진행은 정책대로 초기화되어 있다.
-    await expect(page.locator("#progressText")).toHaveText("0 / 40");
+    await page.waitForSelector("#options .option");
+    // 우발적 새로고침이라도 재추첨하지 않고 같은 문항·답안·위치로 이어푼다.
+    await expect(page.locator("#progressText")).toHaveText("1 / 40");
+    await expect(page.locator("#questionTitle")).toHaveText(before);
   });
 });
 

@@ -193,7 +193,7 @@ test.describe("전이 — S3 랜덤 / S4 오답", () => {
     await expect(page.getByTestId("score")).toContainText("점수", { timeout: 8_000 });
   });
 
-  test("T33/T35: 채점된 랜덤 재진입 → 재추첨·초기화 / 리로드 → 새로 시작", async ({ page }) => {
+  test("T33/T35: 채점된 랜덤 재진입 → 재추첨·초기화 / 진행 중 리로드 → 이어풀기(진행 유지)", async ({ page }) => {
     await openSet(page, "ISTQB", A);
     await modeBtn(page, "랜덤").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
@@ -204,14 +204,20 @@ test.describe("전이 — S3 랜덤 / S4 오답", () => {
     await modeBtn(page, "랜덤").click(); // 재진입 → 초기화(T33)
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
     await expect(page.locator("#progressText")).toContainText("0 /");
+    // 진행 중(미채점) 랜덤: 2문항 응답 후 리로드 → 같은 추첨으로 이어푼다(T35, 진행 유지).
     await page.locator("#options .option").first().click();
+    await page.locator("#nextBtn").click();
+    await page.locator("#options .option").first().click();
+    await expect(page.locator("#progressText")).toContainText("2 /");
+    const titleBefore = await page.locator("#questionTitle").textContent();
     await page.waitForTimeout(800);
-    await page.reload(); // 리로드 → 랜덤 유지·새로 시작(T35)
+    await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('.segmented button[data-mode="random"]')).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByTestId("resume-prompt-modal")).toHaveCount(0);
-    await expect(page.locator("#progressText")).toContainText("0 /");
+    await expect(page.locator("#progressText")).toContainText("2 /");
+    await expect(page.locator("#questionTitle")).toHaveText(titleBefore || "");
   });
 
   test("T6/T29/T36: 오답 없음 안내 → 채점 후 오답 재풀이 전이", async ({ page }) => {

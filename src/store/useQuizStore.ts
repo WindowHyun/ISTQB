@@ -66,6 +66,9 @@ export interface QuizState {
   gradedResume: { correct: number | null; total: number | null } | null;
   // 랜덤 '새 문제 뽑기' 트리거 — 증가하면 useQuestions가 현재 추첨을 버리고 재추첨한다.
   randomNonce: number;
+  // 랜덤 현재 추첨(뽑힌 문항 id 목록)을 영속화해 새로고침 시 같은 문항으로 이어풀게 한다.
+  // null이면 미추첨/재추첨 필요. 모드 진입·'새 문제 뽑기'는 이 값을 비워 새 추첨을 유도한다.
+  randomDraw: { setId: string; chapter: string | null; ids: string[] } | null;
 
   // Actions
   setActiveProduct: (product: 'istqb' | 'csts') => void;
@@ -102,6 +105,7 @@ export interface QuizState {
   setQuitExamOpen: (open: boolean) => void;
   setGradedResume: (info: QuizState['gradedResume']) => void;
   redrawRandom: () => void;
+  setRandomDraw: (draw: QuizState['randomDraw']) => void;
   resetToGate: () => void;
   hydrate: (state: Partial<QuizState>) => void;
 }
@@ -116,6 +120,8 @@ export const sessionScopeDefaults = () => ({
   examStarted: {} as Record<string, boolean>,
   reviewIds: {} as Record<string, string[]>,
   chapterFilter: null as string | null,
+  // 제품 전환 시 이전 제품의 랜덤 추첨이 새 제품으로 새지 않게 초기화(복원 시 해당 제품 값으로 덮음).
+  randomDraw: null as { setId: string; chapter: string | null; ids: string[] } | null,
 });
 
 export const useQuizStore = create<QuizState>((set) => ({
@@ -146,6 +152,7 @@ export const useQuizStore = create<QuizState>((set) => ({
   quitExamOpen: false,
   gradedResume: null,
   randomNonce: 0,
+  randomDraw: null,
 
   setActiveProduct: (activeProduct) => set({ activeProduct }),
   // 모드/세트가 바뀌면 챕터 필터는 의미를 잃으므로 함께 해제한다(필터는 현재 연습 세션 한정).
@@ -216,7 +223,9 @@ export const useQuizStore = create<QuizState>((set) => ({
   setResumePrompt: (resumePrompt) => set({ resumePrompt }),
   setQuitExamOpen: (quitExamOpen) => set({ quitExamOpen }),
   setGradedResume: (gradedResume) => set({ gradedResume }),
-  redrawRandom: () => set((state) => ({ randomNonce: state.randomNonce + 1 })),
+  // '새 문제 뽑기' — 세대(nonce)를 올리고 저장된 추첨을 비워 useQuestions가 새로 추첨하게 한다.
+  redrawRandom: () => set((state) => ({ randomNonce: state.randomNonce + 1, randomDraw: null })),
+  setRandomDraw: (randomDraw) => set({ randomDraw }),
   // 진입/캐시 복원 시 항상 최초 화면(제품 선택 게이트)으로 — 오버레이도 모두 닫는다.
   resetToGate: () => set({
     mode: 'home', activeProduct: null,

@@ -110,15 +110,32 @@ export function useQuestions() {
       if (mode === 'random') {
         // 챕터 필터가 있으면 미니 시험(해당 챕터 10문항 추첨) — 약점 재측정 세션.
         const chapter = chapterFilter ?? null;
+        const idOf = (q: Question) => q.id || `legacy-${q.number}`;
         if (randomDraw?.setId === setId && randomDraw.chapter === chapter && randomDraw.nonce === randomNonce) {
           setCurrentQuestions(randomDraw.questions);
           return;
+        }
+        // 새로고침 복원: 저장된 추첨(id 목록)이 현재 세트·챕터와 맞으면 같은 문항을 그대로 되살린다
+        // (답안은 문항 id로 저장되므로 진행이 그대로 유지된다). '새 문제 뽑기'·모드 진입은
+        // 저장된 추첨을 비우므로 이 경로를 타지 않고 아래에서 새로 추첨한다.
+        const saved = useQuizStore.getState().randomDraw;
+        if (saved && saved.setId === setId && saved.chapter === chapter && saved.ids.length > 0) {
+          const byId = new Map(questions.map((q) => [idOf(q), q]));
+          const restored = saved.ids.map((id) => byId.get(id)).filter((q): q is Question => !!q);
+          if (restored.length === saved.ids.length) {
+            randomDraw = { setId, chapter, nonce: randomNonce, questions: restored };
+            setCurrentQuestions(restored);
+            return;
+          }
+          // id가 다 풀리지 않으면(세트 변경 등) 아래에서 새로 추첨한다.
         }
         const pool = chapter ? questions.filter((q) => q.chapter === chapter) : questions;
         const shuffled = shuffleQuestions(pool);
         const take = Math.min(chapter ? MINI_TEST_SIZE : RANDOM_DRAW_SIZE, shuffled.length);
         const drawn = shuffled.slice(0, take);
         randomDraw = { setId, chapter, nonce: randomNonce, questions: drawn };
+        // 새로고침 복원용으로 추첨 결과(id 목록)를 영속화한다.
+        useQuizStore.getState().setRandomDraw({ setId, chapter, ids: drawn.map(idOf) });
         setCurrentQuestions(drawn);
       } else if (mode === 'review') {
         // 시험·랜덤 각각의 오답 합집합(+구버전 setId 단독 키 호환)을 복습 대상으로 한다.

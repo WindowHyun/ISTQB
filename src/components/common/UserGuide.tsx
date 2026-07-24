@@ -20,7 +20,7 @@ export const UserGuide = ({ onClose }: { onClose: () => void }) => (
         <ul>
           <li><strong>연습</strong> — 답을 고르면 <em>즉시</em> 정답·해설이 보입니다. 부담 없이 개념을 익히는 모드로, <strong>통계에는 기록되지 않습니다</strong>.</li>
           <li><strong>시험</strong> — "시험 시작"을 눌러야 응시가 시작되고 타이머가 0부터 갑니다. 응시 중에는 세트·모드 변경이 잠기며(🔒), <strong>채점하기</strong>를 눌러야 정답이 공개됩니다. 중단하려면 <strong>응시 포기</strong>(기록 없음)를 누르세요.</li>
-          <li><strong>랜덤</strong> — 세트에서 최대 40문항을 무작위로 뽑아 모의고사처럼 풉니다. <strong>🔀 새 문제 뽑기</strong>로 언제든 새 조합을 받을 수 있어요. 재접속하면 항상 새로 추첨됩니다.</li>
+          <li><strong>랜덤</strong> — 세트에서 최대 40문항을 무작위로 뽑아 모의고사처럼 풉니다. <strong>🔀 새 문제 뽑기</strong>로 언제든 새 조합을 받을 수 있어요. 실수로 <strong>새로고침해도 풀던 문항·답안이 그대로 유지</strong>됩니다(새 조합은 ‘새 문제 뽑기’로).</li>
           <li><strong>오답</strong> — 시험·랜덤에서 틀린 문항만 다시 풉니다(즉시 피드백).</li>
         </ul>
       </section>

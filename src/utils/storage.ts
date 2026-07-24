@@ -251,6 +251,18 @@ export function sanitizeUiState(value: unknown): Partial<QuizState> {
     }
     out.reviewIds = reviewIds;
   }
+  // 랜덤 추첨 스냅샷 — setId·ids가 유효할 때만 통과(손상 값 방어). chapter는 없으면 null(일반 랜덤).
+  if (isPlainObject(value.randomDraw)) {
+    const rd = value.randomDraw as UnknownRecord;
+    const ids = stringArray(rd.ids);
+    if (typeof rd.setId === 'string' && rd.setId && ids.length) {
+      out.randomDraw = {
+        setId: rd.setId,
+        chapter: typeof rd.chapter === 'string' && rd.chapter ? rd.chapter : null,
+        ids,
+      };
+    }
+  }
   return out;
 }
 
@@ -270,19 +282,21 @@ function invalidateSessionRestoreCache(product: 'istqb' | 'csts') {
   delete sessionGraded[product];
 }
 
-// 복원한 시험 답안이 최신 채점 회차(같은 세트·시험 모드)의 답안 스냅샷과 완전히
-// 일치하면 그 회차를 돌려준다(아니면 null). 키 집합과 각 키의 선택 배열까지 비교한다 —
-// 채점 이력의 answers는 채점 시점 스냅샷이므로 "동일 = 아직 새 응시를 시작하지 않음".
-export function findGradedExamMatch(
+// 복원한 답안이 최신 채점 회차(같은 세트·모드·챕터)의 답안 스냅샷과 완전히 일치하면 그
+// 회차를 돌려준다(아니면 null). 키 집합과 각 키의 선택 배열까지 비교한다 — 채점 이력의
+// answers는 채점 시점 스냅샷이므로 "동일 = 아직 새 응시를 시작하지 않음(이미 채점 끝난 회차)".
+export function findGradedRoundMatch(
   histories: Record<string, ExamHistory>,
   setId: string,
+  mode: QuizMode,
   answers: Record<string, string[]>,
+  chapter: string | null = null,
 ): ExamHistory | null {
   const latest = Object.values(histories)
-    .filter((h) => h.setId === setId && h.mode === 'exam' && !h.chapter)
+    .filter((h) => h.setId === setId && h.mode === mode && (h.chapter ?? null) === chapter)
     .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0) || b.id.localeCompare(a.id))[0];
   if (!latest || !latest.answers) return null;
-  const prefix = `${setId}-exam-`;
+  const prefix = `${setId}-${mode}-`;
   const restored = Object.entries(answers).filter(([k]) => k.startsWith(prefix));
   const recorded = Object.entries(latest.answers).filter(([k]) => k.startsWith(prefix));
   if (!restored.length || restored.length !== recorded.length) return null;
@@ -292,6 +306,15 @@ export function findGradedExamMatch(
     if (!rv || rv.length !== v.length || rv.some((x, i) => x !== v[i])) return null;
   }
   return latest;
+}
+
+// 시험 전용 래퍼(기존 호출부 유지) — 세트 전체 시험 회차(챕터 없음)만 대상.
+export function findGradedExamMatch(
+  histories: Record<string, ExamHistory>,
+  setId: string,
+  answers: Record<string, string[]>,
+): ExamHistory | null {
+  return findGradedRoundMatch(histories, setId, 'exam', answers, null);
 }
 
 export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts') {
@@ -367,18 +390,43 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
     const m = restoredUi.mode;
     const store = useQuizStore.getState();
     if (m === 'random') {
-      // 랜덤은 재접속 시 재추첨되어 이어풀기가 무의미하므로 이전 답안을 비우고
-      // 처음부터 새로 시작한다(랜덤은 이어풀기 없음). 선택 모달·배너도 띄우지 않는다.
-      const hadRandomProgress = Object.keys(sanitizedAnswers).some((k) =>
-        k.startsWith(`${sid}-random-`),
-      );
-      store.clearAnswers(sid, 'random');
-      store.setIndex(0);
-      store.setResumePrompt(false);
-      store.setResumeNotice(false);
-      // 무통보 초기화 방지 — 진행이 실제로 사라진 경우에만 정책을 1회 안내한다.
-      if (hadRandomProgress) {
-        showToast('랜덤은 접속할 때마다 새로 추첨돼요 — 이전 진행은 초기화되었습니다.', 'info');
+      // 저장된 추첨(뽑힌 문항 id)이 있으면 새로고침이라도 같은 문항으로 이어푼다 —
+      // 답안은 문항 id로 저장되므로 위치·답안이 그대로 유지된다(우발적 새로고침 진행 유실 방지).
+      const draw = restoredUi.randomDraw;
+      const canResume = !!draw && draw.setId === sid && draw.ids.length > 0;
+      if (canResume) {
+        // 이미 채점을 마친 랜덤 회차의 답안이면 이어풀기로 복원하지 않는다 — 같은 답안
+        // 재채점 시 회차가 중복 적립된다(graded는 비영속이라 새로고침 후 미채점처럼 보임).
+        // 기존 정책대로 답안·추첨을 비워 새로 시작한다.
+        const gradedRound = findGradedRoundMatch(histories, sid, 'random', sanitizedAnswers, draw!.chapter ?? null);
+        if (gradedRound) {
+          store.clearAnswers(sid, 'random');
+          store.setRandomDraw(null);
+          store.setIndex(0);
+          store.setResumePrompt(false);
+          store.setResumeNotice(false);
+        } else {
+          // 진행 중(미채점) — 같은 추첨으로 이어푼다. 미니 시험(챕터 스코프)이면 챕터 필터도
+          // 복원해 추첨 스코프를 맞춘다(chapterFilter는 비영속이라 여기서 draw 정보로 되살린다).
+          if (draw!.chapter) store.setChapterFilter(draw!.chapter);
+          store.setResumePrompt(false);
+          // 첫 문항이 아니면 이어풀기 위치 배너를 띄운다(#A).
+          store.setResumeNotice((restoredUi.index ?? 0) > 0);
+        }
+      } else {
+        // 저장된 추첨이 없으면(구버전/최초 진입) 기존 정책대로 새로 추첨한다.
+        const hadRandomProgress = Object.keys(sanitizedAnswers).some((k) =>
+          k.startsWith(`${sid}-random-`),
+        );
+        store.clearAnswers(sid, 'random');
+        store.setRandomDraw(null);
+        store.setIndex(0);
+        store.setResumePrompt(false);
+        store.setResumeNotice(false);
+        // 무통보 초기화 방지 — 진행이 실제로 사라진 경우에만 정책을 1회 안내한다.
+        if (hadRandomProgress) {
+          showToast('랜덤은 접속할 때마다 새로 추첨돼요 — 이전 진행은 초기화되었습니다.', 'info');
+        }
       }
     } else {
       // 시험 모드로 복원했고 이전 답안이 남아 있으면 "이어풀기/새로 풀기" 선택 모달을 띄운다.
@@ -421,7 +469,9 @@ export const saveUiState = debounce((state: Partial<QuizState>) => {
       index: state.index,
       elapsedSeconds: state.elapsedSeconds,
       reviewIds: state.reviewIds,
-      navCollapsed: state.navCollapsed
+      navCollapsed: state.navCollapsed,
+      // 랜덤 추첨(뽑힌 문항 id) — 새로고침 시 같은 문항으로 이어풀기 위해 영속화.
+      randomDraw: state.randomDraw,
     };
     localStorage.setItem(uiStorageKey(), JSON.stringify(safeState));
     
@@ -473,7 +523,8 @@ export async function exportUserData() {
       index: state.index,
       elapsedSeconds: state.elapsedSeconds,
       reviewIds: state.reviewIds,
-      navCollapsed: state.navCollapsed
+      navCollapsed: state.navCollapsed,
+      randomDraw: state.randomDraw,
     },
     answers: state.answers,
     histories: state.histories,
@@ -625,7 +676,8 @@ useQuizStore.subscribe((state, prevState) => {
     state.setId !== prevState.setId ||
     state.index !== prevState.index ||
     state.reviewIds !== prevState.reviewIds ||
-    state.navCollapsed !== prevState.navCollapsed
+    state.navCollapsed !== prevState.navCollapsed ||
+    state.randomDraw !== prevState.randomDraw
   ) {
     saveUiState(state);
   }
