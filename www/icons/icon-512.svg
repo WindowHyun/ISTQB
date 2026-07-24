@@ -1,8 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="ISTQB FL">
-  <rect width="512" height="512" rx="112" fill="#166064"/>
-  <rect x="74" y="96" width="364" height="320" rx="48" fill="#f5f7f2"/>
-  <path d="M144 198h224M144 262h224M144 326h128" stroke="#166064" stroke-width="28" stroke-linecap="round"/>
-  <circle cx="362" cy="326" r="44" fill="#168044"/>
-  <path d="M340 324l18 20 38-48" fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="256" y="474" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="60" font-weight="700" fill="#f5f7f2">ISTQB</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="ISTQB/CSTS"><defs>
+  <linearGradient id="bgGlow" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0052CC"/><stop offset="100%" stop-color="#0747A6"/></linearGradient>
+  <linearGradient id="checkGlow" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#36B37E"/><stop offset="100%" stop-color="#008DA6"/></linearGradient>
+</defs><rect x="32" y="32" width="448" height="448" rx="110" fill="url(#bgGlow)"/>
+  <path d="M 140 180 C 140 140, 160 140, 180 140" fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
+  <path d="M 372 180 C 372 140, 352 140, 332 140" fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" opacity="0.3"/>
+  <path d="M 150 260 L 230 340 L 370 180" fill="none" stroke="url(#checkGlow)" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="370" cy="180" r="28" fill="#FFFFFF"/>
+  <circle cx="150" cy="260" r="16" fill="#FFFFFF" opacity="0.8"/>
+  <circle cx="230" cy="340" r="16" fill="#FFFFFF" opacity="0.8"/></svg>
