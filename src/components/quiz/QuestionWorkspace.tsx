@@ -1,8 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { flushPersist } from '../../utils/storage';
+import { showToast } from '../../utils/toast';
+import { examLimitSeconds, examLimitLabel, remainingSeconds, EXAM_WARN_THRESHOLDS_SEC } from '../../utils/examTime';
+import { formatClock } from '../../utils/time';
 import { QuestionCard } from './QuestionCard';
 import { QuestionPalette } from './QuestionPalette';
 import { ErrorState } from '../common/ErrorState';
@@ -13,7 +16,7 @@ export const QuestionWorkspace = () => {
     index, setId, mode, setIndex, tickTimer, startTimer, beginSession,
     navCollapsed, setNavCollapsed, setPaletteOpen, setResultOpen,
     resumeNotice, setResumeNotice, chapterFilter, setChapterFilter,
-    setExamStarted, setDrawerOpen,
+    setExamStarted, setDrawerOpen, activeProduct,
   } = useQuizStore(useShallow((s) => ({
     index: s.index, setId: s.setId, mode: s.mode, setIndex: s.setIndex,
     tickTimer: s.tickTimer, startTimer: s.startTimer, beginSession: s.beginSession,
@@ -22,13 +25,20 @@ export const QuestionWorkspace = () => {
     resumeNotice: s.resumeNotice, setResumeNotice: s.setResumeNotice,
     chapterFilter: s.chapterFilter, setChapterFilter: s.setChapterFilter,
     setExamStarted: s.setExamStarted,
-    setDrawerOpen: s.setDrawerOpen,
+    setDrawerOpen: s.setDrawerOpen, activeProduct: s.activeProduct,
   })));
   const {
-    appData, currentQuestions, answered, isGraded, canGrade, requestGrade,
+    appData, currentQuestions, answered, isGraded, canGrade, requestGrade, gradeAndShow,
     showExamGate, // 시험 단계 파생은 useQuizSession이 단일 원천(잠금과 동일 규칙 집합)
     loadError, retryLoad,
   } = useQuizSession();
+  // 시험 제한시간(자격증별). null이면 제한 없음 — 종전처럼 경과 시간만 센다.
+  const examLimit = mode === 'exam' ? examLimitSeconds(activeProduct) : null;
+  // 경고는 임계값을 '내려가는 순간'에만 1회 울린다 — 매초 재발화나, 재응시로 시간이
+  // 초기화됐을 때 다시 울리지 않는 문제를 함께 막는다.
+  const prevRemainingRef = useRef<number | null>(null);
+  // 자동 제출 중복 방지(채점 액션 자체도 멱등이지만 토스트까지 겹치지 않게).
+  const autoSubmittedRef = useRef(false);
 
   useEffect(() => {
     // 채점 후에는 타이머를 정지한다 — 결과가 나온 뒤에도 시간이 계속 오르면
@@ -37,7 +47,36 @@ export const QuestionWorkspace = () => {
     // 시험 시작 게이트를 보는 동안에도 아직 응시 전이므로 타이머를 돌리지 않는다.
     if (isGraded || showExamGate) return;
     startTimer();
+    autoSubmittedRef.current = false;
+    prevRemainingRef.current = null;
     let interval: ReturnType<typeof setInterval> | undefined;
+
+    // 시험 제한시간 처리 — 매 틱마다 남은 시간을 확인해 경고하고, 0이 되면 자동 제출한다.
+    // 경과 시간은 tickTimer가 갱신한 직후의 스토어 값을 읽는다(구독하면 매초 리렌더된다).
+    const checkExamDeadline = () => {
+      if (examLimit == null || autoSubmittedRef.current) return;
+      const remaining = remainingSeconds(examLimit, useQuizStore.getState().elapsedSeconds);
+      const prev = prevRemainingRef.current;
+      prevRemainingRef.current = remaining;
+      if (remaining <= 0) {
+        autoSubmittedRef.current = true;
+        showToast('제한시간이 종료되어 자동으로 제출했습니다.', 'info', 5000);
+        gradeAndShow(); // 미응답은 오답 처리(수동 채점과 동일 규칙)
+        return;
+      }
+      if (prev == null) return; // 첫 틱은 기준선만 잡는다(재응시 직후 오발화 방지)
+      for (const t of EXAM_WARN_THRESHOLDS_SEC) {
+        if (prev > t && remaining <= t) {
+          showToast(`시험 종료까지 ${formatClock(t)} 남았습니다.`, 'info', 4000);
+          break;
+        }
+      }
+    };
+
+    const tick = () => {
+      tickTimer();
+      checkExamDeadline();
+    };
     const handleVisibilityChange = () => {
       if (document.hidden) {
         tickTimer();
@@ -45,17 +84,20 @@ export const QuestionWorkspace = () => {
         clearInterval(interval);
       } else {
         startTimer();
-        interval = setInterval(tickTimer, 1000);
+        interval = setInterval(tick, 1000);
       }
     };
-    interval = setInterval(tickTimer, 1000);
+    interval = setInterval(tick, 1000);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       clearInterval(interval);
       flushPersist();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [mode, isGraded, showExamGate, startTimer, tickTimer]);
+    // gradeAndShow는 렌더마다 새로 생성되지만 의존성에 넣으면 매 렌더 타이머가 재시작된다 —
+    // 항상 최신 스토어 상태를 읽어 동작하므로 effect 재실행 없이 안전하다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, isGraded, showExamGate, startTimer, tickTimer, examLimit]);
 
   // index가 현재 목록 범위를 벗어나면 보정(세트/모드 전환 잔여 index 방어, #70)
   useEffect(() => {
@@ -150,9 +192,15 @@ export const QuestionWorkspace = () => {
       <section className="workspace" aria-label="문제 풀이 영역">
         <article className="question-card exam-gate" data-testid="exam-start-gate">
           <h2 className="exam-gate-title">시험 모드</h2>
-          <p className="exam-gate-set">{setTitle} · 총 {total}문항</p>
+          <p className="exam-gate-set">
+            {setTitle} · 총 {total}문항
+            {examLimitLabel(activeProduct) ? ` · 제한시간 ${examLimitLabel(activeProduct)}` : ''}
+          </p>
           <p className="exam-gate-desc">
             시험을 시작하면 응시가 끝나(채점)기 전까지 <strong>문제 세트와 풀이 모드를 변경할 수 없습니다.</strong>
+            {examLimitLabel(activeProduct)
+              ? ' 제한시간이 지나면 자동으로 제출됩니다. '
+              : ' '}
             준비되면 시작하세요.
           </p>
           <button type="button" className="primary exam-gate-start" data-testid="exam-start-btn" onClick={startExam}>

@@ -300,7 +300,8 @@ export const Sidebar = () => {
             <strong id="progressText" aria-live="polite">{answered} / {total}</strong>
           </div>
           <div>
-            <span>시간</span>
+            {/* 시험 모드는 카운트다운이므로 라벨도 '남은 시간'으로 바꿔 오해를 막는다. */}
+            <span>{mode === 'exam' ? '남은 시간' : '시간'}</span>
             <strong id="timerText"><TimerClock /></strong>
           </div>
           <div className="progress-track" aria-hidden="true">
