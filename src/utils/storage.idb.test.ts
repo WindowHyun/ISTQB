@@ -67,9 +67,32 @@ describe('storage IndexedDB', () => {
     expect(loaded['rm-2']).toBeTruthy();
   });
 
-  it('removeHistoriesEverywhere: 빈 id 목록은 no-op으로 안전하다', async () => {
+  it('removeHistoriesEverywhere: 빈 id 목록은 no-op으로 안전하다(성공으로 보고)', async () => {
     const s = await freshStorage();
-    await expect(s.removeHistoriesEverywhere([])).resolves.toBeUndefined();
+    await expect(s.removeHistoriesEverywhere([])).resolves.toBe(true);
+  });
+
+  it('DB 삭제가 실패하면 메모리 이력을 지우지 않고 실패를 보고한다(되살아남 방지)', async () => {
+    const s = await freshStorage();
+    const { useQuizStore } = await import('../store/useQuizStore');
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await s.saveHistoryToDB(hist('keep-1'));
+    useQuizStore.setState({ histories: { 'keep-1': hist('keep-1') } });
+    // 삭제 트랜잭션 자체가 실패하도록 1회 오버라이드
+    // (항목 단위 delete 예외는 의도적으로 격리되므로 트랜잭션 개시를 실패시킨다).
+    const delSpy = vi.spyOn(IDBDatabase.prototype, 'transaction').mockImplementationOnce(() => {
+      throw new DOMException('fail', 'InvalidStateError');
+    });
+
+    const ok = await s.removeHistoriesEverywhere(['keep-1']);
+
+    expect(ok).toBe(false);
+    // 메모리에 그대로 남아야 한다 — 지워버리면 새로고침 때 되살아나 불일치가 된다.
+    expect(useQuizStore.getState().histories['keep-1']).toBeDefined();
+    const loaded = await s.loadHistoriesFromDB();
+    expect(loaded['keep-1']).toBeTruthy();
+    delSpy.mockRestore();
+    errSpy.mockRestore();
   });
 
   it('저장 트랜잭션이 실패해도 예외를 던지지 않고 통지 경로로 흡수한다(P2-1: 무통지 유실 방지)', async () => {

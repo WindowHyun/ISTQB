@@ -106,8 +106,9 @@ export async function loadHistoriesFromDB(): Promise<Record<string, ExamHistory>
   }
 }
 
-async function deleteHistoriesFromDB(ids: string[]) {
-  if (!ids.length) return;
+// 삭제 성공 여부를 돌려준다 — 호출부가 "DB가 실제로 지워진 뒤에만" 메모리를 지우게 한다.
+async function deleteHistoriesFromDB(ids: string[]): Promise<boolean> {
+  if (!ids.length) return true;
   try {
     const db = await getDb();
     await new Promise<void>((res, rej) => {
@@ -120,19 +121,25 @@ async function deleteHistoriesFromDB(ids: string[]) {
       tx.onerror = () => rej(tx.error);
       tx.onabort = () => rej(tx.error);
     });
+    return true;
   } catch (err) {
     // 실패를 삼키면 UI(메모리)는 지워졌는데 새로고침 후 이력이 되살아나는 무통지 불일치가 된다.
     console.error("IndexedDB delete failed", err);
     showToast("이력 삭제에 실패했습니다.", "error");
+    return false;
   }
 }
 
 // 이력 삭제 단일 진입점 — 메모리(store)와 IndexedDB를 반드시 함께 지운다.
 // 한쪽만 지우는 호출부 실수는 "새로고침하면 삭제한 이력이 되살아나는" 버그 클래스를
 // 재발시키므로, 호출부는 이 함수만 사용한다.
-export function removeHistoriesEverywhere(ids: string[]): Promise<void> {
-  useQuizStore.getState().removeHistories(ids);
-  return deleteHistoriesFromDB(ids);
+// 순서: 영속(DB)을 먼저 지우고 성공했을 때만 메모리를 지운다 — 반대로 하면 DB 실패 시
+// 화면에서는 사라졌는데 새로고침하면 되살아나는 상태가 남는다.
+// 반환값으로 성공 여부를 알려 호출부가 완료 안내를 조건부로 띄우게 한다.
+export async function removeHistoriesEverywhere(ids: string[]): Promise<boolean> {
+  const ok = await deleteHistoriesFromDB(ids);
+  if (ok) useQuizStore.getState().removeHistories(ids);
+  return ok;
 }
 
 type UnknownRecord = Record<string, unknown>;
@@ -250,6 +257,10 @@ export function sanitizeUiState(value: unknown): Partial<QuizState> {
       if (Array.isArray(ids)) reviewIds[key] = stringArray(ids);
     }
     out.reviewIds = reviewIds;
+  }
+  // 챕터 필터 — 비어 있지 않은 문자열만 통과(없으면 전체).
+  if (typeof value.chapterFilter === 'string' && value.chapterFilter) {
+    out.chapterFilter = value.chapterFilter;
   }
   // 랜덤 추첨 스냅샷 — setId·ids가 유효할 때만 통과(손상 값 방어). chapter는 없으면 null(일반 랜덤).
   if (isPlainObject(value.randomDraw)) {
@@ -472,6 +483,9 @@ export const saveUiState = debounce((state: Partial<QuizState>) => {
       navCollapsed: state.navCollapsed,
       // 랜덤 추첨(뽑힌 문항 id) — 새로고침 시 같은 문항으로 이어풀기 위해 영속화.
       randomDraw: state.randomDraw,
+      // 챕터 집중 연습/미니 시험의 필터 — 영속화하지 않으면 새로고침 시 전체 세트로
+      // 돌아가 랜덤(이어풀기)과 동작이 어긋난다. 배너의 '전체 보기'로 언제든 해제 가능.
+      chapterFilter: state.chapterFilter,
     };
     localStorage.setItem(uiStorageKey(), JSON.stringify(safeState));
     
@@ -525,6 +539,7 @@ export async function exportUserData() {
       reviewIds: state.reviewIds,
       navCollapsed: state.navCollapsed,
       randomDraw: state.randomDraw,
+      chapterFilter: state.chapterFilter,
     },
     answers: state.answers,
     histories: state.histories,
@@ -677,7 +692,8 @@ useQuizStore.subscribe((state, prevState) => {
     state.index !== prevState.index ||
     state.reviewIds !== prevState.reviewIds ||
     state.navCollapsed !== prevState.navCollapsed ||
-    state.randomDraw !== prevState.randomDraw
+    state.randomDraw !== prevState.randomDraw ||
+    state.chapterFilter !== prevState.chapterFilter
   ) {
     saveUiState(state);
   }
