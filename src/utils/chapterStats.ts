@@ -46,6 +46,14 @@ export function weightedRatePercent(histories: ExamHistory[]): number | null {
   let c = 0;
   let t = 0;
   for (const h of histories) {
+    // CSTS 가중 점수가 있으면 획득/만점 '점수'로 누적한다 — 회차 %(attemptRatePercent)·
+    // 합격 판정과 같은 기준이라야 평균만 다른 잣대로 표시되지 않는다.
+    // (ISTQB의 correct/total도 문항당 1점짜리 점수이므로 같은 단위로 합산된다)
+    if (h.cstsWeighted && h.cstsWeighted.maxScore > 0) {
+      c += h.cstsWeighted.score;
+      t += h.cstsWeighted.maxScore;
+      continue;
+    }
     if (typeof h.correct === 'number' && typeof h.total === 'number' && h.total > 0) {
       c += h.correct;
       t += h.total;

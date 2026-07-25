@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSetTimelines, latestAttemptComparison, formatDeltaPp, overcomeNumbers } from './attemptStats';
+import { buildSetTimelines, latestAttemptComparison, formatDeltaPp, overcomeNumbers, attemptRatePercent } from './attemptStats';
 import type { ExamHistory } from '../store/useQuizStore';
 
 // 회차 이력 헬퍼 — createdAt으로 시간순을 통제한다.
@@ -185,5 +185,27 @@ describe('overcomeNumbers(오답 극복 판정)', () => {
     ];
     // 근거 가능한 시험은 e1·e3 — e1에서 틀렸으므로 극복 아님
     expect(overcomeNumbers(hist, 'A', [1]).size).toBe(0);
+  });
+});
+
+// CSTS 가중 점수(cstsWeighted) 기준 통일 — 결과 모달·타임라인·통계 목록이 같은 %를 쓴다.
+describe('attemptRatePercent (회차 % 단일 원천)', () => {
+  it('가중 점수가 있으면 점수 기준 %를 쓴다(단순 정답률과 다를 수 있음)', () => {
+    // 70문항 중 50정답 = 단순 71%, 가중 75/100 = 75%
+    const rate = attemptRatePercent(
+      h({ id: 'c1', setId: 'C', correct: 50, total: 70, createdAt: 1, cstsWeighted: { score: 75, maxScore: 100 } }),
+    );
+    expect(rate).toBe(75);
+  });
+  it('가중 점수가 없으면(ISTQB·과거 이력) 단순 정답률로 근사한다', () => {
+    expect(attemptRatePercent(h({ id: 'i1', setId: 'A', correct: 26, total: 40, createdAt: 1 }))).toBe(65);
+  });
+  it('타임라인 회차 %도 같은 기준을 사용한다', () => {
+    const tl = buildSetTimelines(
+      [h({ id: 'c1', setId: 'C', correct: 50, total: 70, createdAt: 1, cstsWeighted: { score: 75, maxScore: 100 } })],
+      (id) => id,
+    );
+    expect(tl[0].attempts[0].rate).toBe(75); // 단순 정답률(71)이 아니라 가중 75
+    expect(tl[0].latest).toBe(75);
   });
 });

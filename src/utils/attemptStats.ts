@@ -45,10 +45,11 @@ function isScored(h: ExamHistory): h is ExamHistory & { correct: number; total: 
   return typeof h.total === 'number' && h.total > 0 && typeof h.correct === 'number';
 }
 
-// 이력 한 건의 표시용 정답률(%). CSTS는 채점 시점 가중 점수(cstsWeighted)가 있으면
-// 그 값을 우선한다 — 결과 모달의 "직전 회차 대비"가 합격 판정과 같은 기준(가중 점수)으로
-// 비교되게 한다. 과거(수정 전) 이력처럼 가중 점수가 없으면 단순 정답률로 근사한다.
-function scoredRate(h: ExamHistory): number {
+// 이력 한 건의 표시용 정답률(%) — 회차 %를 보여주는 모든 화면의 단일 원천.
+// CSTS는 채점 시점 가중 점수(cstsWeighted)가 있으면 그 값을 쓴다: 합격 판정이 가중 점수
+// 기준이므로, 결과 모달만 가중이고 통계(타임라인·목록·평균·추이)는 단순 정답률이면 같은
+// 회차가 화면마다 다른 %로 보인다. 과거(가중 점수 없는) 이력은 단순 정답률로 근사한다.
+export function attemptRatePercent(h: ExamHistory): number {
   if (h.cstsWeighted && h.cstsWeighted.maxScore > 0) {
     return Math.floor((h.cstsWeighted.score / h.cstsWeighted.maxScore) * 100 + 1e-9);
   }
@@ -80,7 +81,7 @@ export function buildSetTimelines(
     const prevRateByMode: Record<string, number> = Object.create(null);
     const firstRateByMode: Record<string, number> = Object.create(null);
     const attempts: AttemptEntry[] = hs.map((h, i) => {
-      const rate = displayRatePercent(h.correct, h.total);
+      const rate = attemptRatePercent(h);
       const prev = prevRateByMode[h.mode];
       const entry: AttemptEntry = {
         id: h.id,
@@ -143,7 +144,7 @@ export function latestAttemptComparison(
   const prev = same.length >= 2 ? same[same.length - 2] : null;
   return {
     round: same.length,
-    previousRate: prev ? scoredRate(prev) : null,
+    previousRate: prev ? attemptRatePercent(prev) : null,
   };
 }
 
