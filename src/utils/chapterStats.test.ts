@@ -48,4 +48,10 @@ describe('weightedRatePercent', () => {
   it('집계 가능한 회차가 없으면 null', () => {
     expect(weightedRatePercent([{ id: 'x', setId: 'S', mode: 'exam', answers: {} } as ExamHistory])).toBeNull();
   });
+  it('CSTS 가중 점수가 있으면 획득/만점 점수로 누적한다(회차 %와 같은 기준)', () => {
+    const w = (score: number, maxScore: number, correct: number, total: number): ExamHistory =>
+      ({ id: 'x', setId: 'S', mode: 'exam', answers: {}, correct, total, cstsWeighted: { score, maxScore } });
+    // 단순 정답률로 합하면 (50+60)/140 = 78%, 가중 점수로는 (75+90)/200 = 82%
+    expect(weightedRatePercent([w(75, 100, 50, 70), w(90, 100, 60, 70)])).toBe(82);
+  });
 });

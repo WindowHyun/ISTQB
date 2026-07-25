@@ -123,6 +123,17 @@ describe("useQuizStore 세션/네비/타이머 액션", () => {
     ] as const) expect(st[k]).toBe(false);
   });
 
+  it("setMode는 모드가 바뀔 때만 챕터 필터를 해제한다(같은 모드 재확정은 보존)", () => {
+    // 복원 직후 App이 저장된 모드를 그대로 재확정하는 경로에서 필터가 지워지면
+    // 미니 시험(랜덤+챕터) 복원이 무효화된다.
+    useQuizStore.setState({ mode: "random", chapterFilter: "테스트 기법" });
+    useQuizStore.getState().setMode("random"); // 같은 모드 재확정
+    expect(useQuizStore.getState().chapterFilter).toBe("테스트 기법");
+
+    useQuizStore.getState().setMode("practice"); // 실제 모드 전환
+    expect(useQuizStore.getState().chapterFilter).toBeNull();
+  });
+
   it("hydrate는 부분 상태를 병합하고 나머지는 보존한다", () => {
     useQuizStore.setState({ setId: "S", index: 3 });
     useQuizStore.getState().hydrate({ index: 9, elapsedSeconds: 100 });

@@ -1645,3 +1645,7 @@ body[data-theme="dark"] .mtb-chip { background: #1e40af; }
 @media (max-width: 880px) {
   .update-prompt { bottom: calc(80px + var(--safe-bottom)); }
 }
+
+/* 시험 제한시간 임박 표시 — 남은 시간 5분 이하 경고, 1분 이하 위험 */
+.timer-warn { color: #b26a00; }
+.timer-danger { color: #c0392b; font-weight: 800; }

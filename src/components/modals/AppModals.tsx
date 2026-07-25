@@ -17,6 +17,7 @@ import { QuestionPalette } from '../quiz/QuestionPalette';
 import { Question } from '../../hooks/useQuestions';
 import { loadSetQuestions, peekSetQuestions } from '../../utils/questionLoader';
 import { RichText } from '../../utils/parser';
+import { MODE_LABEL } from '../../utils/modeLabel';
 
 // 오답노트 3단계(문항 보기)용 세트 문항 로더 — 본문(useQuestions)과 같은 공용
 // 로더(questionLoader)를 사용해 같은 세트를 다시 내려받지 않는다.
@@ -51,13 +52,6 @@ const THEMES: { value: ThemePref; label: string }[] = [
 ];
 
 type FontSize = 'small' | 'normal' | 'large';
-
-const MODE_LABEL: Record<string, string> = {
-  practice: '연습',
-  exam: '시험',
-  random: '랜덤',
-  review: '오답',
-};
 
 // 오답노트 합산 뷰 전용 타입 — 여러 회차의 오답 합집합이라 특정 회차(ExamHistory)가
 // 아니다. 렌더에 필요한 필드만 담아 도메인 객체를 가짜 id로 위조하지 않는다.
@@ -258,7 +252,7 @@ export const AppModals = () => {
     gradeAndShow();
   };
 
-  const handleClearHistories = () => {
+  const handleClearHistories = async () => {
     // 현재 제품 이력만 지운다 — 전체 clear면 다른 제품(ISTQB↔CSTS) 기록까지 사라진다.
     // 어느 제품 세트에도 속하지 않는 고아 이력(세트 제거/구버전 백업 유래)은 화면에
     // 보이지 않아 다른 삭제 경로가 없으므로 이때 함께 지워 영구 잔존을 막는다.
@@ -268,10 +262,11 @@ export const AppModals = () => {
           .filter((h) => !h.certification && !allKnownSetIds.has(h.setId))
           .map((h) => h.id)
       : [];
-    removeHistoriesEverywhere([...Object.keys(productHistories), ...orphanIds]);
     // 파괴적 액션의 완료 피드백 — 없으면 "정말 삭제"를 눌러도 됐는지 알 수 없다.
-    // (DB 쓰기 실패는 removeHistoriesEverywhere가 별도 오류 토스트로 알린다)
-    showToast('현재 자격증의 응시 이력을 모두 삭제했습니다.', 'success');
+    // 삭제가 실제로 커밋된 뒤에만 완료를 알린다(실패 시엔 removeHistoriesEverywhere가
+    // 오류 토스트를 띄우고 화면의 이력도 그대로 남는다).
+    const ok = await removeHistoriesEverywhere([...Object.keys(productHistories), ...orphanIds]);
+    if (ok) showToast('현재 자격증의 응시 이력을 모두 삭제했습니다.', 'success');
   };
 
   // 약점 챕터 집중 세션(Phase 3): 통계에서 챕터를 고르면 그 챕터로 필터해 진입한다.
@@ -318,7 +313,7 @@ export const AppModals = () => {
   const handlePracticeChapter = (chapter: string) => startChapterSession(chapter, 'practice');
   const handleMiniTestChapter = (chapter: string) => startChapterSession(chapter, 'random');
 
-  const handleResetMode = () => {
+  const handleResetMode = async () => {
     clearAnswers(setId, mode);
     // 이 세트/모드의 오답(review) 대상도 비운다 — 남기면 삭제된 회차의 오답이
     // 오답 모드에 유령처럼 남는다(오답 노트에는 없는데 오답 풀이엔 나오는 불일치).
@@ -326,9 +321,10 @@ export const AppModals = () => {
     const ids = Object.values(histories)
       .filter((h) => h.setId === setId && h.mode === mode)
       .map((h) => h.id);
-    removeHistoriesEverywhere(ids);
+    // 이력 삭제가 커밋된 뒤에만 완료를 알린다(답안 초기화는 메모리라 즉시 반영).
+    const ok = await removeHistoriesEverywhere(ids);
     // 파괴적 액션의 완료 피드백 — 없으면 "정말 삭제"를 눌러도 됐는지 알 수 없다.
-    showToast(`${MODE_LABEL[mode] ?? mode} 모드의 답안과 이력을 초기화했습니다.`, 'success');
+    if (ok) showToast(`${MODE_LABEL[mode] ?? mode} 모드의 답안과 이력을 초기화했습니다.`, 'success');
   };
 
   return (

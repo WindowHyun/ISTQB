@@ -5,19 +5,13 @@ import { SetSummary } from '../../hooks/useQuestions';
 import { formatClock } from '../../utils/time';
 import { displayRatePercent } from '../../utils/scoring';
 import { aggregateChapterStats, weightedRatePercent } from '../../utils/chapterStats';
-import { buildSetTimelines, formatDeltaPp } from '../../utils/attemptStats';
+import { buildSetTimelines, formatDeltaPp, attemptRatePercent } from '../../utils/attemptStats';
 import { ConfirmButtons } from '../common/ConfirmButtons';
+import { MODE_LABEL } from '../../utils/modeLabel';
 
 // 챕터 정답률이 합격 컷 미만이면 '약점'으로 강조한다 — 자격증별 컷과 동일 기준
 // (ISTQB 65% / CSTS 75%). 고정 65는 CSTS에서 66~74% 약점을 놓친다.
 const WEAK_THRESHOLD_BY_CERT: Record<string, number> = { istqb: 65, csts: 75 };
-
-const MODE_LABEL: Record<string, string> = {
-  exam: '시험',
-  random: '랜덤',
-  practice: '연습',
-  review: '오답',
-};
 
 interface StatsDashboardProps {
   histories: Record<string, ExamHistory>;
@@ -44,8 +38,9 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
         title: titleOf(h.setId),
         // Number(h.id)는 NaN일 수 있어 ??로 걸러지지 않는다 — ||로 0 폴백.
         when: h.createdAt ?? (Number(h.id) || 0),
-        // 결과 모달(evaluatePass)과 같은 내림 기준 — 화면마다 퍼센트가 어긋나지 않게.
-        rate: h.total ? displayRatePercent(h.correct ?? 0, h.total) : null,
+        // 회차 %의 단일 원천(attemptRatePercent) — CSTS는 가중 점수 기준이라
+        // 결과 모달·타임라인과 같은 값이 표시된다.
+        rate: h.total ? attemptRatePercent(h) : null,
       }))
       .sort((a, b) => b.when - a.when);
   }, [histories, sets]);
@@ -228,7 +223,13 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
                   </div>
                   <div className="stats-row-meta">
                     {r.rate !== null ? (
-                      <span className="stats-score">{r.correct} / {r.total} · {r.rate}%</span>
+                      // CSTS(가중 점수 보유) 회차는 점수/만점으로 표기한다 — %가 가중 기준인데
+                      // 옆에 "정답 수 / 문항 수"를 두면 두 값의 기준이 달라 어긋나 보인다.
+                      <span className="stats-score">
+                        {r.cstsWeighted && r.cstsWeighted.maxScore > 0
+                          ? `${Math.floor(r.cstsWeighted.score * 10 + 1e-9) / 10} / ${Math.floor(r.cstsWeighted.maxScore * 10 + 1e-9) / 10}점 · ${r.rate}%`
+                          : `${r.correct} / ${r.total} · ${r.rate}%`}
+                      </span>
                     ) : (
                       <span className="stats-score">기록 없음</span>
                     )}

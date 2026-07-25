@@ -156,7 +156,10 @@ export const useQuizStore = create<QuizState>((set) => ({
 
   setActiveProduct: (activeProduct) => set({ activeProduct }),
   // 모드/세트가 바뀌면 챕터 필터는 의미를 잃으므로 함께 해제한다(필터는 현재 연습 세션 한정).
-  setMode: (mode) => set({ mode, chapterFilter: null }),
+  // 단 "같은 모드로 재확정"하는 경로에서는 해제하지 않는다 — 복원 직후 App이 저장된 모드를
+  // 그대로 setMode로 재확정하는데, 여기서 필터가 지워지면 미니 시험(랜덤+챕터) 복원이
+  // 무효화돼 저장된 추첨과 스코프가 어긋나고 일반 랜덤으로 무통보 재추첨된다.
+  setMode: (mode) => set((state) => (state.mode === mode ? { mode } : { mode, chapterFilter: null })),
   setSetId: (setId) => set({ setId, chapterFilter: null }),
   setIndex: (indexOrFn) => set((state) => ({
     index: typeof indexOrFn === 'function' ? indexOrFn(state.index) : indexOrFn
