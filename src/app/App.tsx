@@ -8,19 +8,16 @@ import { UserGuide } from '../components/common/UserGuide';
 import { FEEDBACK_SHEET_URL } from '../utils/links';
 import { MobileTopBar } from '../components/layout/MobileTopBar';
 import { AppModals } from '../components/modals/AppModals';
+import { MODE_LABEL } from '../utils/modeLabel';
 
 const Sidebar = React.lazy(() => import('../components/layout/Sidebar').then(module => ({ default: module.Sidebar })));
 const QuestionWorkspace = React.lazy(() => import('../components/quiz/QuestionWorkspace').then(module => ({ default: module.QuestionWorkspace })));
-
-const MODE_ANNOUNCE_LABEL: Record<string, string> = {
-  practice: '연습', exam: '시험', random: '랜덤', review: '오답',
-};
 
 // 모드 전환 라이브 알림(B4) — 모드 버튼의 aria-pressed로는 전달되지 않는 프로그램적
 // 전환(챕터 집중 연습 진입 등)도 스크린리더가 인지하게 한다. 시각적으로는 숨김.
 const ModeAnnouncer = () => {
   const mode = useQuizStore((s) => s.mode);
-  const label = MODE_ANNOUNCE_LABEL[mode];
+  const label = MODE_LABEL[mode];
   return <span className="sr-only" role="status">{label ? `${label} 모드` : ''}</span>;
 };
 

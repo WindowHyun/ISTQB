@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../store/useQuizStore';
 import { useQuestions, Question } from './useQuestions';
@@ -22,18 +23,35 @@ export function useQuizSession() {
   const { appData, currentQuestions, loadError, retryLoad } = useQuestions();
 
   // 각 모드는 자체 답안 네임스페이스를 사용한다(오답 모드는 재풀이용 별도 기록).
-  const answerKeyOf = (q: Question) => `${setId}-${mode}-${q.id || q.number}`;
+  // useCallback: 아래 파생 메모들의 의존성이라 매 렌더 참조가 바뀌면 메모가 무효화된다.
+  const answerKeyOf = useCallback(
+    (q: Question) => `${setId}-${mode}-${q.id || q.number}`,
+    [setId, mode],
+  );
 
   const total = currentQuestions.length;
-  const answered = currentQuestions.filter(
-    (q) => isAnswered(answers[answerKeyOf(q)] || [], q.answerParts)
-  ).length;
-  const correctCount = currentQuestions.filter(
-    (q) => isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts)
-  ).length;
+  // 이 훅은 5개 컴포넌트(사이드바·워크스페이스·팔레트·상단바·모달)가 각각 호출하므로,
+  // 메모 없이는 전 문항 순회(답함/정답/오답/가중점수)가 컴포넌트 수 × 렌더 수만큼 반복된다.
+  // 실제 입력(문항·답안·키 규칙)이 바뀔 때만 재계산하도록 묶는다.
+  const { answered, correctCount, wrongQuestions } = useMemo(() => {
+    let answeredCount = 0;
+    let correct = 0;
+    const wrong: { q: Question; i: number }[] = [];
+    currentQuestions.forEach((q, i) => {
+      const selected = answers[answerKeyOf(q)] || [];
+      if (isAnswered(selected, q.answerParts)) answeredCount += 1;
+      if (isQuestionCorrect(q.answer, selected, q.type, q.answerParts)) correct += 1;
+      // 채점된 시험/랜덤 또는 오답 모드에서 틀린 문항 목록(오답노트·네비 표시용).
+      else wrong.push({ q, i });
+    });
+    return { answered: answeredCount, correctCount: correct, wrongQuestions: wrong };
+  }, [currentQuestions, answers, answerKeyOf]);
   // CSTS 합격 판정용 가중 점수(4지선다·서답형 1.5점/진위형 1.0점) — evaluatePass가 소비한다.
   // ISTQB는 전 문항이 동일 배점이라 결과가 단순 정답률과 같아 무해하지만, 실제로 쓰는 건 CSTS뿐이다.
-  const cstsWeighted = computeCstsWeightedScore(currentQuestions, answers, answerKeyOf);
+  const cstsWeighted = useMemo(
+    () => computeCstsWeightedScore(currentQuestions, answers, answerKeyOf),
+    [currentQuestions, answers, answerKeyOf],
+  );
 
   const gradeKey = `${setId}-${mode}`;
   const isGraded = Boolean(graded[gradeKey]);
@@ -51,17 +69,13 @@ export function useQuizSession() {
   const canGrade = (mode === 'exam' || mode === 'random') && !isGraded && total > 0 && examUnderway;
   const progressPercent = total ? Math.round((answered / total) * 100) : 0;
 
-  // 채점된 시험/랜덤 또는 오답 모드에서 틀린 문항 목록(오답노트·네비 표시용).
-  const wrongQuestions = currentQuestions
-    .map((q, i) => ({ q, i }))
-    .filter(({ q }) => !isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts));
-
   const handleGrade = () => {
     // 멱등성 가드 — 같은 tick 더블클릭 등으로 재진입해도 회차/통계가 이중 집계되지 않게 한다.
     // 버튼 disabled(canGrade)는 리렌더 이후에야 반영되므로 채점 상태를 직접 확인한다.
     if (useQuizStore.getState().graded[gradeKey]) return;
-    const wrongQs = currentQuestions
-      .filter((q) => !isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts));
+    // 오답 목록은 위 메모(wrongQuestions)와 같은 판정을 재사용한다 — 따로 계산하면
+    // 판정 규칙이 갈라져 화면 표시와 기록이 어긋날 수 있다.
+    const wrongQs = wrongQuestions.map(({ q }) => q);
     const wrongIds = wrongQs.map((q) => q.id || `legacy-${q.number}`);
     // 오답 노트(세트 전체 회차 리스트)용 상세를 채점 시점에 함께 저장한다(4A).
     const wrongItems = wrongQs.map((q) => ({

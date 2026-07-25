@@ -17,6 +17,7 @@ import { QuestionPalette } from '../quiz/QuestionPalette';
 import { Question } from '../../hooks/useQuestions';
 import { loadSetQuestions, peekSetQuestions } from '../../utils/questionLoader';
 import { RichText } from '../../utils/parser';
+import { MODE_LABEL } from '../../utils/modeLabel';
 
 // 오답노트 3단계(문항 보기)용 세트 문항 로더 — 본문(useQuestions)과 같은 공용
 // 로더(questionLoader)를 사용해 같은 세트를 다시 내려받지 않는다.
@@ -51,13 +52,6 @@ const THEMES: { value: ThemePref; label: string }[] = [
 ];
 
 type FontSize = 'small' | 'normal' | 'large';
-
-const MODE_LABEL: Record<string, string> = {
-  practice: '연습',
-  exam: '시험',
-  random: '랜덤',
-  review: '오답',
-};
 
 // 오답노트 합산 뷰 전용 타입 — 여러 회차의 오답 합집합이라 특정 회차(ExamHistory)가
 // 아니다. 렌더에 필요한 필드만 담아 도메인 객체를 가짜 id로 위조하지 않는다.

@@ -48,14 +48,14 @@ export interface AppData {
   sets: SetSummary[];
 }
 
-// 랜덤 모드의 현재 추첨(모듈 공유). 두 가지를 보장한다:
-// 1) 채점(setReviewIds)으로 effect가 재실행돼도 재추첨하지 않음 — 재추첨되면
-//    채점 화면·점수가 새 추첨 기준으로 뒤바뀐다.
-// 2) 이 훅을 쓰는 모든 컴포넌트(사이드바·워크스페이스·팔레트)가 동일한 추첨을 공유.
-// 랜덤 모드를 벗어나면 폐기되어 다음 진입 때 새로 뽑는다.
-// chapter: 챕터 미니 시험(랜덤+챕터 필터)의 추첨 스코프. nonce: '새 문제 뽑기' 세대 —
-// 스토어 randomNonce와 어긋나면 같은 세트·챕터라도 재추첨한다.
-let randomDraw: { setId: string; chapter: string | null; nonce: number; questions: Question[] } | null = null;
+// 랜덤 추첨의 단일 원천은 스토어의 randomDraw(뽑힌 문항 id 목록)다.
+// 종전에는 모듈 전역 캐시(문항 객체)와 스토어(id 목록)가 같은 사실을 이중으로 들고 있어
+// 동기화 규칙이 코드 곳곳에 흩어져 있었다. 이제 여기서는 스토어만 읽고, 필요한 문항 객체는
+// 로드된 문항에서 id로 되살린다(같은 tick 내 zustand set/get은 동기라 훅 인스턴스 간에도 일관).
+// - 채점(setReviewIds)으로 effect가 재실행돼도 저장된 추첨이 있으므로 재추첨되지 않는다.
+// - '새 문제 뽑기'·모드 진입은 추첨을 비워(setRandomDraw(null)) 새로 뽑게 한다.
+// - randomNonce는 상태가 아니라 "재추첨하라"는 이벤트 트리거다(추첨을 구독하지 않으므로
+//   effect를 다시 돌리는 신호가 별도로 필요하다).
 
 // 챕터 미니 시험은 10문항(재측정용 짧은 세션), 일반 랜덤은 40문항(모의고사 규모).
 const MINI_TEST_SIZE = 10;
@@ -94,9 +94,6 @@ export function useQuestions() {
   }, [reloadKey]);
 
   useEffect(() => {
-    // 랜덤 모드를 벗어나면 추첨을 버려 다음 진입 때 새로 뽑는다.
-    if (mode !== 'random') randomDraw = null;
-
     if (!appData || !setId) return;
 
     const targetSet = appData.sets.find((s) => s.id === setId);
@@ -111,30 +108,25 @@ export function useQuestions() {
         // 챕터 필터가 있으면 미니 시험(해당 챕터 10문항 추첨) — 약점 재측정 세션.
         const chapter = chapterFilter ?? null;
         const idOf = (q: Question) => q.id || `legacy-${q.number}`;
-        if (randomDraw?.setId === setId && randomDraw.chapter === chapter && randomDraw.nonce === randomNonce) {
-          setCurrentQuestions(randomDraw.questions);
-          return;
-        }
-        // 새로고침 복원: 저장된 추첨(id 목록)이 현재 세트·챕터와 맞으면 같은 문항을 그대로 되살린다
-        // (답안은 문항 id로 저장되므로 진행이 그대로 유지된다). '새 문제 뽑기'·모드 진입은
-        // 저장된 추첨을 비우므로 이 경로를 타지 않고 아래에서 새로 추첨한다.
+        // 저장된 추첨이 현재 세트·챕터와 맞으면 같은 문항을 그대로 되살린다 — 새로고침
+        // 이어풀기, 채점 후 재실행, 다른 훅 인스턴스의 뒤늦은 실행이 모두 이 경로로 일관된다.
+        // (답안은 문항 id로 저장되므로 진행도 함께 유지된다)
         const saved = useQuizStore.getState().randomDraw;
         if (saved && saved.setId === setId && saved.chapter === chapter && saved.ids.length > 0) {
           const byId = new Map(questions.map((q) => [idOf(q), q]));
           const restored = saved.ids.map((id) => byId.get(id)).filter((q): q is Question => !!q);
           if (restored.length === saved.ids.length) {
-            randomDraw = { setId, chapter, nonce: randomNonce, questions: restored };
             setCurrentQuestions(restored);
             return;
           }
-          // id가 다 풀리지 않으면(세트 변경 등) 아래에서 새로 추첨한다.
+          // id가 다 풀리지 않으면(데이터 변경 등) 아래에서 새로 추첨한다.
         }
         const pool = chapter ? questions.filter((q) => q.chapter === chapter) : questions;
         const shuffled = shuffleQuestions(pool);
         const take = Math.min(chapter ? MINI_TEST_SIZE : RANDOM_DRAW_SIZE, shuffled.length);
         const drawn = shuffled.slice(0, take);
-        randomDraw = { setId, chapter, nonce: randomNonce, questions: drawn };
-        // 새로고침 복원용으로 추첨 결과(id 목록)를 영속화한다.
+        // 추첨 결과를 스토어에 즉시 반영한다(동기) — 뒤이어 실행되는 다른 훅 인스턴스가
+        // 위 복원 경로로 같은 문항을 쓰게 되어 화면 간 추첨이 어긋나지 않는다.
         useQuizStore.getState().setRandomDraw({ setId, chapter, ids: drawn.map(idOf) });
         setCurrentQuestions(drawn);
       } else if (mode === 'review') {

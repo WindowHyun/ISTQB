@@ -7,17 +7,11 @@ import { displayRatePercent } from '../../utils/scoring';
 import { aggregateChapterStats, weightedRatePercent } from '../../utils/chapterStats';
 import { buildSetTimelines, formatDeltaPp, attemptRatePercent } from '../../utils/attemptStats';
 import { ConfirmButtons } from '../common/ConfirmButtons';
+import { MODE_LABEL } from '../../utils/modeLabel';
 
 // 챕터 정답률이 합격 컷 미만이면 '약점'으로 강조한다 — 자격증별 컷과 동일 기준
 // (ISTQB 65% / CSTS 75%). 고정 65는 CSTS에서 66~74% 약점을 놓친다.
 const WEAK_THRESHOLD_BY_CERT: Record<string, number> = { istqb: 65, csts: 75 };
-
-const MODE_LABEL: Record<string, string> = {
-  exam: '시험',
-  random: '랜덤',
-  practice: '연습',
-  review: '오답',
-};
 
 interface StatsDashboardProps {
   histories: Record<string, ExamHistory>;
