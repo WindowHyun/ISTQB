@@ -97,6 +97,28 @@ test.describe("챕터 미니 시험(S3)", () => {
     await page.getByTestId("stats-open").click();
     await expect(page.getByTestId("set-timeline-item").first().locator(".stl-rounds li")).toHaveCount(1);
   });
+
+  test("미니 시험 진행 중 새로고침 → 같은 챕터·문항으로 이어푼다(일반 랜덤으로 바뀌지 않음)", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await completeAttempt(page); // 챕터 통계 생성
+    await page.getByTestId("stats-open").click();
+    await page.getByTestId("chapter-minitest-btn").first().click();
+
+    const banner = page.getByTestId("chapter-filter-banner");
+    await expect(banner).toBeVisible();
+    const chapterBefore = (await banner.locator("strong").textContent()) || "";
+    const totalBefore = (await page.locator("#progressText").textContent())?.split("/")[1]?.trim();
+    await page.locator("#options .option").first().click(); // 1문항 응답(미채점)
+    await page.waitForTimeout(900); // debounce 저장 대기(추첨·답안)
+
+    await page.reload();
+    await page.getByRole("button", { name: "ISTQB" }).click();
+    await page.waitForSelector("#options .option");
+    // 챕터 스코프가 유지되어 미니 시험 그대로 복원된다(문항 수·챕터·진행).
+    await expect(page.getByTestId("chapter-filter-banner")).toBeVisible();
+    await expect(page.getByTestId("chapter-filter-banner").locator("strong")).toHaveText(chapterBefore);
+    await expect(page.locator("#progressText")).toHaveText(`1 / ${totalBefore}`);
+  });
 });
 
 test.describe("랜덤 UX(S1·S5)", () => {
