@@ -183,14 +183,15 @@ test.describe("비기능 · 정확도/복원력", () => {
   test("NF9 타이머 정확도: 3초 경과 표시", async ({ page }, testInfo) => {
     await openSet(page, "ISTQB", A);
     await enterExam(page);
+    // 표기는 mm:ss 또는 h:mm:ss(1시간 이상) 두 형태다 — 자리수와 무관하게 초로 환산한다.
     const read = async () => {
       const t = (await page.locator("#timerText").textContent()) || "00:00";
-      const [mm, ss] = t.trim().split(":").map(Number);
-      return mm * 60 + ss;
+      return t.trim().split(":").map(Number).reduce((acc, v) => acc * 60 + v, 0);
     };
     const s0 = await read();
     await page.waitForTimeout(3000);
-    const drift = Math.abs(((await read()) - s0) - 3);
+    // 시험 모드는 제한시간 카운트다운이므로 3초 '감소'해야 한다(연습 모드의 경과 증가와 대칭).
+    const drift = Math.abs((s0 - (await read())) - 3);
     note(testInfo, "3초 drift", `${drift}s`);
     expect(drift).toBeLessThanOrEqual(budget(1, 2));
   });
