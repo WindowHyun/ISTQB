@@ -1423,42 +1423,53 @@ body[data-theme="dark"] .mtb-chip { background: #1e40af; }
 .stl-improve.up { color: var(--success, #1c7c3c); }
 .stl-improve.down { color: var(--danger, #c0392b); }
 .stl-improve.same { color: var(--muted); }
-.stl-rounds { display: flex; flex-wrap: wrap; gap: 6px; }
+/* 회차 항목은 한 줄에 하나. 종전에는 칩(inline-flex)을 가로로 흘렸는데, 소요 시간·
+   날짜·삭제가 붙으면서 좁은 화면에서 칩이 찌그러졌다 — 한국어는 글자 사이에서
+   줄바꿈되므로 min-content가 '한 글자'라 "1회"가 "1/회"로 쪼개진다(오답노트와 동일 함정). */
+.stl-rounds { display: flex; flex-direction: column; gap: 6px; }
 .stl-rounds li {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 3px 8px;
+  padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px;
   background: var(--surface-2); font-size: 12px; font-weight: 700; color: var(--text-2);
 }
+/* 모든 토큰을 통째로 줄바꿈시킨다 — 글자 단위로 쪼개지지 않게. */
+.stl-rounds li > * { flex: none; white-space: nowrap; }
 .stl-rounds li.weak { border-color: var(--danger, #c0392b); }
 .stl-round-no { color: var(--muted); font-weight: 700; }
 .stl-round-mode { color: var(--primary-700); font-weight: 700; }
 .stl-round-rate { color: var(--text); font-weight: 800; }
+/* 정답률 뒤를 밀어 소요·날짜·삭제가 오른쪽에 모이게 한다. */
+.stl-round-delta { margin-right: auto; }
+.stl-round-rate:last-of-type { margin-right: auto; }
 .stl-round-delta.up { color: var(--success, #1c7c3c); }
 .stl-round-delta.down { color: var(--danger, #c0392b); }
 
-.stats-list { display: flex; flex-direction: column; gap: 8px; }
-.stats-list li {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
+/* 회차 항목의 부가 정보 — 종전에는 아래 중복 목록에만 있던 소요 시간·날짜를 흡수했다. */
+.stl-round-time, .stl-round-date { color: var(--muted); font-weight: 600; }
+/* 회차 단건 삭제 — 잘못 제출한 한 건 때문에 이력을 통째로 버리지 않아도 되게. */
+.stl-round-del {
+  border: 0; background: none; cursor: pointer; padding: 0 2px;
+  color: var(--muted); font-size: 13px; font-weight: 800; line-height: 1;
 }
-.stats-row-main { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.stats-set { font-weight: 700; color: var(--text); font-size: 14px; }
-.stats-mode {
-  font-size: 12px;
-  color: var(--primary-700);
-  background: var(--primary-50);
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-weight: 700;
-  white-space: nowrap;
+.stl-round-del:hover { color: var(--danger, #c0392b); }
+
+/* 챕터 미니 시험 기록 — 타임라인에서 빠지는 10문항 회차를 챕터명과 함께 보여준다. */
+.stats-minis { margin: 14px 0 4px; }
+.stats-minis h4 { font-size: 13px; font-weight: 800; color: var(--text-2); margin-bottom: 8px; }
+.stats-minis h4 small { font-weight: 600; color: var(--muted); margin-left: 6px; }
+.mini-rounds { display: flex; flex-direction: column; gap: 6px; }
+.mini-rounds li {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px;
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); font-size: 12.5px;
 }
-.stats-row-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--muted); font-weight: 600; }
-.stats-score { color: var(--text-2); }
+.mini-rounds li > * { white-space: nowrap; }
+.mini-rounds li.weak { border-color: var(--danger, #c0392b); }
+/* flex:none + nowrap — 챕터명이 한국어라 min-content가 '한 글자'다(오답노트와 같은 함정). */
+.mr-chapter { flex: none; font-weight: 800; color: var(--text); white-space: nowrap; }
+.mr-rate { flex: 1 1 auto; min-width: 0; font-weight: 800; color: var(--text); }
+.mr-rate small { color: var(--muted); font-weight: 600; }
+.mr-time, .mr-date { flex: none; color: var(--muted); font-weight: 600; }
 
 /* ── 채점 결과 요약 ─────────────────────────────────────────────────── */
 .result-set { color: var(--muted); font-weight: 600; font-size: 13px; margin: 0 0 10px; text-align: center; }

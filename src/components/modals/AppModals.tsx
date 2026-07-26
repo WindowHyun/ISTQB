@@ -283,6 +283,13 @@ export const AppModals = () => {
     gradeAndShow();
   };
 
+  // 회차 1건 삭제 — 잘못 제출한 회차(미응답 제출 등) 때문에 이력을 통째로 버리지
+  // 않아도 되게 한다. 삭제가 DB에 커밋된 뒤에만 메모리에서 지운다(removeHistoriesEverywhere).
+  const handleDeleteRound = async (id: string) => {
+    const ok = await removeHistoriesEverywhere([id]);
+    if (ok) showToast('회차 기록 1건을 삭제했습니다.', 'success');
+  };
+
   const handleClearHistories = async () => {
     // 현재 제품 이력만 지운다 — 전체 clear면 다른 제품(ISTQB↔CSTS) 기록까지 사라진다.
     // 어느 제품 세트에도 속하지 않는 고아 이력(세트 제거/구버전 백업 유래)은 화면에
@@ -794,6 +801,7 @@ export const AppModals = () => {
           onMiniTestChapter={handleMiniTestChapter}
           practiceLocked={examLocked}
           certification={activeProduct}
+          onDeleteRound={handleDeleteRound}
         />
       )}
 

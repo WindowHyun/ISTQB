@@ -5,13 +5,21 @@ import { SetSummary } from '../../hooks/useQuestions';
 import { formatClock } from '../../utils/time';
 import { displayRatePercent } from '../../utils/scoring';
 import { aggregateChapterStats, weightedRatePercent } from '../../utils/chapterStats';
-import { buildSetTimelines, formatDeltaPp, attemptRatePercent } from '../../utils/attemptStats';
+import {
+  buildSetTimelines, buildMiniTestRounds, formatDeltaPp, attemptRatePercent, isSetLevelRound,
+} from '../../utils/attemptStats';
 import { ConfirmButtons } from '../common/ConfirmButtons';
 import { MODE_LABEL } from '../../utils/modeLabel';
 
 // 챕터 정답률이 합격 컷 미만이면 '약점'으로 강조한다 — 자격증별 컷과 동일 기준
 // (ISTQB 65% / CSTS 75%). 고정 65는 CSTS에서 66~74% 약점을 놓친다.
 const WEAK_THRESHOLD_BY_CERT: Record<string, number> = { istqb: 65, csts: 75 };
+
+// 회차 날짜 표기 — 로케일을 ko-KR로 고정한다. toLocaleDateString()을 인자 없이 쓰면
+// 브라우저 로케일을 따라가, 한국어 앱인데 기기에 따라 "6/15/2025"(미국식)로 나온다.
+function formatRoundDate(ms: number): string {
+  return new Date(ms).toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' });
+}
 
 interface StatsDashboardProps {
   histories: Record<string, ExamHistory>;
@@ -26,34 +34,47 @@ interface StatsDashboardProps {
   practiceLocked?: boolean;
   /** 현재 제품(약점 임계값 결정 — istqb 65% / csts 75%). */
   certification?: 'istqb' | 'csts' | null;
+  /** 회차 1건 삭제 — 잘못 제출한 회차 때문에 이력을 통째로 버리지 않아도 되게. */
+  onDeleteRound: (id: string) => void;
 }
 
-export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeChapter, onMiniTestChapter, practiceLocked, certification }: StatsDashboardProps) => {
+export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeChapter, onMiniTestChapter, practiceLocked, certification, onDeleteRound }: StatsDashboardProps) => {
   const weakThreshold = WEAK_THRESHOLD_BY_CERT[certification ?? 'istqb'] ?? 65;
-  const rows = useMemo(() => {
-    const titleOf = (setId: string) => sets.find((s) => s.id === setId)?.title || setId;
-    return Object.values(histories)
-      .map((h) => ({
-        ...h,
-        title: titleOf(h.setId),
-        // Number(h.id)는 NaN일 수 있어 ??로 걸러지지 않는다 — ||로 0 폴백.
-        when: h.createdAt ?? (Number(h.id) || 0),
-        // 회차 %의 단일 원천(attemptRatePercent) — CSTS는 가중 점수 기준이라
-        // 결과 모달·타임라인과 같은 값이 표시된다.
-        rate: h.total ? attemptRatePercent(h) : null,
-      }))
-      .sort((a, b) => b.when - a.when);
-  }, [histories, sets]);
+  // 빈 상태 판정에만 쓰는 개수. 실전·미니를 모두 세어, 미니만 푼 사용자에게
+  // "기록 없음"이 뜨지 않게 한다(미니 섹션에는 내용이 있으므로 모순이 된다).
+  const roundCount = Object.keys(histories).length;
 
+  // 요약은 '실전 회차'(세트 전체)만 센다.
+  // 종전에는 챕터 미니(10문항)까지 섞여, 미니에서 10/10을 받으면 실전 최고가 65%인데도
+  // "최고 정답률 100%"로 보였다. 합격 가늠이 목적인 지표라 표본을 섞으면 안 된다.
+  // 응시 횟수·평균·최고가 모두 같은 집합(isSetLevelRound)을 쓰므로 아래 타임라인의
+  // 회차 수와도 일치한다(종전엔 요약 5 / 타임라인 3으로 어긋났다).
   const summary = useMemo(() => {
-    const scored = rows.filter((r) => r.rate !== null);
+    const setLevel = Object.values(histories).filter(isSetLevelRound);
+    const scored = setLevel.filter((h) => h.total).map(attemptRatePercent);
     if (!scored.length) return null;
     // 평균은 문항 수 가중(정답 합/출제 합) — 회차별 %의 단순 평균은
     // 문항 수가 다른 회차(랜덤 40 vs 시험 70)를 왜곡한다.
-    const avg = weightedRatePercent(Object.values(histories));
-    const best = Math.max(...scored.map((r) => r.rate ?? 0));
-    return { attempts: rows.length, avg: avg ?? 0, best };
-  }, [rows, histories]);
+    const avg = weightedRatePercent(setLevel);
+    return { attempts: scored.length, avg: avg ?? 0, best: Math.max(...scored) };
+  }, [histories]);
+
+  // 세트 제목 조회 — index.json에서 세트가 제거·개명되면 sets에서 못 찾는다.
+  // 그때 setId를 그대로 쓰면 "istqb/sample-a.json" 같은 내부 경로가 사용자에게 보이므로,
+  // 채점 시점에 이력에 저장해 둔 setTitle을 먼저 쓴다.
+  const titleOf = useMemo(() => {
+    const savedTitles = new Map<string, string>();
+    for (const h of Object.values(histories)) {
+      if (h.setTitle) savedTitles.set(h.setId, h.setTitle);
+    }
+    return (id: string) => sets.find((s) => s.id === id)?.title || savedTitles.get(id) || id;
+  }, [histories, sets]);
+
+  // 챕터 미니 시험 회차 — 타임라인에선 빠지므로 여기서 챕터명과 함께 보여준다.
+  const miniRounds = useMemo(
+    () => buildMiniTestRounds(Object.values(histories), titleOf),
+    [histories, titleOf],
+  );
 
   // 챕터별 정답률(약점 분석) — 정답률 오름차순(약한 챕터 먼저).
   const chapterRows = useMemo(() => {
@@ -70,13 +91,13 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
 
   // 세트별 회차 타임라인(Phase 2 학습 누적) — 세트마다 1회차→2회차… 정답률 추이·성장폭.
   const timelines = useMemo(
-    () => buildSetTimelines(Object.values(histories), (id) => sets.find((s) => s.id === id)?.title || id),
-    [histories, sets],
+    () => buildSetTimelines(Object.values(histories), titleOf),
+    [histories, titleOf],
   );
 
   // 파괴적 액션은 공용 2단계 확인 버튼으로(window.confirm은 차단형이고 모달/토스트 체계와 불일치).
   const headerExtra =
-    rows.length > 0 ? (
+    roundCount > 0 ? (
       <ConfirmButtons
         label="이력 비우기"
         confirmLabel="정말 삭제"
@@ -88,16 +109,23 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
   return (
     <Modal title="학습 통계" onClose={onClose} headerExtra={headerExtra}>
       <div className="modal-body" data-testid="stats-dashboard">
-        {rows.length === 0 ? (
+        {roundCount === 0 ? (
           <p>아직 채점한 기록이 없습니다. 시험·랜덤 모드에서 채점하면 여기에 누적됩니다.</p>
         ) : (
           <>
             {summary && (
-              <div className="stats-summary" aria-label="요약">
-                <div><span>응시 횟수</span><strong>{summary.attempts}</strong></div>
-                <div><span title="문항 수 가중 평균(정답 합 ÷ 출제 합)">평균 정답률</span><strong>{summary.avg}%</strong></div>
-                <div><span>최고 정답률</span><strong>{summary.best}%</strong></div>
-              </div>
+              <>
+                <div className="stats-summary" aria-label="요약">
+                  <div><span>응시 횟수</span><strong>{summary.attempts}</strong></div>
+                  <div><span>평균 정답률</span><strong>{summary.avg}%</strong></div>
+                  <div><span>최고 정답률</span><strong>{summary.best}%</strong></div>
+                </div>
+                {/* 계산 기준은 종전에 title(툴팁)에만 있어 모바일에서 볼 수 없었다. */}
+                <p className="stats-hint stats-summary-note" data-testid="stats-summary-note">
+                  세트 전체를 푼 <strong>실전 회차</strong>만 셉니다(챕터 미니 시험 제외).
+                  평균은 문항 수로 가중해 계산합니다 — 정답 합 ÷ 출제 합.
+                </p>
+              </>
             )}
 
             {chapterRows.length > 0 && (
@@ -169,21 +197,28 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
 
             {timelines.length > 0 && (
               <section className="stats-timelines" aria-label="세트별 회차 이력" data-testid="stats-set-timeline">
-                <h4>세트별 회차 이력 <small>응시할수록 쌓이는 성장 기록</small></h4>
+                <h4>세트별 회차 이력 <small>세트 전체를 푼 실전 회차</small></h4>
+                {/* 성장폭 설명도 종전엔 title(툴팁)뿐이라 모바일에서 볼 수 없었다. */}
+                <p className="stats-hint">
+                  모드마다 <strong>첫 회차 → 최신 회차</strong> 변화를 배지로 보여줍니다.
+                  시험과 랜덤은 문항 수가 달라 서로 비교하지 않습니다.
+                </p>
                 {timelines.map((tl) => (
                   <div key={tl.setId} className="set-timeline" data-testid="set-timeline-item">
                     <div className="stl-head">
                       <span className="stl-title">{tl.title}</span>
                       <span className="stl-count">{tl.attempts.length}회차</span>
-                      {/* 성장폭은 같은 모드 회차 간 비교일 때만 표시(A2) — 라벨 규칙은 공용 formatDeltaPp. */}
-                      {tl.improvement != null && (
+                      {/* 모드별로 각각 표시 — 종전에는 '최신 회차의 모드' 하나만 계산해,
+                          랜덤을 한 번 풀면 시험 성장폭 배지가 통째로 사라졌다. */}
+                      {tl.improvements.map((imp) => (
                         <span
-                          className={`stl-improve ${formatDeltaPp(tl.improvement).dir}`}
-                          title="같은 모드의 첫 회차 대비 최신 회차 정답률 변화"
+                          key={imp.mode}
+                          className={`stl-improve ${formatDeltaPp(imp.delta).dir}`}
+                          data-testid="stl-improve"
                         >
-                          {formatDeltaPp(tl.improvement).label}
+                          {MODE_LABEL[imp.mode] || imp.mode} {formatDeltaPp(imp.delta).label}
                         </span>
-                      )}
+                      ))}
                     </div>
                     <ol className="stl-rounds">
                       {tl.attempts.map((at) => (
@@ -196,6 +231,24 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
                               {at.deltaFromPrev > 0 ? `+${at.deltaFromPrev}` : at.deltaFromPrev}
                             </span>
                           )}
+                          {/* 소요 시간·날짜는 종전에 아래 중복 목록에만 있었다. 여기로 흡수하면서
+                              "10:00"이 시각으로 읽히지 않게 라벨을 붙인다. */}
+                          {at.elapsedSeconds != null && (
+                            <span className="stl-round-time">소요 {formatClock(at.elapsedSeconds)}</span>
+                          )}
+                          {at.createdAt > 0 && (
+                            <span className="stl-round-date">{formatRoundDate(at.createdAt)}</span>
+                          )}
+                          <button
+                            type="button"
+                            className="stl-round-del"
+                            data-testid="round-delete-btn"
+                            aria-label={`${tl.title} ${at.round}회차 기록 삭제`}
+                            title="이 회차 기록만 삭제"
+                            onClick={() => onDeleteRound(at.id)}
+                          >
+                            ✕
+                          </button>
                         </li>
                       ))}
                     </ol>
@@ -204,35 +257,36 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
               </section>
             )}
 
-            <ul className="stats-list">
-              {rows.map((r) => (
-                <li key={r.id}>
-                  <div className="stats-row-main">
-                    <span className="stats-set">{r.title}</span>
-                    <span className="stats-mode">{MODE_LABEL[r.mode] || r.mode}</span>
-                  </div>
-                  <div className="stats-row-meta">
-                    {r.rate !== null ? (
-                      // CSTS(가중 점수 보유) 회차는 점수/만점으로 표기한다 — %가 가중 기준인데
-                      // 옆에 "정답 수 / 문항 수"를 두면 두 값의 기준이 달라 어긋나 보인다.
-                      <span className="stats-score">
-                        {r.cstsWeighted && r.cstsWeighted.maxScore > 0
-                          ? `${Math.floor(r.cstsWeighted.score * 10 + 1e-9) / 10} / ${Math.floor(r.cstsWeighted.maxScore * 10 + 1e-9) / 10}점 · ${r.rate}%`
-                          : `${r.correct} / ${r.total} · ${r.rate}%`}
-                      </span>
-                    ) : (
-                      <span className="stats-score">기록 없음</span>
-                    )}
-                    {r.elapsedSeconds != null && (
-                      <span className="stats-time">{formatClock(r.elapsedSeconds)}</span>
-                    )}
-                    {r.when > 0 && (
-                      <span className="stats-date">{new Date(r.when).toLocaleDateString()}</span>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {miniRounds.length > 0 && (
+              <section className="stats-minis" aria-label="챕터 미니 시험 기록" data-testid="stats-mini-rounds">
+                {/* 미니 회차는 타임라인에서 빠지므로 여기서 보여준다 — 종전에는 아래 목록에
+                    "랜덤 0/10"으로만 떠서 어느 챕터의 미니인지 알 수 없었다. */}
+                <h4>챕터 미니 시험 <small>10문항 재측정 · 위 요약에는 넣지 않습니다</small></h4>
+                <ul className="mini-rounds">
+                  {miniRounds.map((m) => (
+                    <li key={m.id} className={m.rate < weakThreshold ? 'weak' : ''} data-testid="mini-round-item">
+                      <span className="mr-chapter">{m.chapter}</span>
+                      <span className="mr-rate">{m.rate}% <small>({m.correct}/{m.total})</small></span>
+                      {m.elapsedSeconds != null && (
+                        <span className="mr-time">소요 {formatClock(m.elapsedSeconds)}</span>
+                      )}
+                      {m.createdAt > 0 && <span className="mr-date">{formatRoundDate(m.createdAt)}</span>}
+                      <button
+                        type="button"
+                        className="stl-round-del"
+                        data-testid="round-delete-btn"
+                        aria-label={`${m.chapter} 미니 시험 기록 삭제`}
+                        title="이 회차 기록만 삭제"
+                        onClick={() => onDeleteRound(m.id)}
+                      >
+                        ✕
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
           </>
         )}
       </div>

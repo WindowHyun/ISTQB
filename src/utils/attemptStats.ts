@@ -20,6 +20,11 @@ export interface AttemptEntry {
   deltaFromPrev: number | null;
 }
 
+export interface ModeImprovement {
+  mode: string;
+  delta: number; // 그 모드의 첫 회차 → 최신 회차 정답률 변화(%p)
+}
+
 export interface SetTimeline {
   setId: string;
   title: string;
@@ -27,10 +32,20 @@ export interface SetTimeline {
   best: number; // 최고 정답률(%)
   first: number; // 첫 회차 정답률(%)
   latest: number; // 최신 회차 정답률(%)
-  // 성장폭(%p) — 최신 회차와 "같은 모드"의 첫 회차 대비. 같은 모드 회차가 1개뿐이면
-  // 비교 대상이 없어 null(모드 혼합 세트에서 시험↔랜덤 간 %p 비교 왜곡 방지).
-  improvement: number | null;
+  // 모드별 성장폭(%p) — 그 모드의 첫 회차 → 최신 회차. 회차가 2개 이상인 모드만 담는다.
+  // 종전에는 "최신 회차의 모드" 하나만 계산해, 시험 실력이 그대로여도 랜덤을 한 번 풀면
+  // 시험 성장폭 배지가 사라졌다(최신 회차가 랜덤이 되어 비교 대상이 1개가 되므로).
+  improvements: ModeImprovement[];
   lastAt: number; // 최신 회차 시각(정렬용)
+}
+
+/**
+ * 세트 전체를 대상으로 한 '실전' 회차인지. 챕터 미니 시험(10문항)은 제외한다.
+ * 요약·타임라인·성장폭이 각자 다른 규칙으로 회차를 세면 "응시 5회인데 이력은 3개"처럼
+ * 화면 안에서 숫자가 어긋난다 — 어느 섹션이든 이 술어 하나를 쓴다.
+ */
+export function isSetLevelRound(h: ExamHistory): boolean {
+  return !h.chapter;
 }
 
 // ▲/▼/± 델타 라벨 — 결과 모달(직전 대비)과 통계 타임라인(성장폭)이 공유해
@@ -66,8 +81,9 @@ export function buildSetTimelines(
   for (const h of histories) {
     if (!isScored(h)) continue;
     // 챕터 미니 시험 회차는 세트 전체 회차가 아니다 — 타임라인·성장폭에 섞이면
-    // 10문항 표본이 40~70문항 회차와 %p 비교돼 왜곡된다(챕터 통계에는 별도로 반영됨).
-    if (h.chapter) continue;
+    // 10문항 표본이 40~70문항 회차와 %p 비교돼 왜곡된다.
+    // (챕터 통계에 반영되고, 화면에는 buildMiniTestRounds가 따로 보여준다)
+    if (!isSetLevelRound(h)) continue;
     const list = bySet.get(h.setId) ?? [];
     list.push(h);
     bySet.set(h.setId, list);
@@ -100,7 +116,15 @@ export function buildSetTimelines(
     });
     const rates = attempts.map((a) => a.rate);
     const latestAttempt = attempts[attempts.length - 1];
-    const firstSameMode = firstRateByMode[latestAttempt.mode];
+    // 모드별 성장폭 — 회차가 2개 이상인 모드만. prevRateByMode는 순회가 끝난 시점에
+    // 각 모드의 '최신' 정답률을 담고 있으므로 첫 회차와 짝지어 쓸 수 있다.
+    // 표시 순서는 최신 회차를 먼저(방금 푼 모드의 성장이 눈에 먼저 들어오게).
+    const countByMode: Record<string, number> = Object.create(null);
+    for (const a of attempts) countByMode[a.mode] = (countByMode[a.mode] ?? 0) + 1;
+    const improvements: ModeImprovement[] = Object.keys(firstRateByMode)
+      .filter((m) => countByMode[m] >= 2)
+      .map((m) => ({ mode: m, delta: prevRateByMode[m] - firstRateByMode[m] }))
+      .sort((a, b) => (a.mode === latestAttempt.mode ? -1 : b.mode === latestAttempt.mode ? 1 : a.mode.localeCompare(b.mode)));
     timelines.push({
       setId,
       title: titleOf(setId),
@@ -108,10 +132,7 @@ export function buildSetTimelines(
       best: Math.max(...rates),
       first: rates[0],
       latest: rates[rates.length - 1],
-      // 같은 모드 회차가 2개 이상일 때만 성장폭을 말할 수 있다.
-      improvement: attempts.filter((a) => a.mode === latestAttempt.mode).length >= 2
-        ? latestAttempt.rate - firstSameMode
-        : null,
+      improvements,
       lastAt: latestAttempt.createdAt,
     });
   }
@@ -119,6 +140,45 @@ export function buildSetTimelines(
   // 없으면 정렬이 입력 순서에 좌우돼 통계 화면의 세트 순서가 렌더마다 흔들릴 수 있다
   // (속성 테스트 '정렬 결정성'이 실제로 찾아낸 반례).
   return timelines.sort((a, b) => b.lastAt - a.lastAt || a.setId.localeCompare(b.setId));
+}
+
+export interface MiniTestRound {
+  id: string;
+  setId: string;
+  title: string;
+  chapter: string;
+  correct: number;
+  total: number;
+  rate: number;
+  elapsedSeconds?: number;
+  createdAt: number;
+}
+
+/**
+ * 챕터 미니 시험 회차 목록(최신 → 과거).
+ * 세트 타임라인에서는 표본이 달라 제외하지만, 화면에서 통째로 사라지면 "응시했는데
+ * 어디에도 없다"가 된다 — 챕터명을 달아 별도로 보여주기 위한 목록이다.
+ */
+export function buildMiniTestRounds(
+  histories: ExamHistory[],
+  titleOf: (setId: string) => string,
+): MiniTestRound[] {
+  return histories
+    .filter((h): h is ExamHistory & { correct: number; total: number; chapter: string } =>
+      isScored(h) && !!h.chapter)
+    .map((h) => ({
+      id: h.id,
+      setId: h.setId,
+      title: titleOf(h.setId),
+      chapter: h.chapter,
+      correct: h.correct,
+      total: h.total,
+      rate: attemptRatePercent(h),
+      elapsedSeconds: h.elapsedSeconds,
+      createdAt: h.createdAt ?? 0,
+    }))
+    // 타임라인과 동일한 결정적 정렬(시각 → id) — 동률에도 순서가 흔들리지 않게.
+    .sort((a, b) => b.createdAt - a.createdAt || a.id.localeCompare(b.id));
 }
 
 export interface AttemptComparison {
