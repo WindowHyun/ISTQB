@@ -154,6 +154,59 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  # 안드로이드 APK 컴파일 검증(배포 없음).
+  # 배포 워크플로(android-firebase.yml)는 수동 실행 + 즉시 테스터 배포라, 여기가 없으면
+  # 네이티브(MainActivity)·Capacitor 플러그인 변경이 "테스터에게 나가는 순간"에야 깨진다.
+  # assembleDebug까지만 하고 Firebase 업로드는 하지 않으므로 시크릿이 필요 없다(PR에서 안전).
+  # 다른 잡과 병렬이라 전체 CI 소요(최장 잡 = e2e)에는 영향이 없다.
+  android-build:
+    name: Android APK build (no deploy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build web (React → dist)
+        run: npm run build
+      - name: Setup JDK 21
+        uses: actions/setup-java@v5
+        with:
+          # Capacitor 7의 capacitor-android가 Java 21을 요구한다(배포 워크플로와 동일).
+          distribution: "temurin"
+          java-version: "21"
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+      - name: Capacitor sync (dist → android)
+        run: npx cap sync android
+      # sync가 만들어내는 gradle 파일이 커밋본과 다르면 배포 시에만 드러나는 표류다 —
+      # 플러그인을 추가하고 `cap sync`를 커밋하지 않은 경우를 여기서 잡는다.
+      - name: Fail if committed Android project is stale
+        run: |
+          if ! git diff --quiet -- android/; then
+            echo '::error::npx cap sync android 결과가 커밋본과 다릅니다. 아래 diff를 커밋하세요.'
+            git diff -- android/
+            exit 1
+          fi
+      - name: Build debug APK
+        run: |
+          chmod +x android/gradlew
+          cd android && ./gradlew assembleDebug --no-daemon
+
   e2e:
     name: E2E smoke (Playwright)
     runs-on: ubuntu-latest

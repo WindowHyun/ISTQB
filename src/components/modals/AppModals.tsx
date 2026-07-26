@@ -77,10 +77,11 @@ export const AppModals = () => {
   const {
     setId, mode, activeProduct, histories, resultElapsedSeconds, chapterFilter,
     settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, resumePrompt,
-    quitExamOpen, gradedResume,
+    quitExamOpen, gradedResume, pendingSetChange,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
     setMode, beginSession, clearAnswers, setReviewIds, setSetId, setChapterFilter, setResumePrompt,
     setQuitExamOpen, setGradedResume, setRandomDraw,
+    setPendingSetChange, commitSetChange,
   } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, activeProduct: s.activeProduct, histories: s.histories,
     resultElapsedSeconds: s.resultOpen ? s.elapsedSeconds : 0,
@@ -89,6 +90,7 @@ export const AppModals = () => {
     resultOpen: s.resultOpen, paletteOpen: s.paletteOpen, confirmGradeOpen: s.confirmGradeOpen,
     resumePrompt: s.resumePrompt,
     quitExamOpen: s.quitExamOpen, gradedResume: s.gradedResume,
+    pendingSetChange: s.pendingSetChange,
     setSettingsOpen: s.setSettingsOpen, setStatsOpen: s.setStatsOpen, setWrongNoteOpen: s.setWrongNoteOpen,
     setResultOpen: s.setResultOpen, setPaletteOpen: s.setPaletteOpen, setDrawerOpen: s.setDrawerOpen,
     setConfirmGradeOpen: s.setConfirmGradeOpen, setMode: s.setMode, beginSession: s.beginSession,
@@ -96,6 +98,7 @@ export const AppModals = () => {
     setChapterFilter: s.setChapterFilter, setResumePrompt: s.setResumePrompt,
     setQuitExamOpen: s.setQuitExamOpen, setGradedResume: s.setGradedResume,
     setRandomDraw: s.setRandomDraw,
+    setPendingSetChange: s.setPendingSetChange, commitSetChange: s.commitSetChange,
   })));
   // examLocked — useQuizSession이 단일 원천(게이트·사이드바 잠금과 동일 규칙 집합).
   const { appData, total, answered, correctCount, cstsWeighted, gradeAndShow, examLocked } = useQuizSession();
@@ -126,6 +129,8 @@ export const AppModals = () => {
   useBackDismiss(quitExamOpen, () => setQuitExamOpen(false), BACK_PRIORITY.confirm);
   useBackDismiss(confirmHomeOpen, () => setConfirmHomeOpen(false), BACK_PRIORITY.confirm);
   useBackDismiss(guideOpen, () => setGuideOpen(false), BACK_PRIORITY.confirm);
+  // 뒤로가기 = 취소(계속 풀기) — 확인 모달의 안전한 기본값이다.
+  useBackDismiss(Boolean(pendingSetChange), () => setPendingSetChange(null), BACK_PRIORITY.confirm);
   // 오답노트는 3단계(세트 → 오답 목록 → 문항)라 뒤로가기가 한 단계씩 되돌아간다 —
   // 문항을 보다 뒤로가기를 눌렀을 때 노트가 통째로 닫히면 되짚어 들어가야 한다.
   useBackDismiss(
@@ -387,6 +392,31 @@ export const AppModals = () => {
         </Modal>
       )}
 
+      {pendingSetChange && (
+        <Modal title="세트 변경" onClose={() => setPendingSetChange(null)}>
+          <div className="modal-body confirm-body" data-testid="pending-set-change-modal">
+            <p>
+              랜덤 모드로 <strong>{answered}문항</strong>을 푸는 중입니다.
+              세트를 바꾸면 <strong>지금 뽑힌 문항과 답안이 사라집니다</strong>
+              (랜덤은 세트별로 보관하지 않습니다).
+            </p>
+            <div className="confirm-actions">
+              <button type="button" data-testid="pending-set-change-cancel" onClick={() => setPendingSetChange(null)}>
+                계속 풀기
+              </button>
+              <button
+                type="button"
+                className="danger"
+                data-testid="pending-set-change-confirm"
+                onClick={() => commitSetChange(pendingSetChange)}
+              >
+                세트 바꾸기
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {quitExamOpen && (
         <Modal title="응시 포기" onClose={() => setQuitExamOpen(false)}>
           <div className="modal-body confirm-body" data-testid="quit-exam-modal">
@@ -630,12 +660,16 @@ export const AppModals = () => {
                         onClick={() => setWrongNoteQuestionNo(it.number)}
                       >
                         <span className="wn-num">문제 {it.number}</span>
-                        <span className="wn-mine">내 답 {fmtAns(it.myAnswer)}</span>
-                        <span className="wn-correct">정답 {fmtAns(it.correctAnswer)}</span>
+                        {/* 내 답·정답을 한 덩어리로 묶는다 — 서답형은 값이 길어 줄바꿈이
+                            필요한데, 형제로 두면 문항 번호·화살표까지 같이 밀려 무너진다. */}
+                        <span className="wn-answers">
+                          <span className="wn-mine">내 답 {fmtAns(it.myAnswer)}</span>
+                          <span className="wn-correct">정답 {fmtAns(it.correctAnswer)}</span>
+                        </span>
                         {overcome && (
                           <span className="wn-overcome-tag" data-testid="wrong-note-overcome-tag">✓ 극복</span>
                         )}
-                        <span className="wns-arrow" aria-hidden="true">›</span>
+                        <span className="wn-arrow" aria-hidden="true">›</span>
                       </button>
                     </li>
                     );
