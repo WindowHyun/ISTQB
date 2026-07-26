@@ -42,7 +42,6 @@ export interface QuizState {
   examStarted: Record<string, boolean>;
   elapsedSeconds: number;
   lastTick: number | null;
-  startedAt: number | null;
   navCollapsed: boolean;
   // 챕터 집중 연습 필터(Phase 3). null이면 전체. 세트/모드 전환 시 해제되며 영속화하지 않는다.
   chapterFilter: string | null;
@@ -144,7 +143,6 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   examStarted: {},
   elapsedSeconds: 0,
   lastTick: null,
-  startedAt: null,
   navCollapsed: false,
   chapterFilter: null,
 
@@ -219,7 +217,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       lastTick: now
     };
   }),
-  startTimer: () => set({ startedAt: Date.now(), lastTick: Date.now() }),
+  startTimer: () => set({ lastTick: Date.now() }),
   resetTimer: () => set({ elapsedSeconds: 0, lastTick: Date.now() }),
   beginSession: () => set({ index: 0, elapsedSeconds: 0, lastTick: Date.now() }),
   setNavCollapsed: (navCollapsed) => set({ navCollapsed }),

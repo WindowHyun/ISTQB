@@ -1345,10 +1345,8 @@ body[data-theme="dark"] .mtb-chip { background: #1e40af; }
 
 /* 챕터별 정답률(약점 분석, Phase 3) */
 .stats-chapters { margin: 14px 0 4px; }
-.stats-chapters h4,
-.stats-trend h4 { font-size: 13px; font-weight: 800; color: var(--text-2); margin-bottom: 8px; }
-.stats-chapters h4 small,
-.stats-trend h4 small { font-weight: 600; color: var(--muted); margin-left: 6px; }
+.stats-chapters h4 { font-size: 13px; font-weight: 800; color: var(--text-2); margin-bottom: 8px; }
+.stats-chapters h4 small { font-weight: 600; color: var(--muted); margin-left: 6px; }
 /* 두 버튼의 차이 설명 — 종전엔 title(툴팁)뿐이라 모바일에서는 볼 수 없었다. */
 .sc-legend { margin: 0 2px 8px; }
 .sc-legend strong { color: var(--text-2); font-weight: 800; }
@@ -1404,27 +1402,6 @@ body[data-theme="dark"] .mtb-chip { background: #1e40af; }
   .stats-chapters .sc-bar { display: none; }
 }
 .stats-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
-
-/* 정답률 추이 미니 바(왼쪽=과거) */
-.stats-trend { margin: 14px 0 4px; }
-.trend-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 5px;
-  height: 64px;
-  padding: 6px 8px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
-}
-.trend-bars i {
-  flex: 1;
-  max-width: 26px;
-  background: var(--primary);
-  border-radius: 4px 4px 0 0;
-  opacity: 0.85;
-}
-.trend-bars i.weak { background: var(--danger, #c0392b); }
 
 /* 세트별 회차 타임라인(Phase 2 학습 누적) */
 .stats-timelines { margin: 14px 0 4px; display: flex; flex-direction: column; gap: 10px; }

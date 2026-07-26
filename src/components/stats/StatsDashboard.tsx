@@ -68,12 +68,6 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
     [histories],
   );
 
-  // 성장 추이 — 최근 회차(오래된 → 최신)의 정답률 미니 바.
-  const trend = useMemo(
-    () => rows.filter((r) => r.rate !== null).slice(0, 12).reverse(),
-    [rows],
-  );
-
   // 세트별 회차 타임라인(Phase 2 학습 누적) — 세트마다 1회차→2회차… 정답률 추이·성장폭.
   const timelines = useMemo(
     () => buildSetTimelines(Object.values(histories), (id) => sets.find((s) => s.id === id)?.title || id),
@@ -171,26 +165,6 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
               <p className="stats-hint" data-testid="stats-chapters-empty">
                 챕터별 분석은 이번 버전에서 채점한 회차부터 집계됩니다.
               </p>
-            )}
-
-            {trend.length >= 2 && (
-              <section className="stats-trend" aria-label="정답률 추이" data-testid="stats-trend">
-                <h4>정답률 추이 <small>최근 {trend.length}회 (왼쪽이 과거)</small></h4>
-                {/* 스크린리더용 요약(B2) — 막대는 aria-hidden이라 값이 전달되지 않는다. */}
-                <p className="sr-only">
-                  최근 {trend.length}회 정답률: {trend.map((r) => `${r.rate}%`).join(' → ')}
-                </p>
-                <div className="trend-bars" aria-hidden="true">
-                  {trend.map((r) => (
-                    <i
-                      key={r.id}
-                      style={{ height: `${Math.max(r.rate ?? 0, 4)}%` }}
-                      className={(r.rate ?? 0) < weakThreshold ? 'weak' : ''}
-                      title={`${r.title} · ${r.rate}%`}
-                    />
-                  ))}
-                </div>
-              </section>
             )}
 
             {timelines.length > 0 && (

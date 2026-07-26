@@ -99,7 +99,6 @@ describe("useQuizStore 세션/네비/타이머 액션", () => {
   it("startTimer/resetTimer는 기준 시각과 경과를 관리한다", () => {
     useQuizStore.getState().startTimer();
     const st = useQuizStore.getState();
-    expect(st.startedAt).not.toBeNull();
     expect(st.lastTick).not.toBeNull();
     useQuizStore.setState({ elapsedSeconds: 42 });
     useQuizStore.getState().resetTimer();
