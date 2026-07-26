@@ -46,9 +46,12 @@ public class MainActivity extends BridgeActivity {
 
   private void configureSystemBars() {
     Window window = getWindow();
-    // 상태바·내비게이션 바 색상을 앱 배경색으로 통일
-    window.setStatusBarColor(Color.rgb(245, 247, 242));
-    window.setNavigationBarColor(Color.rgb(245, 247, 242));
+    // 상태바·내비게이션 바 색상을 앱 표면색(--surface: #ffffff)에 맞춘다 —
+    // 상단바(.mobile-topbar)와 하단 액션바가 모두 이 색이라 경계가 보이지 않는다.
+    // 종전 값(#f5f7f2)은 폐기된 틸 브랜드 팔레트 잔재로, 실제 배경(--bg: #eef2f7)과도
+    // 달라 상태바만 미묘하게 초록빛으로 떴다.
+    window.setStatusBarColor(Color.rgb(255, 255, 255));
+    window.setNavigationBarColor(Color.rgb(255, 255, 255));
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
       // false: WebView가 상태바 뒤까지 그려짐(edge-to-edge)

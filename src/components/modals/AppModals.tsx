@@ -18,6 +18,9 @@ import { Question } from '../../hooks/useQuestions';
 import { loadSetQuestions, peekSetQuestions } from '../../utils/questionLoader';
 import { RichText } from '../../utils/parser';
 import { MODE_LABEL } from '../../utils/modeLabel';
+import { formatAnswerList } from '../../utils/answerDisplay';
+import { useBackDismiss } from '../../hooks/useBackDismiss';
+import { BACK_PRIORITY } from '../../utils/backGuard';
 
 // 오답노트 3단계(문항 보기)용 세트 문항 로더 — 본문(useQuestions)과 같은 공용
 // 로더(questionLoader)를 사용해 같은 세트를 다시 내려받지 않는다.
@@ -74,10 +77,11 @@ export const AppModals = () => {
   const {
     setId, mode, activeProduct, histories, resultElapsedSeconds, chapterFilter,
     settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, resumePrompt,
-    quitExamOpen, gradedResume,
+    quitExamOpen, gradedResume, pendingSetChange,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
     setMode, beginSession, clearAnswers, setReviewIds, setSetId, setChapterFilter, setResumePrompt,
     setQuitExamOpen, setGradedResume, setRandomDraw,
+    setPendingSetChange, commitSetChange,
   } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, activeProduct: s.activeProduct, histories: s.histories,
     resultElapsedSeconds: s.resultOpen ? s.elapsedSeconds : 0,
@@ -86,6 +90,7 @@ export const AppModals = () => {
     resultOpen: s.resultOpen, paletteOpen: s.paletteOpen, confirmGradeOpen: s.confirmGradeOpen,
     resumePrompt: s.resumePrompt,
     quitExamOpen: s.quitExamOpen, gradedResume: s.gradedResume,
+    pendingSetChange: s.pendingSetChange,
     setSettingsOpen: s.setSettingsOpen, setStatsOpen: s.setStatsOpen, setWrongNoteOpen: s.setWrongNoteOpen,
     setResultOpen: s.setResultOpen, setPaletteOpen: s.setPaletteOpen, setDrawerOpen: s.setDrawerOpen,
     setConfirmGradeOpen: s.setConfirmGradeOpen, setMode: s.setMode, beginSession: s.beginSession,
@@ -93,6 +98,7 @@ export const AppModals = () => {
     setChapterFilter: s.setChapterFilter, setResumePrompt: s.setResumePrompt,
     setQuitExamOpen: s.setQuitExamOpen, setGradedResume: s.setGradedResume,
     setRandomDraw: s.setRandomDraw,
+    setPendingSetChange: s.setPendingSetChange, commitSetChange: s.commitSetChange,
   })));
   // examLocked — useQuizSession이 단일 원천(게이트·사이드바 잠금과 동일 규칙 집합).
   const { appData, total, answered, correctCount, cstsWeighted, gradeAndShow, examLocked } = useQuizSession();
@@ -110,6 +116,32 @@ export const AppModals = () => {
   const [confirmHomeOpen, setConfirmHomeOpen] = useState(false);
   // 사용설명서 — 게이트 하단 버튼과 동일한 문서를 설정에서도 연다(풀이 중 재열람 경로).
   const [guideOpen, setGuideOpen] = useState(false);
+
+  // 뒤로가기(브라우저·안드로이드 하드웨어)로 오버레이 닫기.
+  // 확인 대화상자·사용설명서는 주 모달 위에서 열리므로 먼저 닫히게 우선순위를 높인다.
+  useBackDismiss(settingsOpen, () => setSettingsOpen(false), BACK_PRIORITY.modal);
+  useBackDismiss(statsOpen, () => setStatsOpen(false), BACK_PRIORITY.modal);
+  useBackDismiss(resultOpen, () => setResultOpen(false), BACK_PRIORITY.modal);
+  useBackDismiss(paletteOpen, () => setPaletteOpen(false), BACK_PRIORITY.modal);
+  useBackDismiss(resumePrompt, () => setResumePrompt(false), BACK_PRIORITY.modal);
+  useBackDismiss(Boolean(gradedResume), () => setGradedResume(null), BACK_PRIORITY.modal);
+  useBackDismiss(confirmGradeOpen, () => setConfirmGradeOpen(false), BACK_PRIORITY.confirm);
+  useBackDismiss(quitExamOpen, () => setQuitExamOpen(false), BACK_PRIORITY.confirm);
+  useBackDismiss(confirmHomeOpen, () => setConfirmHomeOpen(false), BACK_PRIORITY.confirm);
+  useBackDismiss(guideOpen, () => setGuideOpen(false), BACK_PRIORITY.confirm);
+  // 뒤로가기 = 취소(계속 풀기) — 확인 모달의 안전한 기본값이다.
+  useBackDismiss(Boolean(pendingSetChange), () => setPendingSetChange(null), BACK_PRIORITY.confirm);
+  // 오답노트는 3단계(세트 → 오답 목록 → 문항)라 뒤로가기가 한 단계씩 되돌아간다 —
+  // 문항을 보다 뒤로가기를 눌렀을 때 노트가 통째로 닫히면 되짚어 들어가야 한다.
+  useBackDismiss(
+    wrongNoteOpen,
+    () => {
+      if (wrongNoteQuestionNo != null) { setWrongNoteQuestionNo(null); return; }
+      if (wrongNoteSetId != null) { setWrongNoteSetId(null); return; }
+      setWrongNoteOpen(false);
+    },
+    BACK_PRIORITY.modal,
+  );
 
   useEffect(() => {
     document.body.dataset.qfont = fontSize;
@@ -145,8 +177,7 @@ export const AppModals = () => {
     () => latestAttemptComparison(Object.values(productHistories), setId, mode, compareChapter),
     [productHistories, setId, mode, compareChapter],
   );
-  const fmtAns = (arr: string[]) =>
-    arr.length ? arr.map((s) => s.toUpperCase()).join(', ') : '미응답';
+  const fmtAns = (arr: string[]) => formatAnswerList(arr, '미응답');
   // 세트별 "전 회차 오답의 합집합" — 최신 회차만 보여주면 같은 세트를 랜덤으로
   // 재채점했을 때 이전 시험 회차의 오답이 노트에서 사라진다(QA 지적 해소).
   // 같은 문항이 여러 회차에서 틀렸으면 가장 최근 회차의 내 답을 대표로 쓴다.
@@ -355,6 +386,31 @@ export const AppModals = () => {
                 onClick={() => setResumePrompt(false)}
               >
                 이어풀기
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {pendingSetChange && (
+        <Modal title="세트 변경" onClose={() => setPendingSetChange(null)}>
+          <div className="modal-body confirm-body" data-testid="pending-set-change-modal">
+            <p>
+              랜덤 모드로 <strong>{answered}문항</strong>을 푸는 중입니다.
+              세트를 바꾸면 <strong>지금 뽑힌 문항과 답안이 사라집니다</strong>
+              (랜덤은 세트별로 보관하지 않습니다).
+            </p>
+            <div className="confirm-actions">
+              <button type="button" data-testid="pending-set-change-cancel" onClick={() => setPendingSetChange(null)}>
+                계속 풀기
+              </button>
+              <button
+                type="button"
+                className="danger"
+                data-testid="pending-set-change-confirm"
+                onClick={() => commitSetChange(pendingSetChange)}
+              >
+                세트 바꾸기
               </button>
             </div>
           </div>
@@ -604,12 +660,16 @@ export const AppModals = () => {
                         onClick={() => setWrongNoteQuestionNo(it.number)}
                       >
                         <span className="wn-num">문제 {it.number}</span>
-                        <span className="wn-mine">내 답 {fmtAns(it.myAnswer)}</span>
-                        <span className="wn-correct">정답 {fmtAns(it.correctAnswer)}</span>
+                        {/* 내 답·정답을 한 덩어리로 묶는다 — 서답형은 값이 길어 줄바꿈이
+                            필요한데, 형제로 두면 문항 번호·화살표까지 같이 밀려 무너진다. */}
+                        <span className="wn-answers">
+                          <span className="wn-mine">내 답 {fmtAns(it.myAnswer)}</span>
+                          <span className="wn-correct">정답 {fmtAns(it.correctAnswer)}</span>
+                        </span>
                         {overcome && (
                           <span className="wn-overcome-tag" data-testid="wrong-note-overcome-tag">✓ 극복</span>
                         )}
-                        <span className="wns-arrow" aria-hidden="true">›</span>
+                        <span className="wn-arrow" aria-hidden="true">›</span>
                       </button>
                     </li>
                     );
@@ -700,19 +760,26 @@ export const AppModals = () => {
               </div>
             </section>
 
-            <section className="settings-group">
-              <h4>개발자</h4>
-              <label className="settings-toggle">
-                <span>화면 콘솔 표시</span>
-                <input
-                  type="checkbox"
-                  data-testid="debug-toggle"
-                  checked={debugOn}
-                  onChange={(e) => { setDebugEnabled(e.target.checked); setDebugOn(e.target.checked); }}
-                />
-              </label>
-              <p className="settings-hint">콘솔 로그·오류를 화면 우하단 버튼에서 확인합니다. (주소에 <code>?debug</code>로도 켤 수 있음)</p>
-            </section>
+            {/* '화면 콘솔' 토글은 설정에서 뺐다 — 개발자용 도구인데 일반 사용자에게 노출돼
+                있었고, 켜면 문제 화면 위에 떠다니는 버튼이 생겨 풀이를 가렸다.
+                기능 자체는 남아 있다: 주소에 ?debug 를 붙이면 켜지고 ?debug=0 이면 꺼진다
+                (debugLog.ts init). 이미 켜 둔 사용자는 아래 안내로 끌 수 있다. */}
+            {debugOn && (
+              <section className="settings-group">
+                <h4>화면 콘솔</h4>
+                <p className="settings-hint">
+                  개발자용 로그 창이 켜져 있습니다(화면 우하단 <code>&lt;/&gt;</code> 버튼).
+                </p>
+                <button
+                  type="button"
+                  className="settings-action"
+                  data-testid="settings-debug-off"
+                  onClick={() => { setDebugEnabled(false); setDebugOn(false); }}
+                >
+                  화면 콘솔 끄기
+                </button>
+              </section>
+            )}
           </div>
         </Modal>
       )}

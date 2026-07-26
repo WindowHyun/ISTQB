@@ -42,7 +42,6 @@ export interface QuizState {
   examStarted: Record<string, boolean>;
   elapsedSeconds: number;
   lastTick: number | null;
-  startedAt: number | null;
   navCollapsed: boolean;
   // 챕터 집중 연습 필터(Phase 3). null이면 전체. 세트/모드 전환 시 해제되며 영속화하지 않는다.
   chapterFilter: string | null;
@@ -64,6 +63,11 @@ export interface QuizState {
   // 복원한 시험 답안이 최신 채점 회차와 동일할 때 띄우는 "채점 완료된 회차" 안내.
   // 같은 답안 재채점으로 회차가 중복 적립되는 것을 막는다. null이면 비표시.
   gradedResume: { correct: number | null; total: number | null } | null;
+  // 랜덤 진행 중 세트를 바꾸려 할 때, 확인을 받기까지 보류한 대상 세트 id.
+  // 랜덤은 세트별로 추첨을 보관하지 않으므로(F4) 세트를 바꾸면 진행이 사라진다 —
+  // 소리 없이 버리지 않고 한 번 묻는다. null이면 보류 중인 변경이 없다.
+  // 세트 선택은 사이드바, 확인 모달은 AppModals라 스토어가 둘의 접점이다.
+  pendingSetChange: string | null;
   // 랜덤 '새 문제 뽑기' 트리거 — 증가하면 useQuestions가 현재 추첨을 버리고 재추첨한다.
   randomNonce: number;
   // 랜덤 현재 추첨(뽑힌 문항 id 목록)을 영속화해 새로고침 시 같은 문항으로 이어풀게 한다.
@@ -104,6 +108,9 @@ export interface QuizState {
   setResumePrompt: (show: boolean) => void;
   setQuitExamOpen: (open: boolean) => void;
   setGradedResume: (info: QuizState['gradedResume']) => void;
+  setPendingSetChange: (setId: string | null) => void;
+  // 세트 전환(교체 + 새 세션 + 모드별 후처리). 사이드바·확인 모달의 공용 진입점.
+  commitSetChange: (setId: string) => void;
   redrawRandom: () => void;
   setRandomDraw: (draw: QuizState['randomDraw']) => void;
   resetToGate: () => void;
@@ -124,7 +131,7 @@ export const sessionScopeDefaults = () => ({
   randomDraw: null as { setId: string; chapter: string | null; ids: string[] } | null,
 });
 
-export const useQuizStore = create<QuizState>((set) => ({
+export const useQuizStore = create<QuizState>((set, get) => ({
   activeProduct: null,
   mode: 'home',
   setId: '',
@@ -136,7 +143,6 @@ export const useQuizStore = create<QuizState>((set) => ({
   examStarted: {},
   elapsedSeconds: 0,
   lastTick: null,
-  startedAt: null,
   navCollapsed: false,
   chapterFilter: null,
 
@@ -151,6 +157,7 @@ export const useQuizStore = create<QuizState>((set) => ({
   resumePrompt: false,
   quitExamOpen: false,
   gradedResume: null,
+  pendingSetChange: null,
   randomNonce: 0,
   randomDraw: null,
 
@@ -210,7 +217,7 @@ export const useQuizStore = create<QuizState>((set) => ({
       lastTick: now
     };
   }),
-  startTimer: () => set({ startedAt: Date.now(), lastTick: Date.now() }),
+  startTimer: () => set({ lastTick: Date.now() }),
   resetTimer: () => set({ elapsedSeconds: 0, lastTick: Date.now() }),
   beginSession: () => set({ index: 0, elapsedSeconds: 0, lastTick: Date.now() }),
   setNavCollapsed: (navCollapsed) => set({ navCollapsed }),
@@ -226,6 +233,29 @@ export const useQuizStore = create<QuizState>((set) => ({
   setResumePrompt: (resumePrompt) => set({ resumePrompt }),
   setQuitExamOpen: (quitExamOpen) => set({ quitExamOpen }),
   setGradedResume: (gradedResume) => set({ gradedResume }),
+  setPendingSetChange: (pendingSetChange) => set({ pendingSetChange }),
+  // 세트 전환 의례 — 세트 교체 + 새 세션 개시 + 모드별 후처리를 한 곳에 모은다.
+  // 사이드바(즉시 전환)와 확인 모달(랜덤 진행 중 승인 후 전환)이 같은 경로를 타야
+  // 한쪽만 답안 정리를 빠뜨리는 어긋남이 생기지 않는다(beginSession과 같은 이유).
+  commitSetChange: (newSetId) => {
+    const prev = get();
+    // 세트 교체 + 새 세션 개시(beginSession과 동일) + 드로어 닫기 + 보류 해제.
+    set({
+      setId: newSetId, chapterFilter: null,
+      index: 0, elapsedSeconds: 0, lastTick: Date.now(),
+      drawerOpen: false, pendingSetChange: null,
+    });
+    if (prev.mode === 'random') {
+      // 랜덤은 이어풀기 없음 — 바꾼 세트의 랜덤 답안을 비우고 새로 시작한다(F4).
+      get().clearAnswers(newSetId, 'random');
+    } else if (
+      // 바꾼 세트가 시험 모드에 이전 답안을 갖고 있으면 "이어풀기/새로 풀기" 선택 모달을 띄운다.
+      prev.mode === 'exam' &&
+      Object.keys(prev.answers).some((k) => k.startsWith(`${newSetId}-exam-`))
+    ) {
+      set({ resumePrompt: true });
+    }
+  },
   // '새 문제 뽑기' — 세대(nonce)를 올리고 저장된 추첨을 비워 useQuestions가 새로 추첨하게 한다.
   redrawRandom: () => set((state) => ({ randomNonce: state.randomNonce + 1, randomDraw: null })),
   setRandomDraw: (randomDraw) => set({ randomDraw }),
@@ -235,6 +265,7 @@ export const useQuizStore = create<QuizState>((set) => ({
     drawerOpen: false, settingsOpen: false, statsOpen: false,
     wrongNoteOpen: false, resultOpen: false, paletteOpen: false, confirmGradeOpen: false,
     resumeNotice: false, resumePrompt: false, quitExamOpen: false, gradedResume: null,
+    pendingSetChange: null,
     // 제품 게이트로 돌아가면 시험 시작 상태도 리셋(다음 진입 시 시작 게이트 재노출).
     examStarted: {}, chapterFilter: null,
   }),

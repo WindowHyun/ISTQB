@@ -271,14 +271,50 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
     await expect(page.locator("#questionTitle")).toHaveText(titleBefore || "");
   });
 
-  test("랜덤은 세트를 바꿔도 이전 답안 없이 새로 시작한다", async ({ page }) => {
+  test("랜덤 진행 중 세트를 바꾸면 확인을 거쳐 새로 시작한다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await modeBtn(page, "랜덤").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
     await page.locator("#options .option").first().click();
+    await expect(page.locator("#progressText")).toHaveText("1 / 40");
+
     await page.locator("#examSelect").selectOption("ISTQB-FL-V4-C");
+    // 진행이 있으므로 즉시 바뀌지 않고 먼저 묻는다.
+    await expect(page.getByTestId("pending-set-change-modal")).toBeVisible();
+    await page.getByTestId("pending-set-change-confirm").click();
+
+    await expect(page.getByTestId("pending-set-change-modal")).toHaveCount(0);
     await expect(page.locator("#questionStem")).toBeVisible();
     await expect(page.getByTestId("resume-prompt-modal")).toHaveCount(0);
+    await expect(page.locator("#progressText")).toHaveText("0 / 40");
+    await expect(page.locator("#examSelect")).toHaveValue("ISTQB-FL-V4-C");
+  });
+
+  test("랜덤 세트 변경을 취소하면 원래 세트와 진행이 그대로 남는다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "랜덤").click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
+    await page.locator("#options .option").first().click();
+    await expect(page.locator("#progressText")).toHaveText("1 / 40");
+
+    await page.locator("#examSelect").selectOption("ISTQB-FL-V4-C");
+    await expect(page.getByTestId("pending-set-change-modal")).toBeVisible();
+    await page.getByTestId("pending-set-change-cancel").click();
+
+    await expect(page.getByTestId("pending-set-change-modal")).toHaveCount(0);
+    // 세트 선택도 원래대로 되돌아가야 한다(제어 컴포넌트).
+    await expect(page.locator("#examSelect")).toHaveValue("ISTQB-FL-V4-A");
+    await expect(page.locator("#progressText")).toHaveText("1 / 40");
+  });
+
+  test("랜덤에 진행이 없으면 세트 변경을 묻지 않는다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "랜덤").click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
+    // 한 문항도 풀지 않은 상태 — 잃을 게 없으므로 바로 바뀐다.
+    await page.locator("#examSelect").selectOption("ISTQB-FL-V4-C");
+    await expect(page.getByTestId("pending-set-change-modal")).toHaveCount(0);
+    await expect(page.locator("#examSelect")).toHaveValue("ISTQB-FL-V4-C");
     await expect(page.locator("#progressText")).toHaveText("0 / 40");
   });
 });
@@ -349,18 +385,41 @@ test.describe("코드리뷰 수정 회귀 — 오답 목록 보존·가드 이�
   });
 });
 
-test.describe("학습 UX — 채점 결과 줄바꿈 없음(#5)", () => {
-  test("점수·합격 기준 값이 한 줄로(줄바꿈 없이) 표시된다", async ({ page }) => {
+test.describe("학습 UX — 채점 결과 줄바꿈(#5)", () => {
+  test("점수 값은 한 줄로(줄바꿈 없이) 표시된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await enterExam(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     const result = page.getByTestId("result-summary");
     await expect(result).toBeVisible({ timeout: 8_000 });
-    // 합격 기준·점수 값은 white-space:nowrap 으로 줄바꿈되지 않는다.
-    for (const sel of [".result-criterion", '[data-testid="result-score"]']) {
-      const ws = await result.locator(sel).evaluate((el) => getComputedStyle(el).whiteSpace);
-      expect(ws).toBe("nowrap");
+    // 점수는 수치라 "58.5 /" 뒤에서 끊기면 안 된다.
+    const ws = await result
+      .locator('[data-testid="result-score"]')
+      .evaluate((el) => getComputedStyle(el).whiteSpace);
+    expect(ws).toBe("nowrap");
+  });
+
+  test("합격 기준 설명은 좁은 화면에서 잘리지 않고 줄바꿈된다", async ({ page }) => {
+    // CSTS 기준 문구는 가장 길다 — 한 줄로 두면 좁은 화면에서 칸 밖으로 잘려 나갔다.
+    await openSet(page, "CSTS", "CSTS-FL-2405");
+    await enterExam(page);
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    const result = page.getByTestId("result-summary");
+    await expect(result).toBeVisible({ timeout: 8_000 });
+
+    const criterion = result.locator(".result-criterion");
+    for (const width of [390, 360, 320]) {
+      await page.setViewportSize({ width, height: 800 });
+      const m = await criterion.evaluate((el) => ({
+        textW: el.scrollWidth,
+        cellW: (el.parentElement as HTMLElement).clientWidth,
+      }));
+      // 1px 여유: 소수 픽셀 반올림.
+      expect(m.textW, `${width}px에서 기준 문구가 칸을 넘침`).toBeLessThanOrEqual(m.cellW + 1);
     }
+    // 문구가 통째로 남아 있는지(잘라내기·생략 부호로 때우지 않았는지) 확인.
+    await expect(criterion).toContainText("100점 만점 기준 75점");
   });
 });

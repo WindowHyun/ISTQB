@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../../store/useQuizStore';
 import { Question } from '../../hooks/useQuestions';
 import { isQuestionCorrect } from '../../utils/answer';
+import { formatAnswerList } from '../../utils/answerDisplay';
 import { RichText } from '../../utils/parser';
 import { openImageLightbox } from '../../utils/lightbox';
 
@@ -121,7 +122,7 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
   const correct = isQuestionCorrect(question.answer, selected, question.type, parts);
   const answerDisplay = isMultiPart
     ? parts!.map((p) => `${p.label} ${p.answer[0] ?? ''}`).join(' · ')
-    : question.answer.join(', ').toUpperCase();
+    : formatAnswerList(question.answer);
 
   // figure 필드와 stem 내 이미지가 같은 파일을 가리키면 중복 렌더 방지(#2).
   const stemHasFigure =

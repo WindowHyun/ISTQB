@@ -99,7 +99,6 @@ describe("useQuizStore 세션/네비/타이머 액션", () => {
   it("startTimer/resetTimer는 기준 시각과 경과를 관리한다", () => {
     useQuizStore.getState().startTimer();
     const st = useQuizStore.getState();
-    expect(st.startedAt).not.toBeNull();
     expect(st.lastTick).not.toBeNull();
     useQuizStore.setState({ elapsedSeconds: 42 });
     useQuizStore.getState().resetTimer();
@@ -141,5 +140,49 @@ describe("useQuizStore 세션/네비/타이머 액션", () => {
     expect(st.index).toBe(9);
     expect(st.elapsedSeconds).toBe(100);
     expect(st.setId).toBe("S"); // 미지정 필드 보존
+  });
+  it("commitSetChange는 세트 교체와 새 세션 개시를 함께 처리한다", () => {
+    useQuizStore.setState({
+      mode: "practice", setId: "A", index: 7, elapsedSeconds: 120,
+      chapterFilter: "테스트 기법", drawerOpen: true, pendingSetChange: "B",
+    });
+    useQuizStore.getState().commitSetChange("B");
+    const st = useQuizStore.getState();
+    expect(st.setId).toBe("B");
+    expect(st.index).toBe(0);
+    expect(st.elapsedSeconds).toBe(0);
+    expect(st.chapterFilter).toBeNull();
+    expect(st.drawerOpen).toBe(false);
+    expect(st.pendingSetChange).toBeNull(); // 보류 해제
+  });
+
+  it("commitSetChange는 랜덤 모드에서 바꾼 세트의 답안을 비운다(이어풀기 없음, F4)", () => {
+    useQuizStore.setState({
+      mode: "random", setId: "A",
+      answers: { "A-random-q1": ["a"], "B-random-q9": ["c"], "B-exam-q1": ["b"] },
+      graded: { "B-random": true },
+      pendingSetChange: "B",
+    });
+    useQuizStore.getState().commitSetChange("B");
+    const st = useQuizStore.getState();
+    expect(st.answers["B-random-q9"]).toBeUndefined(); // 바꾼 세트의 랜덤 답안은 초기화
+    expect(st.answers["B-exam-q1"]).toEqual(["b"]);    // 다른 모드는 건드리지 않는다
+    expect(st.graded["B-random"]).toBe(false);
+    expect(st.resumePrompt).toBe(false);               // 랜덤은 이어풀기를 묻지 않는다
+  });
+
+  it("commitSetChange는 시험 모드에서 이전 답안이 있으면 이어풀기를 묻는다", () => {
+    useQuizStore.setState({
+      mode: "exam", setId: "A", resumePrompt: false,
+      answers: { "B-exam-q1": ["a"] },
+    });
+    useQuizStore.getState().commitSetChange("B");
+    expect(useQuizStore.getState().resumePrompt).toBe(true);
+  });
+
+  it("commitSetChange는 시험 모드라도 이전 답안이 없으면 묻지 않는다", () => {
+    useQuizStore.setState({ mode: "exam", setId: "A", resumePrompt: false, answers: {} });
+    useQuizStore.getState().commitSetChange("B");
+    expect(useQuizStore.getState().resumePrompt).toBe(false);
   });
 });

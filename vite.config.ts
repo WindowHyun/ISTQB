@@ -45,8 +45,11 @@ export default defineConfig({
         short_name: 'Practice',
         description: 'ISTQB·CSTS 자격증 기출 문제풀이 CBT 학습 앱',
         lang: 'ko',
-        theme_color: '#166064',
-        background_color: '#f5f7f2',
+        // 디자인 토큰과 맞춘 값 — theme_color는 상태바 아래 상단바 배경(--surface),
+        // background_color는 스플래시로 쓰이는 페이지 배경(--bg)이다.
+        // 종전 값(#166064 틸 / #f5f7f2 연녹)은 모두 폐기된 구 브랜드 팔레트 잔재였다.
+        theme_color: '#ffffff',
+        background_color: '#eef2f7',
         display: 'standalone',
         // PNG를 우선 선언 — SVG-only 매니페스트는 일부 Android 런처/구형 WebView에서
         // 설치 아이콘 렌더가 불안정하다. maskable은 안전영역 검증 전이라 선언하지 않는다.

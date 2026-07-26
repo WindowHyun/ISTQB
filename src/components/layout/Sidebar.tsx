@@ -23,7 +23,8 @@ export const Sidebar = () => {
     mode, setId, activeProduct, drawerOpen,
     setMode, setSetId, beginSession, clearAnswers,
     setStatsOpen, setSettingsOpen, setWrongNoteOpen, setResultOpen, setDrawerOpen,
-    setResumePrompt, setQuitExamOpen, redrawRandom, setRandomDraw,
+    setQuitExamOpen, redrawRandom, setRandomDraw,
+    setPendingSetChange, commitSetChange,
   } = useQuizStore(useShallow((s) => ({
     mode: s.mode, setId: s.setId, activeProduct: s.activeProduct, drawerOpen: s.drawerOpen,
     setMode: s.setMode, setSetId: s.setSetId, beginSession: s.beginSession,
@@ -31,8 +32,9 @@ export const Sidebar = () => {
     setStatsOpen: s.setStatsOpen, setSettingsOpen: s.setSettingsOpen,
     setWrongNoteOpen: s.setWrongNoteOpen, setResultOpen: s.setResultOpen,
     setDrawerOpen: s.setDrawerOpen,
-    setResumePrompt: s.setResumePrompt, setQuitExamOpen: s.setQuitExamOpen,
+    setQuitExamOpen: s.setQuitExamOpen,
     redrawRandom: s.redrawRandom, setRandomDraw: s.setRandomDraw,
+    setPendingSetChange: s.setPendingSetChange, commitSetChange: s.commitSetChange,
   })));
   const asideRef = React.useRef<HTMLElement>(null);
 
@@ -88,19 +90,22 @@ export const Sidebar = () => {
   const handleSetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     // 세트를 바꿔도 현재 모드는 유지한다(연습으로 초기화하지 않음, #2).
     const newSetId = e.target.value;
-    setSetId(newSetId);
-    beginSession();
-    closeDrawer();
-    if (mode === 'random') {
-      // 랜덤은 이어풀기 없음 — 세트를 바꾸면 그 세트의 랜덤 답안을 비우고 새로 시작한다(F4).
-      clearAnswers(newSetId, 'random');
-    } else if (
-      // 바꾼 세트가 시험 모드에 이전 답안을 갖고 있으면 "이어풀기/새로 풀기" 선택 모달을 띄운다.
-      mode === 'exam' &&
-      Object.keys(useQuizStore.getState().answers).some((k) => k.startsWith(`${newSetId}-exam-`))
-    ) {
-      setResumePrompt(true);
+    // 랜덤은 세트별로 추첨을 보관하지 않아(F4) 세트를 바꾸면 지금 푸는 문항이 통째로
+    // 사라진다. 진행이 있는데 아직 채점 전이면 소리 없이 버리지 않고 한 번 묻는다.
+    // (select는 value={setId} 제어 컴포넌트라 여기서 반환하면 표시가 원래 세트로 되돌아간다)
+    if (mode === 'random' && hasRandomProgress()) {
+      setPendingSetChange(newSetId);
+      return;
     }
+    commitSetChange(newSetId);
+  };
+
+  // 랜덤 진행 중 판정 — 현재 세트에 답한 문항이 있고 아직 채점하지 않은 상태.
+  // 채점 후에는 결과를 이미 봤으므로 세트 변경을 막을 이유가 없다.
+  const hasRandomProgress = () => {
+    const s = useQuizStore.getState();
+    if (s.graded[`${setId}-random`]) return false;
+    return Object.keys(s.answers).some((k) => k.startsWith(`${setId}-random-`));
   };
 
   const handleModeChange = (newMode: typeof mode) => {

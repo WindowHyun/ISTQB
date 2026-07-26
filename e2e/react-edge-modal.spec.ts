@@ -119,15 +119,25 @@ test.describe("엣지-모달", () => {
     await expect(dialog).toHaveAttribute("aria-modal", "true");
   });
 
-  test("설정의 '화면 콘솔 표시' 토글로 콘솔을 켜고 끌 수 있다", async ({ page }) => {
+  test("설정에는 화면 콘솔을 켜는 토글이 없다(개발자용 — ?debug 로만 켠다)", async ({ page }) => {
     await openProduct(page, "ISTQB");
     await page.getByRole("button", { name: /설정/ }).click();
-    await page.getByTestId("debug-toggle").check();
-    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("debug-toggle")).toHaveCount(0);
+    // 꺼져 있으면 관련 안내도 나오지 않는다.
+    await expect(page.getByTestId("settings-debug-off")).toHaveCount(0);
+  });
+
+  test("?debug 로 켜 둔 사용자는 설정에서 화면 콘솔을 끌 수 있다", async ({ page }) => {
+    await page.goto("/?debug");
+    await page.getByRole("button", { name: "ISTQB" }).click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId("debug-fab")).toBeVisible({ timeout: 5_000 });
-    await page.getByTestId("debug-fab").click();
-    await page.getByTestId("debug-off").click();
+
+    await page.getByRole("button", { name: /설정/ }).click();
+    await page.getByTestId("settings-debug-off").click();
     await expect(page.getByTestId("debug-fab")).toHaveCount(0);
+    // 안내 자체도 사라진다(꺼진 상태에서는 노출하지 않음).
+    await expect(page.getByTestId("settings-debug-off")).toHaveCount(0);
   });
 
   test("오답 노트에서 문항 클릭 → 팝업 안에서 문제·내 답·정답을 본다", async ({ page }) => {
@@ -217,5 +227,52 @@ test.describe("엣지-모달", () => {
     await expect(page.getByTestId("palette-jump")).toHaveCount(0);
     await page.keyboard.press("ArrowRight");
     await expect(title).not.toHaveText(before);
+  });
+});
+
+// 오답 노트 목록 레이아웃 — 서답형처럼 정답이 길면 한국어가 글자 단위로 끊겨
+// "문제 66"이 세로로 쪼개지고 화살표가 다음 줄로 떨어지던 회귀를 막는다.
+test.describe("엣지-오답노트 레이아웃", () => {
+  test("긴 서답형 정답이 있어도 문항 번호가 한 줄로 유지되고 화살표가 같은 줄에 남는다", async ({ page }) => {
+    // CSTS 2405는 서답형 정답이 길다(예: "동등 분할, Equivalence partitioning").
+    await openSet(page, "CSTS", "CSTS-FL-2405");
+    await enterExam(page);
+    await submitGrade(page); // 전부 미응답 → 전 문항 오답
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+
+    await page.getByRole("button", { name: "오답 노트" }).click();
+    await page.getByTestId("wrong-note-set-btn").first().click();
+    const items = page.getByTestId("wrong-note-item-btn");
+    await expect(items.first()).toBeVisible();
+
+    // 회귀가 나던 폭 구간(구 grid 3열이 살아 있던 561px 이상 포함).
+    for (const width of [600, 560, 430, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.waitForTimeout(120);
+
+      const worst = await items.evaluateAll((els) => {
+        let numLines = 1;
+        let arrowOffRow = 0;
+        let overflow = 0;
+        for (const el of els.slice(0, 12)) {
+          const num = el.querySelector<HTMLElement>(".wn-num");
+          const arrow = el.querySelector<HTMLElement>(".wn-arrow");
+          if (!num || !arrow) continue;
+          const lh = parseFloat(getComputedStyle(num).lineHeight) || 16;
+          numLines = Math.max(numLines, Math.round(num.getBoundingClientRect().height / lh));
+          // 화살표 중심이 번호 줄 범위를 벗어나면 다른 줄로 떨어진 것.
+          const n = num.getBoundingClientRect();
+          const a = arrow.getBoundingClientRect();
+          const aMid = a.top + a.height / 2;
+          if (aMid < n.top - 2 || aMid > n.bottom + 2) arrowOffRow += 1;
+          if (el.scrollWidth > el.clientWidth + 1) overflow += 1;
+        }
+        return { numLines, arrowOffRow, overflow };
+      });
+
+      expect(worst.numLines, `${width}px에서 문항 번호가 ${worst.numLines}줄로 쪼개짐`).toBe(1);
+      expect(worst.arrowOffRow, `${width}px에서 화살표가 번호와 다른 줄로 떨어짐`).toBe(0);
+      expect(worst.overflow, `${width}px에서 항목이 가로로 넘침`).toBe(0);
+    }
   });
 });

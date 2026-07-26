@@ -738,9 +738,13 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 }
 .wrong-note-set small { font-size: 12px; font-weight: 600; color: var(--muted); }
 .wrong-note-list { display: flex; flex-direction: column; gap: 8px; }
+/* 항목은 [문항번호] [내 답·정답] [극복 배지] [화살표] 한 줄 구성.
+   grid로 고정 열을 잡았을 때는 서답형처럼 긴 정답이 들어오면 번호 열이 min-content까지
+   찌그러졌다 — 한국어는 글자 사이에서 줄바꿈되므로 min-content가 '한 글자'라
+   "문제 66"이 세로로 쪼개졌다. flex + flex:none으로 번호·화살표를 고정하고,
+   답 덩어리만 남는 폭에서 줄바꿈되게 한다. */
 .wrong-note-item {
-  display: grid;
-  grid-template-columns: auto 1fr 1fr;
+  display: flex;
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
@@ -749,19 +753,15 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
   background: var(--surface-2);
   font-size: 13px;
 }
-.wn-num { font-weight: 800; color: var(--text); }
-.wn-mine { color: var(--danger); font-weight: 600; }
-.wn-correct { color: var(--success); font-weight: 700; text-align: right; }
-@media (max-width: 560px) {
-  .wrong-note-item { grid-template-columns: 1fr; gap: 4px; }
-  .wn-correct { text-align: left; }
-  /* 한 줄로 흐를 때 '내 답'과 '정답' 사이 숨통 — 붙어 보이는 답답함 해소. */
-  .wn-mine { margin-right: 10px; }
-}
+.wn-num { flex: none; font-weight: 800; color: var(--text); white-space: nowrap; }
+/* min-width:0 — 이게 없으면 flex 항목이 콘텐츠보다 작아지지 못해 답이 칸을 밀어낸다. */
+.wn-answers { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; gap: 2px 14px; }
+/* keep-all: 한국어 단어가 중간에서 끊기지 않게(“테스트 결과 / 분석”은 되고 “결과 분 / 석”은 안 됨). */
+.wn-mine { color: var(--danger); font-weight: 600; word-break: keep-all; }
+.wn-correct { color: var(--success); font-weight: 700; word-break: keep-all; }
 /* 2단계 목록 항목을 버튼화(클릭 → 3단계 문항 보기). 기존 카드 룩 유지. */
 .wrong-note-item-btn {
   width: 100%;
-  grid-template-columns: auto 1fr 1fr auto;
   text-align: left;
   cursor: pointer;
   font: inherit;
@@ -769,9 +769,12 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
   transition: border-color .15s ease, background .15s ease;
 }
 .wrong-note-item-btn:hover { border-color: var(--primary); background: var(--surface); }
-@media (max-width: 560px) { .wrong-note-item-btn { grid-template-columns: 1fr; } }
+/* 목록 항목의 화살표 — 세트 버튼의 .wns-arrow와 달리 grid-area를 쓰지 않는다.
+   (종전에는 .wns-arrow를 재사용해 grid-area:arrow가 이 grid엔 없는 이름이라
+   자동 배치로 밀려나 화살표만 다음 줄에 떨어졌다) */
+.wn-arrow { flex: none; font-size: 22px; color: var(--muted); line-height: 1; }
 /* 극복(최근 시험 2회 연속 정답) 문항 — 목록에는 남기되 흐리게 + 배지로 상태 구분. */
-.wn-overcome .wrong-note-item-btn { opacity: 0.62; grid-template-columns: auto 1fr 1fr auto auto; }
+.wn-overcome .wrong-note-item-btn { opacity: 0.62; }
 .wn-overcome .wrong-note-item-btn:hover { opacity: 1; }
 .wn-overcome-tag {
   padding: 2px 9px;
@@ -1342,10 +1345,12 @@ body[data-theme="dark"] .mtb-chip { background: #1e40af; }
 
 /* 챕터별 정답률(약점 분석, Phase 3) */
 .stats-chapters { margin: 14px 0 4px; }
-.stats-chapters h4,
-.stats-trend h4 { font-size: 13px; font-weight: 800; color: var(--text-2); margin-bottom: 8px; }
-.stats-chapters h4 small,
-.stats-trend h4 small { font-weight: 600; color: var(--muted); margin-left: 6px; }
+.stats-chapters h4 { font-size: 13px; font-weight: 800; color: var(--text-2); margin-bottom: 8px; }
+.stats-chapters h4 small { font-weight: 600; color: var(--muted); margin-left: 6px; }
+/* 두 버튼의 차이 설명 — 종전엔 title(툴팁)뿐이라 모바일에서는 볼 수 없었다. */
+.sc-legend { margin: 0 2px 8px; }
+.sc-legend strong { color: var(--text-2); font-weight: 800; }
+.sc-locked { margin: 0 2px 8px; color: var(--warning); font-weight: 700; }
 .stats-chapters ul { display: flex; flex-direction: column; gap: 6px; }
 .stats-chapters li {
   display: grid;
@@ -1397,27 +1402,6 @@ body[data-theme="dark"] .mtb-chip { background: #1e40af; }
   .stats-chapters .sc-bar { display: none; }
 }
 .stats-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
-
-/* 정답률 추이 미니 바(왼쪽=과거) */
-.stats-trend { margin: 14px 0 4px; }
-.trend-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 5px;
-  height: 64px;
-  padding: 6px 8px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
-}
-.trend-bars i {
-  flex: 1;
-  max-width: 26px;
-  background: var(--primary);
-  border-radius: 4px 4px 0 0;
-  opacity: 0.85;
-}
-.trend-bars i.weak { background: var(--danger, #c0392b); }
 
 /* 세트별 회차 타임라인(Phase 2 학습 누적) */
 .stats-timelines { margin: 14px 0 4px; display: flex; flex-direction: column; gap: 10px; }
@@ -1529,9 +1513,25 @@ body[data-theme="dark"] .mtb-chip { background: #1e40af; }
   background: var(--surface-2);
 }
 .result-metrics dt { color: var(--muted); font-size: 13px; font-weight: 600; white-space: nowrap; }
-/* 값은 줄바꿈 없이 한 줄로 표시한다(#5). 긴 값(점수·합격 기준)은 가로 전체를 쓴다. */
+/* 수치 값은 줄바꿈 없이 한 줄로 표시한다(#5) — "58.5 /" 뒤에서 끊기면 점수로 안 읽힌다.
+   긴 값(점수·합격 기준)은 가로 전체를 쓴다. */
 .result-metrics dd { margin: 0; font-weight: 800; color: var(--text); font-size: 14px; white-space: nowrap; }
 .result-metric-wide { grid-column: 1 / -1; }
+/* 합격 기준만은 수치가 아니라 설명문이라 예외 — CSTS 라벨은 한 줄로 두면 좁은 화면에서
+   629px가 필요해 칸(≈308px) 밖으로 잘려 나간다. 여러 줄로 흘리되 한국어 단어가
+   중간에서 끊기지 않게 하고(keep-all), 긴 괄호구는 마지막 수단으로 강제 줄바꿈한다. */
+.result-metrics dd.result-criterion {
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+  text-align: right;
+}
+/* 설명문이 길어지면 라벨과 값을 위아래로 쌓아 값이 쓸 폭을 확보한다. */
+@media (max-width: 480px) {
+  .result-metrics > div:has(.result-criterion) { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .result-metrics dd.result-criterion { text-align: left; }
+}
 /* flex-wrap: 버튼 3개(다시 풀기 추가) + 좁은 화면에서 가로 넘침 방지. */
 .result-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .result-actions button {

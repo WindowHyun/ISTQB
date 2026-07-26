@@ -56,3 +56,7 @@ coverage/
 /public/icons/
 reports/
 .stryker-tmp/
+
+# 로컬 전용 Playwright 설정 — 사전 설치 Chromium 경로(executablePath)를 주입하는
+# 임시 파일. 환경마다 브라우저 위치가 달라 저장소에 들어가면 CI가 깨진다.
+/pw.local.config.ts

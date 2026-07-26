@@ -4,7 +4,10 @@ import { useQuizStore } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { flushPersist } from '../../utils/storage';
 import { showToast } from '../../utils/toast';
-import { examLimitSeconds, examLimitLabel, remainingSeconds, EXAM_WARN_THRESHOLDS_SEC } from '../../utils/examTime';
+import {
+  examLimitSeconds, examLimitLabel, remainingSeconds,
+  crossedWarnThreshold, EXAM_AWAY_NOTICE_SEC,
+} from '../../utils/examTime';
 import { formatClock } from '../../utils/time';
 import { QuestionCard } from './QuestionCard';
 import { QuestionPalette } from './QuestionPalette';
@@ -65,11 +68,9 @@ export const QuestionWorkspace = () => {
         return;
       }
       if (prev == null) return; // 첫 틱은 기준선만 잡는다(재응시 직후 오발화 방지)
-      for (const t of EXAM_WARN_THRESHOLDS_SEC) {
-        if (prev > t && remaining <= t) {
-          showToast(`시험 종료까지 ${formatClock(t)} 남았습니다.`, 'info', 4000);
-          break;
-        }
+      const crossed = crossedWarnThreshold(prev, remaining);
+      if (crossed != null) {
+        showToast(`시험 종료까지 ${formatClock(crossed)} 남았습니다.`, 'info', 4000);
       }
     };
 
@@ -83,7 +84,25 @@ export const QuestionWorkspace = () => {
         flushPersist(); // 경과 시간을 이 시점에 저장(#71)
         clearInterval(interval);
       } else {
+        // 시험 모드는 자리를 비운 시간도 제한시간에 포함한다 — 그러지 않으면 앱을
+        // 잠깐 전환하는 것만으로 시계가 멈춰 60분/90분 제한을 무한히 늘릴 수 있다.
+        // (연습·랜덤·오답은 소요 시간이 학습 참고치라 종전대로 보는 동안만 센다.)
+        // tickTimer는 lastTick과의 실제 경과(벽시계)를 더하므로, startTimer로
+        // lastTick을 초기화하기 '전에' 불러야 비운 시간이 반영된다.
+        if (examLimit != null) {
+          const before = useQuizStore.getState().elapsedSeconds;
+          tickTimer();
+          const away = useQuizStore.getState().elapsedSeconds - before;
+          if (away >= EXAM_AWAY_NOTICE_SEC) {
+            showToast(
+              `자리를 비운 ${formatClock(Math.round(away))}도 시험 시간에 포함됐습니다.`,
+              'info',
+              4000,
+            );
+          }
+        }
         startTimer();
+        checkExamDeadline(); // 비운 사이에 제한시간이 끝났으면 즉시 제출한다
         interval = setInterval(tick, 1000);
       }
     };
