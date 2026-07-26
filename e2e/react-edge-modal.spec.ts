@@ -119,15 +119,25 @@ test.describe("엣지-모달", () => {
     await expect(dialog).toHaveAttribute("aria-modal", "true");
   });
 
-  test("설정의 '화면 콘솔 표시' 토글로 콘솔을 켜고 끌 수 있다", async ({ page }) => {
+  test("설정에는 화면 콘솔을 켜는 토글이 없다(개발자용 — ?debug 로만 켠다)", async ({ page }) => {
     await openProduct(page, "ISTQB");
     await page.getByRole("button", { name: /설정/ }).click();
-    await page.getByTestId("debug-toggle").check();
-    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("debug-toggle")).toHaveCount(0);
+    // 꺼져 있으면 관련 안내도 나오지 않는다.
+    await expect(page.getByTestId("settings-debug-off")).toHaveCount(0);
+  });
+
+  test("?debug 로 켜 둔 사용자는 설정에서 화면 콘솔을 끌 수 있다", async ({ page }) => {
+    await page.goto("/?debug");
+    await page.getByRole("button", { name: "ISTQB" }).click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId("debug-fab")).toBeVisible({ timeout: 5_000 });
-    await page.getByTestId("debug-fab").click();
-    await page.getByTestId("debug-off").click();
+
+    await page.getByRole("button", { name: /설정/ }).click();
+    await page.getByTestId("settings-debug-off").click();
     await expect(page.getByTestId("debug-fab")).toHaveCount(0);
+    // 안내 자체도 사라진다(꺼진 상태에서는 노출하지 않음).
+    await expect(page.getByTestId("settings-debug-off")).toHaveCount(0);
   });
 
   test("오답 노트에서 문항 클릭 → 팝업 안에서 문제·내 답·정답을 본다", async ({ page }) => {

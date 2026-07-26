@@ -1349,6 +1349,10 @@ body[data-theme="dark"] .mtb-chip { background: #1e40af; }
 .stats-trend h4 { font-size: 13px; font-weight: 800; color: var(--text-2); margin-bottom: 8px; }
 .stats-chapters h4 small,
 .stats-trend h4 small { font-weight: 600; color: var(--muted); margin-left: 6px; }
+/* 두 버튼의 차이 설명 — 종전엔 title(툴팁)뿐이라 모바일에서는 볼 수 없었다. */
+.sc-legend { margin: 0 2px 8px; }
+.sc-legend strong { color: var(--text-2); font-weight: 800; }
+.sc-locked { margin: 0 2px 8px; color: var(--warning); font-weight: 700; }
 .stats-chapters ul { display: flex; flex-direction: column; gap: 6px; }
 .stats-chapters li {
   display: grid;

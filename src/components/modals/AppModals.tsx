@@ -760,19 +760,26 @@ export const AppModals = () => {
               </div>
             </section>
 
-            <section className="settings-group">
-              <h4>개발자</h4>
-              <label className="settings-toggle">
-                <span>화면 콘솔 표시</span>
-                <input
-                  type="checkbox"
-                  data-testid="debug-toggle"
-                  checked={debugOn}
-                  onChange={(e) => { setDebugEnabled(e.target.checked); setDebugOn(e.target.checked); }}
-                />
-              </label>
-              <p className="settings-hint">콘솔 로그·오류를 화면 우하단 버튼에서 확인합니다. (주소에 <code>?debug</code>로도 켤 수 있음)</p>
-            </section>
+            {/* '화면 콘솔' 토글은 설정에서 뺐다 — 개발자용 도구인데 일반 사용자에게 노출돼
+                있었고, 켜면 문제 화면 위에 떠다니는 버튼이 생겨 풀이를 가렸다.
+                기능 자체는 남아 있다: 주소에 ?debug 를 붙이면 켜지고 ?debug=0 이면 꺼진다
+                (debugLog.ts init). 이미 켜 둔 사용자는 아래 안내로 끌 수 있다. */}
+            {debugOn && (
+              <section className="settings-group">
+                <h4>화면 콘솔</h4>
+                <p className="settings-hint">
+                  개발자용 로그 창이 켜져 있습니다(화면 우하단 <code>&lt;/&gt;</code> 버튼).
+                </p>
+                <button
+                  type="button"
+                  className="settings-action"
+                  data-testid="settings-debug-off"
+                  onClick={() => { setDebugEnabled(false); setDebugOn(false); }}
+                >
+                  화면 콘솔 끄기
+                </button>
+              </section>
+            )}
           </div>
         </Modal>
       )}

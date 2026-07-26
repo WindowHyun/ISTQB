@@ -108,9 +108,21 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
 
             {chapterRows.length > 0 && (
               <section className="stats-chapters" aria-label="챕터별 정답률" data-testid="stats-chapters">
-                {/* 진단은 전 세트 합산, '연습'·'미니 시험' 진입은 현재 세트 한정 — 기준 차이를 라벨로 명시(A1).
-                    연습은 기록 없음 / 미니 시험(10문항)은 채점 시 챕터 통계에 반영 — 약점 재측정 경로. */}
-                <h4>챕터별 정답률 <small>전 세트 합산 · 낮은 순 — 연습은 기록 없음 · 미니 시험은 통계 반영</small></h4>
+                {/* 진단은 전 세트 합산, '연습'·'미니 시험' 진입은 현재 세트 한정(A1).
+                    두 버튼의 차이는 종전에 title(툴팁)에만 있었는데, 모바일은 hover가 없어
+                    툴팁이 뜨지 않는다 — 폰으로 쓰는 사용자는 차이를 알 방법이 없었다.
+                    화면에 보이는 설명으로 옮기고, 제목은 '왜 쓰는지'를 먼저 말한다. */}
+                <h4>약한 챕터부터 <small>전 세트 합산 · 정답률 낮은 순</small></h4>
+                <p className="stats-hint sc-legend">
+                  <strong>연습</strong>은 그 챕터 문항을 해설과 함께 익히는 용도예요(기록에 남지 않습니다).
+                  {' '}<strong>미니 시험</strong>은 그 챕터에서 10문항을 뽑아 채점해 정답률을 다시 잽니다.
+                </p>
+                {/* 잠금 사유도 종전엔 툴팁뿐이라 모바일에서는 "버튼이 왜 안 눌리지"로만 보였다. */}
+                {practiceLocked && (
+                  <p className="stats-hint sc-locked" data-testid="stats-chapter-locked">
+                    시험 응시 중에는 시작할 수 없어요. 먼저 채점하세요.
+                  </p>
+                )}
                 <ul>
                   {chapterRows.map((ch) => (
                     <li key={ch.name} className={ch.rate < weakThreshold ? 'weak' : ''} data-testid="stats-chapter-row">
@@ -119,11 +131,14 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
                         <i style={{ width: `${ch.rate}%` }} />
                       </span>
                       <span className="sc-rate">{ch.rate}% <small>({ch.c}/{ch.t})</small></span>
+                      {/* aria-label: 행마다 같은 글자("연습")가 반복돼 스크린리더로는
+                          어느 챕터의 버튼인지 알 수 없다 — 챕터명을 함께 읽어준다. */}
                       <button
                         type="button"
                         className="sc-practice"
                         data-testid="chapter-practice-btn"
                         disabled={practiceLocked}
+                        aria-label={`${ch.name} 연습`}
                         title={practiceLocked
                           ? '시험 응시 중에는 집중 연습을 시작할 수 없습니다. 먼저 채점하세요.'
                           : `현재 세트에서 '${ch.name}' 문항만 연습 (통계 미기록)`}
@@ -136,6 +151,7 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
                         className="sc-minitest"
                         data-testid="chapter-minitest-btn"
                         disabled={practiceLocked}
+                        aria-label={`${ch.name} 미니 시험`}
                         title={practiceLocked
                           ? '시험 응시 중에는 미니 시험을 시작할 수 없습니다. 먼저 채점하세요.'
                           : `'${ch.name}' 10문항 미니 시험 — 채점하면 챕터 통계에 반영`}
