@@ -317,13 +317,9 @@ export const QuestionWorkspace = () => {
         {!navCollapsed && <QuestionPalette withId />}
       </section>
 
-      {/* 모바일 전용: 하단 고정 액션바 + 플로팅 점프핀(CSS로 ≤880px만 노출) */}
-      <button type="button" className="jump-pin" data-testid="jump-pin" aria-label="문항 이동" onClick={() => setPaletteOpen(true)}>
-        <span className="jp-dot" aria-hidden="true" />{safeIndex + 1} / {total}
-      </button>
-
-      {/* B안: 순차 이동(‹ ›)·채점은 하단 액션바, 랜덤 점프는 우하단 핀으로 역할 분리.
-          연습/오답 모드(채점 없음)에서는 중앙을 비워 ‹ ›가 넓게 차지한다. */}
+      {/* 모바일 전용: 하단 고정 액션바(CSS로 ≤880px만 노출).
+          순차 이동(‹ ›)·채점·문항 점프를 한 줄에 모은다 — 점프 버튼을 본문 위에 떠 있는
+          플로팅 핀으로 두면 해설을 읽는 동안 텍스트를 가려서(스크롤해도 따라옴) 학습을 방해한다. */}
       <nav className="mobile-actionbar" aria-label="문항 이동·채점">
         <button type="button" className="ab-nav" aria-label="이전 문제" disabled={safeIndex === 0} onClick={goPrev}>‹</button>
         {canGrade ? (
@@ -331,6 +327,9 @@ export const QuestionWorkspace = () => {
         ) : isGraded ? (
           <button type="button" className="ab-main subtle" onClick={() => setResultOpen(true)}>결과 요약</button>
         ) : null}
+        <button type="button" className="jump-pin" data-testid="jump-pin" aria-label="문항 이동" onClick={() => setPaletteOpen(true)}>
+          <span className="jp-dot" aria-hidden="true" />{safeIndex + 1} / {total}
+        </button>
         <button type="button" className="ab-nav" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
       </nav>
     </section>

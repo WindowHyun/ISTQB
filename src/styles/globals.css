@@ -1229,22 +1229,23 @@ body[data-theme="dark"] .table-image-frame {
   /* 인라인 팔레트는 숨기고 점프핀/하단바로 대체 */
   .palette-block { display: none; }
 
+  /* 하단 액션바 안의 문항 점프 버튼 — 종전에는 본문 위에 떠 있는 고정 핀이라
+     해설을 읽는 동안 텍스트를 가렸다(스크롤해도 같은 자리를 계속 덮음). */
   .jump-pin {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    position: fixed;
-    right: 16px;
-    bottom: 88px;
-    z-index: 40;
+    justify-content: center;
+    gap: 7px;
+    flex: none;
+    height: 54px;
+    padding: 0 14px;
     background: var(--text);
     color: var(--surface);
     border: 0;
-    border-radius: 999px;
-    padding: 11px 16px;
+    border-radius: 14px;
     font-size: 13px;
     font-weight: 800;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.3);
+    white-space: nowrap;
   }
   .jump-pin .jp-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
 

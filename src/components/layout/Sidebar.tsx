@@ -4,11 +4,10 @@ import { useQuizStore } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { useSetCounts } from '../../hooks/useSetCounts';
 import { TimerClock } from '../common/TimerClock';
+import { BRAND_LOGO_SRC } from '../../utils/brandLogo';
 import { showToast } from '../../utils/toast';
 import { FEEDBACK_SHEET_URL } from '../../utils/links';
 
-const LOGO_SRC =
-  'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%20role%3D%22img%22%20aria-label%3D%22Quiz%20mark%22%3E%0A%20%20%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%23166064%22/%3E%0A%20%20%3Cpath%20d%3D%22M18%2018h28v28H18z%22%20fill%3D%22%23f5f7f2%22/%3E%0A%20%20%3Cpath%20d%3D%22M24%2030l5%205%2011-13%22%20fill%3D%22none%22%20stroke%3D%22%23b55c3c%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%0A%20%20%3Cpath%20d%3D%22M22%2047h25%22%20stroke%3D%22%23f5f7f2%22%20stroke-width%3D%224%22%20stroke-linecap%3D%22round%22/%3E%0A%3C/svg%3E%0A';
 
 const MODE_LABELS: { mode: 'practice' | 'exam' | 'random' | 'review'; label: string }[] = [
   { mode: 'practice', label: '연습' },
@@ -171,7 +170,7 @@ export const Sidebar = () => {
       aria-modal={drawerOpen || undefined}
     >
       <div className="brand">
-        <img src={LOGO_SRC} alt="" />
+        <img src={BRAND_LOGO_SRC} alt="" />
         <div className="brand-text">
           <p id="productSubtitle">
             <span className="product-badge">{productBadge}</span>
@@ -300,8 +299,9 @@ export const Sidebar = () => {
             <strong id="progressText" aria-live="polite">{answered} / {total}</strong>
           </div>
           <div>
-            {/* 시험 모드는 카운트다운이므로 라벨도 '남은 시간'으로 바꿔 오해를 막는다. */}
-            <span>{mode === 'exam' ? '남은 시간' : '시간'}</span>
+            {/* 시험 응시 중에는 카운트다운이므로 '남은 시간' — 채점 후에는 경과(소요) 시간으로
+                돌아가므로 라벨도 함께 되돌린다(TimerClock의 표시 규칙과 일치). */}
+            <span>{mode === 'exam' && !isGraded ? '남은 시간' : '시간'}</span>
             <strong id="timerText"><TimerClock /></strong>
           </div>
           <div className="progress-track" aria-hidden="true">
