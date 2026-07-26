@@ -9,6 +9,8 @@ import { FEEDBACK_SHEET_URL } from '../utils/links';
 import { MobileTopBar } from '../components/layout/MobileTopBar';
 import { AppModals } from '../components/modals/AppModals';
 import { MODE_LABEL } from '../utils/modeLabel';
+import { useBackDismiss } from '../hooks/useBackDismiss';
+import { BACK_PRIORITY, initHardwareBackButton } from '../utils/backGuard';
 
 const Sidebar = React.lazy(() => import('../components/layout/Sidebar').then(module => ({ default: module.Sidebar })));
 const QuestionWorkspace = React.lazy(() => import('../components/quiz/QuestionWorkspace').then(module => ({ default: module.QuestionWorkspace })));
@@ -37,7 +39,13 @@ export const App = () => {
     // 진입 시 항상 제품 선택 화면(게이트)을 먼저 보여준다(#5).
     // 저장된 답안/진행 상태는 제품을 선택하는 순간 복원한다(handleProductSelect).
     setIsRestored(true);
+    // 안드로이드 하드웨어 뒤로가기 연결(웹에서는 no-op).
+    void initHardwareBackButton();
   }, []);
+
+  // 뒤로가기로 닫히는 오버레이 — 드로어는 그 위에 열린 모달이 먼저 닫히도록 최하위.
+  useBackDismiss(drawerOpen, () => setDrawerOpen(false), BACK_PRIORITY.drawer);
+  useBackDismiss(guideOpen, () => setGuideOpen(false), BACK_PRIORITY.confirm);
 
   // 페이지가 닫혔다 다시 열릴 때(bfcache 복원 포함) 이전 화면이 남아도 항상 최초 화면으로 되돌린다.
   useEffect(() => {

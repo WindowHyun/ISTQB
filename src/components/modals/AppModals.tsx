@@ -18,6 +18,9 @@ import { Question } from '../../hooks/useQuestions';
 import { loadSetQuestions, peekSetQuestions } from '../../utils/questionLoader';
 import { RichText } from '../../utils/parser';
 import { MODE_LABEL } from '../../utils/modeLabel';
+import { formatAnswerList } from '../../utils/answerDisplay';
+import { useBackDismiss } from '../../hooks/useBackDismiss';
+import { BACK_PRIORITY } from '../../utils/backGuard';
 
 // 오답노트 3단계(문항 보기)용 세트 문항 로더 — 본문(useQuestions)과 같은 공용
 // 로더(questionLoader)를 사용해 같은 세트를 다시 내려받지 않는다.
@@ -111,6 +114,30 @@ export const AppModals = () => {
   // 사용설명서 — 게이트 하단 버튼과 동일한 문서를 설정에서도 연다(풀이 중 재열람 경로).
   const [guideOpen, setGuideOpen] = useState(false);
 
+  // 뒤로가기(브라우저·안드로이드 하드웨어)로 오버레이 닫기.
+  // 확인 대화상자·사용설명서는 주 모달 위에서 열리므로 먼저 닫히게 우선순위를 높인다.
+  useBackDismiss(settingsOpen, () => setSettingsOpen(false), BACK_PRIORITY.modal);
+  useBackDismiss(statsOpen, () => setStatsOpen(false), BACK_PRIORITY.modal);
+  useBackDismiss(resultOpen, () => setResultOpen(false), BACK_PRIORITY.modal);
+  useBackDismiss(paletteOpen, () => setPaletteOpen(false), BACK_PRIORITY.modal);
+  useBackDismiss(resumePrompt, () => setResumePrompt(false), BACK_PRIORITY.modal);
+  useBackDismiss(Boolean(gradedResume), () => setGradedResume(null), BACK_PRIORITY.modal);
+  useBackDismiss(confirmGradeOpen, () => setConfirmGradeOpen(false), BACK_PRIORITY.confirm);
+  useBackDismiss(quitExamOpen, () => setQuitExamOpen(false), BACK_PRIORITY.confirm);
+  useBackDismiss(confirmHomeOpen, () => setConfirmHomeOpen(false), BACK_PRIORITY.confirm);
+  useBackDismiss(guideOpen, () => setGuideOpen(false), BACK_PRIORITY.confirm);
+  // 오답노트는 3단계(세트 → 오답 목록 → 문항)라 뒤로가기가 한 단계씩 되돌아간다 —
+  // 문항을 보다 뒤로가기를 눌렀을 때 노트가 통째로 닫히면 되짚어 들어가야 한다.
+  useBackDismiss(
+    wrongNoteOpen,
+    () => {
+      if (wrongNoteQuestionNo != null) { setWrongNoteQuestionNo(null); return; }
+      if (wrongNoteSetId != null) { setWrongNoteSetId(null); return; }
+      setWrongNoteOpen(false);
+    },
+    BACK_PRIORITY.modal,
+  );
+
   useEffect(() => {
     document.body.dataset.qfont = fontSize;
     safeSetItem('istqb-q-font', fontSize);
@@ -145,8 +172,7 @@ export const AppModals = () => {
     () => latestAttemptComparison(Object.values(productHistories), setId, mode, compareChapter),
     [productHistories, setId, mode, compareChapter],
   );
-  const fmtAns = (arr: string[]) =>
-    arr.length ? arr.map((s) => s.toUpperCase()).join(', ') : '미응답';
+  const fmtAns = (arr: string[]) => formatAnswerList(arr, '미응답');
   // 세트별 "전 회차 오답의 합집합" — 최신 회차만 보여주면 같은 세트를 랜덤으로
   // 재채점했을 때 이전 시험 회차의 오답이 노트에서 사라진다(QA 지적 해소).
   // 같은 문항이 여러 회차에서 틀렸으면 가장 최근 회차의 내 답을 대표로 쓴다.
