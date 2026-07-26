@@ -12,10 +12,14 @@ const fs = require("fs");
 const path = require("path");
 
 const KB = 1024;
+// 예산은 "무거운 의존성 유입 등 큰 회귀"를 잡기 위한 가드다. 현재 크기에 바짝 붙여 두면
+// 사소한 기능 추가마다 실패해 경보가 무뎌지므로, 실측 대비 약 10%의 여유를 둔다.
+// 참고: JS의 대부분은 React 런타임(메인 청크 ~277KB)이고 예산은 dist 전체 합계 기준이라,
+// 코드 분할로는 총량이 줄지 않는다(첫 로드 체감은 개선되지만 이 지표는 그대로).
 const BUDGET = {
   // dist 루트의 서비스워커(sw.js·workbox-*.js ≈25KB)까지 포함한 실제 첫 로드 페이로드 기준.
-  js: 330 * KB, // 현재 ~308KB(assets ~283KB + SW ~25KB)
-  css: 45 * KB, // 현재 ~39KB
+  js: 360 * KB, // 현재 ~327KB(메인 ~277 + 지연 청크 ~19 + SW ~25 + tombstone ~1.4)
+  css: 50 * KB, // 현재 ~42KB
 };
 
 const distDir = path.join(__dirname, "..", "dist");
@@ -53,6 +57,18 @@ for (const [kind, size, budget] of [
 }
 
 if (failed) {
+  // 어떤 파일이 커졌는지 함께 보여준다 — 숫자만 보면 원인을 다시 찾아야 한다.
+  const list = [];
+  for (const dir of [assetsDir, distDir]) {
+    if (!fs.existsSync(dir)) continue;
+    for (const f of fs.readdirSync(dir)) {
+      const p = path.join(dir, f);
+      if (f.endsWith(".js") && fs.statSync(p).isFile()) list.push([path.relative(distDir, p), fs.statSync(p).size]);
+    }
+  }
+  list.sort((a, b) => b[1] - a[1]);
+  console.error("[bundle-size] 큰 JS 파일 상위:");
+  for (const [name, size] of list.slice(0, 5)) console.error(`  ${fmt(size).padStart(10)}  ${name}`);
   console.error("[bundle-size] 번들 예산 초과 — 의존성/코드 증가를 확인하거나 예산을 재검토하세요.");
   process.exit(1);
 }
