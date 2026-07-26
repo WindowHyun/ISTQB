@@ -560,6 +560,12 @@ export const AppModals = () => {
                         <div><dt>정답</dt><dd>{fmtAns(selectedWrongItem.correctAnswer)}</dd></div>
                       </dl>
                     )}
+                    {/* 해설 — 오답 노트의 목적이 "왜 틀렸는지" 복습인데 종전에는 지문·보기·
+                        내 답·정답만 보여 정작 이유를 볼 수 없었다(연습 모드 피드백에는 이미 노출). */}
+                    <div className="wrong-note-explain" data-testid="wrong-note-explain">
+                      <h5>해설</h5>
+                      <RichText content={selectedWrongQuestion.explanation || '해설이 없습니다.'} />
+                    </div>
                   </div>
                 )}
               </div>
