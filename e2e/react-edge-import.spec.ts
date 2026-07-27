@@ -14,6 +14,8 @@ async function importBackup(page: import("@playwright/test").Page, backup: unkno
   await page.locator('input[type="file"][accept=".json"]').setInputFiles({
     name: "backup.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(backup), "utf-8"),
   });
+  // 가져오기는 적용 전에 정책 확인을 거친다(D2).
+  await page.getByTestId("import-confirm").click();
   await expect(page.getByTestId("toast")).toBeVisible({ timeout: 8_000 });
   await page.keyboard.press("Escape"); // 설정 모달 닫기
 }
@@ -113,6 +115,8 @@ test.describe("엣지-대용량 import", () => {
       name: "backup.json", mimeType: "application/json",
       buffer: Buffer.from(JSON.stringify({ state: baseState, answers: {}, histories }), "utf-8"),
     });
+    // 가져오기는 적용 전에 정책 확인을 거친다(D2).
+    await page.getByTestId("import-confirm").click();
     // 부분 실패로 '실패' 토스트가 뜨지 않고 성공 처리되어야 한다(수정 전엔 실패 토스트).
     await expect(page.getByTestId("toast")).toContainText("복원했습니다", { timeout: 8_000 });
     await page.keyboard.press("Escape");

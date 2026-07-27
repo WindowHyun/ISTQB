@@ -74,6 +74,10 @@ export function useQuizSession() {
     // 멱등성 가드 — 같은 tick 더블클릭 등으로 재진입해도 회차/통계가 이중 집계되지 않게 한다.
     // 버튼 disabled(canGrade)는 리렌더 이후에야 반영되므로 채점 상태를 직접 확인한다.
     if (useQuizStore.getState().graded[gradeKey]) return;
+    // 문항이 아직 로드되지 않았으면 채점하지 않는다. canGrade에만 total>0 가드가 있어
+    // 버튼 경로는 막혔지만, 제한시간 자동 제출은 canGrade를 거치지 않고 직접 호출된다 —
+    // 복원 직후(문항 fetch 진행 중)에 만료가 걸리면 0/0 유령 회차가 기록됐다.
+    if (total === 0) return;
     // 오답 목록은 위 메모(wrongQuestions)와 같은 판정을 재사용한다 — 따로 계산하면
     // 판정 규칙이 갈라져 화면 표시와 기록이 어긋날 수 있다.
     const wrongQs = wrongQuestions.map(({ q }) => q);

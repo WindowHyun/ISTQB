@@ -57,5 +57,22 @@ test.describe("시험 제한시간", () => {
     await page.getByRole("button", { name: "ISTQB" }).click();
     // 자동 제출 → 결과 모달. 종전에는 시계가 멈춰 있어 그대로 계속 풀 수 있었다.
     await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
+
+    // 문항 로드를 기다리지 않고 제출하면 0/0 유령 회차가 남는다 —
+    // 자동 제출은 canGrade를 거치지 않으므로 total 가드가 따로 필요하다.
+    const rounds = await page.evaluate(async () => {
+      const db: IDBDatabase = await new Promise((res, rej) => {
+        const r = indexedDB.open("istqb-db", 1);
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      });
+      return new Promise<{ total: number }[]>((res) => {
+        const tx = db.transaction("history", "readonly");
+        const q = tx.objectStore("history").getAll();
+        q.onsuccess = () => res(q.result.map((h: { total: number }) => ({ total: h.total })));
+      });
+    });
+    expect(rounds).toHaveLength(1);
+    expect(rounds[0].total).toBe(40); // 0이 아니어야 한다
   });
 });

@@ -73,6 +73,9 @@ export const QuestionWorkspace = () => {
 
     const checkExamDeadline = () => {
       if (examLimit == null || autoSubmittedRef.current) return;
+      // 문항 로드 전에는 판정하지 않는다 — 자동 제출이 빈 목록으로 채점될 수 있고,
+      // 남은 시간 경고도 화면에 아무것도 없는 상태에서 울린다.
+      if (currentQuestions.length === 0) return;
       syncExamElapsed();
       const remaining = remainingSeconds(examLimit, useQuizStore.getState().elapsedSeconds);
       const prev = prevRemainingRef.current;
@@ -133,8 +136,10 @@ export const QuestionWorkspace = () => {
     };
     // gradeAndShow는 렌더마다 새로 생성되지만 의존성에 넣으면 매 렌더 타이머가 재시작된다 —
     // 항상 최신 스토어 상태를 읽어 동작하므로 effect 재실행 없이 안전하다.
+    // currentQuestions.length: 0 → N으로 바뀌는 시점에 effect가 다시 돌아야
+    // 로드 전에 건너뛴 만료 판정이 즉시 이어진다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, isGraded, showExamGate, startTimer, tickTimer, examLimit, examStartedAtForSet]);
+  }, [mode, isGraded, showExamGate, startTimer, tickTimer, examLimit, examStartedAtForSet, currentQuestions.length]);
 
   // 응시 중에는 뒤로가기를 한 번 막고 확인을 받는다.
   // 제한시간이 벽시계로 흐르므로(A3) 나가 있는 동안에도 시간이 줄어든다 — 실수로

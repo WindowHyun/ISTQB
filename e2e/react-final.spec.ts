@@ -137,6 +137,8 @@ test.describe("최종점검", () => {
     await page.getByRole("button", { name: /설정/ }).click();
     const bad = { name: "bad.json", mimeType: "application/json", buffer: Buffer.from("{bad", "utf-8") };
     await page.locator('input[type="file"][accept=".json"]').setInputFiles(bad);
+    // 가져오기는 적용 전에 정책 확인을 거친다(D2).
+    await page.getByTestId("import-confirm").click();
     const toast = page.getByTestId("toast");
     await expect(toast).toBeVisible({ timeout: 5_000 });
     await toast.click();

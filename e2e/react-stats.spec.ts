@@ -121,7 +121,9 @@ test.describe("학습 통계", () => {
     await expect(page.locator(".stats-list")).toHaveCount(0);
     const firstRound = page.locator(".stl-rounds li").first();
     await expect(firstRound).toContainText("소요");      // 라벨 없이 "10:00"이면 시각으로 읽힌다
-    await expect(firstRound).toContainText("2025년");    // ko-KR 고정(기기 로케일 무관)
+    // 날짜만 찍으면 하루 여러 번 응시했을 때 구분이 안 돼 시각을 함께 표기한다(C2).
+    // 로케일은 ko-KR로 고정 — 기기 설정과 무관하게 같은 형식이어야 한다.
+    await expect(firstRound).toContainText(/\d+월 \d+일 \d{2}:\d{2}/);
   });
 
   test("좁은 화면에서 회차 항목이 글자 단위로 쪼개지지 않는다", async ({ page }) => {

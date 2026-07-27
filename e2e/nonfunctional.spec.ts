@@ -96,6 +96,8 @@ test.describe("비기능 · 성능(응답 시간)", () => {
       name: "hist.json", mimeType: "application/json",
       buffer: Buffer.from(JSON.stringify({ answers: {}, histories }), "utf-8"),
     });
+    // 가져오기는 적용 전에 정책 확인을 거친다(D2).
+    await page.getByTestId("import-confirm").click();
     await expect(page.getByTestId("toast")).toBeVisible({ timeout: 8_000 });
     await page.keyboard.press("Escape");
     const t0 = Date.now();
@@ -118,6 +120,8 @@ test.describe("비기능 · 성능(응답 시간)", () => {
       name: "hist1k.json", mimeType: "application/json",
       buffer: Buffer.from(JSON.stringify({ answers: {}, histories }), "utf-8"),
     });
+    // 가져오기는 적용 전에 정책 확인을 거친다(D2).
+    await page.getByTestId("import-confirm").click();
     await expect(page.getByTestId("toast")).toBeVisible({ timeout: 15_000 });
     await page.keyboard.press("Escape");
     const t0 = Date.now();

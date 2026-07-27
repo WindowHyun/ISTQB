@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { enterExam, modeBtn, openProduct, openSet, submitGrade } from "./helpers";
+import { enterExam, modeBtn, openProduct, openSet } from "./helpers";
 
 const SET = "ISTQB-FL-V4-A";
 
