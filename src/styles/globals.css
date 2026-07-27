@@ -776,6 +776,12 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 /* 극복(최근 시험 2회 연속 정답) 문항 — 목록에는 남기되 흐리게 + 배지로 상태 구분. */
 .wn-overcome .wrong-note-item-btn { opacity: 0.62; }
 .wn-overcome .wrong-note-item-btn:hover { opacity: 1; }
+/* 오답 재풀이로 맞힌 문항 — '극복'(시험 2회 연속)보다 약한 근거라 중립색으로 구분한다. */
+.wn-reviewed-tag {
+  padding: 2px 9px; border-radius: 999px;
+  background: var(--primary-50); border: 1px solid var(--primary-100);
+  color: var(--primary-700); font-size: 11px; font-weight: 800; white-space: nowrap;
+}
 .wn-overcome-tag {
   padding: 2px 9px;
   border-radius: 999px;

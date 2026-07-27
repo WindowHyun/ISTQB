@@ -250,6 +250,17 @@ export function sanitizeUiState(value: unknown): Partial<QuizState> {
     out.elapsedSeconds = value.elapsedSeconds;
   }
   if (typeof value.navCollapsed === "boolean") out.navCollapsed = value.navCollapsed;
+  // 오답 재풀이로 맞힌 문항 — 복원하지 않으면 새로고침마다 재풀이 목록이 원상복구된다.
+  if (isPlainObject(value.reviewedOk)) {
+    const ok: Record<string, number[]> = {};
+    for (const [key, v] of Object.entries(value.reviewedOk)) {
+      if (Array.isArray(v)) {
+        const nums = v.filter((n): n is number => typeof n === 'number' && Number.isFinite(n));
+        if (nums.length) ok[key] = nums;
+      }
+    }
+    out.reviewedOk = ok;
+  }
   // 시험 응시 시작 시각 — 제한시간의 기준점이라 반드시 복원한다(앱을 껐다 켜도 시계가 이어지게).
   if (isPlainObject(value.examStartedAt)) {
     const at: Record<string, number> = {};
@@ -497,6 +508,8 @@ export const saveUiState = debounce((state: Partial<QuizState>) => {
       // 시험 제한시간의 기준점 — 저장하지 않으면 앱을 껐다 켠 시간이 경과에서 빠져
       // 제한시간을 무한히 늘릴 수 있다.
       examStartedAt: state.examStartedAt,
+      // 오답 재풀이 진척 — 저장하지 않으면 새로고침마다 복습이 헛일이 된다.
+      reviewedOk: state.reviewedOk,
     };
     localStorage.setItem(uiStorageKey(), JSON.stringify(safeState));
     
@@ -513,16 +526,39 @@ export const saveUiState = debounce((state: Partial<QuizState>) => {
   }
 }, 500);
 
-export const saveAnswers = debounce((answers: Record<string, string[]>) => {
+// 멀티탭 답안 유실 방지의 핵심 규칙: localStorage가 공유 진실이다.
+// 종전에는 자기 메모리의 answers를 통째로 덮어써, 탭 두 개를 쓰면 나중에 저장한 탭이
+// 앞선 탭의 답안을 지웠다(양쪽 다 유실을 모름). 이제 쓰기 전에 저장된 값과 합집합을
+// 만든다 — 다른 탭이 먼저 넣은 문항이 살아남는다.
+// 단, '삭제'(초기화·응시 포기)는 합치면 되살아나므로 그때만 통째로 교체한다.
+// 삭제 여부는 호출부(구독)가 키가 줄었는지로 판정해 알려준다.
+function mergeWithStored(answers: Record<string, string[]>): Record<string, string[]> {
+  try {
+    const raw = localStorage.getItem(storageKey());
+    if (!raw) return answers;
+    const stored = JSON.parse(raw);
+    if (!isPlainObject(stored)) return answers;
+    // 내 값이 이긴다(같은 문항을 양쪽에서 답하면 나중 쓰기 우선) — 그 외 키는 보존.
+    return { ...sanitizeAnswers(stored), ...answers };
+  } catch {
+    return answers; // 저장값이 손상됐으면 내 것으로 간다
+  }
+}
+
+export const saveAnswers = debounce((answers: Record<string, string[]>, replace = false) => {
   if (!useQuizStore.getState().activeProduct) return;
   try {
-    localStorage.setItem(storageKey(), JSON.stringify(answers));
-    
+    const next = replace ? answers : mergeWithStored(answers);
+    localStorage.setItem(storageKey(), JSON.stringify(next));
+    // 합쳐진 결과를 메모리에도 반영해야 화면과 저장소가 어긋나지 않는다
+    // (다른 탭이 넣은 문항이 이 탭의 진행 표시에도 잡힌다).
+    if (next !== answers) useQuizStore.setState({ answers: next });
+
     // update snapshot
     const snapshotRaw = localStorage.getItem(persistenceKey());
     if (snapshotRaw) {
       const snapshot = JSON.parse(snapshotRaw);
-      snapshot.answers = answers;
+      snapshot.answers = next;
       snapshot.updatedAt = Date.now();
       localStorage.setItem(persistenceKey(), JSON.stringify(snapshot));
     }
@@ -715,6 +751,28 @@ export async function importUserData(file: File): Promise<ImportResult> {
   });
 }
 
+// 다른 탭의 쓰기를 받아 이 탭의 메모리를 맞춘다.
+// 쓰기 쪽(mergeWithStored)이 합집합을 만들어 저장하므로, 받는 쪽은 저장값을 그대로
+// 진실로 받아들이면 두 탭이 같은 상태로 수렴한다. 구독이 없던 종전에는 두 탭이
+// 조용히 갈라진 뒤 나중 쓰기가 앞선 답안을 지웠다.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    const store = useQuizStore.getState();
+    if (!store.activeProduct) return;
+    // 이 제품의 답안 키만 반응한다(다른 제품·다른 앱 키는 무시).
+    if (e.key !== storageKey() || e.newValue == null) return;
+    try {
+      const incoming = sanitizeAnswers(JSON.parse(e.newValue));
+      // 참조가 같으면 리렌더가 없으므로 내용 비교로 불필요한 갱신을 막는다.
+      if (JSON.stringify(incoming) === JSON.stringify(store.answers)) return;
+      useQuizStore.setState({ answers: incoming });
+      console.info('[data] 다른 탭의 답안 변경을 반영했습니다.');
+    } catch {
+      /* 손상된 값은 무시 — 다음 정상 쓰기에서 맞춰진다 */
+    }
+  });
+}
+
 useQuizStore.subscribe((state, prevState) => {
   if (!state.activeProduct) return;
   
@@ -730,12 +788,15 @@ useQuizStore.subscribe((state, prevState) => {
     state.chapterFilter !== prevState.chapterFilter ||
     // 시험 시작 시각이 잡히는 순간 즉시 저장한다 — 이걸 놓치면 앱을 껐다 켰을 때
     // 기준점이 없어 제한시간이 처음부터 다시 흐른다.
-    state.examStartedAt !== prevState.examStartedAt
+    state.examStartedAt !== prevState.examStartedAt ||
+    state.reviewedOk !== prevState.reviewedOk
   ) {
     saveUiState(state);
   }
   
   if (state.answers !== prevState.answers) {
-    saveAnswers(state.answers);
+    // 키가 하나라도 사라졌으면 의도적 삭제(초기화·응시 포기) — 합치면 되살아나므로 교체한다.
+    const removed = Object.keys(prevState.answers).some((k) => !(k in state.answers));
+    saveAnswers(state.answers, removed);
   }
 });

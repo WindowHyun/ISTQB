@@ -85,3 +85,63 @@ describe('store↔storage 구독 연동(통합)', () => {
     expect(localStorage.getItem(CSTS_UI)).toBeNull();
   });
 });
+
+// 멀티탭 답안 유실 — 두 탭이 각자 메모리를 통째로 덮어써 나중 쓰기가 앞선 답안을 지웠다.
+describe('멀티탭 답안 병합', () => {
+  it('다른 탭이 먼저 넣은 답안이 내 저장에 살아남는다(합집합)', () => {
+    store.useQuizStore.setState({ activeProduct: 'istqb' });
+    // 다른 탭이 20번을 저장해 둔 상태를 흉내낸다.
+    localStorage.setItem(ISTQB_ANS, JSON.stringify({ 'S-exam-020': ['c'] }));
+
+    // 이 탭은 1·2번만 알고 있다 — 종전에는 이 쓰기가 020을 지웠다.
+    store.useQuizStore.setState({ answers: { 'S-exam-001': ['a'], 'S-exam-002': ['b'] } });
+    vi.advanceTimersByTime(600);
+
+    const saved = JSON.parse(localStorage.getItem(ISTQB_ANS)!);
+    expect(Object.keys(saved).sort()).toEqual(['S-exam-001', 'S-exam-002', 'S-exam-020']);
+    // 합쳐진 결과가 메모리에도 반영돼 화면과 저장소가 어긋나지 않는다.
+    expect(Object.keys(store.useQuizStore.getState().answers).sort())
+      .toEqual(['S-exam-001', 'S-exam-002', 'S-exam-020']);
+  });
+
+  it('같은 문항을 양쪽에서 답하면 나중 쓰기가 이긴다', () => {
+    store.useQuizStore.setState({ activeProduct: 'istqb' });
+    localStorage.setItem(ISTQB_ANS, JSON.stringify({ 'S-exam-001': ['a'] }));
+    store.useQuizStore.setState({ answers: { 'S-exam-001': ['d'] } });
+    vi.advanceTimersByTime(600);
+    expect(JSON.parse(localStorage.getItem(ISTQB_ANS)!)['S-exam-001']).toEqual(['d']);
+  });
+
+  it('의도적 삭제(초기화)는 합치지 않고 교체한다 — 지운 답안이 되살아나면 안 된다', () => {
+    store.useQuizStore.setState({
+      activeProduct: 'istqb',
+      answers: { 'S-exam-001': ['a'], 'S-exam-002': ['b'] },
+    });
+    vi.advanceTimersByTime(600);
+    expect(Object.keys(JSON.parse(localStorage.getItem(ISTQB_ANS)!))).toHaveLength(2);
+
+    // clearAnswers처럼 키가 줄어드는 변경.
+    store.useQuizStore.setState({ answers: { 'S-exam-001': ['a'] } });
+    vi.advanceTimersByTime(600);
+    expect(Object.keys(JSON.parse(localStorage.getItem(ISTQB_ANS)!))).toEqual(['S-exam-001']);
+  });
+
+  it('다른 탭의 저장을 storage 이벤트로 받아 메모리를 맞춘다', () => {
+    store.useQuizStore.setState({ activeProduct: 'istqb', answers: { 'S-exam-001': ['a'] } });
+    const incoming = { 'S-exam-001': ['a'], 'S-exam-020': ['c'] };
+    localStorage.setItem(ISTQB_ANS, JSON.stringify(incoming));
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: ISTQB_ANS, newValue: JSON.stringify(incoming),
+    }));
+    expect(Object.keys(store.useQuizStore.getState().answers).sort())
+      .toEqual(['S-exam-001', 'S-exam-020']);
+  });
+
+  it('다른 키의 storage 이벤트는 무시한다', () => {
+    store.useQuizStore.setState({ activeProduct: 'istqb', answers: { 'S-exam-001': ['a'] } });
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: CSTS_UI, newValue: JSON.stringify({ 'X-exam-001': ['z'] }),
+    }));
+    expect(Object.keys(store.useQuizStore.getState().answers)).toEqual(['S-exam-001']);
+  });
+});

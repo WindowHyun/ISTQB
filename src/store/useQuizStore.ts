@@ -72,6 +72,11 @@ export interface QuizState {
   // 소리 없이 버리지 않고 한 번 묻는다. null이면 보류 중인 변경이 없다.
   // 세트 선택은 사이드바, 확인 모달은 AppModals라 스토어가 둘의 접점이다.
   pendingSetChange: string | null;
+  // 오답 모드에서 다시 풀어 맞힌 문항 번호(세트별). 재풀이 대상에서 빠지고,
+  // 오답노트에는 '복습함'으로 남는다 — 오답 모드에는 채점 경로가 없어 아무리 맞혀도
+  // 목록이 줄지 않던(학습 루프가 닫히지 않던) 문제를 여기서 닫는다.
+  // 다시 채점해 또 틀리면 해당 번호는 제거돼 재풀이 대상으로 돌아온다.
+  reviewedOk: Record<string, number[]>;
   // 랜덤 '새 문제 뽑기' 트리거 — 증가하면 useQuestions가 현재 추첨을 버리고 재추첨한다.
   randomNonce: number;
   // 랜덤 현재 추첨(뽑힌 문항 id 목록)을 영속화해 새로고침 시 같은 문항으로 이어풀게 한다.
@@ -115,6 +120,10 @@ export interface QuizState {
   setQuitExamOpen: (open: boolean) => void;
   setGradedResume: (info: QuizState['gradedResume']) => void;
   setPendingSetChange: (setId: string | null) => void;
+  /** 오답 재풀이로 맞힌 문항 번호를 기록한다(재풀이 대상에서 제외). */
+  markReviewed: (setId: string, numbers: number[]) => void;
+  /** 다시 틀린 문항은 '복습함'에서 되돌린다 — 채점 시 호출. */
+  unmarkReviewed: (setId: string, numbers: number[]) => void;
   // 세트 전환(교체 + 새 세션 + 모드별 후처리). 사이드바·확인 모달의 공용 진입점.
   commitSetChange: (setId: string) => void;
   redrawRandom: () => void;
@@ -132,6 +141,7 @@ export const sessionScopeDefaults = () => ({
   graded: {} as Record<string, boolean>,
   examStarted: {} as Record<string, boolean>,
   examStartedAt: {} as Record<string, number>,
+  reviewedOk: {} as Record<string, number[]>,
   reviewIds: {} as Record<string, string[]>,
   chapterFilter: null as string | null,
   // 제품 전환 시 이전 제품의 랜덤 추첨이 새 제품으로 새지 않게 초기화(복원 시 해당 제품 값으로 덮음).
@@ -166,6 +176,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   quitExamOpen: false,
   gradedResume: null,
   pendingSetChange: null,
+  reviewedOk: {},
   randomNonce: 0,
   randomDraw: null,
 
@@ -252,6 +263,18 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   setQuitExamOpen: (quitExamOpen) => set({ quitExamOpen }),
   setGradedResume: (gradedResume) => set({ gradedResume }),
   setPendingSetChange: (pendingSetChange) => set({ pendingSetChange }),
+  markReviewed: (setId, numbers) => set((state) => {
+    const merged = new Set([...(state.reviewedOk[setId] ?? []), ...numbers]);
+    return { reviewedOk: { ...state.reviewedOk, [setId]: [...merged].sort((a, b) => a - b) } };
+  }),
+  unmarkReviewed: (setId, numbers) => set((state) => {
+    const prev = state.reviewedOk[setId];
+    if (!prev?.length || !numbers.length) return state;
+    const drop = new Set(numbers);
+    const next = prev.filter((n) => !drop.has(n));
+    if (next.length === prev.length) return state;
+    return { reviewedOk: { ...state.reviewedOk, [setId]: next } };
+  }),
   // 세트 전환 의례 — 세트 교체 + 새 세션 개시 + 모드별 후처리를 한 곳에 모은다.
   // 사이드바(즉시 전환)와 확인 모달(랜덤 진행 중 승인 후 전환)이 같은 경로를 타야
   // 한쪽만 답안 정리를 빠뜨리는 어긋남이 생기지 않는다(beginSession과 같은 이유).

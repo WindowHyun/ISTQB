@@ -81,7 +81,7 @@ export const AppModals = () => {
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
     setMode, beginSession, clearAnswers, setReviewIds, setSetId, setChapterFilter, setResumePrompt,
     setQuitExamOpen, setGradedResume, setRandomDraw,
-    setPendingSetChange, commitSetChange,
+    setPendingSetChange, commitSetChange, reviewedOk,
   } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, activeProduct: s.activeProduct, histories: s.histories,
     resultElapsedSeconds: s.resultOpen ? s.elapsedSeconds : 0,
@@ -99,6 +99,7 @@ export const AppModals = () => {
     setQuitExamOpen: s.setQuitExamOpen, setGradedResume: s.setGradedResume,
     setRandomDraw: s.setRandomDraw,
     setPendingSetChange: s.setPendingSetChange, commitSetChange: s.commitSetChange,
+    reviewedOk: s.reviewedOk,
   })));
   // examLocked — useQuizSession이 단일 원천(게이트·사이드바 잠금과 동일 규칙 집합).
   const { appData, total, answered, correctCount, cstsWeighted, gradeAndShow, examLocked } = useQuizSession();
@@ -660,6 +661,7 @@ export const AppModals = () => {
                 <ul className="wrong-note-list">
                   {(selectedWrong.wrongItems ?? []).map((it, idx) => {
                     const overcome = selectedWrong.overcome.has(it.number);
+                    const reviewedSet = new Set(reviewedOk[selectedWrong.setId] ?? []);
                     return (
                     <li key={`${it.number}-${idx}`} className={overcome ? 'wn-overcome' : undefined}>
                       <button
@@ -677,6 +679,11 @@ export const AppModals = () => {
                         </span>
                         {overcome && (
                           <span className="wn-overcome-tag" data-testid="wrong-note-overcome-tag">✓ 극복</span>
+                        )}
+                        {/* 오답 모드에서 다시 풀어 맞힌 문항 — 목록에는 남기되 상태를 구분한다.
+                            '극복'(시험 2회 연속 정답)보다 약한 근거라 별도 표기. */}
+                        {!overcome && reviewedSet.has(it.number) && (
+                          <span className="wn-reviewed-tag" data-testid="wrong-note-reviewed-tag">복습함</span>
                         )}
                         <span className="wn-arrow" aria-hidden="true">›</span>
                       </button>
