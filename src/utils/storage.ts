@@ -250,6 +250,14 @@ export function sanitizeUiState(value: unknown): Partial<QuizState> {
     out.elapsedSeconds = value.elapsedSeconds;
   }
   if (typeof value.navCollapsed === "boolean") out.navCollapsed = value.navCollapsed;
+  // 시험 응시 시작 시각 — 제한시간의 기준점이라 반드시 복원한다(앱을 껐다 켜도 시계가 이어지게).
+  if (isPlainObject(value.examStartedAt)) {
+    const at: Record<string, number> = {};
+    for (const [key, v] of Object.entries(value.examStartedAt)) {
+      if (typeof v === 'number' && Number.isFinite(v) && v > 0) at[key] = v;
+    }
+    out.examStartedAt = at;
+  }
   // 채점 상태(graded)는 일부러 복원하지 않는다 — 재접속/모드 복귀 시 시험은 다시 풀 수 있게 초기화(#1).
   if (isPlainObject(value.reviewIds)) {
     const reviewIds: Record<string, string[]> = {};
@@ -486,6 +494,9 @@ export const saveUiState = debounce((state: Partial<QuizState>) => {
       // 챕터 집중 연습/미니 시험의 필터 — 영속화하지 않으면 새로고침 시 전체 세트로
       // 돌아가 랜덤(이어풀기)과 동작이 어긋난다. 배너의 '전체 보기'로 언제든 해제 가능.
       chapterFilter: state.chapterFilter,
+      // 시험 제한시간의 기준점 — 저장하지 않으면 앱을 껐다 켠 시간이 경과에서 빠져
+      // 제한시간을 무한히 늘릴 수 있다.
+      examStartedAt: state.examStartedAt,
     };
     localStorage.setItem(uiStorageKey(), JSON.stringify(safeState));
     
@@ -588,7 +599,16 @@ export function flushPersist() {
   saveAnswers.flush();
 }
 
-export async function importUserData(file: File): Promise<boolean> {
+/** 가져오기 결과. 실패 사유를 호출부(토스트)까지 전달해 사용자가 무엇을 고칠지 알 수 있게 한다. */
+export interface ImportResult {
+  ok: boolean;
+  /** 사용자에게 보여줄 실패 사유. 성공이면 없음. */
+  reason?: string;
+}
+
+const PRODUCT_LABEL: Record<string, string> = { istqb: 'ISTQB', csts: 'CSTS' };
+
+export async function importUserData(file: File): Promise<ImportResult> {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -597,7 +617,7 @@ export async function importUserData(file: File): Promise<boolean> {
         const data = JSON.parse(text);
         if (!isPlainObject(data)) {
           console.error("백업 형식이 올바르지 않습니다(객체 아님) — 가져오기를 중단합니다.");
-          resolve(false);
+          resolve({ ok: false, reason: '파일 형식이 올바르지 않습니다.' });
           return;
         }
         // 미래 스키마 버전 거부 — 알 수 없는 구조를 절반만 적용하는 것보다 안전하다.
@@ -605,10 +625,24 @@ export async function importUserData(file: File): Promise<boolean> {
           console.error(
             `백업 스키마 v${data.schemaVersion}은 이 앱 버전(v${BACKUP_SCHEMA_VERSION})보다 새롭습니다 — 앱을 업데이트한 뒤 가져오세요.`,
           );
-          resolve(false);
+          resolve({ ok: false, reason: '이 백업은 더 최신 버전 앱에서 만들어졌습니다. 앱을 업데이트해 주세요.' });
           return;
         }
         const product = getActiveProduct();
+        // 제품이 다른 백업을 그대로 적용하면 현재 제품의 답안이 통째로 교체되고,
+        // 가져온 이력은 certification 필터에 걸려 통계에도 안 보인다 — 무엇을 잃었는지
+        // 알 수 없는 파괴다. 백업에는 export 시점에 product를 이미 기록해 두므로(위 exportUserData)
+        // 읽어서 다르면 손대지 않고 거부한다.
+        if (typeof data.product === 'string' && data.product !== product) {
+          const from = PRODUCT_LABEL[data.product] ?? data.product;
+          const to = PRODUCT_LABEL[product] ?? product;
+          console.error(`백업 제품(${from})이 현재 제품(${to})과 다릅니다 — 가져오기를 중단합니다.`);
+          resolve({
+            ok: false,
+            reason: `이 백업은 ${from} 기록입니다. ${from}으로 전환한 뒤 가져오세요.`,
+          });
+          return;
+        }
 
         // 원자성(Phase 4): 실패할 수 있는 IndexedDB(이력) 커밋을 먼저 끝내고, 성공한 뒤에만
         // localStorage(UI 상태·답안)를 덮는다 — 역순이면 커밋 실패로 "실패" 토스트가 떠도
@@ -638,7 +672,7 @@ export async function importUserData(file: File): Promise<boolean> {
             // put 호출 수(importedHistories)와 무관하게 커밋이 실패하면 아무것도 저장되지
             // 않았고 localStorage도 아직 건드리지 않았다 — 온전한 실패로 처리한다.
             console.error("이력 트랜잭션 커밋 실패(쿼터 초과 등) — 가져오기를 실패로 처리합니다.");
-            resolve(false);
+            resolve({ ok: false, reason: '저장 공간이 부족해 가져오지 못했습니다.' });
             return;
           }
         }
@@ -666,16 +700,16 @@ export async function importUserData(file: File): Promise<boolean> {
         // 답안이 '채점됨'으로 표시된다. 무효화 후 복원하면 온전한 미채점 상태로 유입.
         invalidateSessionRestoreCache(product);
         await restorePersistentSnapshot(product);
-        resolve(true);
+        resolve({ ok: true });
       } catch (err) {
         console.error("Import failed", err);
-        resolve(false);
+        resolve({ ok: false, reason: '파일을 해석하지 못했습니다(형식 확인 필요).' });
       }
     };
     // 읽기 실패(권한·디스크 오류 등) 시에도 반드시 resolve해 호출부 토스트가 뜨게 한다.
     reader.onerror = () => {
       console.error("Import file read failed", reader.error);
-      resolve(false);
+      resolve({ ok: false, reason: '파일을 읽지 못했습니다.' });
     };
     reader.readAsText(file);
   });
@@ -693,7 +727,10 @@ useQuizStore.subscribe((state, prevState) => {
     state.reviewIds !== prevState.reviewIds ||
     state.navCollapsed !== prevState.navCollapsed ||
     state.randomDraw !== prevState.randomDraw ||
-    state.chapterFilter !== prevState.chapterFilter
+    state.chapterFilter !== prevState.chapterFilter ||
+    // 시험 시작 시각이 잡히는 순간 즉시 저장한다 — 이걸 놓치면 앱을 껐다 켰을 때
+    // 기준점이 없어 제한시간이 처음부터 다시 흐른다.
+    state.examStartedAt !== prevState.examStartedAt
   ) {
     saveUiState(state);
   }

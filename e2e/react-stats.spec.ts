@@ -143,3 +143,46 @@ test.describe("학습 통계", () => {
     expect(worst).toBe(1);
   });
 });
+
+// 표본이 적은 챕터는 순위에서 분리한다 — 정답률만으로 줄 세우면 1문항 챕터가 늘 1위 약점이 된다.
+test.describe("약점 분석 표본", () => {
+  test("5문항 미만 챕터는 순위가 아니라 '판단 이른 챕터'로 분리된다", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(async () => {
+      const db: IDBDatabase = await new Promise((res, rej) => {
+        const r = indexedDB.open("istqb-db", 1);
+        r.onupgradeneeded = () => {
+          if (!r.result.objectStoreNames.contains("history")) r.result.createObjectStore("history", { keyPath: "id" });
+        };
+        r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+      });
+      await new Promise<void>((res, rej) => {
+        const tx = db.transaction("history", "readwrite");
+        tx.objectStore("history").clear();
+        tx.objectStore("history").put({
+          id: "1000", setId: "ISTQB-FL-V4-A", mode: "exam", certification: "istqb",
+          setTitle: "샘플 A", answers: {}, correct: 2, total: 21, elapsedSeconds: 600,
+          createdAt: 1750000001000,
+          chapterStats: {
+            "테스트 도구": { c: 0, t: 2 },   // 0% — 표본 2 (종전 1위 약점)
+            "테스트 기법": { c: 2, t: 19 },  // 10% — 표본 19 (진짜 약점)
+          },
+        });
+        tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error);
+      });
+    });
+    await openProduct(page, "ISTQB");
+    await page.getByTestId("stats-open").click();
+    await expect(page.getByTestId("stats-dashboard")).toBeVisible();
+
+    // 순위 1위는 표본이 충분한 '테스트 기법'이어야 한다.
+    const ranked = page.getByTestId("stats-chapter-row");
+    await expect(ranked).toHaveCount(1);
+    await expect(ranked.first()).toContainText("테스트 기법");
+    // 표본 2짜리는 순위가 아니라 보류 그룹으로.
+    const low = page.getByTestId("stats-lowsample-row");
+    await expect(low).toHaveCount(1);
+    await expect(low.first()).toContainText("테스트 도구");
+    await expect(page.getByTestId("stats-lowsample")).toContainText("판단하기 이른");
+  });
+});

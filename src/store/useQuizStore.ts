@@ -42,6 +42,10 @@ export interface QuizState {
   examStarted: Record<string, boolean>;
   elapsedSeconds: number;
   lastTick: number | null;
+  // 시험 응시 시작 벽시계 시각(세트별). 제한시간은 여기서부터 흐른다 — 경과 누계만
+  // 쓰면 앱을 껐다 켠 시간이 빠져 60/90분 제한을 무한히 늘릴 수 있다.
+  // 영속화되므로 앱을 완전히 종료했다 다시 열어도 남은 시간이 이어진다.
+  examStartedAt: Record<string, number>;
   navCollapsed: boolean;
   // 챕터 집중 연습 필터(Phase 3). null이면 전체. 세트/모드 전환 시 해제되며 영속화하지 않는다.
   chapterFilter: string | null;
@@ -85,6 +89,8 @@ export interface QuizState {
   setReviewIds: (key: string, ids: string[]) => void;
   setGraded: (key: string, value: boolean) => void;
   setExamStarted: (setId: string, value: boolean) => void;
+  /** 시험 응시 개시 시각 기록/해제 — 제한시간의 기준점. */
+  setExamStartedAt: (setId: string, at: number | null) => void;
   clearAnswers: (setId: string, mode: QuizMode) => void;
   // id 목록으로 이력을 지운다. 호출은 storage.removeHistoriesEverywhere(메모리+DB 동시 삭제)로만.
   removeHistories: (ids: string[]) => void;
@@ -125,6 +131,7 @@ export interface QuizState {
 export const sessionScopeDefaults = () => ({
   graded: {} as Record<string, boolean>,
   examStarted: {} as Record<string, boolean>,
+  examStartedAt: {} as Record<string, number>,
   reviewIds: {} as Record<string, string[]>,
   chapterFilter: null as string | null,
   // 제품 전환 시 이전 제품의 랜덤 추첨이 새 제품으로 새지 않게 초기화(복원 시 해당 제품 값으로 덮음).
@@ -143,6 +150,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   examStarted: {},
   elapsedSeconds: 0,
   lastTick: null,
+  examStartedAt: {},
   navCollapsed: false,
   chapterFilter: null,
 
@@ -186,6 +194,12 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   setExamStarted: (setId, value) => set((state) => ({
     examStarted: { ...state.examStarted, [setId]: value }
   })),
+  setExamStartedAt: (setId, at) => set((state) => {
+    const next = { ...state.examStartedAt };
+    if (at == null) delete next[setId];
+    else next[setId] = at;
+    return { examStartedAt: next };
+  }),
   clearAnswers: (setId, mode) => set((state) => {
     const nextAnswers = { ...state.answers };
     for (const key in nextAnswers) {
@@ -198,10 +212,14 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     const nextExamStarted = mode === 'exam'
       ? { ...state.examStarted, [setId]: false }
       : state.examStarted;
+    // 제한시간 기준점도 함께 비운다 — 남겨두면 다음 응시 전까지 지난 회차의 시각이 떠 있다.
+    const nextExamStartedAt = { ...state.examStartedAt };
+    if (mode === 'exam') delete nextExamStartedAt[setId];
     return {
       answers: nextAnswers,
       graded: { ...state.graded, [`${setId}-${mode}`]: false },
       examStarted: nextExamStarted,
+      examStartedAt: nextExamStartedAt,
     };
   }),
   removeHistories: (ids) => set((state) => {

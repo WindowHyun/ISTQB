@@ -185,4 +185,25 @@ describe("useQuizStore 세션/네비/타이머 액션", () => {
     useQuizStore.getState().commitSetChange("B");
     expect(useQuizStore.getState().resumePrompt).toBe(false);
   });
+  it("시험 시작 시각은 세트별로 기록되고 재응시 시 초기화된다", () => {
+    // 제한시간의 기준점 — 경과 누계만 쓰면 앱을 껐다 켠 시간이 빠져 제한이 무력화된다.
+    useQuizStore.setState({ examStartedAt: {}, answers: {}, graded: {}, examStarted: {} });
+    useQuizStore.getState().setExamStartedAt("A", 1_700_000_000_000);
+    useQuizStore.getState().setExamStartedAt("B", 1_700_000_111_000);
+    expect(useQuizStore.getState().examStartedAt).toEqual({ A: 1_700_000_000_000, B: 1_700_000_111_000 });
+
+    // 재응시(답안 초기화)는 그 세트의 기준점만 비운다 — 다음 '시험 시작'이 새로 찍는다.
+    useQuizStore.getState().clearAnswers("A", "exam");
+    expect(useQuizStore.getState().examStartedAt).toEqual({ B: 1_700_000_111_000 });
+
+    // 명시적 해제도 가능.
+    useQuizStore.getState().setExamStartedAt("B", null);
+    expect(useQuizStore.getState().examStartedAt).toEqual({});
+  });
+
+  it("랜덤 모드 초기화는 시험 기준점을 건드리지 않는다", () => {
+    useQuizStore.setState({ examStartedAt: { A: 111 }, answers: {}, graded: {} });
+    useQuizStore.getState().clearAnswers("A", "random");
+    expect(useQuizStore.getState().examStartedAt).toEqual({ A: 111 });
+  });
 });

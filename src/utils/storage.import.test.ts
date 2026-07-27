@@ -23,23 +23,51 @@ describe('importUserData (Phase 4)', () => {
   it('미래 스키마 버전 백업은 거부한다(알 수 없는 구조의 반쪽 적용 방지)', async () => {
     const s = await freshStorage();
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const ok = await s.importUserData(backupFile({ schemaVersion: 999, histories: {} }));
-    expect(ok).toBe(false);
+    const r = await s.importUserData(backupFile({ schemaVersion: 999, histories: {} }));
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/최신 버전/); // 사용자에게 무엇을 해야 하는지 알린다
     expect(errSpy).toHaveBeenCalled();
   });
 
   it('객체가 아닌 백업(JSON 배열/문자열)은 거부한다', async () => {
     const s = await freshStorage();
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(await s.importUserData(backupFile([1, 2, 3]))).toBe(false);
-    expect(await s.importUserData(backupFile('"not-an-object"'))).toBe(false);
+    expect((await s.importUserData(backupFile([1, 2, 3]))).ok).toBe(false);
+    expect((await s.importUserData(backupFile('"not-an-object"'))).ok).toBe(false);
   });
 
   it('JSON 파싱 불가 파일은 거부한다', async () => {
     const s = await freshStorage();
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    const ok = await s.importUserData(new File(['{broken'], 'b.json'));
-    expect(ok).toBe(false);
+    const r = await s.importUserData(new File(['{broken'], 'b.json'));
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBeTruthy();
+  });
+
+  it('제품이 다른 백업은 손대지 않고 거부한다(현재 제품 답안 파괴 방지)', async () => {
+    // 종전에는 백업의 product를 읽지 않고 현재 제품 키에 그대로 써서, CSTS 화면에서
+    // ISTQB 백업을 넣으면 CSTS 답안이 통째로 교체되고도 "복원했습니다"가 떴다.
+    const s = await freshStorage();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const r = await s.importUserData(backupFile({
+      schemaVersion: 1, product: 'csts',
+      histories: { 'x-1': { id: 'x-1', setId: 'CSTS-FL-2405', mode: 'exam', answers: {}, correct: 1, total: 2 } },
+    }));
+    expect(r.ok).toBe(false);
+    expect(r.reason).toContain('CSTS'); // 어느 제품 백업인지 알려준다
+    // 거부했으므로 이력이 유입되지 않아야 한다.
+    expect((await s.loadHistoriesFromDB())['x-1']).toBeUndefined();
+  });
+
+  it('제품이 같으면 정상 가져온다', async () => {
+    const s = await freshStorage();
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const r = await s.importUserData(backupFile({
+      schemaVersion: 1, product: 'istqb',
+      histories: { 'y-1': { id: 'y-1', setId: 'ISTQB-FL-V4-A', mode: 'exam', answers: {}, correct: 1, total: 2 } },
+    }));
+    expect(r.ok).toBe(true);
+    expect((await s.loadHistoriesFromDB())['y-1']).toBeTruthy();
   });
 
   it('현재/구버전(버전 없음) 백업은 이력이 DB에 커밋된다', async () => {
@@ -51,7 +79,7 @@ describe('importUserData (Phase 4)', () => {
         'imp-1': { id: 'imp-1', setId: 'ISTQB-FL-V4-A', mode: 'exam', answers: {}, correct: 1, total: 2 },
       },
     }));
-    expect(ok).toBe(true);
+    expect(ok.ok).toBe(true);
     const loaded = await s.loadHistoriesFromDB();
     expect(loaded['imp-1']).toBeTruthy();
     expect(loaded['imp-1'].correct).toBe(1);

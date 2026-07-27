@@ -15,6 +15,11 @@ import { MODE_LABEL } from '../../utils/modeLabel';
 // (ISTQB 65% / CSTS 75%). 고정 65는 CSTS에서 66~74% 약점을 놓친다.
 const WEAK_THRESHOLD_BY_CERT: Record<string, number> = { istqb: 65, csts: 75 };
 
+// 약점 순위에 올리기 위한 최소 누적 출제 수. 이보다 적으면 정답률이 0%/100%로 널뛰어
+// 순위가 실력이 아니라 표본 크기를 반영한다(1문항 챕터는 맞히면 100%, 틀리면 0%).
+// 세트 하나로는 못 채워도 여러 회차·세트에 걸쳐 누적되면 순위로 올라온다.
+const MIN_CHAPTER_SAMPLE = 5;
+
 // 회차 날짜 표기 — 로케일을 ko-KR로 고정한다. toLocaleDateString()을 인자 없이 쓰면
 // 브라우저 로케일을 따라가, 한국어 앱인데 기기에 따라 "6/15/2025"(미국식)로 나온다.
 // 포매터를 모듈 상수로 재사용한다: 이력이 수천 건 쌓이면 행마다 Intl 객체를 새로
@@ -31,7 +36,7 @@ interface StatsDashboardProps {
   onClear: () => void;
   /** 챕터 집중 연습 진입(현재 세트를 해당 챕터로 필터해 연습 모드로). */
   onPracticeChapter: (chapter: string) => void;
-  /** 챕터 미니 시험 진입(해당 챕터 10문항 추첨, 채점 시 챕터 통계에 반영). */
+  /** 챕터 미니 시험 진입(해당 챕터에서 최대 10문항 추첨, 채점 시 챕터 통계에 반영). */
   onMiniTestChapter: (chapter: string) => void;
   /** 시험 응시 중(잠금)이면 연습 진입 버튼을 비활성화한다(핸들러 가드와 이중 방어). */
   practiceLocked?: boolean;
@@ -80,12 +85,22 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
   );
 
   // 챕터별 정답률(약점 분석) — 정답률 오름차순(약한 챕터 먼저).
-  const chapterRows = useMemo(() => {
+  // 표본이 MIN_CHAPTER_SAMPLE 미만인 챕터는 순위에서 분리한다: 정답률만으로 정렬하면
+  // 표본이 가장 작은 챕터가 늘 1위 약점이 된다. 실제 데이터에서 세트당 1~4문항짜리
+  // 챕터가 흔해(CSTS 2018은 6개 중 5개), 1문항을 틀린 챕터(0%)가 19문항을 풀어 10%가
+  // 나온 진짜 약점보다 위에 온다 — 앱이 엉뚱한 챕터를 공부하라고 지시하게 된다.
+  const { rankedChapters, lowSampleChapters } = useMemo(() => {
     const agg = aggregateChapterStats(Object.values(histories));
-    return Object.entries(agg)
+    const all = Object.entries(agg)
       .map(([name, { c, t }]) => ({ name, c, t, rate: displayRatePercent(c, t) }))
       .sort((a, b) => a.rate - b.rate || b.t - a.t);
+    return {
+      rankedChapters: all.filter((ch) => ch.t >= MIN_CHAPTER_SAMPLE),
+      // 표본 많은 순 — 판단 보류 그룹 안에서는 '가장 먼저 표본이 찰' 챕터를 위에 둔다.
+      lowSampleChapters: all.filter((ch) => ch.t < MIN_CHAPTER_SAMPLE).sort((a, b) => b.t - a.t),
+    };
   }, [histories]);
+  const chapterRows = rankedChapters;
   // 챕터 집계가 없는(구버전에서 채점한) 회차가 섞여 있으면 안내한다.
   const legacyCount = useMemo(
     () => Object.values(histories).filter((h) => h.total != null && !h.chapterStats).length,
@@ -140,7 +155,8 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
                 <h4>약한 챕터부터 <small>전 세트 합산 · 정답률 낮은 순</small></h4>
                 <p className="stats-hint sc-legend">
                   <strong>연습</strong>은 그 챕터 문항을 해설과 함께 익히는 용도예요(기록에 남지 않습니다).
-                  {' '}<strong>미니 시험</strong>은 그 챕터에서 10문항을 뽑아 채점해 정답률을 다시 잽니다.
+                  {' '}<strong>미니 시험</strong>은 그 챕터에서 <strong>최대 10문항</strong>을 뽑아 채점해
+                  정답률을 다시 잽니다(현재 세트에 그보다 적으면 있는 만큼만 출제됩니다).
                 </p>
                 {/* 잠금 사유도 종전엔 툴팁뿐이라 모바일에서는 "버튼이 왜 안 눌리지"로만 보였다. */}
                 {practiceLocked && (
@@ -179,7 +195,7 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
                         aria-label={`${ch.name} 미니 시험`}
                         title={practiceLocked
                           ? '시험 응시 중에는 미니 시험을 시작할 수 없습니다. 먼저 채점하세요.'
-                          : `'${ch.name}' 10문항 미니 시험 — 채점하면 챕터 통계에 반영`}
+                          : `'${ch.name}' 미니 시험(최대 10문항) — 채점하면 챕터 통계에 반영`}
                         onClick={() => onMiniTestChapter(ch.name)}
                       >
                         미니 시험
@@ -190,6 +206,50 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
                 {legacyCount > 0 && (
                   <p className="stats-hint">챕터 집계가 없는 이전 회차 {legacyCount}건은 제외됨(새로 채점하면 반영).</p>
                 )}
+              </section>
+            )}
+
+            {lowSampleChapters.length > 0 && (
+              <section className="stats-chapters stats-lowsample" aria-label="표본이 적은 챕터" data-testid="stats-lowsample">
+                {/* 표본이 적으면 정답률이 0%/100%로 널뛴다 — 순위에 섞으면 실력이 아니라
+                    표본 크기로 줄을 세우게 되므로, 판단을 보류한다고 명시하고 분리한다. */}
+                <h4>아직 판단하기 이른 챕터 <small>{MIN_CHAPTER_SAMPLE}문항 미만 · 더 풀면 순위에 올라옵니다</small></h4>
+                {chapterRows.length === 0 && (
+                  <p className="stats-hint sc-legend">
+                    <strong>연습</strong>은 해설과 함께 익히는 용도(기록에 남지 않음),
+                    {' '}<strong>미니 시험</strong>은 최대 10문항을 채점해 정답률을 잽니다.
+                  </p>
+                )}
+                <ul>
+                  {lowSampleChapters.map((ch) => (
+                    <li key={ch.name} data-testid="stats-lowsample-row">
+                      <span className="sc-name">{ch.name}</span>
+                      <span className="sc-rate sc-rate-weak">
+                        <small>{ch.c}/{ch.t}문항</small>
+                      </span>
+                      <button
+                        type="button"
+                        className="sc-practice"
+                        data-testid="chapter-practice-btn"
+                        disabled={practiceLocked}
+                        aria-label={`${ch.name} 연습`}
+                        onClick={() => onPracticeChapter(ch.name)}
+                      >
+                        연습
+                      </button>
+                      <button
+                        type="button"
+                        className="sc-minitest"
+                        data-testid="chapter-minitest-btn"
+                        disabled={practiceLocked}
+                        aria-label={`${ch.name} 미니 시험`}
+                        onClick={() => onMiniTestChapter(ch.name)}
+                      >
+                        미니 시험
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </section>
             )}
             {chapterRows.length === 0 && legacyCount > 0 && (
@@ -264,7 +324,7 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
               <section className="stats-minis" aria-label="챕터 미니 시험 기록" data-testid="stats-mini-rounds">
                 {/* 미니 회차는 타임라인에서 빠지므로 여기서 보여준다 — 종전에는 아래 목록에
                     "랜덤 0/10"으로만 떠서 어느 챕터의 미니인지 알 수 없었다. */}
-                <h4>챕터 미니 시험 <small>10문항 재측정 · 위 요약에는 넣지 않습니다</small></h4>
+                <h4>챕터 미니 시험 <small>최대 10문항 재측정 · 위 요약에는 넣지 않습니다</small></h4>
                 <ul className="mini-rounds">
                   {miniRounds.map((m) => (
                     <li key={m.id} className={m.rate < weakThreshold ? 'weak' : ''} data-testid="mini-round-item">

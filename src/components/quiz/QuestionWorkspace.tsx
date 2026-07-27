@@ -19,7 +19,7 @@ export const QuestionWorkspace = () => {
     index, setId, mode, setIndex, tickTimer, startTimer, beginSession,
     navCollapsed, setNavCollapsed, setPaletteOpen, setResultOpen,
     resumeNotice, setResumeNotice, chapterFilter, setChapterFilter,
-    setExamStarted, setDrawerOpen, activeProduct,
+    setExamStarted, setDrawerOpen, activeProduct, setExamStartedAt, examStartedAtForSet,
   } = useQuizStore(useShallow((s) => ({
     index: s.index, setId: s.setId, mode: s.mode, setIndex: s.setIndex,
     tickTimer: s.tickTimer, startTimer: s.startTimer, beginSession: s.beginSession,
@@ -27,7 +27,8 @@ export const QuestionWorkspace = () => {
     setPaletteOpen: s.setPaletteOpen, setResultOpen: s.setResultOpen,
     resumeNotice: s.resumeNotice, setResumeNotice: s.setResumeNotice,
     chapterFilter: s.chapterFilter, setChapterFilter: s.setChapterFilter,
-    setExamStarted: s.setExamStarted,
+    setExamStarted: s.setExamStarted, setExamStartedAt: s.setExamStartedAt,
+    examStartedAtForSet: s.examStartedAt[s.setId],
     setDrawerOpen: s.setDrawerOpen, activeProduct: s.activeProduct,
   })));
   const {
@@ -56,8 +57,19 @@ export const QuestionWorkspace = () => {
 
     // 시험 제한시간 처리 — 매 틱마다 남은 시간을 확인해 경고하고, 0이 되면 자동 제출한다.
     // 경과 시간은 tickTimer가 갱신한 직후의 스토어 값을 읽는다(구독하면 매초 리렌더된다).
+    // 시험 경과 시간을 응시 시작 시각(벽시계)으로 확정한다.
+    // 경과 누계(elapsedSeconds)는 앱이 떠 있는 동안만 쌓이므로, 앱을 껐다 켜면 그 시간이
+    // 빠져 제한시간을 무한히 늘릴 수 있었다. 기준점이 영속화돼 있으니 재실행해도 이어진다.
+    // 누계 자체를 덮어써 결과 모달·이력의 '소요 시간'까지 같은 값이 되게 한다.
+    const syncExamElapsed = () => {
+      if (examLimit == null || !examStartedAtForSet) return;
+      const wall = (Date.now() - examStartedAtForSet) / 1000;
+      if (wall > useQuizStore.getState().elapsedSeconds) useQuizStore.setState({ elapsedSeconds: wall });
+    };
+
     const checkExamDeadline = () => {
       if (examLimit == null || autoSubmittedRef.current) return;
+      syncExamElapsed();
       const remaining = remainingSeconds(examLimit, useQuizStore.getState().elapsedSeconds);
       const prev = prevRemainingRef.current;
       prevRemainingRef.current = remaining;
@@ -106,6 +118,8 @@ export const QuestionWorkspace = () => {
         interval = setInterval(tick, 1000);
       }
     };
+    // 복원 직후 즉시 1회 — 앱이 꺼져 있던 사이 제한시간이 끝났다면 바로 제출한다.
+    checkExamDeadline();
     interval = setInterval(tick, 1000);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
@@ -116,7 +130,7 @@ export const QuestionWorkspace = () => {
     // gradeAndShow는 렌더마다 새로 생성되지만 의존성에 넣으면 매 렌더 타이머가 재시작된다 —
     // 항상 최신 스토어 상태를 읽어 동작하므로 effect 재실행 없이 안전하다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, isGraded, showExamGate, startTimer, tickTimer, examLimit]);
+  }, [mode, isGraded, showExamGate, startTimer, tickTimer, examLimit, examStartedAtForSet]);
 
   // index가 현재 목록 범위를 벗어나면 보정(세트/모드 전환 잔여 index 방어, #70)
   useEffect(() => {
@@ -205,6 +219,9 @@ export const QuestionWorkspace = () => {
     const startExam = () => {
       setExamStarted(setId, true);
       beginSession(); // 위치 1번 + 타이머 0(세션 개시 의례 단일 액션)
+      // 제한시간의 기준점을 벽시계로 못박는다 — 경과 누계만 쓰면 앱을 껐다 켠 시간이
+      // 빠져 제한시간을 무한히 늘릴 수 있다(영속화되므로 재실행해도 이어진다).
+      setExamStartedAt(setId, Date.now());
       setDrawerOpen(false);
     };
     return (

@@ -270,10 +270,12 @@ export const AppModals = () => {
     const file = e.target.files[0];
     // 실패 후 같은 파일을 다시 선택해도 onChange가 발화하도록 값을 리셋한다.
     e.target.value = '';
-    const success = await importUserData(file);
+    const result = await importUserData(file);
+    // 실패 사유를 그대로 노출한다 — 종전에는 어떤 실패든 같은 문구라 무엇을 고칠지 알 수 없었고,
+    // 제품이 다른 백업은 데이터를 덮어쓴 뒤 '복원했습니다'라고 알리기까지 했다.
     showToast(
-      success ? '백업 파일을 복원했습니다.' : '파일 복원에 실패했습니다.',
-      success ? 'success' : 'error',
+      result.ok ? '백업 파일을 복원했습니다.' : (result.reason ?? '파일 복원에 실패했습니다.'),
+      result.ok ? 'success' : 'error',
     );
   };
 

@@ -1364,6 +1364,10 @@ body[data-theme="dark"] .mtb-chip { background: #1e40af; }
   background: var(--surface);
 }
 .stats-chapters li.weak { border-color: var(--danger, #c0392b); }
+/* 표본 부족 그룹 — 막대(sc-bar)가 없어 4열이고, 순위가 아니므로 강조하지 않는다. */
+.stats-lowsample li { grid-template-columns: minmax(90px, 1fr) auto auto auto; }
+.stats-lowsample .sc-name { color: var(--text-2); }
+.sc-rate-weak { color: var(--muted); font-weight: 700; white-space: nowrap; }
 .stats-chapters li.weak .sc-name { color: var(--danger, #c0392b); }
 .sc-name { font-size: 13px; font-weight: 700; color: var(--text); }
 .sc-bar { display: block; height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
