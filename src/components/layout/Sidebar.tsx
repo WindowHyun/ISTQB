@@ -24,7 +24,7 @@ export const Sidebar = () => {
     setMode, setSetId, beginSession, clearAnswers,
     setStatsOpen, setSettingsOpen, setWrongNoteOpen, setResultOpen, setDrawerOpen,
     setQuitExamOpen, redrawRandom, setRandomDraw,
-    setPendingSetChange, commitSetChange,
+    setPendingSetChange, commitSetChange, setPendingRedraw,
   } = useQuizStore(useShallow((s) => ({
     mode: s.mode, setId: s.setId, activeProduct: s.activeProduct, drawerOpen: s.drawerOpen,
     setMode: s.setMode, setSetId: s.setSetId, beginSession: s.beginSession,
@@ -35,6 +35,7 @@ export const Sidebar = () => {
     setQuitExamOpen: s.setQuitExamOpen,
     redrawRandom: s.redrawRandom, setRandomDraw: s.setRandomDraw,
     setPendingSetChange: s.setPendingSetChange, commitSetChange: s.commitSetChange,
+    setPendingRedraw: s.setPendingRedraw,
   })));
   const asideRef = React.useRef<HTMLElement>(null);
 
@@ -259,6 +260,9 @@ export const Sidebar = () => {
                 className="subtle"
                 data-testid="random-redraw"
                 onClick={() => {
+                  // 세트 변경과 같은 손실(현재 추첨·답안 폐기)이므로 같은 규칙으로 묻는다.
+                  // 진행이 없으면 잃을 게 없어 바로 진행한다.
+                  if (hasRandomProgress()) { setPendingRedraw(true); return; }
                   clearAnswers(setId, 'random');
                   redrawRandom();
                   beginSession();

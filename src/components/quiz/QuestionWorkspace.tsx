@@ -9,6 +9,8 @@ import {
   crossedWarnThreshold, EXAM_AWAY_NOTICE_SEC,
 } from '../../utils/examTime';
 import { formatClock } from '../../utils/time';
+import { useBackDismiss } from '../../hooks/useBackDismiss';
+import { BACK_PRIORITY } from '../../utils/backGuard';
 import { QuestionCard } from './QuestionCard';
 import { QuestionPalette } from './QuestionPalette';
 import { ErrorState } from '../common/ErrorState';
@@ -20,6 +22,7 @@ export const QuestionWorkspace = () => {
     navCollapsed, setNavCollapsed, setPaletteOpen, setResultOpen,
     resumeNotice, setResumeNotice, chapterFilter, setChapterFilter,
     setExamStarted, setDrawerOpen, activeProduct, setExamStartedAt, examStartedAtForSet,
+    setConfirmExitExam,
   } = useQuizStore(useShallow((s) => ({
     index: s.index, setId: s.setId, mode: s.mode, setIndex: s.setIndex,
     tickTimer: s.tickTimer, startTimer: s.startTimer, beginSession: s.beginSession,
@@ -28,12 +31,13 @@ export const QuestionWorkspace = () => {
     resumeNotice: s.resumeNotice, setResumeNotice: s.setResumeNotice,
     chapterFilter: s.chapterFilter, setChapterFilter: s.setChapterFilter,
     setExamStarted: s.setExamStarted, setExamStartedAt: s.setExamStartedAt,
+    setConfirmExitExam: s.setConfirmExitExam,
     examStartedAtForSet: s.examStartedAt[s.setId],
     setDrawerOpen: s.setDrawerOpen, activeProduct: s.activeProduct,
   })));
   const {
     appData, currentQuestions, answered, isGraded, canGrade, requestGrade, gradeAndShow,
-    showExamGate, // 시험 단계 파생은 useQuizSession이 단일 원천(잠금과 동일 규칙 집합)
+    showExamGate, examLocked, // 시험 단계 파생은 useQuizSession이 단일 원천(잠금과 동일 규칙 집합)
     loadError, retryLoad,
   } = useQuizSession();
   // 시험 제한시간(자격증별). null이면 제한 없음 — 종전처럼 경과 시간만 센다.
@@ -131,6 +135,12 @@ export const QuestionWorkspace = () => {
     // 항상 최신 스토어 상태를 읽어 동작하므로 effect 재실행 없이 안전하다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, isGraded, showExamGate, startTimer, tickTimer, examLimit, examStartedAtForSet]);
+
+  // 응시 중에는 뒤로가기를 한 번 막고 확인을 받는다.
+  // 제한시간이 벽시계로 흐르므로(A3) 나가 있는 동안에도 시간이 줄어든다 — 실수로
+  // 뒤로가기 한 번에 시험 시간을 잃는 일이 없게 한다. 오버레이가 열려 있으면
+  // 그쪽이 먼저 닫히도록 우선순위를 가장 낮게 둔다.
+  useBackDismiss(examLocked, () => setConfirmExitExam(true), BACK_PRIORITY.exam);
 
   // index가 현재 목록 범위를 벗어나면 보정(세트/모드 전환 잔여 index 방어, #70)
   useEffect(() => {

@@ -24,9 +24,18 @@ const MIN_CHAPTER_SAMPLE = 5;
 // 브라우저 로케일을 따라가, 한국어 앱인데 기기에 따라 "6/15/2025"(미국식)로 나온다.
 // 포매터를 모듈 상수로 재사용한다: 이력이 수천 건 쌓이면 행마다 Intl 객체를 새로
 // 만드는 비용이 통계 렌더 시간에 그대로 실린다(NF12는 1,000건 렌더를 예산으로 잰다).
-const ROUND_DATE_FMT = new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' });
+const ROUND_DATE_FMT = new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric' });
+const ROUND_TIME_FMT = new Intl.DateTimeFormat('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+// 날짜만 찍으면 하루에 여러 번 응시했을 때 세 줄이 모두 같은 값이라 방금 친 회차를
+// 가려낼 수 없다. 오늘 회차는 시각만, 이전 회차는 날짜+시각으로 보여준다.
 function formatRoundDate(ms: number): string {
-  return ROUND_DATE_FMT.format(new Date(ms));
+  const d = new Date(ms);
+  const now = new Date();
+  const sameDay = d.getFullYear() === now.getFullYear()
+    && d.getMonth() === now.getMonth()
+    && d.getDate() === now.getDate();
+  const time = ROUND_TIME_FMT.format(d);
+  return sameDay ? `오늘 ${time}` : `${ROUND_DATE_FMT.format(d)} ${time}`;
 }
 
 interface StatsDashboardProps {

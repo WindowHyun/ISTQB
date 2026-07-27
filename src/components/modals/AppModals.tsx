@@ -82,6 +82,8 @@ export const AppModals = () => {
     setMode, beginSession, clearAnswers, setReviewIds, setSetId, setChapterFilter, setResumePrompt,
     setQuitExamOpen, setGradedResume, setRandomDraw,
     setPendingSetChange, commitSetChange, reviewedOk,
+    pendingRedraw, setPendingRedraw, confirmExitExam, setConfirmExitExam,
+    redrawRandom, resetToGate,
   } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, activeProduct: s.activeProduct, histories: s.histories,
     resultElapsedSeconds: s.resultOpen ? s.elapsedSeconds : 0,
@@ -100,6 +102,9 @@ export const AppModals = () => {
     setRandomDraw: s.setRandomDraw,
     setPendingSetChange: s.setPendingSetChange, commitSetChange: s.commitSetChange,
     reviewedOk: s.reviewedOk,
+    pendingRedraw: s.pendingRedraw, setPendingRedraw: s.setPendingRedraw,
+    confirmExitExam: s.confirmExitExam, setConfirmExitExam: s.setConfirmExitExam,
+    redrawRandom: s.redrawRandom, resetToGate: s.resetToGate,
   })));
   // examLocked — useQuizSession이 단일 원천(게이트·사이드바 잠금과 동일 규칙 집합).
   const { appData, total, answered, correctCount, cstsWeighted, gradeAndShow, examLocked } = useQuizSession();
@@ -117,6 +122,9 @@ export const AppModals = () => {
   const [confirmHomeOpen, setConfirmHomeOpen] = useState(false);
   // 사용설명서 — 게이트 하단 버튼과 동일한 문서를 설정에서도 연다(풀이 중 재열람 경로).
   const [guideOpen, setGuideOpen] = useState(false);
+  // 가져오기는 저장소마다 정책이 다르다 — 이력은 합쳐지고(put) 답안·UI 상태는 통째로
+  // 교체된다. 결과를 예측할 수 없으면 되돌릴 수 없는 손실이 되므로, 적용 전에 명시한다.
+  const [pendingImport, setPendingImport] = useState<File | null>(null);
 
   // 뒤로가기(브라우저·안드로이드 하드웨어)로 오버레이 닫기.
   // 확인 대화상자·사용설명서는 주 모달 위에서 열리므로 먼저 닫히게 우선순위를 높인다.
@@ -132,6 +140,9 @@ export const AppModals = () => {
   useBackDismiss(guideOpen, () => setGuideOpen(false), BACK_PRIORITY.confirm);
   // 뒤로가기 = 취소(계속 풀기) — 확인 모달의 안전한 기본값이다.
   useBackDismiss(Boolean(pendingSetChange), () => setPendingSetChange(null), BACK_PRIORITY.confirm);
+  useBackDismiss(pendingRedraw, () => setPendingRedraw(false), BACK_PRIORITY.confirm);
+  useBackDismiss(Boolean(pendingImport), () => setPendingImport(null), BACK_PRIORITY.confirm);
+  useBackDismiss(confirmExitExam, () => setConfirmExitExam(false), BACK_PRIORITY.confirm);
   // 오답노트는 3단계(세트 → 오답 목록 → 문항)라 뒤로가기가 한 단계씩 되돌아간다 —
   // 문항을 보다 뒤로가기를 눌렀을 때 노트가 통째로 닫히면 되짚어 들어가야 한다.
   useBackDismiss(
@@ -266,11 +277,16 @@ export const AppModals = () => {
     showToast('응시를 포기했습니다 — 회차 기록은 남지 않았어요.', 'info');
   };
 
-  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
     const file = e.target.files[0];
     // 실패 후 같은 파일을 다시 선택해도 onChange가 발화하도록 값을 리셋한다.
     e.target.value = '';
+    setPendingImport(file);
+  };
+
+  const runImport = async (file: File) => {
+    setPendingImport(null);
     const result = await importUserData(file);
     // 실패 사유를 그대로 노출한다 — 종전에는 어떤 실패든 같은 문구라 무엇을 고칠지 알 수 없었고,
     // 제품이 다른 백업은 데이터를 덮어쓴 뒤 '복원했습니다'라고 알리기까지 했다.
@@ -421,6 +437,59 @@ export const AppModals = () => {
                 onClick={() => commitSetChange(pendingSetChange)}
               >
                 세트 바꾸기
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {pendingRedraw && (
+        <Modal title="새 문제 뽑기" onClose={() => setPendingRedraw(false)}>
+          <div className="modal-body confirm-body" data-testid="pending-redraw-modal">
+            <p>
+              지금까지 푼 <strong>{answered}문항</strong>이 사라지고 새 문항으로 다시 뽑습니다.
+              (랜덤은 이전 추첨을 보관하지 않습니다)
+            </p>
+            <div className="confirm-actions">
+              <button type="button" data-testid="pending-redraw-cancel" onClick={() => setPendingRedraw(false)}>
+                계속 풀기
+              </button>
+              <button
+                type="button"
+                className="danger"
+                data-testid="pending-redraw-confirm"
+                onClick={() => {
+                  clearAnswers(setId, 'random');
+                  redrawRandom();
+                  beginSession();
+                  setPendingRedraw(false);
+                }}
+              >
+                새로 뽑기
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {confirmExitExam && (
+        <Modal title="시험 화면 나가기" onClose={() => setConfirmExitExam(false)}>
+          <div className="modal-body confirm-body" data-testid="confirm-exit-exam-modal">
+            <p>
+              시험 응시 중입니다. 나가도 답안은 저장되지만
+              {' '}<strong>제한시간은 계속 흐릅니다</strong>.
+            </p>
+            <div className="confirm-actions">
+              <button type="button" data-testid="confirm-exit-cancel" onClick={() => setConfirmExitExam(false)}>
+                계속 응시
+              </button>
+              <button
+                type="button"
+                className="danger"
+                data-testid="confirm-exit-go"
+                onClick={() => { setConfirmExitExam(false); resetToGate(); }}
+              >
+                나가기
               </button>
             </div>
           </div>
@@ -817,18 +886,67 @@ export const AppModals = () => {
       {confirmGradeOpen && (
         <Modal title="제출 전 검토" onClose={() => setConfirmGradeOpen(false)}>
           <div className="modal-body confirm-body" data-testid="confirm-grade-modal">
-            <p>
-              아직 답하지 않은 문항이 <strong>{unanswered}개</strong> 있습니다.
-              그대로 채점할까요? (미응답은 오답 처리됩니다)
-            </p>
+            {answered === 0 ? (
+              // 0문항 채점은 0점 회차가 통계·타임라인·오답노트에 영구 기록된다 —
+              // "미응답 N개"로만 알리면 무엇이 남는지 알 수 없다.
+              <p data-testid="grade-zero-warning">
+                <strong>한 문항도 풀지 않았습니다.</strong> 지금 채점하면
+                {' '}<strong>0점 회차로 기록</strong>되고 전 문항이 오답 노트에 쌓입니다.
+                그만두려면 사이드바의 ‘응시 포기’를 쓰세요 — 회차가 남지 않습니다.
+              </p>
+            ) : (
+              <p>
+                아직 답하지 않은 문항이 <strong>{unanswered}개</strong> 있습니다.
+                그대로 채점할까요? (미응답은 오답 처리됩니다)
+              </p>
+            )}
             <p className="review-hint">아래에서 미응답(빈 칸) 문항을 눌러 이동해 마저 풀 수 있습니다.</p>
             <div className="review-palette" data-testid="review-palette">
               <QuestionPalette onJump={() => setConfirmGradeOpen(false)} />
             </div>
             <div className="confirm-actions">
-              <button type="button" onClick={() => setConfirmGradeOpen(false)}>계속 풀기</button>
-              <button type="button" className="primary" data-testid="confirm-grade" onClick={confirmGrade}>
+              <button
+                type="button"
+                className={answered === 0 ? 'primary' : undefined}
+                onClick={() => setConfirmGradeOpen(false)}
+              >
+                계속 풀기
+              </button>
+              {/* 0문항이면 되돌릴 수 없는 쪽(채점)에서 강조를 빼 안전한 기본값이 앞서게 한다. */}
+              <button
+                type="button"
+                className={answered === 0 ? 'danger' : 'primary'}
+                data-testid="confirm-grade"
+                onClick={confirmGrade}
+              >
                 채점하기
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* 설정 모달에서 열리는 확인이라 설정보다 뒤에 렌더해야 위에 깔린다 —
+          앞에 두면 설정 모달에 가려 버튼을 누를 수 없다(E2E가 실제로 잡아냄). */}
+      {pendingImport && (
+        <Modal title="백업 가져오기" onClose={() => setPendingImport(null)}>
+          <div className="modal-body confirm-body" data-testid="import-confirm-modal">
+            <p><strong>{pendingImport.name}</strong></p>
+            <p>
+              적용하면 <strong>지금 풀던 답안과 진행 위치는 백업본으로 교체</strong>되고,
+              <strong> 응시 이력은 기존 기록과 합쳐집니다</strong>. 교체된 답안은 되돌릴 수 없습니다.
+            </p>
+            <div className="confirm-actions">
+              <button type="button" data-testid="import-cancel" onClick={() => setPendingImport(null)}>
+                취소
+              </button>
+              <button
+                type="button"
+                className="danger"
+                data-testid="import-confirm"
+                onClick={() => void runImport(pendingImport)}
+              >
+                가져오기
               </button>
             </div>
           </div>

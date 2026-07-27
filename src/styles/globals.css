@@ -1174,6 +1174,11 @@ body[data-theme="dark"] .table-image-frame {
   .mtb-bar { flex: 1; height: 5px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
   .mtb-bar i { display: block; height: 100%; background: var(--primary); }
 
+  /* 세트명 중복 제거 — 상단바(.mobile-topbar)가 세트명·모드·진행·시간을 상시 노출하므로
+     워크스페이스 헤더의 세트명은 같은 정보를 한 번 더 쓰는 것이다. 세로 공간이 귀한
+     폭에서 첫 화면의 상당 부분을 중복이 차지했다. '문제 N'만 남긴다. */
+  #setMeta { display: none; }
+
   /* 한 칸 레이아웃 + 문제가 첫 화면(사이드바는 드로어로)
      하단 패딩은 액션바 높이 + iOS safe-area(홈 인디케이터)만큼 확보해 겹침을 막는다. */
   .app-shell {
