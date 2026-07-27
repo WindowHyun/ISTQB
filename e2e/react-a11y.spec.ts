@@ -64,4 +64,35 @@ test.describe("접근성", () => {
     // .stats 섹션 전체를 라이브로 두면 타이머가 매초 낭독되므로, 섹션엔 aria-live가 없어야 한다.
     await expect(page.locator(".stats")).not.toHaveAttribute("aria-live", "polite");
   });
+
+  // 다크 모드의 --success/--danger는 '어두운 배경 위 글자색'으로 고른 밝은 색이라,
+  // 그걸 뱃지 배경으로 깔고 흰 글자를 얹으면 대비가 무너진다(정답 1.74:1, 오답 2.77:1).
+  // 채점 직후 정·오답을 확인하는 화면이라 여기서 글자가 안 읽히면 기능이 무의미해진다.
+  test("다크 모드에서 채점된 보기 뱃지의 글자 대비가 3:1 이상이다", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.setItem("istqb-theme", "dark"));
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await expect(page.locator("body")).toHaveAttribute("data-theme", "dark");
+
+    // 채점 상태의 정답/오답 뱃지를 만든다(연습은 즉시 피드백으로 색이 붙는다).
+    await page.locator("#options .option").first().click();
+    await expect(page.locator("#options .option.correct, #options .option.wrong")).not.toHaveCount(0);
+
+    const worst = await page.locator("#options .option-key").evaluateAll((els) => {
+      const rgb = (c: string) => (c.match(/\d+/g) || []).slice(0, 3).map(Number);
+      const lum = ([r, g, b]: number[]) => {
+        const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+      };
+      let min = Infinity;
+      for (const el of els) {
+        const s = getComputedStyle(el);
+        const a = lum(rgb(s.color)) + 0.05;
+        const b = lum(rgb(s.backgroundColor)) + 0.05;
+        min = Math.min(min, Math.max(a, b) / Math.min(a, b));
+      }
+      return min;
+    });
+    expect(worst).toBeGreaterThanOrEqual(3);
+  });
 });

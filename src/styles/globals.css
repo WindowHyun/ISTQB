@@ -1335,6 +1335,18 @@ body[data-theme="dark"] {
 body[data-theme="dark"] .skip-link,
 body[data-theme="dark"] .mtb-chip { background: #1e40af; }
 
+/* 같은 함정이 채점 결과의 보기 뱃지(A·B·C·D)에도 있었다. 다크의 --success(#4ade80)·
+   --danger(#f87171)는 '어두운 배경 위 글자색'으로 고른 밝은 색인데, .option-key는 그걸
+   배경으로 깔고 흰 글자를 얹는다 — 정답 뱃지 1.74:1, 오답 뱃지 2.77:1로 큰 글자 기준
+   3:1에도 못 미쳤다(라이트 모드는 진한 색이라 문제없음). 채점 직후 정·오답을 확인하는
+   화면이라 글자가 안 읽히면 기능 자체가 흐려진다. 뱃지 배경만 라이트 모드 색으로
+   되돌려 흰 글자 대비를 확보한다(정답 ≈5.4:1, 오답 ≈7.1:1, 선택 ≈8.6:1).
+   선택/정답/오답 순서는 원본 규칙(.option.selected → .correct → .wrong)과 같게 둔다.
+   특정도가 같아 순서가 곧 우선순위이고, 뒤집으면 '내가 고른 오답'이 파란 뱃지가 된다. */
+body[data-theme="dark"] .option.selected .option-key { background: #1e40af; }
+body[data-theme="dark"] .option.correct .option-key { background: #15803d; }
+body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
+
 /* ── 학습 통계 대시보드 ──────────────────────────────────────────────── */
 .modal-header-actions { display: flex; align-items: center; gap: 8px; }
 
@@ -1380,7 +1392,17 @@ body[data-theme="dark"] .mtb-chip { background: #1e40af; }
 .stats-lowsample .sc-name { color: var(--text-2); }
 .sc-rate-weak { color: var(--muted); font-weight: 700; white-space: nowrap; }
 .stats-chapters li.weak .sc-name { color: var(--danger, #c0392b); }
-.sc-name { font-size: 13px; font-weight: 700; color: var(--text); }
+/* 챕터명은 한국어라 기본값(break 허용)에서는 글자 사이 어디서든 끊긴다 — 좁은 열에서
+   "소프트웨어 개발과 테스트"가 "…테스 / 트"로, "SDLC 전반의 테스트"가 "…테 / 스트"로
+   꺾였다(오답노트·회차 타임라인과 같은 함정). keep-all로 어절 경계에서만 접고,
+   한 어절이 열보다 길어 어쩔 수 없을 때만 break-word로 강제 분리한다. */
+.sc-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
 .sc-bar { display: block; height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
 .sc-bar i { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
 .stats-chapters li.weak .sc-bar i { background: var(--danger, #c0392b); }

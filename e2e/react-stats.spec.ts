@@ -187,4 +187,63 @@ test.describe("약점 분석 표본", () => {
     await expect(low.first()).toContainText("테스트 도구");
     await expect(page.getByTestId("stats-lowsample")).toContainText("판단하기 이른");
   });
+
+  test("좁은 화면에서 챕터명이 어절 중간에서 끊기지 않는다", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(async () => {
+      const db: IDBDatabase = await new Promise((res, rej) => {
+        const r = indexedDB.open("istqb-db", 1);
+        r.onupgradeneeded = () => {
+          if (!r.result.objectStoreNames.contains("history")) r.result.createObjectStore("history", { keyPath: "id" });
+        };
+        r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+      });
+      await new Promise<void>((res, rej) => {
+        const tx = db.transaction("history", "readwrite");
+        tx.objectStore("history").clear();
+        tx.objectStore("history").put({
+          id: "1000", setId: "ISTQB-FL-V4-A", mode: "exam", certification: "istqb",
+          setTitle: "샘플 A", answers: {}, correct: 5, total: 40, elapsedSeconds: 600,
+          createdAt: 1750000001000,
+          // 실제 CSTS 챕터명 — 좁은 열에서 "…테스 / 트"로 꺾이던 이름들.
+          chapterStats: {
+            "소프트웨어 개발과 테스트": { c: 1, t: 13 },
+            "테스트 프로세스와 도구": { c: 2, t: 12 },
+            "SDLC 전반의 테스트": { c: 2, t: 15 },
+          },
+        });
+        tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error);
+      });
+    });
+    await openProduct(page, "ISTQB");
+    // 통계는 데스크톱 폭에서 연다 — 모바일에선 stats-open이 드로어 안에 있다.
+    await page.getByTestId("stats-open").click();
+    await expect(page.getByTestId("stats-dashboard")).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(150);
+
+    // 줄 수를 세는 대신 '어절이 두 줄에 걸쳐 있는가'를 직접 본다 — 이름이 길어 두 줄이
+    // 되는 것 자체는 정상이고, 문제는 "테스 / 트"처럼 어절 내부가 끊기는 것이다.
+    // Range의 클라이언트 사각형이 2개 이상이면 그 어절이 줄바꿈으로 쪼개졌다는 뜻이다.
+    const split = await page.locator(".sc-name").evaluateAll((els) => {
+      const bad: string[] = [];
+      for (const el of els) {
+        const node = el.firstChild;
+        if (!node || node.nodeType !== Node.TEXT_NODE) continue;
+        const text = node.textContent ?? "";
+        let at = 0;
+        for (const word of text.split(" ")) {
+          if (word.length > 1) {
+            const range = document.createRange();
+            range.setStart(node, at);
+            range.setEnd(node, at + word.length);
+            if (range.getClientRects().length > 1) bad.push(`${text} → ${word}`);
+          }
+          at += word.length + 1;
+        }
+      }
+      return bad;
+    });
+    expect(split).toEqual([]);
+  });
 });
