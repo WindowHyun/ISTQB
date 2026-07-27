@@ -29,7 +29,10 @@ test.describe("약점 분석(Phase 3)", () => {
     const chapters = page.getByTestId("stats-chapters");
     await expect(chapters).toBeVisible();
     // ISTQB 세트 A는 6개 챕터 전부 출제(공식 청사진 8/6/4/11/9/2).
-    await expect(page.getByTestId("stats-chapter-row")).toHaveCount(6);
+    // 1회 응시로는 '정적 테스트'(4문항)·'테스트 도구'(2문항)가 최소 표본(5)에 못 미쳐
+    // 순위가 아니라 '판단 이른 챕터'로 분리된다 — 표본 2짜리가 1위 약점이 되는 왜곡 방지.
+    await expect(page.getByTestId("stats-chapter-row")).toHaveCount(4);
+    await expect(page.getByTestId("stats-lowsample-row")).toHaveCount(2);
     // 0%라 전부 약점(빨간) 표시 — 첫 행 기준만 확인.
     await expect(page.getByTestId("stats-chapter-row").first()).toHaveClass(/weak/);
 
