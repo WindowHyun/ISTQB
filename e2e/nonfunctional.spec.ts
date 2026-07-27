@@ -100,7 +100,7 @@ test.describe("비기능 · 성능(응답 시간)", () => {
     await page.keyboard.press("Escape");
     const t0 = Date.now();
     await page.getByTestId("stats-open").click();
-    await expect(page.getByTestId("stats-dashboard").locator(".stats-list li")).toHaveCount(150, { timeout: 8_000 });
+    await expect(page.getByTestId("stats-dashboard").locator(".stl-rounds li")).toHaveCount(150, { timeout: 8_000 });
     note(testInfo, "150건 통계 렌더", `${Date.now() - t0}ms`);
     expect(Date.now() - t0).toBeLessThan(budget(2000, 5000));
   });
@@ -122,12 +122,12 @@ test.describe("비기능 · 성능(응답 시간)", () => {
     await page.keyboard.press("Escape");
     const t0 = Date.now();
     await page.getByTestId("stats-open").click();
-    await expect(page.getByTestId("stats-dashboard").locator(".stats-list li")).toHaveCount(1000, { timeout: 15_000 });
+    await expect(page.getByTestId("stats-dashboard").locator(".stl-rounds li")).toHaveCount(1000, { timeout: 15_000 });
     const dt = Date.now() - t0;
     note(testInfo, "1,000건 통계 렌더", `${dt}ms`);
     expect(dt).toBeLessThan(budget(4000, 9000));
     // 스크롤이 끊기지 않고 동작(마지막 항목 도달).
-    const list = page.getByTestId("stats-dashboard").locator(".stats-list li");
+    const list = page.getByTestId("stats-dashboard").locator(".stl-rounds li");
     await list.last().scrollIntoViewIfNeeded();
     await expect(list.last()).toBeVisible();
   });

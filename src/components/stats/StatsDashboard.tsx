@@ -17,8 +17,11 @@ const WEAK_THRESHOLD_BY_CERT: Record<string, number> = { istqb: 65, csts: 75 };
 
 // 회차 날짜 표기 — 로케일을 ko-KR로 고정한다. toLocaleDateString()을 인자 없이 쓰면
 // 브라우저 로케일을 따라가, 한국어 앱인데 기기에 따라 "6/15/2025"(미국식)로 나온다.
+// 포매터를 모듈 상수로 재사용한다: 이력이 수천 건 쌓이면 행마다 Intl 객체를 새로
+// 만드는 비용이 통계 렌더 시간에 그대로 실린다(NF12는 1,000건 렌더를 예산으로 잰다).
+const ROUND_DATE_FMT = new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' });
 function formatRoundDate(ms: number): string {
-  return new Date(ms).toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' });
+  return ROUND_DATE_FMT.format(new Date(ms));
 }
 
 interface StatsDashboardProps {

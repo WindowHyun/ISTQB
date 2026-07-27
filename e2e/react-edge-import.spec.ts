@@ -38,7 +38,7 @@ test.describe("엣지-대용량 import", () => {
     }
     await importBackup(page, { state: baseState, answers: {}, histories });
     await page.getByTestId("stats-open").click();
-    await expect(page.getByTestId("stats-dashboard").locator(".stats-list li")).toHaveCount(150, { timeout: 8_000 });
+    await expect(page.getByTestId("stats-dashboard").locator(".stl-rounds li")).toHaveCount(150, { timeout: 8_000 });
   });
 
   test("비정상 타입이 섞인 답안은 정제되어 유효한 것만 복원된다(크래시 없음)", async ({ page }) => {
@@ -118,6 +118,6 @@ test.describe("엣지-대용량 import", () => {
     await page.keyboard.press("Escape");
     // 유효한 good 이력이 통계에 1건 남는다.
     await page.getByTestId("stats-open").click();
-    await expect(page.getByTestId("stats-dashboard").locator(".stats-list li")).toHaveCount(1, { timeout: 8_000 });
+    await expect(page.getByTestId("stats-dashboard").locator(".stl-rounds li")).toHaveCount(1, { timeout: 8_000 });
   });
 });
