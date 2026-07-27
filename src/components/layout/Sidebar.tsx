@@ -24,7 +24,7 @@ export const Sidebar = () => {
     setMode, setSetId, beginSession, clearAnswers,
     setStatsOpen, setSettingsOpen, setWrongNoteOpen, setResultOpen, setDrawerOpen,
     setQuitExamOpen, redrawRandom, setRandomDraw,
-    setPendingSetChange, commitSetChange,
+    setPendingSetChange, commitSetChange, setPendingRedraw,
   } = useQuizStore(useShallow((s) => ({
     mode: s.mode, setId: s.setId, activeProduct: s.activeProduct, drawerOpen: s.drawerOpen,
     setMode: s.setMode, setSetId: s.setSetId, beginSession: s.beginSession,
@@ -35,6 +35,7 @@ export const Sidebar = () => {
     setQuitExamOpen: s.setQuitExamOpen,
     redrawRandom: s.redrawRandom, setRandomDraw: s.setRandomDraw,
     setPendingSetChange: s.setPendingSetChange, commitSetChange: s.commitSetChange,
+    setPendingRedraw: s.setPendingRedraw,
   })));
   const asideRef = React.useRef<HTMLElement>(null);
 
@@ -67,7 +68,7 @@ export const Sidebar = () => {
   const {
     appData, total, answered, correctCount, isGraded, canGrade, progressPercent,
     examLocked, // 응시 중 잠금 — useQuizSession이 단일 원천(게이트와 동일 규칙 집합)
-    requestGrade,
+    requestGrade, reviewedCount, completeReview,
   } = useQuizSession();
 
   // 현재 선택된 제품(ISTQB/CSTS)에 속한 세트만 노출.
@@ -165,6 +166,19 @@ export const Sidebar = () => {
   const productBadge = (activeProduct || '').toUpperCase();
   const showGradeSection = mode === 'exam' || mode === 'random';
 
+  // 오답 모드 '복습 완료' — 맞힌 문항을 재풀이 대상에서 빼 목록이 실제로 줄어들게 한다.
+  // 종전에는 오답을 전부 맞혀도 다음에 같은 목록이 그대로 나와 루프가 닫히지 않았다.
+  const handleCompleteReview = () => {
+    const done = completeReview();
+    closeDrawer();
+    showToast(
+      done > 0
+        ? `${done}문항을 복습 완료로 표시했습니다. 오답 목록에서 빠집니다.`
+        : '맞힌 문항이 없습니다. 정답을 맞힌 뒤 눌러 주세요.',
+      done > 0 ? 'success' : 'info',
+    );
+  };
+
   return (
     <aside
       ref={asideRef}
@@ -195,6 +209,23 @@ export const Sidebar = () => {
           ✕
         </button>
       </div>
+
+      {mode === 'review' && total > 0 && (
+        <section className="action-section quick-grade-section">
+          <div className="actions">
+            <button
+              type="button"
+              className="primary"
+              data-testid="complete-review-btn"
+              disabled={reviewedCount === 0}
+              onClick={handleCompleteReview}
+            >
+              복습 완료 ({reviewedCount}/{total})
+            </button>
+          </div>
+          <p className="action-hint">맞힌 문항이 오답 목록에서 빠집니다. 다시 틀리면 되돌아와요.</p>
+        </section>
+      )}
 
       {showGradeSection && (
         <section className="action-section quick-grade-section">
@@ -229,6 +260,9 @@ export const Sidebar = () => {
                 className="subtle"
                 data-testid="random-redraw"
                 onClick={() => {
+                  // 세트 변경과 같은 손실(현재 추첨·답안 폐기)이므로 같은 규칙으로 묻는다.
+                  // 진행이 없으면 잃을 게 없어 바로 진행한다.
+                  if (hasRandomProgress()) { setPendingRedraw(true); return; }
                   clearAnswers(setId, 'random');
                   redrawRandom();
                   beginSession();

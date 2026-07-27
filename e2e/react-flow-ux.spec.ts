@@ -130,6 +130,8 @@ test.describe("랜덤 UX(S1·S5)", () => {
     await expect(page.locator("#progressText")).toHaveText("1 / 40");
 
     await page.getByTestId("random-redraw").click();
+    // 진행이 있으면 세트 변경과 같은 규칙으로 확인을 거친다(B4).
+    await page.getByTestId("pending-redraw-confirm").click();
     await expect(page.locator("#progressText")).toHaveText("0 / 40");
   });
 

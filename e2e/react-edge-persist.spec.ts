@@ -77,7 +77,14 @@ test.describe("엣지-영속성", () => {
     await page.locator('input[type="file"][accept=".json"]').setInputFiles({
       name: "bad.json", mimeType: "application/json", buffer: Buffer.from("{broken", "utf-8"),
     });
-    await expect(page.getByTestId("toast")).toContainText("실패", { timeout: 5_000 });
+    // 가져오기는 적용 전에 정책 확인을 거친다(D2).
+    await page.getByTestId("import-confirm").click();
+    // 오류 토스트로 뜨고, 무엇이 문제인지 알려준다 — 종전에는 어떤 실패든 같은 문구라
+    // 사용자가 파일을 고쳐야 하는지 앱을 고쳐야 하는지 알 수 없었다.
+    const toast = page.getByTestId("toast");
+    await expect(toast).toBeVisible({ timeout: 5_000 });
+    await expect(toast).toHaveClass(/toast-error/);
+    await expect(toast).toContainText("해석하지 못했");
   });
 
   test("빈 객체 JSON 가져오기는 크래시 없이 처리된다", async ({ page }) => {
@@ -86,6 +93,8 @@ test.describe("엣지-영속성", () => {
     await page.locator('input[type="file"][accept=".json"]').setInputFiles({
       name: "empty.json", mimeType: "application/json", buffer: Buffer.from("{}", "utf-8"),
     });
+    // 가져오기는 적용 전에 정책 확인을 거친다(D2).
+    await page.getByTestId("import-confirm").click();
     await expect(page.getByTestId("toast")).toBeVisible({ timeout: 5_000 });
     await expect(page.locator(".workspace")).toBeVisible();
   });
@@ -115,6 +124,8 @@ test.describe("엣지-영속성", () => {
     await page.waitForTimeout(300);
     expect(await page.locator("#questionNav button.answered").count()).toBe(0);
     await page.locator('input[type="file"][accept=".json"]').setInputFiles(fp as string);
+    // 가져오기는 적용 전에 정책 확인을 거친다(D2).
+    await page.getByTestId("import-confirm").click();
     await page.waitForTimeout(800);
     expect(await page.locator("#questionNav button.answered").count()).toBeGreaterThanOrEqual(1);
   });

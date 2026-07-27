@@ -776,6 +776,12 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 /* 극복(최근 시험 2회 연속 정답) 문항 — 목록에는 남기되 흐리게 + 배지로 상태 구분. */
 .wn-overcome .wrong-note-item-btn { opacity: 0.62; }
 .wn-overcome .wrong-note-item-btn:hover { opacity: 1; }
+/* 오답 재풀이로 맞힌 문항 — '극복'(시험 2회 연속)보다 약한 근거라 중립색으로 구분한다. */
+.wn-reviewed-tag {
+  padding: 2px 9px; border-radius: 999px;
+  background: var(--primary-50); border: 1px solid var(--primary-100);
+  color: var(--primary-700); font-size: 11px; font-weight: 800; white-space: nowrap;
+}
 .wn-overcome-tag {
   padding: 2px 9px;
   border-radius: 999px;
@@ -1168,6 +1174,11 @@ body[data-theme="dark"] .table-image-frame {
   .mtb-bar { flex: 1; height: 5px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
   .mtb-bar i { display: block; height: 100%; background: var(--primary); }
 
+  /* 세트명 중복 제거 — 상단바(.mobile-topbar)가 세트명·모드·진행·시간을 상시 노출하므로
+     워크스페이스 헤더의 세트명은 같은 정보를 한 번 더 쓰는 것이다. 세로 공간이 귀한
+     폭에서 첫 화면의 상당 부분을 중복이 차지했다. '문제 N'만 남긴다. */
+  #setMeta { display: none; }
+
   /* 한 칸 레이아웃 + 문제가 첫 화면(사이드바는 드로어로)
      하단 패딩은 액션바 높이 + iOS safe-area(홈 인디케이터)만큼 확보해 겹침을 막는다. */
   .app-shell {
@@ -1324,6 +1335,18 @@ body[data-theme="dark"] {
 body[data-theme="dark"] .skip-link,
 body[data-theme="dark"] .mtb-chip { background: #1e40af; }
 
+/* 같은 함정이 채점 결과의 보기 뱃지(A·B·C·D)에도 있었다. 다크의 --success(#4ade80)·
+   --danger(#f87171)는 '어두운 배경 위 글자색'으로 고른 밝은 색인데, .option-key는 그걸
+   배경으로 깔고 흰 글자를 얹는다 — 정답 뱃지 1.74:1, 오답 뱃지 2.77:1로 큰 글자 기준
+   3:1에도 못 미쳤다(라이트 모드는 진한 색이라 문제없음). 채점 직후 정·오답을 확인하는
+   화면이라 글자가 안 읽히면 기능 자체가 흐려진다. 뱃지 배경만 라이트 모드 색으로
+   되돌려 흰 글자 대비를 확보한다(정답 ≈5.4:1, 오답 ≈7.1:1, 선택 ≈8.6:1).
+   선택/정답/오답 순서는 원본 규칙(.option.selected → .correct → .wrong)과 같게 둔다.
+   특정도가 같아 순서가 곧 우선순위이고, 뒤집으면 '내가 고른 오답'이 파란 뱃지가 된다. */
+body[data-theme="dark"] .option.selected .option-key { background: #1e40af; }
+body[data-theme="dark"] .option.correct .option-key { background: #15803d; }
+body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
+
 /* ── 학습 통계 대시보드 ──────────────────────────────────────────────── */
 .modal-header-actions { display: flex; align-items: center; gap: 8px; }
 
@@ -1364,8 +1387,22 @@ body[data-theme="dark"] .mtb-chip { background: #1e40af; }
   background: var(--surface);
 }
 .stats-chapters li.weak { border-color: var(--danger, #c0392b); }
+/* 표본 부족 그룹 — 막대(sc-bar)가 없어 4열이고, 순위가 아니므로 강조하지 않는다. */
+.stats-lowsample li { grid-template-columns: minmax(90px, 1fr) auto auto auto; }
+.stats-lowsample .sc-name { color: var(--text-2); }
+.sc-rate-weak { color: var(--muted); font-weight: 700; white-space: nowrap; }
 .stats-chapters li.weak .sc-name { color: var(--danger, #c0392b); }
-.sc-name { font-size: 13px; font-weight: 700; color: var(--text); }
+/* 챕터명은 한국어라 기본값(break 허용)에서는 글자 사이 어디서든 끊긴다 — 좁은 열에서
+   "소프트웨어 개발과 테스트"가 "…테스 / 트"로, "SDLC 전반의 테스트"가 "…테 / 스트"로
+   꺾였다(오답노트·회차 타임라인과 같은 함정). keep-all로 어절 경계에서만 접고,
+   한 어절이 열보다 길어 어쩔 수 없을 때만 break-word로 강제 분리한다. */
+.sc-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
 .sc-bar { display: block; height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
 .sc-bar i { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
 .stats-chapters li.weak .sc-bar i { background: var(--danger, #c0392b); }
@@ -1423,42 +1460,53 @@ body[data-theme="dark"] .mtb-chip { background: #1e40af; }
 .stl-improve.up { color: var(--success, #1c7c3c); }
 .stl-improve.down { color: var(--danger, #c0392b); }
 .stl-improve.same { color: var(--muted); }
-.stl-rounds { display: flex; flex-wrap: wrap; gap: 6px; }
+/* 회차 항목은 한 줄에 하나. 종전에는 칩(inline-flex)을 가로로 흘렸는데, 소요 시간·
+   날짜·삭제가 붙으면서 좁은 화면에서 칩이 찌그러졌다 — 한국어는 글자 사이에서
+   줄바꿈되므로 min-content가 '한 글자'라 "1회"가 "1/회"로 쪼개진다(오답노트와 동일 함정). */
+.stl-rounds { display: flex; flex-direction: column; gap: 6px; }
 .stl-rounds li {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 3px 8px;
+  padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px;
   background: var(--surface-2); font-size: 12px; font-weight: 700; color: var(--text-2);
 }
+/* 모든 토큰을 통째로 줄바꿈시킨다 — 글자 단위로 쪼개지지 않게. */
+.stl-rounds li > * { flex: none; white-space: nowrap; }
 .stl-rounds li.weak { border-color: var(--danger, #c0392b); }
 .stl-round-no { color: var(--muted); font-weight: 700; }
 .stl-round-mode { color: var(--primary-700); font-weight: 700; }
 .stl-round-rate { color: var(--text); font-weight: 800; }
+/* 정답률 뒤를 밀어 소요·날짜·삭제가 오른쪽에 모이게 한다. */
+.stl-round-delta { margin-right: auto; }
+.stl-round-rate:last-of-type { margin-right: auto; }
 .stl-round-delta.up { color: var(--success, #1c7c3c); }
 .stl-round-delta.down { color: var(--danger, #c0392b); }
 
-.stats-list { display: flex; flex-direction: column; gap: 8px; }
-.stats-list li {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
+/* 회차 항목의 부가 정보 — 종전에는 아래 중복 목록에만 있던 소요 시간·날짜를 흡수했다. */
+.stl-round-time, .stl-round-date { color: var(--muted); font-weight: 600; }
+/* 회차 단건 삭제 — 잘못 제출한 한 건 때문에 이력을 통째로 버리지 않아도 되게. */
+.stl-round-del {
+  border: 0; background: none; cursor: pointer; padding: 0 2px;
+  color: var(--muted); font-size: 13px; font-weight: 800; line-height: 1;
 }
-.stats-row-main { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.stats-set { font-weight: 700; color: var(--text); font-size: 14px; }
-.stats-mode {
-  font-size: 12px;
-  color: var(--primary-700);
-  background: var(--primary-50);
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-weight: 700;
-  white-space: nowrap;
+.stl-round-del:hover { color: var(--danger, #c0392b); }
+
+/* 챕터 미니 시험 기록 — 타임라인에서 빠지는 10문항 회차를 챕터명과 함께 보여준다. */
+.stats-minis { margin: 14px 0 4px; }
+.stats-minis h4 { font-size: 13px; font-weight: 800; color: var(--text-2); margin-bottom: 8px; }
+.stats-minis h4 small { font-weight: 600; color: var(--muted); margin-left: 6px; }
+.mini-rounds { display: flex; flex-direction: column; gap: 6px; }
+.mini-rounds li {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px;
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); font-size: 12.5px;
 }
-.stats-row-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--muted); font-weight: 600; }
-.stats-score { color: var(--text-2); }
+.mini-rounds li > * { white-space: nowrap; }
+.mini-rounds li.weak { border-color: var(--danger, #c0392b); }
+/* flex:none + nowrap — 챕터명이 한국어라 min-content가 '한 글자'다(오답노트와 같은 함정). */
+.mr-chapter { flex: none; font-weight: 800; color: var(--text); white-space: nowrap; }
+.mr-rate { flex: 1 1 auto; min-width: 0; font-weight: 800; color: var(--text); }
+.mr-rate small { color: var(--muted); font-weight: 600; }
+.mr-time, .mr-date { flex: none; color: var(--muted); font-weight: 600; }
 
 /* ── 채점 결과 요약 ─────────────────────────────────────────────────── */
 .result-set { color: var(--muted); font-weight: 600; font-size: 13px; margin: 0 0 10px; text-align: center; }

@@ -68,8 +68,9 @@ export function useQuestions() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   // 슬라이스 구독(O1) — 타이머 틱·답안 변경에 이 훅이 리렌더를 유발하지 않는다.
-  const { setId, mode, reviewIds, chapterFilter, randomNonce } = useQuizStore(useShallow((s) => ({
+  const { setId, mode, reviewIds, chapterFilter, randomNonce, reviewedOk } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, reviewIds: s.reviewIds, chapterFilter: s.chapterFilter,
+    reviewedOk: s.reviewedOk[s.setId],
     randomNonce: s.randomNonce,
   })));
 
@@ -136,7 +137,12 @@ export function useQuestions() {
           ...(reviewIds[`${setId}-random`] || []),
           ...(reviewIds[setId] || []),
         ]);
-        const reviews = questions.filter((q) => ids.has(q.id || `legacy-${q.number}`));
+        // 이미 다시 풀어 맞힌 문항은 뺀다 — 아무리 맞혀도 목록이 줄지 않으면
+        // "오답 발견 → 보완 → 재측정" 루프의 마지막 단계가 없는 것과 같다.
+        const done = new Set(useQuizStore.getState().reviewedOk[setId] ?? []);
+        const reviews = questions.filter(
+          (q) => ids.has(q.id || `legacy-${q.number}`) && !done.has(q.number),
+        );
         setCurrentQuestions(reviews);
       } else {
         // 챕터 집중 연습(Phase 3): 연습 모드에서 필터가 있으면 해당 챕터 문항만 노출.
@@ -164,7 +170,7 @@ export function useQuestions() {
         setCurrentQuestions([]);
       });
     return () => { cancelled = true; };
-  }, [appData, setId, mode, reviewIds, chapterFilter, randomNonce, reloadKey]);
+  }, [appData, setId, mode, reviewIds, chapterFilter, randomNonce, reloadKey, reviewedOk]);
 
   // 실패 배너의 "다시 시도" — 에러를 지우고 두 로드 effect를 재실행한다.
   const retryLoad = () => {

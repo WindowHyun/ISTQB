@@ -52,7 +52,7 @@ test.describe("신규 기능", () => {
     await page.getByTestId("stats-open").click();
     const stats = page.getByTestId("stats-dashboard");
     await expect(stats).toBeVisible({ timeout: 5_000 });
-    await expect(stats.locator(".stats-list li")).toHaveCount(1);
+    await expect(stats.locator(".stl-rounds li")).toHaveCount(1);
   });
 
   test("미응답 상태로 채점하면 확인 모달이 뜨고 계속 풀기/채점을 고를 수 있다", async ({ page }) => {

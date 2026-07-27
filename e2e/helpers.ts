@@ -86,3 +86,8 @@ export async function gotoQuestion(page: Page, num: number) {
   }
   throw new Error("문항 번호를 찾지 못함: " + num);
 }
+
+// 가져오기는 적용 전에 정책 확인 모달을 거친다(D2) — 파일만 넣으면 아무 일도 일어나지 않는다.
+export async function confirmImport(page: Page) {
+  await page.getByTestId("import-confirm").click();
+}

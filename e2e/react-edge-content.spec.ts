@@ -106,6 +106,8 @@ test.describe("엣지-콘텐츠", () => {
     await page.locator('input[type="file"][accept=".json"]').setInputFiles({
       name: "bad.json", mimeType: "application/json", buffer: Buffer.from("{nope", "utf-8"),
     });
+    // 가져오기는 적용 전에 정책 확인을 거친다(D2).
+    await page.getByTestId("import-confirm").click();
     const toast = page.getByTestId("toast");
     await expect(toast).toBeVisible({ timeout: 5_000 });
     await toast.click();

@@ -41,7 +41,7 @@ test.describe("엣지-모달", () => {
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
     await page.getByTestId("stats-open").click();
-    await expect(page.getByTestId("stats-dashboard").locator(".stats-list li")).toHaveCount(1);
+    await expect(page.getByTestId("stats-dashboard").locator(".stl-rounds li")).toHaveCount(1);
   });
 
   test("학습 통계 모달은 Esc로 닫힌다", async ({ page }) => {

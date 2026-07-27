@@ -14,6 +14,8 @@ async function importBackup(page: import("@playwright/test").Page, backup: unkno
   await page.locator('input[type="file"][accept=".json"]').setInputFiles({
     name: "backup.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(backup), "utf-8"),
   });
+  // 가져오기는 적용 전에 정책 확인을 거친다(D2).
+  await page.getByTestId("import-confirm").click();
   await expect(page.getByTestId("toast")).toBeVisible({ timeout: 8_000 });
   await page.keyboard.press("Escape"); // 설정 모달 닫기
 }
@@ -38,7 +40,7 @@ test.describe("엣지-대용량 import", () => {
     }
     await importBackup(page, { state: baseState, answers: {}, histories });
     await page.getByTestId("stats-open").click();
-    await expect(page.getByTestId("stats-dashboard").locator(".stats-list li")).toHaveCount(150, { timeout: 8_000 });
+    await expect(page.getByTestId("stats-dashboard").locator(".stl-rounds li")).toHaveCount(150, { timeout: 8_000 });
   });
 
   test("비정상 타입이 섞인 답안은 정제되어 유효한 것만 복원된다(크래시 없음)", async ({ page }) => {
@@ -113,11 +115,13 @@ test.describe("엣지-대용량 import", () => {
       name: "backup.json", mimeType: "application/json",
       buffer: Buffer.from(JSON.stringify({ state: baseState, answers: {}, histories }), "utf-8"),
     });
+    // 가져오기는 적용 전에 정책 확인을 거친다(D2).
+    await page.getByTestId("import-confirm").click();
     // 부분 실패로 '실패' 토스트가 뜨지 않고 성공 처리되어야 한다(수정 전엔 실패 토스트).
     await expect(page.getByTestId("toast")).toContainText("복원했습니다", { timeout: 8_000 });
     await page.keyboard.press("Escape");
     // 유효한 good 이력이 통계에 1건 남는다.
     await page.getByTestId("stats-open").click();
-    await expect(page.getByTestId("stats-dashboard").locator(".stats-list li")).toHaveCount(1, { timeout: 8_000 });
+    await expect(page.getByTestId("stats-dashboard").locator(".stl-rounds li")).toHaveCount(1, { timeout: 8_000 });
   });
 });

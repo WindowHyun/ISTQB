@@ -85,3 +85,104 @@ describe('store↔storage 구독 연동(통합)', () => {
     expect(localStorage.getItem(CSTS_UI)).toBeNull();
   });
 });
+
+// 멀티탭 답안 유실 — 두 탭이 각자 메모리를 통째로 덮어써 나중 쓰기가 앞선 답안을 지웠다.
+describe('멀티탭 답안 병합', () => {
+  it('다른 탭이 먼저 넣은 답안이 내 저장에 살아남는다(합집합)', () => {
+    store.useQuizStore.setState({ activeProduct: 'istqb' });
+    // 다른 탭이 20번을 저장해 둔 상태를 흉내낸다.
+    localStorage.setItem(ISTQB_ANS, JSON.stringify({ 'S-exam-020': ['c'] }));
+
+    // 이 탭은 1·2번만 알고 있다 — 종전에는 이 쓰기가 020을 지웠다.
+    store.useQuizStore.setState({ answers: { 'S-exam-001': ['a'], 'S-exam-002': ['b'] } });
+    vi.advanceTimersByTime(600);
+
+    const saved = JSON.parse(localStorage.getItem(ISTQB_ANS)!);
+    expect(Object.keys(saved).sort()).toEqual(['S-exam-001', 'S-exam-002', 'S-exam-020']);
+    // 합쳐진 결과가 메모리에도 반영돼 화면과 저장소가 어긋나지 않는다.
+    expect(Object.keys(store.useQuizStore.getState().answers).sort())
+      .toEqual(['S-exam-001', 'S-exam-002', 'S-exam-020']);
+  });
+
+  it('같은 문항을 양쪽에서 답하면 나중 쓰기가 이긴다', () => {
+    store.useQuizStore.setState({ activeProduct: 'istqb' });
+    localStorage.setItem(ISTQB_ANS, JSON.stringify({ 'S-exam-001': ['a'] }));
+    store.useQuizStore.setState({ answers: { 'S-exam-001': ['d'] } });
+    vi.advanceTimersByTime(600);
+    expect(JSON.parse(localStorage.getItem(ISTQB_ANS)!)['S-exam-001']).toEqual(['d']);
+  });
+
+  it('flushPersist 경로로 저장해도 지운 답안이 되살아나지 않는다', () => {
+    // 종전 설계는 호출부가 넘기는 replace 플래그로 삭제를 구분했는데, flushPersist가
+    // 인자를 생략해 호출하면서 '새로 풀기'로 지운 답안이 통째로 부활했다.
+    // 삭제 판정을 기준선 비교로 옮겨 호출부와 무관하게 옳아야 한다.
+    store.useQuizStore.setState({ activeProduct: 'istqb' });
+    store.useQuizStore.setState({ answers: { 'S-exam-001': ['a'] } });
+    vi.advanceTimersByTime(600);
+
+    store.useQuizStore.setState({ answers: {} }); // clearAnswers 상당
+    storage.flushPersist();                       // 인자 없는 경로
+    expect(JSON.parse(localStorage.getItem(ISTQB_ANS)!)).toEqual({});
+    expect(store.useQuizStore.getState().answers).toEqual({});
+  });
+
+  it('의도적 삭제(초기화)는 합치지 않고 교체한다 — 지운 답안이 되살아나면 안 된다', () => {
+    store.useQuizStore.setState({
+      activeProduct: 'istqb',
+      answers: { 'S-exam-001': ['a'], 'S-exam-002': ['b'] },
+    });
+    vi.advanceTimersByTime(600);
+    expect(Object.keys(JSON.parse(localStorage.getItem(ISTQB_ANS)!))).toHaveLength(2);
+
+    // clearAnswers처럼 키가 줄어드는 변경.
+    store.useQuizStore.setState({ answers: { 'S-exam-001': ['a'] } });
+    vi.advanceTimersByTime(600);
+    expect(Object.keys(JSON.parse(localStorage.getItem(ISTQB_ANS)!))).toEqual(['S-exam-001']);
+  });
+
+  it('다른 탭의 저장을 storage 이벤트로 받아 메모리를 맞춘다', () => {
+    store.useQuizStore.setState({ activeProduct: 'istqb', answers: { 'S-exam-001': ['a'] } });
+    const incoming = { 'S-exam-001': ['a'], 'S-exam-020': ['c'] };
+    localStorage.setItem(ISTQB_ANS, JSON.stringify(incoming));
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: ISTQB_ANS, newValue: JSON.stringify(incoming),
+    }));
+    expect(Object.keys(store.useQuizStore.getState().answers).sort())
+      .toEqual(['S-exam-001', 'S-exam-020']);
+  });
+
+  it('같은 내용을 다시 저장해도 쓰기가 반복되지 않는다(피드백 루프 방지)', () => {
+    // 병합이 매번 새 객체를 반환하면 setState → 구독 → 재저장이 끝없이 돈다.
+    // 그 사이 초기화한 답안이 되살아나는 사고로 이어졌다.
+    store.useQuizStore.setState({ activeProduct: 'istqb' });
+    store.useQuizStore.setState({ answers: { 'S-exam-001': ['a'] } });
+    vi.advanceTimersByTime(600);
+    const refAfterFirst = store.useQuizStore.getState().answers;
+
+    // 저장값과 메모리가 같은 상태에서 시간을 더 흘려도 참조가 바뀌지 않아야 한다.
+    vi.advanceTimersByTime(3000);
+    expect(store.useQuizStore.getState().answers).toBe(refAfterFirst);
+  });
+
+  it('초기화 직후에는 지운 답안이 되살아나지 않는다', () => {
+    store.useQuizStore.setState({ activeProduct: 'istqb' });
+    store.useQuizStore.setState({ answers: { 'S-exam-001': ['a'] } });
+    vi.advanceTimersByTime(600);
+    // '새로 풀기'처럼 전부 비우는 경우.
+    store.useQuizStore.setState({ answers: {} });
+    vi.advanceTimersByTime(600);
+    expect(store.useQuizStore.getState().answers).toEqual({});
+    expect(JSON.parse(localStorage.getItem(ISTQB_ANS)!)).toEqual({});
+    // 뒤늦은 병합 쓰기가 되살리지 않는지 확인.
+    vi.advanceTimersByTime(3000);
+    expect(store.useQuizStore.getState().answers).toEqual({});
+  });
+
+  it('다른 키의 storage 이벤트는 무시한다', () => {
+    store.useQuizStore.setState({ activeProduct: 'istqb', answers: { 'S-exam-001': ['a'] } });
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: CSTS_UI, newValue: JSON.stringify({ 'X-exam-001': ['z'] }),
+    }));
+    expect(Object.keys(store.useQuizStore.getState().answers)).toEqual(['S-exam-001']);
+  });
+});

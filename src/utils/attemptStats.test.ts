@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSetTimelines, latestAttemptComparison, formatDeltaPp, overcomeNumbers, attemptRatePercent } from './attemptStats';
+import { buildSetTimelines, buildMiniTestRounds, isSetLevelRound, latestAttemptComparison, formatDeltaPp, overcomeNumbers, attemptRatePercent } from './attemptStats';
 import type { ExamHistory } from '../store/useQuizStore';
 
 // 회차 이력 헬퍼 — createdAt으로 시간순을 통제한다.
@@ -29,7 +29,7 @@ describe('buildSetTimelines', () => {
     expect(a.first).toBe(50);
     expect(a.latest).toBe(100);
     expect(a.best).toBe(100);
-    expect(a.improvement).toBe(50);
+    expect(a.improvements).toEqual([{ mode: 'exam', delta: 50 }]);
   });
 
   it('모드가 섞이면 델타·성장폭은 같은 모드끼리만 비교한다(시험70 vs 랜덤40 표본 왜곡 방지)', () => {
@@ -44,11 +44,11 @@ describe('buildSetTimelines', () => {
     const a = tl[0];
     // 랜덤 회차는 직전 시험과 비교하지 않고(null), 시험 2회차는 시험 1회차와 비교(+30).
     expect(a.attempts.map((x) => x.deltaFromPrev)).toEqual([null, null, 30]);
-    // 성장폭은 최신 회차(시험)의 같은 모드 첫 회차 대비.
-    expect(a.improvement).toBe(30);
+    // 성장폭은 모드별로 각각. 랜덤은 1회뿐이라 대상이 아니다.
+    expect(a.improvements).toEqual([{ mode: 'exam', delta: 30 }]);
   });
 
-  it('최신 회차 모드의 회차가 1개뿐이면 성장폭은 null(비교 대상 없음)', () => {
+  it('회차가 1개뿐인 모드는 성장폭 대상이 아니다(비교 대상 없음)', () => {
     const tl = buildSetTimelines(
       [
         h({ id: 'e1', setId: 'A', mode: 'exam', correct: 20, total: 40, createdAt: 100 }),
@@ -56,7 +56,36 @@ describe('buildSetTimelines', () => {
       ],
       titleOf,
     );
-    expect(tl[0].improvement).toBeNull();
+    expect(tl[0].improvements).toEqual([]);
+  });
+
+  it('최신 회차가 다른 모드여도 기존 모드의 성장폭은 유지된다', () => {
+    // 종전 버그: 성장폭을 '최신 회차의 모드'로만 계산해, 시험 실력이 그대로인데도
+    // 랜덤을 한 번 풀면 시험 성장폭 배지가 통째로 사라졌다.
+    const base = [
+      h({ id: 'e1', setId: 'A', mode: 'exam', correct: 20, total: 40, createdAt: 100 }), // 50%
+      h({ id: 'e2', setId: 'A', mode: 'exam', correct: 30, total: 40, createdAt: 200 }), // 75%
+    ];
+    expect(buildSetTimelines(base, titleOf)[0].improvements).toEqual([{ mode: 'exam', delta: 25 }]);
+
+    const withRandom = [...base, h({ id: 'r1', setId: 'A', mode: 'random', correct: 20, total: 40, createdAt: 300 })];
+    expect(buildSetTimelines(withRandom, titleOf)[0].improvements).toEqual([{ mode: 'exam', delta: 25 }]);
+  });
+
+  it('모드가 둘 다 2회 이상이면 각각 성장폭을 낸다(최신 회차 모드가 앞)', () => {
+    const tl = buildSetTimelines(
+      [
+        h({ id: 'e1', setId: 'A', mode: 'exam', correct: 20, total: 40, createdAt: 100 }),   // 50%
+        h({ id: 'r1', setId: 'A', mode: 'random', correct: 10, total: 40, createdAt: 200 }), // 25%
+        h({ id: 'e2', setId: 'A', mode: 'exam', correct: 30, total: 40, createdAt: 300 }),   // 75%
+        h({ id: 'r2', setId: 'A', mode: 'random', correct: 30, total: 40, createdAt: 400 }), // 75%
+      ],
+      titleOf,
+    );
+    expect(tl[0].improvements).toEqual([
+      { mode: 'random', delta: 50 }, // 최신 회차의 모드가 앞
+      { mode: 'exam', delta: 25 },
+    ]);
   });
 
   it('점수 없는(미채점) 회차는 제외하고, 최근 응시 세트를 앞에 둔다', () => {
@@ -207,5 +236,42 @@ describe('attemptRatePercent (회차 % 단일 원천)', () => {
     );
     expect(tl[0].attempts[0].rate).toBe(75); // 단순 정답률(71)이 아니라 가중 75
     expect(tl[0].latest).toBe(75);
+  });
+});
+
+describe('isSetLevelRound / buildMiniTestRounds', () => {
+  const titleOf = (id: string) => (id === 'A' ? '세트 A' : id);
+
+  it('챕터 미니 회차만 실전 회차에서 갈라낸다', () => {
+    expect(isSetLevelRound(h({ id: '1', setId: 'A', mode: 'exam', correct: 20, total: 40 }))).toBe(true);
+    expect(isSetLevelRound(h({ id: '2', setId: 'A', mode: 'random', correct: 9, total: 10, chapter: '테스트 기초' }))).toBe(false);
+  });
+
+  it('미니 회차를 챕터명과 함께 최신순으로 돌려준다', () => {
+    const list = buildMiniTestRounds(
+      [
+        h({ id: 'e1', setId: 'A', mode: 'exam', correct: 20, total: 40, createdAt: 100 }),
+        h({ id: 'm1', setId: 'A', mode: 'random', correct: 9, total: 10, createdAt: 200, chapter: '테스트 기초' }),
+        h({ id: 'm2', setId: 'A', mode: 'random', correct: 5, total: 10, createdAt: 300, chapter: '테스트 도구' }),
+      ],
+      titleOf,
+    );
+    expect(list.map((m) => m.chapter)).toEqual(['테스트 도구', '테스트 기초']); // 최신 → 과거
+    expect(list[0]).toMatchObject({ id: 'm2', title: '세트 A', rate: 50, correct: 5, total: 10 });
+    // 실전 회차(시험)는 포함하지 않는다 — 타임라인이 담당한다.
+    expect(list.some((m) => m.id === 'e1')).toBe(false);
+  });
+
+  it('타임라인과 미니 목록은 겹치지 않고 합치면 전체가 된다', () => {
+    const hs = [
+      h({ id: 'e1', setId: 'A', mode: 'exam', correct: 20, total: 40, createdAt: 100 }),
+      h({ id: 'm1', setId: 'A', mode: 'random', correct: 9, total: 10, createdAt: 200, chapter: 'C1' }),
+      h({ id: 'r1', setId: 'A', mode: 'random', correct: 20, total: 40, createdAt: 300 }),
+    ];
+    const inTimeline = buildSetTimelines(hs, titleOf).flatMap((t) => t.attempts.map((a) => a.id));
+    const inMini = buildMiniTestRounds(hs, titleOf).map((m) => m.id);
+    expect(inTimeline.sort()).toEqual(['e1', 'r1']);
+    expect(inMini).toEqual(['m1']);
+    expect([...inTimeline, ...inMini].sort()).toEqual(['e1', 'm1', 'r1']);
   });
 });

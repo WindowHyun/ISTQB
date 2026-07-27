@@ -13,11 +13,12 @@ import { saveHistoryToDB } from '../utils/storage';
 export function useQuizSession() {
   // 슬라이스 구독(O1) — elapsedSeconds는 구독하지 않고 채점 시점에 getState()로 읽는다
   // (구독하면 이 훅을 쓰는 모든 컴포넌트가 타이머 틱마다 리렌더된다).
-  const { mode, setId, answers, graded, examStarted, addHistory, setReviewIds, setGraded, setResultOpen, setConfirmGradeOpen } =
+  const { mode, setId, answers, graded, examStarted, addHistory, setReviewIds, setGraded, setResultOpen, setConfirmGradeOpen, markReviewed, unmarkReviewed } =
     useQuizStore(useShallow((s) => ({
       mode: s.mode, setId: s.setId, answers: s.answers, graded: s.graded,
       examStarted: s.examStarted[s.setId],
       addHistory: s.addHistory, setReviewIds: s.setReviewIds, setGraded: s.setGraded,
+      markReviewed: s.markReviewed, unmarkReviewed: s.unmarkReviewed,
       setResultOpen: s.setResultOpen, setConfirmGradeOpen: s.setConfirmGradeOpen,
     })));
   const { appData, currentQuestions, loadError, retryLoad } = useQuestions();
@@ -73,6 +74,10 @@ export function useQuizSession() {
     // 멱등성 가드 — 같은 tick 더블클릭 등으로 재진입해도 회차/통계가 이중 집계되지 않게 한다.
     // 버튼 disabled(canGrade)는 리렌더 이후에야 반영되므로 채점 상태를 직접 확인한다.
     if (useQuizStore.getState().graded[gradeKey]) return;
+    // 문항이 아직 로드되지 않았으면 채점하지 않는다. canGrade에만 total>0 가드가 있어
+    // 버튼 경로는 막혔지만, 제한시간 자동 제출은 canGrade를 거치지 않고 직접 호출된다 —
+    // 복원 직후(문항 fetch 진행 중)에 만료가 걸리면 0/0 유령 회차가 기록됐다.
+    if (total === 0) return;
     // 오답 목록은 위 메모(wrongQuestions)와 같은 판정을 재사용한다 — 따로 계산하면
     // 판정 규칙이 갈라져 화면 표시와 기록이 어긋날 수 있다.
     const wrongQs = wrongQuestions.map(({ q }) => q);
@@ -119,7 +124,25 @@ export function useQuizSession() {
     saveHistoryToDB(history);
     // 모드별로 저장해 랜덤 채점이 시험 오답 목록을 덮어쓰지 않게 한다(오답 모드는 합집합을 읽음).
     setReviewIds(`${setId}-${mode}`, wrongIds);
+    // 다시 틀린 문항은 '복습함'에서 되돌린다 — 아니면 한 번 복습했다는 이유로
+    // 이후 계속 오답인데도 재풀이 목록에 영영 나타나지 않는다.
+    unmarkReviewed(setId, wrongItems.map((w) => w.number));
     setGraded(gradeKey, true);
+  };
+
+  // 오답 모드 '복습 완료' — 지금 맞힌 문항을 재풀이 대상에서 뺀다.
+  // 오답 모드는 즉시 피드백이라 이미 정오답이 확정돼 있으므로 별도 채점이 필요 없다.
+  // 회차로 기록하지 않는 이유: 오답만 골라 푼 표본이라 통계(정답률·회차)에 섞으면 왜곡된다.
+  const reviewedCount = mode === 'review'
+    ? currentQuestions.filter((q) =>
+        isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts)).length
+    : 0;
+  const completeReview = () => {
+    if (mode !== 'review') return 0;
+    const done = currentQuestions.filter((q) =>
+      isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts));
+    if (done.length) markReviewed(setId, done.map((q) => q.number));
+    return done.length;
   };
 
   // 채점 후 결과 요약 모달을 자동으로 띄운다(사이드바·모바일 하단바 공용).
@@ -146,6 +169,8 @@ export function useQuizSession() {
     cstsWeighted,
     isGraded,
     canGrade,
+    reviewedCount,
+    completeReview,
     showExamGate,
     examLocked,
     progressPercent,
