@@ -411,6 +411,8 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
       histories,
       activeProduct, // ensure it's set
     });
+    // 복원 직후의 답안이 '이 탭이 아는 전부'다 — 이후 삭제 판정의 기준선.
+    resetWriteBaseline(sanitizedAnswers);
     // 성공 경로 진단 로그(화면 콘솔 ?debug용) — "복원은 됐는데 데이터가 이상하다"류
     // 문의에서 무엇이 몇 건 복원됐는지를 실기기에서 바로 확인할 수 있게 한다.
     console.info(
@@ -532,27 +534,65 @@ export const saveUiState = debounce((state: Partial<QuizState>) => {
 // 만든다 — 다른 탭이 먼저 넣은 문항이 살아남는다.
 // 단, '삭제'(초기화·응시 포기)는 합치면 되살아나므로 그때만 통째로 교체한다.
 // 삭제 여부는 호출부(구독)가 키가 줄었는지로 판정해 알려준다.
+// 내용이 같은지 비교한다. 참조만 보면 mergeWithStored가 매번 새 객체를 만들어
+// setState → 구독 → 재저장이 끝없이 도는 피드백 루프가 생긴다(실제로 발생시킨 버그).
+function sameAnswers(a: Record<string, string[]>, b: Record<string, string[]>): boolean {
+  const ka = Object.keys(a);
+  if (ka.length !== Object.keys(b).length) return false;
+  return ka.every((k) => {
+    const x = a[k];
+    const y = b[k];
+    return Array.isArray(y) && x.length === y.length && x.every((v, i) => v === y[i]);
+  });
+}
+
+// 이 탭이 마지막으로 저장한 내용(제품 키별). 삭제를 알아보기 위한 기준선이다.
+// 저장소에는 있는데 여기에 없는 키 = 다른 탭이 새로 넣은 것(보존),
+// 여기에는 있는데 지금 메모리에 없는 키 = 내가 지운 것(되살리지 않음).
+let lastWritten: Record<string, string[]> = {};
+let lastWrittenKey = '';
+
+/** 복원 직후의 기준선 설정 — 이 시점의 답안이 '내가 아는 전부'다. */
+function resetWriteBaseline(answers: Record<string, string[]>) {
+  lastWrittenKey = storageKey();
+  lastWritten = { ...answers };
+}
+
+// 다른 탭이 넣은 답안은 살리고, 내가 지운 답안은 되살리지 않는다.
+// 종전에는 호출부가 넘기는 replace 플래그로 삭제를 구분했는데, flushPersist처럼
+// 인자를 생략한 경로가 하나만 있어도 지운 답안이 통째로 부활했다(실제로 발생).
+// 삭제 판정을 호출부가 아니라 기준선 비교로 옮겨 호출부와 무관하게 옳게 만든다.
 function mergeWithStored(answers: Record<string, string[]>): Record<string, string[]> {
   try {
-    const raw = localStorage.getItem(storageKey());
+    const key = storageKey();
+    if (key !== lastWrittenKey) resetWriteBaseline(answers); // 제품 전환 — 기준선 재설정
+    const raw = localStorage.getItem(key);
     if (!raw) return answers;
-    const stored = JSON.parse(raw);
-    if (!isPlainObject(stored)) return answers;
-    // 내 값이 이긴다(같은 문항을 양쪽에서 답하면 나중 쓰기 우선) — 그 외 키는 보존.
-    return { ...sanitizeAnswers(stored), ...answers };
+    const stored = sanitizeAnswers(JSON.parse(raw));
+    const merged: Record<string, string[]> = { ...answers };
+    for (const k of Object.keys(stored)) {
+      if (k in answers) continue;      // 내 값이 이긴다(나중 쓰기 우선)
+      if (k in lastWritten) continue;  // 내가 지운 것 — 부활 금지
+      merged[k] = stored[k];           // 다른 탭이 넣은 것 — 보존
+    }
+    return merged;
   } catch {
     return answers; // 저장값이 손상됐으면 내 것으로 간다
   }
 }
 
-export const saveAnswers = debounce((answers: Record<string, string[]>, replace = false) => {
+export const saveAnswers = debounce((answers: Record<string, string[]>) => {
   if (!useQuizStore.getState().activeProduct) return;
   try {
-    const next = replace ? answers : mergeWithStored(answers);
+    const merged = mergeWithStored(answers);
+    // 내용이 같으면 메모리를 건드리지 않는다 — 참조만 바꾸면 구독이 다시 돌아
+    // 저장이 무한 반복된다.
+    const changed = !sameAnswers(merged, answers);
+    const next = changed ? merged : answers;
     localStorage.setItem(storageKey(), JSON.stringify(next));
-    // 합쳐진 결과를 메모리에도 반영해야 화면과 저장소가 어긋나지 않는다
-    // (다른 탭이 넣은 문항이 이 탭의 진행 표시에도 잡힌다).
-    if (next !== answers) useQuizStore.setState({ answers: next });
+    resetWriteBaseline(next); // 다음 저장의 삭제 판정 기준
+    // 다른 탭이 넣은 문항을 이 탭의 진행 표시에도 반영한다(내용이 실제로 늘었을 때만).
+    if (changed) useQuizStore.setState({ answers: next });
 
     // update snapshot
     const snapshotRaw = localStorage.getItem(persistenceKey());
@@ -766,6 +806,7 @@ if (typeof window !== 'undefined') {
       // 참조가 같으면 리렌더가 없으므로 내용 비교로 불필요한 갱신을 막는다.
       if (JSON.stringify(incoming) === JSON.stringify(store.answers)) return;
       useQuizStore.setState({ answers: incoming });
+      resetWriteBaseline(incoming); // 채택한 값이 새 기준선(그 뒤 지우면 삭제로 인식)
       console.info('[data] 다른 탭의 답안 변경을 반영했습니다.');
     } catch {
       /* 손상된 값은 무시 — 다음 정상 쓰기에서 맞춰진다 */
@@ -795,8 +836,6 @@ useQuizStore.subscribe((state, prevState) => {
   }
   
   if (state.answers !== prevState.answers) {
-    // 키가 하나라도 사라졌으면 의도적 삭제(초기화·응시 포기) — 합치면 되살아나므로 교체한다.
-    const removed = Object.keys(prevState.answers).some((k) => !(k in state.answers));
-    saveAnswers(state.answers, removed);
+    saveAnswers(state.answers);
   }
 });
