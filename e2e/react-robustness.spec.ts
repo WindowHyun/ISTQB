@@ -1,16 +1,14 @@
 import { test, expect } from "@playwright/test";
 import { openProduct } from "./helpers";
-import fs from "fs";
-import path from "path";
 
-const TMP = "/tmp/claude-0/-home-user-ISTQB/f7be80df-85bc-5df4-a9ca-199d49228774/scratchpad";
 const note = (s: string) => console.log("· " + s);
 
 // 오류 주입 — 정상 앱이 만들지 않는 값을 사용자 경로(백업 가져오기)로 밀어 넣는다.
 test("주입: 음수 elapsedSeconds 백업으로 제한시간을 늘릴 수 있는가", async ({ page }) => {
   test.setTimeout(120_000);
-  const file = path.join(TMP, "evil-elapsed.json");
-  fs.writeFileSync(file, JSON.stringify({
+  // 파일시스템을 거치지 않고 메모리 버퍼로 넘긴다 — 절대 경로를 박으면 다른 머신·CI에서
+  // ENOENT로 죽고, 임시 디렉터리를 쓰면 러너마다 정리 시점이 달라 불안정하다.
+  const backup = JSON.stringify({
     schemaVersion: 1,
     exportedAt: new Date().toISOString(),
     product: "istqb",
@@ -23,11 +21,15 @@ test("주입: 음수 elapsedSeconds 백업으로 제한시간을 늘릴 수 있�
     },
     answers: {},
     histories: {},
-  }));
+  });
 
   await openProduct(page, "ISTQB");
   await page.getByRole("button", { name: "⚙ 설정" }).click();
-  await page.locator('input[type="file"]').setInputFiles(file);
+  await page.locator('input[type="file"][accept=".json"]').setInputFiles({
+    name: "evil-elapsed.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(backup),
+  });
   await expect(page.getByTestId("import-confirm-modal")).toBeVisible();
   await page.getByTestId("import-confirm").click();
   await page.waitForTimeout(800);
