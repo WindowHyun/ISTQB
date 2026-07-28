@@ -66,6 +66,30 @@ export const Modal = ({ title, onClose, children, headerExtra }: ModalProps) => 
     };
   }, []);
 
+  // 내용이 넘쳐 스크롤되는 본문은 키보드로도 스크롤할 수 있어야 한다(WCAG 2.1.1).
+  // 마우스 휠·터치로는 되지만 포커스를 받지 못하면 키보드 사용자는 사용설명서의
+  // 아랫부분에 영영 도달할 수 없다 — 모달 안에는 링크가 없어 Tab으로도 못 내려간다.
+  // 넘치지 않는 본문까지 탭 순서에 넣으면 방해만 되므로 실제로 넘칠 때만 붙인다.
+  useEffect(() => {
+    const body = panelRef.current?.querySelector<HTMLElement>('.modal-body');
+    if (!body) return;
+    const sync = () => {
+      if (body.scrollHeight > body.clientHeight + 1) {
+        body.tabIndex = 0;
+        body.setAttribute('role', 'group');
+      } else {
+        body.removeAttribute('tabindex');
+        body.removeAttribute('role');
+      }
+    };
+    sync();
+    if (typeof ResizeObserver === 'undefined') return;
+    // 오답노트처럼 같은 모달 안에서 내용이 바뀌면 넘침 여부도 바뀐다.
+    const ro = new ResizeObserver(sync);
+    ro.observe(body);
+    return () => ro.disconnect();
+  });
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <section

@@ -46,11 +46,13 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.61.0",
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/lodash-es": "^4.17.12",
     "@vitest/coverage-v8": "^4.1.9",
+    "axe-core": "^4.12.1",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^5.2.0",
     "fake-indexeddb": "^6.2.5",

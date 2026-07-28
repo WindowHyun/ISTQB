@@ -95,4 +95,26 @@ test.describe("엣지-표/그림", () => {
     expect(await page.locator("#options .data-table").count()).toBeGreaterThanOrEqual(1);
     await expect(page.locator("#options")).not.toContainText("|---|");
   });
+
+  // 좁은 화면에서 표가 폭을 넘으면 가로 스크롤로 볼 수 있지만, 모바일 오버레이
+  // 스크롤바는 손대기 전엔 보이지 않는다 — 잘린 표가 '원래 저기까지'로 읽혀
+  // 결정표 문항(규칙 개수가 곧 답)을 부분 정보로 풀게 된다. 넘칠 때만 안내를 켜고,
+  // 키보드로도 스크롤할 수 있도록 포커스를 받게 한다.
+  test("좁은 화면에서 넘치는 표에만 스크롤 안내와 키보드 포커스가 붙는다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await gotoQuestion(page, 22);
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    const scroller = page.locator("#questionStem .data-table-scroll").first();
+    await expect(scroller).toHaveClass(/has-overflow/);
+    await expect(scroller.locator(".data-table-hint")).toBeVisible();
+    await expect(scroller.locator(".data-table-wrap")).toHaveAttribute("tabindex", "0");
+
+    // 넓은 화면으로 되돌리면 넘치지 않으므로 안내도 탭 순서도 사라져야 한다
+    // (안 넘치는 표까지 안내를 달면 거짓 경고가 되고 탭 이동만 늘어난다).
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(scroller).not.toHaveClass(/has-overflow/);
+    await expect(scroller.locator(".data-table-hint")).toBeHidden();
+    await expect(scroller.locator(".data-table-wrap")).not.toHaveAttribute("tabindex", "0");
+  });
 });
