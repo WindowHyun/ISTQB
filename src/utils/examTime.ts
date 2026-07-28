@@ -34,9 +34,18 @@ export function examLimitSeconds(product: string | null | undefined): number | n
   return typeof min === 'number' ? min * 60 : null;
 }
 
-/** 남은 시간(초). 음수는 0으로 클램프한다. */
+/**
+ * 남은 시간(초). 항상 0 이상 limitSec 이하다.
+ *
+ * 위쪽 클램프가 있는 이유: 경과가 음수로 들어오면(손상된 저장소·조작된 백업의
+ * elapsedSeconds) 남은 시간이 제한시간보다 커져 사실상 무제한 시험이 된다.
+ * 지금은 QuestionWorkspace의 syncExamElapsed가 벽시계 값으로 래칫을 걸어 음수가
+ * 흘러들지 않지만, 그 방어는 다른 모듈에 있다 — 이 함수만 보면 성립하지 않는
+ * 계약에 기대는 셈이라 여기서도 스스로 성립하게 한다.
+ */
 export function remainingSeconds(limitSec: number, elapsedSeconds: number): number {
-  return Math.max(0, Math.ceil(limitSec - elapsedSeconds));
+  const remaining = Math.ceil(limitSec - elapsedSeconds);
+  return Math.min(limitSec, Math.max(0, remaining));
 }
 
 /** 제한시간 표기용 라벨(예: "60분"). 시작 게이트 안내에 쓴다. */

@@ -246,7 +246,10 @@ export function sanitizeUiState(value: unknown): Partial<QuizState> {
   if (typeof value.index === "number" && Number.isInteger(value.index) && value.index >= 0) {
     out.index = value.index;
   }
-  if (typeof value.elapsedSeconds === "number" && Number.isFinite(value.elapsedSeconds)) {
+  // 음수를 막는다 — 바로 위 index와 같은 이유다. 경과 시간이 음수면 시험 남은 시간이
+  // 제한시간보다 커진다(가져오기로 유입 가능한 값이다).
+  if (typeof value.elapsedSeconds === "number" && Number.isFinite(value.elapsedSeconds)
+      && value.elapsedSeconds >= 0) {
     out.elapsedSeconds = value.elapsedSeconds;
   }
   if (typeof value.navCollapsed === "boolean") out.navCollapsed = value.navCollapsed;
