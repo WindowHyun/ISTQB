@@ -1086,6 +1086,23 @@ body[data-theme="dark"] .table-image-frame {
 
 /* 데이터 표(HTML) — SVG 대신 줄바꿈 가능한 실제 표 */
 .data-table-wrap { overflow-x: auto; }
+/* 넘치는 표에만 스크롤 안내를 붙인다(has-overflow는 parser.tsx가 레이아웃 후 토글).
+   모바일 오버레이 스크롤바는 손대기 전엔 보이지 않아, 잘린 표가 '원래 저기까지'로
+   읽힌다 — 결정표 문항은 규칙 개수가 곧 답이라 부분만 보고 풀면 틀린다. */
+.data-table-hint { display: none; }
+.data-table-scroll.has-overflow .data-table-hint {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: right;
+}
+/* 키보드 스크롤용 포커스(넘칠 때만 tabindex가 붙는다) — 어디에 있는지 보이게 한다. */
+.data-table-scroll.has-overflow .data-table-wrap:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
 .data-table {
   border-collapse: collapse;
   width: 100%;

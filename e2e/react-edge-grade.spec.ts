@@ -60,6 +60,20 @@ test.describe("엣지-채점", () => {
     await expect(page.locator(".result-criterion")).toContainText("100점 만점 기준 75점");
   });
 
+  // 세트마다 문항 구성이 달라 만점이 100점이 아닐 수 있다. 종전에는 안내 문구가
+  // "100점 만점 기준 75점"으로 고정이라, 29점 만점 세트에서 만점을 받아도 기준에
+  // 한참 못 미치는 것처럼 읽혔다(ISTQB는 이미 세트 문항수 기준으로 산출한다).
+  test("만점이 100점이 아닌 CSTS 세트는 그 세트의 만점·필요 점수로 안내한다", async ({ page }) => {
+    await openSet(page, "CSTS", "CSTS-EL-2018"); // 4지선다 15·진위 2·서답 3 → 29점 만점
+    await enterExam(page);
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    await expect(page.getByTestId("result-score")).toContainText("/ 29점");
+    const criterion = page.locator(".result-criterion");
+    await expect(criterion).toContainText("29점 만점 기준 21.8점");
+    await expect(criterion).not.toContainText("100점 만점");
+  });
+
   test("미응답으로 채점하면 0%·합격 기준 미달이 표시된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await enterExam(page);

@@ -69,10 +69,16 @@ export function evaluatePass(
       const weightedRatePercent = Math.floor((score / maxScore) * 100 + 1e-9);
       const displayScore = Math.floor(score * 10 + 1e-9) / 10;
       const displayMax = Math.floor(maxScore * 10 + 1e-9) / 10;
+      // 필요 점수는 이 세트의 실제 만점에서 뽑는다. 종전에는 "100점 만점 기준 75점"으로
+      // 고정 문구였는데, 세트마다 문항 구성이 달라 만점이 100이 아닐 수 있다 —
+      // CSTS-EL-2018(15·2·3문항)은 29점 만점이라 "29 / 29점"인데 기준은 "75점"이라고
+      // 안내해, 만점을 받아도 미달처럼 읽혔다. ISTQB 쪽은 이미 세트 문항수 기준으로
+      // 산출한다(#P5-3) — 같은 규칙을 CSTS에도 적용한다.
+      const required = Math.ceil(maxScore * 0.75 * 10 - 1e-9) / 10;
       return {
         passed: score >= maxScore * 0.75 - 1e-9,
         ratePercent: weightedRatePercent,
-        criterionLabel: '검정방법별 배점 합산 75% 이상(4지선다·서답형 1.5점, 진위형 1.0점 — 100점 만점 기준 75점)',
+        criterionLabel: `검정방법별 배점 합산 75% 이상(4지선다·서답형 1.5점, 진위형 1.0점 — ${displayMax}점 만점 기준 ${required}점)`,
         scoreLabel: `${displayScore} / ${displayMax}점 (${weightedRatePercent}%)`,
       };
     }

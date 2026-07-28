@@ -258,7 +258,20 @@ function buildRichBlocks(text: unknown, inline = false): Block[] {
       table.appendChild(tr);
     });
     wrapper.appendChild(table);
-    return wrapper;
+    // 좁은 화면에서 표가 폭을 넘으면 가로로 스크롤해 나머지를 볼 수 있다. 그런데 모바일의
+    // 오버레이 스크롤바는 손대기 전에는 보이지 않아, 잘린 표가 '원래 저기까지'로 읽힌다 —
+    // 결정표 문항(ISTQB-A #22 등)은 규칙 개수 자체가 답이라 R5까지만 보고 풀면 틀린다.
+    // 넘칠 때만 안내 문구를 켠다(넘침 판정은 레이아웃 이후라 markTableOverflow가 담당).
+    const scroller = document.createElement("div");
+    scroller.className = "data-table-scroll";
+    const hint = document.createElement("span");
+    hint.className = "data-table-hint";
+    hint.setAttribute("aria-hidden", "true"); // 스크린리더는 표를 직접 훑으므로 중복 안내
+    hint.textContent = "← 옆으로 넘겨 전체 보기 →";
+    // 안내는 표 '위'에 둔다. 결정표는 세로로도 길어 아래에 두면 화면 밖으로 밀리는데,
+    // 정작 잘린 열은 첫 화면에 보인다 — 안내를 못 본 채로 답을 고르게 된다.
+    scroller.append(hint, wrapper);
+    return scroller;
   }
 
   // 평문화된 표 텍스트를 표/이미지로 치환하는 레거시 경로.
@@ -710,13 +723,40 @@ function renderRichText(target: HTMLElement, text: unknown, inline = false): voi
   });
 }
 
+/**
+ * 표가 실제로 폭을 넘쳤는지는 레이아웃이 끝나야 알 수 있다 — 넘친 표에만 스크롤 안내를
+ * 켜고, 키보드로도 스크롤할 수 있게 포커스를 받게 한다(넘치지 않는 표까지 탭 순서에
+ * 넣으면 방해만 된다). 회전·창 크기 변경으로 넘침 여부가 뒤집히므로 다시 잰다.
+ */
+function markTableOverflow(root: HTMLElement): void {
+  for (const wrap of Array.from(root.querySelectorAll<HTMLElement>('.data-table-wrap'))) {
+    const over = wrap.scrollWidth > wrap.clientWidth + 1;
+    wrap.parentElement?.classList.toggle('has-overflow', over);
+    if (over) {
+      wrap.tabIndex = 0;
+      wrap.setAttribute('role', 'region');
+      wrap.setAttribute('aria-label', '표 (가로 스크롤)');
+    } else {
+      wrap.removeAttribute('tabindex');
+      wrap.removeAttribute('role');
+      wrap.removeAttribute('aria-label');
+    }
+  }
+}
+
 // === React Wrapper ===
 export const RichText = ({ content: text, inline = false }: { content: unknown; inline?: boolean }) => {
-  const ref = useRef(null);
+  const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (ref.current) {
-      renderRichText(ref.current, text, inline);
-    }
+    const el = ref.current;
+    if (!el) return;
+    renderRichText(el, text, inline);
+    markTableOverflow(el);
+    // ResizeObserver: 폰트 로드·회전·드로어 개폐로 폭이 바뀌면 넘침 여부도 바뀐다.
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => markTableOverflow(el));
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [text, inline]);
   return <div ref={ref} className="rich-text-container" />;
 };
