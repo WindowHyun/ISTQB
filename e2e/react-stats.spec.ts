@@ -247,3 +247,53 @@ test.describe("약점 분석 표본", () => {
     expect(split).toEqual([]);
   });
 });
+
+// 종전에는 회차별 출제 수를 그대로 더해, 같은 세트를 두 번 풀면 챕터 분모가 두 배가 됐다.
+// 화면은 "0/18"인데 연습 버튼을 누르면 6문항이 나와 두 숫자가 서로 맞지 않았다.
+test.describe("챕터 분모 — 재풀이", () => {
+  async function gradeExamOnce(page: Page, fresh: boolean) {
+    await page.locator('.segmented button[data-mode="exam"]').click();
+    if (fresh) {
+      const resume = page.getByTestId("graded-resume-fresh");
+      if (await resume.count()) await resume.click();
+    }
+    const gate = page.getByTestId("exam-start-btn");
+    if (await gate.count()) await gate.click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    await page.locator("#options .option").first().click();
+    await page.getByTestId("grade-button").click();
+    const confirm = page.getByTestId("confirm-grade");
+    if (await confirm.count()) await confirm.click();
+    await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
+  }
+
+  // 챕터 행의 분모(t)만 모아 합한다. 순위 그룹은 "38% (3/8)", 보류 그룹은 "3/8문항"으로
+  // 표기가 달라 두 형식을 모두 읽는다 — 한쪽만 세면 합계가 조용히 모자란다.
+  async function denominatorSum(page: Page) {
+    return page.locator(".sc-rate").evaluateAll((els) =>
+      els.reduce((sum, el) => {
+        const m = (el.textContent || "").match(/\d+\s*\/\s*(\d+)/);
+        return sum + (m ? Number(m[1]) : 0);
+      }, 0));
+  }
+
+  test("같은 세트를 두 번 풀어도 챕터 분모가 늘지 않는다", async ({ page }) => {
+    await openProduct(page, "ISTQB"); // 샘플 A = 40문항
+
+    await gradeExamOnce(page, false);
+    await page.getByTestId("stats-open").click();
+    await expect(page.getByTestId("stats-dashboard")).toBeVisible();
+    const after1 = await denominatorSum(page);
+    await page.getByRole("button", { name: "닫기", exact: true }).first().click();
+
+    await gradeExamOnce(page, true);
+    await page.getByTestId("stats-open").click();
+    await expect(page.getByTestId("stats-dashboard")).toBeVisible();
+    const after2 = await denominatorSum(page);
+
+    // 세트 문항 수와 같아야 하고, 두 번 풀어도 그대로여야 한다(종전이면 40 → 80).
+    expect(after1).toBe(40);
+    expect(after2).toBe(40);
+  });
+});

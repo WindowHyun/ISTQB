@@ -223,6 +223,20 @@ export function sanitizeHistory(value: unknown): ExamHistory | null {
     }
     if (Object.keys(chapterStats).length) out.chapterStats = chapterStats;
   }
+  if (isPlainObject(value.chapterQuestions)) {
+    // 챕터별 문항 id 목록 — 최신 시도 집계의 입력이다. 문자열 id만 통과시키고,
+    // 같은 회차 안에서 정답/오답 양쪽에 든 id는 오답으로 본다(모순 데이터는 보수적으로).
+    const chapterQuestions: Record<string, { ok: string[]; no: string[] }> = {};
+    for (const [ch, cell] of Object.entries(value.chapterQuestions)) {
+      if (ch === "__proto__" || ch === "constructor" || ch === "prototype") continue;
+      if (!isPlainObject(cell)) continue;
+      const no = stringArray(cell.no);
+      const wrong = new Set(no);
+      const ok = stringArray(cell.ok).filter((id) => !wrong.has(id));
+      if (ok.length || no.length) chapterQuestions[ch] = { ok, no };
+    }
+    if (Object.keys(chapterQuestions).length) out.chapterQuestions = chapterQuestions;
+  }
   if (Array.isArray(value.wrongItems)) {
     out.wrongItems = value.wrongItems
       .filter(isPlainObject)

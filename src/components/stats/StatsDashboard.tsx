@@ -4,7 +4,7 @@ import { ExamHistory } from '../../store/useQuizStore';
 import { SetSummary } from '../../hooks/useQuestions';
 import { formatClock } from '../../utils/time';
 import { displayRatePercent } from '../../utils/scoring';
-import { aggregateChapterStats, weightedRatePercent } from '../../utils/chapterStats';
+import { aggregateChapterStats, aggregateLatestChapterStats, weightedRatePercent } from '../../utils/chapterStats';
 import {
   buildSetTimelines, buildMiniTestRounds, formatDeltaPp, attemptRatePercent, isSetLevelRound,
 } from '../../utils/attemptStats';
@@ -98,8 +98,13 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
   // 표본이 가장 작은 챕터가 늘 1위 약점이 된다. 실제 데이터에서 세트당 1~4문항짜리
   // 챕터가 흔해(CSTS 2018은 6개 중 5개), 1문항을 틀린 챕터(0%)가 19문항을 풀어 10%가
   // 나온 진짜 약점보다 위에 온다 — 앱이 엉뚱한 챕터를 공부하라고 지시하게 된다.
-  const { rankedChapters, lowSampleChapters } = useMemo(() => {
-    const agg = aggregateChapterStats(Object.values(histories));
+  const { rankedChapters, lowSampleChapters, staleRounds } = useMemo(() => {
+    const all_ = Object.values(histories);
+    // 문항 단위 최신 시도 기준(재풀이해도 분모가 늘지 않는다). 문항 id를 남기지 않던
+    // 과거 회차만 있으면 셀 것이 없으므로 종전 누적 방식으로 폴백한다.
+    const latest = aggregateLatestChapterStats(all_);
+    const useLatest = Object.keys(latest.stats).length > 0;
+    const agg = useLatest ? latest.stats : aggregateChapterStats(all_);
     const all = Object.entries(agg)
       .map(([name, { c, t }]) => ({ name, c, t, rate: displayRatePercent(c, t) }))
       .sort((a, b) => a.rate - b.rate || b.t - a.t);
@@ -107,6 +112,8 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
       rankedChapters: all.filter((ch) => ch.t >= MIN_CHAPTER_SAMPLE),
       // 표본 많은 순 — 판단 보류 그룹 안에서는 '가장 먼저 표본이 찰' 챕터를 위에 둔다.
       lowSampleChapters: all.filter((ch) => ch.t < MIN_CHAPTER_SAMPLE).sort((a, b) => b.t - a.t),
+      // 최신 기준으로 셀 때 빠진 과거 회차 수(폴백 중이면 0 — 그때는 전부 집계된다).
+      staleRounds: useLatest ? latest.legacyRounds : 0,
     };
   }, [histories]);
   const chapterRows = rankedChapters;
@@ -161,11 +168,18 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
                     두 버튼의 차이는 종전에 title(툴팁)에만 있었는데, 모바일은 hover가 없어
                     툴팁이 뜨지 않는다 — 폰으로 쓰는 사용자는 차이를 알 방법이 없었다.
                     화면에 보이는 설명으로 옮기고, 제목은 '왜 쓰는지'를 먼저 말한다. */}
-                <h4>약한 챕터부터 <small>전 세트 합산 · 정답률 낮은 순</small></h4>
+                <h4>약한 챕터부터 <small>풀어 본 문항 기준 · 정답률 낮은 순</small></h4>
                 <p className="stats-hint sc-legend">
                   <strong>연습</strong>은 그 챕터 문항을 해설과 함께 익히는 용도예요(기록에 남지 않습니다).
                   {' '}<strong>미니 시험</strong>은 그 챕터에서 <strong>최대 10문항</strong>을 뽑아 채점해
                   정답률을 다시 잽니다(현재 세트에 그보다 적으면 있는 만큼만 출제됩니다).
+                </p>
+                {/* 종전에는 회차별 출제 수를 그대로 더해, 같은 문항을 다시 풀 때마다 분모가
+                    커졌다(6문항 챕터가 "0/18"). 지금은 문항마다 가장 최근 결과만 세므로
+                    괄호 안 숫자가 '내가 풀어 본 서로 다른 문항 수'다 — 복습해도 늘지 않는다.
+                    설명이 길면 모바일에서 데이터보다 안내가 먼저 화면을 채운다 — 한 줄로 둔다. */}
+                <p className="stats-hint sc-legend">
+                  괄호 안은 <strong>풀어 본 서로 다른 문항 수</strong> — 다시 풀면 최근 결과로 바뀝니다.
                 </p>
                 {/* 잠금 사유도 종전엔 툴팁뿐이라 모바일에서는 "버튼이 왜 안 눌리지"로만 보였다. */}
                 {practiceLocked && (
@@ -214,6 +228,12 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
                 </ul>
                 {legacyCount > 0 && (
                   <p className="stats-hint">챕터 집계가 없는 이전 회차 {legacyCount}건은 제외됨(새로 채점하면 반영).</p>
+                )}
+                {staleRounds > 0 && (
+                  <p className="stats-hint" data-testid="stats-stale-rounds">
+                    문항 정보가 없는 이전 회차 {staleRounds}건은 제외됨 — 그 회차는 어떤 문항을
+                    풀었는지 남아 있지 않아 중복을 걸러낼 수 없어요(다시 풀면 반영됩니다).
+                  </p>
                 )}
               </section>
             )}

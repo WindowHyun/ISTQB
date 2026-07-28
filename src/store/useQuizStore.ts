@@ -20,6 +20,9 @@ export interface ExamHistory {
   wrongItems?: { number: number; myAnswer: string[]; correctAnswer: string[] }[];
   // 챕터별 정답 집계(Phase 3 약점 분석). 채점 시점에 기록 — 과거 기록엔 없을 수 있다.
   chapterStats?: Record<string, { c: number; t: number }>;
+  // 챕터별 정답/오답 문항 id. 개수만으로는 재풀이 여부를 알 수 없어 분모가 계속 부풀었다 —
+  // id가 있어야 합산에서 문항별 '가장 최근 결과'만 골라 셀 수 있다. 과거 기록엔 없다.
+  chapterQuestions?: Record<string, { ok: string[]; no: string[] }>;
   // CSTS 검정방법별 가중 점수(채점 시점 스냅샷) — 4지선다·서답형 1.5점/진위형 1.0점 배점.
   // ISTQB 이력에는 없음(단순 정답률 기준이라 불필요). 과거(수정 전) CSTS 기록엔 없을 수 있다.
   cstsWeighted?: { score: number; maxScore: number };
