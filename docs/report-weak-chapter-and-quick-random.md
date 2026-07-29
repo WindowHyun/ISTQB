@@ -115,6 +115,69 @@ main 기준 집계는 전 회차 `{c,t}` 단순 누적합이며(`chapterStats.ts
 
 ---
 
+## 1-A. 현황 한눈에 — AS-IS / TO-BE
+
+코드가 **3층**으로 나뉘어 있어 "구현됐다/안 됐다"가 헷갈리기 쉽다. 층부터 구분한다.
+
+| 층 | 위치 | 상태 |
+|---|---|---|
+| **L1** | `main` = `fd35839` | 실제 배포 상태. **여기 없으면 사용자에게 안 나간 것** |
+| **L2** | `origin/claude/code-analysis-potential-issues-asouc2` = `1c33373` | 구현 완료, **main 미머지**. main 대비 7파일 261줄 추가 |
+| **L3** | 없음 | 아직 아무 브랜치에도 없음 |
+
+### 1-A-1. 주제 1 — 약한 챕터
+
+| # | 항목 | AS-IS · L1 (main) | AS-IS · L2 (미머지) | TO-BE | 남은 일 |
+|---|---|---|---|---|---|
+| 1 | 챕터 집계 규칙 | 회차별 `{c,t}` **단순 누적합** (`chapterStats.ts:29-40`) | **문항 단위 최신 시도** (`aggregateLatestChapterStats`) | 문항 단위 최신 + **세트 간 중복 제거** | 🔴 중복 키 교체 |
+| 2 | 이력 기록 스키마 | `chapterStats: {c,t}`만 | **+ `chapterQuestions: {ok[], no[]}`** | 동일 | ✅ 완료 |
+| 3 | 중복 판정 원천 | 없음 | **`q.id` 기준** — 교차 세트에 **무효**(49그룹 전부 id 상이) | **지문 정규화 그룹 키** (빌드 타임 테이블) | 🔴 **신규 구현** |
+| 4 | 구 회차(문항 id 없음) | 전부 집계 | 제외 + `staleRounds` 안내 + 전부 구 회차면 누적합 폴백 | 동일 | ✅ 완료 |
+| 5 | 손상 백업 방어 | `chapterStats`만 sanitize | **+ `chapterQuestions` sanitize** (문자열 id만, 모순 id는 오답) | 동일 | ✅ 완료 |
+| 6 | 화면 라벨 | `전 세트 합산 · 정답률 낮은 순` | `풀어 본 문항 기준 · 정답률 낮은 순` + 범례 한 줄 | 동일 | ✅ 완료 |
+| 7 | `MIN_CHAPTER_SAMPLE` (E안) | `5` | **`5` — 변경 없음** | **재결정 필요** (C안이 t 상한을 유니크 문항 수로 낮춤) | 🟡 드라이런 후 확정 |
+| 8 | "더 풀면 순위에 올라옵니다" 문구 | 그대로 | **그대로** | 재검토 — 문항 소진 시 **거짓이 됨** | 🟡 문구 수정 |
+| 9 | 추세 병기 (D안) | 없음 | **없음** | 선택 — 전체 + 최근 N회 %p | ⚪ 선택 |
+| 10 | 챕터 집계 E2E | 없음 | **단일 세트만** (샘플 A ×2 → 40/40) | **+ 교차 세트** (2404 → 2405) | 🔴 E9 추가 |
+
+**요약**: 주제 1은 **6/10 완료(L2)**. 남은 것은 ①③⑩ 중복 제거 계열(🔴)과 ⑦⑧ E안 계열(🟡), ⑨ 선택.
+**단, L2가 main에 머지되지 않는 한 사용자에게는 0개 반영이다.**
+
+### 1-A-2. 주제 2 — 퀵 랜덤
+
+**AS-IS: 전 층에서 0건.** 다만 재사용 가능한 기반은 이미 있다.
+
+| # | 항목 | AS-IS | TO-BE | 남은 일 |
+|---|---|---|---|---|
+| 11 | 퀵 모드 자체 | **없음** (원격 7개 브랜치 전부 0건) | 모드 추가 | 🔴 신규 |
+| 12 | 전 세트 추첨 | 단일 세트만 (`useQuestions.ts:126-128`) | 제품 전 세트 풀 | 🔴 신규 |
+| 13 | 셔플 | ✅ Fisher–Yates (`useQuestions.ts:7`) | 그대로 재사용 | ✅ 재사용 |
+| 14 | 세트 로더·캐시 | ✅ `jsonPromises` / `questionArrays` / `peekSetQuestions` (`questionLoader.ts:53-101`) | 그대로 재사용 (지연 로드) | ✅ 재사용 |
+| 15 | 추첨 영속화 | `randomDraw {setId, chapter, ids}` — **단일 세트 전제** | `quickDraw {certification, items:[{id, path}]}` **별도 필드** | 🔴 신규 |
+| 16 | 문항 렌더·채점 UI | ✅ `QuestionWorkspace` / `QuestionCard` / 결과 모달 | 그대로 재사용 | ✅ 재사용 |
+| 17 | 답안 키 조립 | **2곳 중복** (`QuestionCard.tsx:64`, `useQuizSession.ts:29`), 게이트 키는 3곳 | 단일 헬퍼 | 🔴 **선행 정리** |
+| 18 | `isSetLevelRound` | `!h.chapter` — 퀵을 **실전 회차로 오인**함 | `!h.chapter && h.mode !== 'quick'` | 🔴 신규 (R1) |
+| 19 | 제품 스코프 필터 | `certification` 우선, 없으면 `setId` 추론 (`AppModals.tsx:180`) | 퀵 회차에 `certification` **필수 기록** | 🔴 신규 (R3) |
+| 20 | 세트 제목 조회 | `titleOf` 폴백 끝에 `setId` 원문 노출 (`StatsDashboard.tsx:85-89`) | `QUICK` 노출 방지 | 🔴 신규 (R2) |
+| 21 | 오답 귀속 | `reviewIds[${setId}-exam / -random]`만 합집합 (`useQuestions.ts:135-139`) | 출처 세트별 분배 | 🔴 신규 (D7) |
+| 22 | 복습 필터 키 | **`q.number` 사용** — 세트 내 순번, 전역 고유 아님 (`useQuestions.ts:145`) | 전역 고유 id | 🔴 신규 (R8) |
+| 23 | 제한시간 | exam 전용 | 퀵은 **없음** — 타이머 경로 미변경 | ✅ 변경 불필요 |
+| 24 | 합격 판정·가중 점수 | exam/random에 적용 | 퀵은 **미적용** (`cstsWeighted` 미기록) | 🔴 신규 (D8, R9) |
+
+**요약**: 재사용 4건(⑬⑭⑯㉓), 신규 구현 11건, 선행 정리 1건(⑰).
+
+### 1-A-3. 지금 당장 해야 할 순서
+
+```
+[선행]  ⑰ 답안 키 헬퍼 단일화            ← 퀵 코드 얹기 전 필수
+[1단계] ③ 지문 정규화 + 빌드 타임 중복 그룹 테이블   ← 주제1·2 공통 원천
+[2단계] ① 1c33373의 seen 키를 그룹 키로 교체 + ⑩ 교차 세트 E2E
+[3단계] ⑦ MIN_CHAPTER_SAMPLE 재결정 + ⑧ 문구 → ★ main 머지 (주제 1 완료)
+[4단계] ⑱ isSetLevelRound 퀵 조건 → ⑫⑮ 추첨·영속화 → ⑲~㉔ UI·귀속
+```
+
+---
+
 ## 2. 사실표 재확인 결과
 
 요청서에 주어진 값들을 전부 재측정했다. **정정 2건, 보강 3건**이 있다.
@@ -515,7 +578,7 @@ C안이 들어간 뒤에는 **퀵이 같은 문항 id 공간을 쓰므로 자동
 | **R3** | 제품 스코프 필터 | `productSetIds.has(h.setId)` 폴백이 `QUICK`을 못 찾는다. **`certification` 필드를 반드시 기록해야** 퀵 회차가 통계에서 실종되지 않는다 | `AppModals.tsx:180` |
 | **R4** | `randomDraw` 복원 | 복원이 단일 세트 `byId` 맵 전제. 전 세트 id를 넣으면 `restored.length !== saved.ids.length`가 되어 **매번 재추첨**된다(무한 재추첨은 아니나 이어풀기가 깨짐) | `useQuestions.ts:115-124` |
 | **R5** | **답안 키 조립이 2곳에 중복** | `QuestionCard.tsx:64`와 `useQuizSession.ts:29`가 독립 조립. 퀵 모드 추가 시 **한쪽만 고치면 답을 눌러도 진행률이 안 오른다.** 게이트 키도 3곳(`QuestionCard.tsx:82`, `useQuizSession.ts:57`, `TimerClock.tsx:18`) | 실측 확인 — **현재 미해결** |
-| **R6** | 답안 일괄 삭제 | 접두 `` `${setId}-${mode}-` `` 매칭. `QUICK` 접두가 실제 세트 id와 충돌하지 않는지 확인 필요(현 세트 id는 `istqb/sample-a.json` 형식이라 충돌 없으나 계약으로 고정해야 함) | `useQuizStore.ts:227-228`, `storage.ts:332` |
+| **R6** | 답안 일괄 삭제 | 접두 `` `${setId}-${mode}-` `` 매칭. 세트 id는 `index.json`상 `ISTQB-FL-V4-A`·`CSTS-FL-2404` 형식이고 문항 id는 그 세트 id로 시작한다(`ISTQB-FL-V4-A-001`). `QUICK`은 현재 어느 세트 id와도 겹치지 않으나 **계약으로 고정**해야 한다 | `useQuizStore.ts:227-228`, `storage.ts:332`, `www/data/index.json` |
 | **R7** | 복습(오답) 모드 | 퀵 오답이 어느 세트의 `reviewIds`로도 흐르지 않으면 **오답노트에서 영구 실종** | `useQuizStore.ts:99`, `useQuestions.ts:135-139` |
 | **R8** | **복습 필터의 `q.number` 사용** | `!done.has(q.number)`가 `number`(세트 내 순번)를 쓴다. **`number`는 세트 내 고유일 뿐 전역 고유가 아니다** — 전 세트 혼합 시 다른 세트의 같은 번호 문항이 "이미 맞힘"으로 잘못 걸러진다 | `useQuestions.ts:145` |
 | **R9** | CSTS 가중 점수 | 퀵 회차에 `cstsWeighted`가 기록되면 요약 평균 계산이 10문항 회차를 70문항 회차와 같은 단위로 합산 | `chapterStats.ts:48-52` |
