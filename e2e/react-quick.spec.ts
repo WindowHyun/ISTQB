@@ -110,6 +110,61 @@ test.describe("퀵 랜덤", () => {
     await expect(page.getByTestId("stats-mini-rounds")).toContainText("퀵 랜덤");
   });
 
+    // 영속 계약 — 퀵 회차가 IndexedDB에 어떤 모양으로 남는지. 여기서 하나라도 빠지면
+    // 새로고침·백업 복원 뒤에 조용히 망가진다: mode가 exam으로 보정되면 요약을 부풀리고,
+    // chapterQuestions가 없으면 챕터 통계에서 빠지고, wrongItems[].setId가 없으면
+    // 오답노트가 다시 출처를 잃는다.
+  test("퀵 회차가 저장소에 온전히 기록된다(모드·챕터·오답 출처)", async ({ page }) => {
+    await openProduct(page, "ISTQB");
+    await page.locator("#quickSize").selectOption("10");
+    await page.getByTestId("quick-start-btn").click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    for (let i = 0; i < 10; i++) {
+      const o = page.locator("#options .option").first();
+      if (await o.count()) await o.click();
+      const n = page.locator("#nextBtn");
+      if (!(await n.count()) || (await n.isDisabled())) break;
+      await n.click();
+    }
+    await page.getByTestId("grade-button").click();
+    const c = page.getByTestId("confirm-grade");
+    if (await c.count()) await c.click();
+    await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
+
+    // IndexedDB에 저장된 퀵 회차를 직접 읽어 백업 왕복 계약을 검사한다.
+    const info = await page.evaluate(async () => {
+      const db: IDBDatabase = await new Promise((res, rej) => {
+        const r = indexedDB.open("istqb-db", 1);
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      });
+      const all: Record<string, unknown>[] = await new Promise((res) => {
+        const tx = db.transaction("history", "readonly");
+        const q = tx.objectStore("history").getAll();
+        q.onsuccess = () => res(q.result);
+      });
+      const quick = all.find((h) => (h as { mode?: string }).mode === "quick") as {
+        mode: string; setId: string;
+        chapterQuestions?: Record<string, { ok: string[]; no: string[] }>;
+        wrongItems?: { number: number; setId?: string }[];
+      } | undefined;
+      return {
+        found: !!quick,
+        mode: quick?.mode,
+        setId: quick?.setId,
+        chapters: Object.keys(quick?.chapterQuestions ?? {}).length,
+        wrongWithSource: (quick?.wrongItems ?? []).filter((w) => !!w.setId).length,
+        wrongTotal: (quick?.wrongItems ?? []).length,
+        sources: [...new Set((quick?.wrongItems ?? []).map((w) => w.setId))].length,
+      };
+    });
+    console.log("[백업] 퀵 회차:", JSON.stringify(info));
+    expect(info.found).toBe(true);
+    expect(info.mode).toBe("quick");          // exam으로 보정되면 요약을 부풀린다
+    expect(info.chapters).toBeGreaterThan(0); // 없으면 챕터 통계에서 빠진다
+    expect(info.wrongWithSource).toBe(info.wrongTotal); // 출처 없으면 오답노트가 뭉친다
+    expect(info.sources).toBeGreaterThan(1);  // 전 세트 출제의 흔적
+  });
   // 오답노트는 회차가 아니라 문항의 출처 세트로 묶여야 한다. 회차 단위로 묶으면 퀵의
   // setId가 센티넬이라 서로 다른 세트의 오답이 '퀵 랜덤' 한 덩어리가 되고, 지문을 불러올
   // 경로가 없어 번호만 뜬다(번호가 겹치면 조용히 유실되기도 한다).
