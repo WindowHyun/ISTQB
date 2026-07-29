@@ -178,6 +178,59 @@ main 기준 집계는 전 회차 `{c,t}` 단순 누적합이며(`chapterStats.ts
 
 ---
 
+## 1-B. 착수 전 위험 점검 — 구현 중 / 병합 시
+
+착수 전에 실제로 검사한 결과다. 모두 코드·명령 근거를 붙였다.
+
+### 1-B-1. 브랜치 토폴로지 (실측)
+
+```
+브랜치                                          ahead  behind
+origin/claude/code-analysis-potential-issues-asouc2   1      0   ← C안. fast-forward 가능
+origin/claude/testing-issue-analysis-x0531h           1      2   ← docs/qa-report.html 1건뿐
+origin/claude/site-deployment-readiness-0dzk9s        1     31   ← UserGuide.tsx 1줄. stale
+origin/claude/code-analysis-issues-f2p2se             0     44   ← 이미 전부 머지됨
+origin/claude/remote-branch-cleanup-4qhe43            0     42   ← 이미 전부 머지됨
+origin/claude/weak-chapter-stats-report-fpp2o1        3      0   ← 이 리포트(docs만)
+```
+
+### 1-B-2. 구현 중 문제될 부분
+
+| # | 위험 | 근거 | 대응 |
+|---|---|---|---|
+| **I1** | **어느 베이스에서 개발할 것인가.** main에서 시작하면 §3.6 결함 수정이 `1c33373`과 같은 파일 5개를 건드려 나중에 충돌한다 | `chapterStats.ts`·`StatsDashboard.tsx`·`storage.ts`·`useQuizStore.ts`·`useQuizSession.ts` 전부 겹침 | **asouc2를 main에 먼저 머지**(ahead=1/behind=0이라 fast-forward)한 뒤 그 위에서 작업. 이게 가장 싸다 |
+| **I2** | **중복 그룹 테이블을 새 JSON 파일로 두면 안 된다.** `validate-questions.js`가 `www/data/istqb`·`www/data/csts` 하위 `.json` **전부**를 문항 세트로 검증한다 | `validate-questions.js:307-318` (`readdirSync(...).filter(f => f.endsWith('.json'))`), 276행이 `data.meta.certification` 요구 | 테이블을 **`www/data/index.json`에 필드로 추가**. index.json은 `www/data/` 루트라 스캔 대상이 아니다 |
+| **I3** | **데이터 정본은 `www/`이고 `public/`·`dist/`는 생성물이다.** `public/data`에 쓰면 다음 빌드에서 덮어써진다 | `scripts/sync-assets.js:5-12` — "정본: www/ … 대상(둘 다 생성물이라 커밋하지 않음)" | 반드시 `www/data/index.json`을 수정. `prebuild` 훅이 `public`·`dist`로 복사 |
+| **I4** | **새 JSON 파일은 precache 엔트리와 다운로드를 늘린다** | `vite.config.ts:37` `globPatterns: ['**/*.{js,css,html,ico,png,svg,json}']` — 모든 json이 precache. 현재 **110 엔트리 / 3555.47 KiB** (빌드 실측) | I2와 같은 이유로 index.json 내장. 기존 엔트리 크기만 커진다 |
+| **I5** | **`chapterStats.ts`는 뮤테이션 테스트 대상이다.** 중복 제거 분기를 추가하면 테스트가 안 죽이는 뮤턴트가 생겨 CI가 깨질 수 있다 | `stryker.config.json:7-12` mutate 목록에 `chapterStats.ts` 포함. `thresholds.break = 85`, 현재 93.5% | 새 분기마다 단위 테스트를 **같은 커밋에** 넣는다. `npm run test:mutation` 로컬 선검증 |
+| **I6** | **답안 키가 2곳에서 독립 조립된다.** 퀵을 얹으면 "답을 눌러도 진행률이 안 오름"이 확정 | `QuestionCard.tsx:64` vs `useQuizSession.ts:29`. 게이트 키는 `QuestionCard.tsx:82`·`useQuizSession.ts:57`·`TimerClock.tsx:18` 3곳 | **퀵 착수 전 선행 리팩터링.** 동작 변화 0인 순수 추출로 분리 커밋 |
+| **I7** | **복습 필터가 한 식 안에서 키 공간 2개를 섞어 쓴다** | `useQuestions.ts:145` — `ids.has(q.id \|\| legacy-${q.number})` **그런데** `done.has(q.number)`. `q.number`는 세트 내 순번이라 전 세트 혼합 시 충돌 | 퀵 오답을 복습에 넣기 전 `reviewedOk` 키를 전역 id로 통일 |
+| **I8** | **`clearAnswers`가 접두 문자열로 삭제한다.** 문항 id가 세트 id로 시작해(`ISTQB-FL-V4-A` → `ISTQB-FL-V4-A-001`) 접두 관계가 실재한다 | `useQuizStore.ts:224-229`. 현재는 `-${mode}-` 구분자로 방어 중 | `QUICK`이 어느 세트 id와도 접두 관계가 아님을 **단위 테스트로 고정** |
+| **I9** | **index.json 형태 변경은 계약 테스트를 지나야 한다** | `useQuestions.contract.test.ts:18-30` — `sets[]` 배열과 per-set 필드 검증. 최상위 필드 **추가는 통과**하지만 새 필드 자체는 미검증 | 추가 필드용 계약 테스트를 같이 넣는다. `AppData` 타입(`useQuestions.ts:38-44` 인근)도 확장 |
+| **I10** | **번들 예산 잔여** | 실측: **JS 115.7KB / 140KB (83%) · CSS 8.6KB / 12KB (72%)** → 여유 **JS 24.3KB · CSS 3.4KB gzip** | §4.1 추정치(JS +2.5~4KB)로는 충분. 단 `manualChunks` 도입은 precache 엔트리를 늘리므로 별건 |
+
+### 1-B-3. 병합 시 문제될 부분
+
+| # | 위험 | 근거 | 대응 |
+|---|---|---|---|
+| **M1** | **asouc2와의 파일 충돌** — 이 작업이 건드릴 파일 5개가 `1c33373`과 정확히 겹친다 | 위 I1 | **머지 순서를 강제한다**: asouc2 → main(fast-forward) → 그 위에서 작업. 역순이면 수동 충돌 해결 |
+| **M2** | **기존 E2E 기대값과 충돌** — `react-stats.spec.ts`의 `expect(after1).toBe(40)`은 단일 세트 전제다. 중복 제거를 세트 간으로 확장해도 이 값은 유지돼야 한다 | `1c33373`의 `e2e/react-stats.spec.ts` | 단일 세트 테스트는 **그대로 두고** 교차 세트(E9)를 **추가**. 기존 값이 바뀌면 중복 제거가 과하게 적용된 신호 |
+| **M3** | **백업 왕복에서 `chapterQuestions`가 조용히 사라진다** | `sanitizeHistory`(`storage.ts:178-`)는 **allowlist 재조립** — 미지 필드를 버린다. 가져오기(`storage.ts:737-742`)는 정제 후 `store.put(h)`로 **DB에 기록**한다. 내보내기는 메모리 상태에서 뜬다 | 신버전에서 내보낸 백업을 **구버전 앱에 가져오면 필드가 소실되고 그대로 저장**된다. `BACKUP_SCHEMA_VERSION`은 1로 그대로라 **경고도 안 뜬다**(`storage.ts:703`은 백업이 *더 새로울 때만* 경고) |
+| **M4** | M3이 실제로 발생할 조건 | `registerType: 'prompt'` — 사용자가 SW 업데이트를 미룰 수 있어 구버전이 한동안 살아 있다 | `BACKUP_SCHEMA_VERSION`을 **2로 올릴지 결정**해야 한다. 올리면 구버전이 "앱을 업데이트한 뒤 가져오세요"로 거부해 소실 대신 차단이 된다 — **소실보다 낫다** |
+| **M5** | **소급 불가 구간이 사용자에게 보인다** | `1c33373`은 `chapterQuestions` 없는 과거 회차를 제외하고 `staleRounds`로 안내 | 안내 문구는 이미 있다. 다만 **머지 직후 대부분 사용자의 표본이 급감**한다 — 배포 시 이를 알리는 것이 필요 |
+| **M6** | **`MIN_CHAPTER_SAMPLE`을 안 건드리고 머지하면 순위표가 빌 수 있다** | 값은 `5` 그대로(`StatsDashboard.tsx:21`). C안이 t 상한을 유니크 문항 수로 낮춤. CSTS 2018은 6챕터 중 5개가 세트당 1~4문항 | **머지 전에** 실제 이력으로 드라이런 |
+| **M7** | **stale 브랜치 2개가 남아 있다** | `site-deployment-readiness-0dzk9s`(behind=31, UserGuide 1줄), `testing-issue-analysis-x0531h`(behind=2, docs 1파일) | 각각 cherry-pick하거나 main 기준으로 다시 따는 편이 안전. **그대로 머지하면 31커밋 뒤처진 상태를 되돌릴 위험** |
+| **M8** | **이미 전부 머지된 브랜치 2개** | `code-analysis-issues-f2p2se`(ahead=0), `remote-branch-cleanup-4qhe43`(ahead=0) | 삭제 가능. 남겨 두면 "미머지 작업이 있다"는 오해를 계속 만든다 |
+| **M9** | **CI 11잡 중 어디서 깨지나** | `lint` / `verify-data` / `pdf-data` / `unit` / `mutation` / `build` / `android-build` / `nonfunctional` / `audit` / `secrets` / `codeql` | 이 작업이 건드리는 잡: **`verify-data`(I2)**, **`unit`+`mutation`(I5)**, **`build`(I10 예산)**. `android-build`는 `cap sync` 후 `android/` 변경 여부를 검사하므로 자산 추가 시 동기화 필요 |
+
+### 1-B-4. 착수 전 반드시 결정할 3가지
+
+1. **머지 순서** — asouc2를 먼저 main에 넣을 것인가(권장), 아니면 이 작업에 흡수할 것인가
+2. **`BACKUP_SCHEMA_VERSION` 상향 여부** — M3/M4. 올리면 구버전 호환이 끊기고, 안 올리면 조용한 소실이 남는다
+3. **`MIN_CHAPTER_SAMPLE` 새 값** — 실제 이력 드라이런 없이는 확정 불가(M6)
+
+---
+
 ## 2. 사실표 재확인 결과
 
 요청서에 주어진 값들을 전부 재측정했다. **정정 2건, 보강 3건**이 있다.
