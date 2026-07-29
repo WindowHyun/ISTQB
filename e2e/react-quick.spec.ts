@@ -110,6 +110,34 @@ test.describe("퀵 랜덤", () => {
     await expect(page.getByTestId("stats-mini-rounds")).toContainText("퀵 랜덤");
   });
 
+  // 오답노트는 회차가 아니라 문항의 출처 세트로 묶여야 한다. 회차 단위로 묶으면 퀵의
+  // setId가 센티넬이라 서로 다른 세트의 오답이 '퀵 랜덤' 한 덩어리가 되고, 지문을 불러올
+  // 경로가 없어 번호만 뜬다(번호가 겹치면 조용히 유실되기도 한다).
+  test("오답노트가 퀵 오답을 출처 세트별로 갈라 보여준다", async ({ page }) => {
+    await startQuick(page, "ISTQB", "10");
+    for (let i = 0; i < 10; i += 1) {
+      const o = page.locator("#options .option").first();
+      if (await o.count()) await o.click();
+      const n = page.locator("#nextBtn");
+      if (!(await n.count()) || (await n.isDisabled())) break;
+      await n.click();
+    }
+    await page.getByTestId("grade-button").click();
+    const confirm = page.getByTestId("confirm-grade");
+    if (await confirm.count()) await confirm.click();
+    await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: "오답 노트 보기" }).click();
+    await expect(page.getByTestId("wrong-note")).toBeVisible();
+
+    const groups = page.getByTestId("wrong-note-set-btn");
+    // 10문항이 여러 세트에서 왔으므로 그룹도 여럿이어야 한다(1이면 한 덩어리로 뭉친 것).
+    expect(await groups.count()).toBeGreaterThan(1);
+    const note = page.getByTestId("wrong-note");
+    // 그룹 이름은 실제 세트 제목이어야 한다 — '퀵 랜덤'이 보이면 출처를 잃은 것이다.
+    await expect(note).not.toContainText("퀵 랜덤");
+    await expect(note).toContainText("ISTQB FL v4.0 샘플문제");
+  });
+
   test("퀵에서 틀린 문항이 출처 세트의 오답노트로 간다", async ({ page }) => {
     await startQuick(page, "ISTQB", "10");
     // 모든 문항에 답해 확실히 오답을 만든다(첫 보기 일괄 선택).

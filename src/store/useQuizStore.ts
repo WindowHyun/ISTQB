@@ -26,7 +26,9 @@ export interface ExamHistory {
   createdAt?: number;
   // 오답 노트(세트 전체 회차 리스트)용으로 채점 시점에 함께 저장하는 상세(4A). 과거 기록엔 없을 수 있다.
   setTitle?: string;
-  wrongItems?: { number: number; myAnswer: string[]; correctAnswer: string[] }[];
+  // setId: 그 문항이 실제로 실려 있는 세트. 퀵처럼 회차의 setId가 센티넬이라 출처를
+  // 알 수 없는 경우에만 채운다(일반 회차는 회차의 setId가 곧 출처라 비어 있다).
+  wrongItems?: { number: number; myAnswer: string[]; correctAnswer: string[]; setId?: string }[];
   // 챕터별 정답 집계(Phase 3 약점 분석). 채점 시점에 기록 — 과거 기록엔 없을 수 있다.
   chapterStats?: Record<string, { c: number; t: number }>;
   // 챕터별 정답/오답 문항 id. 개수만으로는 재풀이 여부를 알 수 없어 분모가 계속 부풀었다 —

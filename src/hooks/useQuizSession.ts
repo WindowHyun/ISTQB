@@ -89,6 +89,9 @@ export function useQuizSession() {
       number: q.number,
       myAnswer: answers[answerKeyOf(q)] || [],
       correctAnswer: q.answer,
+      // 퀵은 회차의 setId가 센티넬(QUICK)이라 이게 없으면 오답노트가 출처를 알 수 없다 —
+      // 서로 다른 세트의 문항이 '퀵 랜덤' 한 덩어리로 묶이고, 번호가 겹치면 조용히 유실된다.
+      ...(q.sourceSetId ? { setId: q.sourceSetId } : {}),
     }));
     // 퀵은 세트 하나에 매이지 않아 index.json에서 제목을 찾을 수 없다 — 그대로 두면
     // 통계 목록에 센티넬 'QUICK'이 그대로 노출된다.
