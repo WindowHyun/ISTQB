@@ -28,7 +28,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "fix:questions": "node scripts/fix-questions.js",
-    "test:mutation": "stryker run"
+    "test:mutation": "stryker run",
+    "data:dupes": "node scripts/build-duplicate-groups.js"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",

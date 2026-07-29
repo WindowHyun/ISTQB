@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  buildChapterStats, aggregateChapterStats, aggregateLatestChapterStats, weightedRatePercent,
+  buildChapterStats, aggregateChapterStats, aggregateLatestChapterStats,
+  makeCanonicalIdResolver, weightedRatePercent,
 } from './chapterStats';
 import type { Question } from '../hooks/useQuestions';
 import type { ExamHistory } from '../store/useQuizStore';
@@ -139,5 +140,88 @@ describe('aggregateLatestChapterStats', () => {
   it('집계할 회차가 없으면 빈 결과다(화면이 폴백을 고를 수 있게)', () => {
     expect(aggregateLatestChapterStats([]).stats).toEqual({});
     expect(aggregateLatestChapterStats([h(1, undefined, { 기초: { c: 1, t: 1 } })]).stats).toEqual({});
+  });
+});
+
+// 세트 간 재수록은 id가 서로 다르다(CSTS-FL-2404-001 vs CSTS-FL-2405-001). id 비교만으로는
+// 걸러지지 않아, 2404를 풀고 2405를 푼 사용자에게서 같은 문제가 분모에 두 번 들어갔다.
+describe('aggregateLatestChapterStats — 세트 간 재수록 중복 제거', () => {
+  const h = (createdAt: number, chapterQuestions?: ExamHistory['chapterQuestions']): ExamHistory =>
+    ({ id: `h${createdAt}`, setId: 'S', mode: 'exam', answers: {}, createdAt, chapterQuestions });
+  const groups = [['CSTS-FL-2404-001', 'CSTS-FL-2405-001', 'CSTS-EL-2019-005']];
+  const canonical = makeCanonicalIdResolver(groups);
+
+  it('id가 달라도 같은 그룹이면 한 번만 센다', () => {
+    const { stats } = aggregateLatestChapterStats(
+      [
+        h(1, { 기초: { ok: ['CSTS-FL-2404-001'], no: [] } }),
+        h(2, { 기초: { ok: ['CSTS-FL-2405-001'], no: [] } }),
+        h(3, { 기초: { ok: ['CSTS-EL-2019-005'], no: [] } }),
+      ],
+      canonical,
+    );
+    expect(stats.기초).toEqual({ c: 1, t: 1 });
+  });
+
+  // 이 단정이 수정의 핵심이다 — resolver 없이 돌리면 t=3이 되어 실패한다.
+  it('resolver를 넘기지 않으면 종전처럼 세 번 센다(회귀 감지용 대조)', () => {
+    const { stats } = aggregateLatestChapterStats([
+      h(1, { 기초: { ok: ['CSTS-FL-2404-001'], no: [] } }),
+      h(2, { 기초: { ok: ['CSTS-FL-2405-001'], no: [] } }),
+      h(3, { 기초: { ok: ['CSTS-EL-2019-005'], no: [] } }),
+    ]);
+    expect(stats.기초.t).toBe(3);
+  });
+
+  it('그룹 안에서도 최신 회차의 결과를 쓴다', () => {
+    const { stats } = aggregateLatestChapterStats(
+      [
+        h(1, { 기초: { ok: [], no: ['CSTS-FL-2404-001'] } }), // 예전엔 틀림
+        h(2, { 기초: { ok: ['CSTS-FL-2405-001'], no: [] } }), // 최근엔 맞힘
+      ],
+      canonical,
+    );
+    expect(stats.기초).toEqual({ c: 1, t: 1 });
+  });
+
+  // 같은 문제가 세트마다 다른 챕터로 태깅된 경우가 원본 데이터에 3건 있다.
+  // 최신 회차가 기록한 챕터로 센다 — 이 함수의 '최신 우선' 규칙과 같은 기준이다.
+  it('그룹 내 챕터 태깅이 갈리면 최신 회차의 챕터로 센다', () => {
+    const { stats } = aggregateLatestChapterStats(
+      [
+        h(1, { '테스트 프로세스와 도구': { ok: ['CSTS-EL-2019-005'], no: [] } }),
+        h(2, { '소프트웨어 테스트 기초': { ok: ['CSTS-FL-2405-001'], no: [] } }),
+      ],
+      canonical,
+    );
+    expect(stats['소프트웨어 테스트 기초']).toEqual({ c: 1, t: 1 });
+    expect(stats['테스트 프로세스와 도구']).toBeUndefined();
+  });
+
+  it('표에 없는 문항은 그대로 자기 자신이 대표다', () => {
+    const { stats } = aggregateLatestChapterStats(
+      [h(1, { 기초: { ok: ['CSTS-FL-2403-011'], no: ['CSTS-FL-2403-012'] } })],
+      canonical,
+    );
+    expect(stats.기초).toEqual({ c: 1, t: 2 });
+  });
+});
+
+describe('makeCanonicalIdResolver', () => {
+  it('표가 없거나 비면 항등 함수다(표를 못 읽은 초기 렌더에서도 동작)', () => {
+    expect(makeCanonicalIdResolver(undefined)('X')).toBe('X');
+    expect(makeCanonicalIdResolver([])('X')).toBe('X');
+  });
+
+  it('그룹의 첫 원소를 대표로 삼는다', () => {
+    const r = makeCanonicalIdResolver([['A', 'B', 'C']]);
+    expect([r('A'), r('B'), r('C')]).toEqual(['A', 'A', 'A']);
+  });
+
+  // 조작된 백업·손상 데이터가 표 자리에 들어와도 집계가 죽지 않아야 한다.
+  it('원소가 1개거나 배열이 아닌 그룹은 무시한다', () => {
+    const r = makeCanonicalIdResolver([['A'], 'oops', [1, 2], ['X', 'Y']] as unknown as string[][]);
+    expect(r('A')).toBe('A');
+    expect(r('Y')).toBe('X');
   });
 });

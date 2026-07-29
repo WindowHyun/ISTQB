@@ -83,8 +83,21 @@ export interface LatestChapterStats {
  *
  * 문항 id를 남기지 않던 과거 회차는 셀 방법이 없으므로 제외하고 그 수를 함께 돌려준다
  * (조용히 빼면 화면의 표본이 왜 적은지 알 수 없다).
+ *
+ * canonicalIdOf: 세트 간 재수록 문항을 대표 id 하나로 접는다. 이것이 없으면 2404를 풀고
+ * 2405를 푼 사용자에게서 같은 문제가 분모에 두 번 들어간다 — 문항 id에 세트 접두가 붙어
+ * 있어(CSTS-FL-2404-001 vs CSTS-FL-2405-001) id 비교만으로는 같은 문제임을 알 수 없기
+ * 때문이다. 표는 index.json의 duplicateGroups에서 온다(빌드 타임 생성).
+ * 넘기지 않으면 id를 그대로 쓴다 — 표를 아직 못 읽은 초기 렌더에서도 동작은 한다.
+ *
+ * 같은 문제가 세트마다 다른 챕터로 태깅된 경우가 3건 있다(원본 데이터의 분류 불일치).
+ * 이때는 '가장 최근 회차가 기록한 챕터'로 센다 — 최신 결과를 쓴다는 이 함수의 규칙과
+ * 같은 기준이라 결과가 회차 순서에만 의존하고 결정적이다.
  */
-export function aggregateLatestChapterStats(histories: ExamHistory[]): LatestChapterStats {
+export function aggregateLatestChapterStats(
+  histories: ExamHistory[],
+  canonicalIdOf: (id: string) => string = (id) => id,
+): LatestChapterStats {
   const stats: ChapterStats = Object.create(null);
   const seen = new Set<string>();
   let legacyRounds = 0;
@@ -101,8 +114,9 @@ export function aggregateLatestChapterStats(histories: ExamHistory[]): LatestCha
       for (const [list, correct] of [[ids.ok, true], [ids.no, false]] as const) {
         for (const id of list ?? []) {
           // 같은 문항이 여러 세트에 중복 수록돼 있어도(기출 재출제) 한 번만 센다.
-          if (seen.has(id)) continue;
-          seen.add(id);
+          const key = canonicalIdOf(id);
+          if (seen.has(key)) continue;
+          seen.add(key);
           const cell = (stats[ch] ||= { c: 0, t: 0 });
           cell.t += 1;
           if (correct) cell.c += 1;
@@ -111,6 +125,26 @@ export function aggregateLatestChapterStats(histories: ExamHistory[]): LatestCha
     }
   }
   return { stats, legacyRounds };
+}
+
+/**
+ * duplicateGroups 표에서 id → 대표 id 매핑 함수를 만든다.
+ *
+ * 대표는 그룹의 첫 원소(생성 시 정렬돼 있어 결정적)다. 표에 없는 문항은 자기 자신이
+ * 대표이므로 그대로 돌려준다 — 626문항 중 94개만 표에 있어 대부분은 이 경로다.
+ */
+export function makeCanonicalIdResolver(groups?: string[][]): (id: string) => string {
+  if (!groups?.length) return (id) => id;
+  const map = new Map<string, string>();
+  for (const group of groups) {
+    if (!Array.isArray(group) || group.length < 2) continue;
+    const [canonical] = group;
+    if (typeof canonical !== 'string') continue;
+    for (const id of group) {
+      if (typeof id === 'string') map.set(id, canonical);
+    }
+  }
+  return (id) => map.get(id) ?? id;
 }
 
 // 문항 수 가중 평균 정답률(%) — 회차별 %의 단순 평균은 문항 수가 다른 회차

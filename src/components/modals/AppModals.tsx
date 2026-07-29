@@ -874,6 +874,7 @@ export const AppModals = () => {
         <StatsDashboard
           histories={productHistories}
           sets={sets}
+          duplicateGroups={appData?.duplicateGroups}
           onClose={() => setStatsOpen(false)}
           onClear={handleClearHistories}
           onPracticeChapter={handlePracticeChapter}
