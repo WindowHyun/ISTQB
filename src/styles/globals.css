@@ -661,7 +661,11 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 .question-nav button.unanswered { background: var(--surface); color: var(--muted); }
 .question-nav button.correct { background: var(--success-50); border-color: var(--success-200); color: var(--success); }
 .question-nav button.missed { background: var(--danger-50); border-color: var(--danger-200); color: var(--danger); }
-.question-nav button.current { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary); color: var(--primary); }
+/* 현재 문항 표시는 테두리 + 2px 링으로 한다. 글자색까지 --primary로 덮으면 상태 배경과
+   같은 계열이 겹쳐 대비가 무너진다 — 다크에서 '현재이면서 답한' 버튼이 #3b82f6 글자에
+   #1d3158 배경으로 3.49:1이었다(AA 4.5:1 미달). 색은 상태 클래스가 정하게 두고,
+   '현재'는 테두리·링과 aria-current로만 알린다. */
+.question-nav button.current { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary); }
 
 /* ── 모달(오답노트 등) ───────────────────────────────────────────────── */
 .modal-backdrop {
@@ -1558,12 +1562,15 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 /* "7 / 10문항"은 %(두 글자)보다 길어 44px에서 좁은 화면을 넘친다. */
 .result-score.neutral strong { font-size: 32px; }
 
-/* 퀵 랜덤 진입 — 문항 수 선택 + 시작을 한 줄에 둔다. */
-.quick-row { display: flex; gap: 8px; align-items: center; }
-.quick-row select { flex: 1 1 auto; min-width: 0; }
+/* 퀵 랜덤 진입 — 문항 수 선택 + 시작을 한 줄에 둔다.
+   두 컨트롤 모두 min-height 44px — 손가락으로 누르는 크기다(모바일 드로어에서 나란히
+   놓이므로 좁으면 옆 컨트롤을 잘못 누른다). */
+.quick-row { display: flex; gap: 8px; align-items: stretch; }
+.quick-row select { flex: 1 1 auto; min-width: 0; min-height: 44px; }
 .quick-start-btn {
   flex: 0 0 auto;
-  padding: 8px 14px;
+  min-height: 44px;
+  padding: 8px 18px;
   font-weight: 700;
   border-radius: var(--radius-sm, 8px);
   background: var(--primary-solid);
