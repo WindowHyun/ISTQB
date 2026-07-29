@@ -89,6 +89,7 @@ export function useQuizSession() {
       correctAnswer: q.answer,
     }));
     const setTitle = appData?.sets.find((s) => s.id === setId)?.title;
+    const chapterOutcome = buildChapterStats(currentQuestions, answers, answerKeyOf);
     const gradedAnswers: Record<string, string[]> = {};
     currentQuestions.forEach((q) => {
       const k = answerKeyOf(q);
@@ -112,7 +113,9 @@ export function useQuizSession() {
       setTitle,
       wrongItems,
       // 챕터별 정답 집계(약점 분석용) — 채점 시점의 문항·답안으로 확정 저장.
-      chapterStats: buildChapterStats(currentQuestions, answers, answerKeyOf),
+      chapterStats: chapterOutcome.stats,
+      // 문항 id까지 남긴다 — 재풀이해도 챕터 분모가 부풀지 않게 합산에서 최신 결과만 고른다.
+      chapterQuestions: chapterOutcome.questions,
       // CSTS 합격 판정 가중 점수 스냅샷(직전 회차 대비 비교에서 재사용) — ISTQB는 저장하지 않는다.
       cstsWeighted: useQuizStore.getState().activeProduct === 'csts' ? cstsWeighted : undefined,
       // 챕터 미니 시험(랜덤+필터) 표식 — 타임라인·회차 비교에서 세트 전체 회차와 분리된다.

@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { buildChapterStats, aggregateChapterStats, weightedRatePercent } from './chapterStats';
+import {
+  buildChapterStats, aggregateChapterStats, aggregateLatestChapterStats, weightedRatePercent,
+} from './chapterStats';
 import type { Question } from '../hooks/useQuestions';
 import type { ExamHistory } from '../store/useQuizStore';
 
@@ -18,10 +20,25 @@ describe('buildChapterStats', () => {
       'S-exam-Q-2': ['b'], // 오답
       // Q-3 미응답 → 오답, Q-4는 미태깅이라 집계 제외
     };
-    expect(buildChapterStats(questions, answers, keyOf)).toEqual({
+    expect(buildChapterStats(questions, answers, keyOf).stats).toEqual({
       기초: { c: 1, t: 2 },
       기법: { c: 0, t: 1 },
     });
+  });
+
+  it('챕터별 정답/오답 문항 id를 함께 남긴다(최신 시도 집계의 입력)', () => {
+    const questions = [q(1, '기초'), q(2, '기초'), q(3, '기법'), q(4, null)];
+    const answers = { 'S-exam-Q-1': ['a'], 'S-exam-Q-2': ['b'] };
+    expect(buildChapterStats(questions, answers, keyOf).questions).toEqual({
+      기초: { ok: ['Q-1'], no: ['Q-2'] },
+      기법: { ok: [], no: ['Q-3'] },
+    });
+  });
+
+  it('id가 없는 과거 문항도 번호로 키를 만든다(집계에서 누락되지 않게)', () => {
+    const legacy = { ...q(7, '기초'), id: undefined } as unknown as Question;
+    const out = buildChapterStats([legacy], {}, keyOf);
+    expect(out.questions.기초.no).toEqual(['legacy-7']);
   });
 });
 
@@ -53,5 +70,74 @@ describe('weightedRatePercent', () => {
       ({ id: 'x', setId: 'S', mode: 'exam', answers: {}, correct, total, cstsWeighted: { score, maxScore } });
     // 단순 정답률로 합하면 (50+60)/140 = 78%, 가중 점수로는 (75+90)/200 = 82%
     expect(weightedRatePercent([w(75, 100, 50, 70), w(90, 100, 60, 70)])).toBe(82);
+  });
+});
+
+describe('aggregateLatestChapterStats', () => {
+  const h = (
+    createdAt: number,
+    chapterQuestions?: ExamHistory['chapterQuestions'],
+    chapterStats?: ExamHistory['chapterStats'],
+  ): ExamHistory =>
+    ({ id: `h${createdAt}`, setId: 'S', mode: 'exam', answers: {}, createdAt, chapterQuestions, chapterStats });
+
+  // 이 테스트가 이 변경의 존재 이유다 — 종전 방식(aggregateChapterStats)은 여기서 0/18을 냈다.
+  it('같은 문항을 여러 번 풀어도 분모가 늘지 않는다', () => {
+    const round = { 기초: { ok: [], no: ['Q-1', 'Q-2', 'Q-3'] } };
+    const { stats } = aggregateLatestChapterStats([h(1, round), h(2, round), h(3, round)]);
+    expect(stats).toEqual({ 기초: { c: 0, t: 3 } });
+    // 대조 — 종전 누적 방식이라면 3배가 된다.
+    const legacy = aggregateChapterStats([
+      h(1, round, { 기초: { c: 0, t: 3 } }),
+      h(2, round, { 기초: { c: 0, t: 3 } }),
+      h(3, round, { 기초: { c: 0, t: 3 } }),
+    ]);
+    expect(legacy).toEqual({ 기초: { c: 0, t: 9 } });
+  });
+
+  it('가장 최근 결과를 쓴다 — 다시 맞히면 즉시 반영된다', () => {
+    const { stats } = aggregateLatestChapterStats([
+      h(1, { 기초: { ok: [], no: ['Q-1'] } }),      // 예전에 틀림
+      h(2, { 기초: { ok: ['Q-1'], no: [] } }),      // 나중에 맞힘
+    ]);
+    expect(stats).toEqual({ 기초: { c: 1, t: 1 } });
+  });
+
+  it('맞혔다가 다시 틀리면 오답으로 되돌아간다', () => {
+    const { stats } = aggregateLatestChapterStats([
+      h(1, { 기초: { ok: ['Q-1'], no: [] } }),
+      h(2, { 기초: { ok: [], no: ['Q-1'] } }),
+    ]);
+    expect(stats).toEqual({ 기초: { c: 0, t: 1 } });
+  });
+
+  it('회차 입력 순서가 뒤섞여도 결과가 같다(createdAt 기준 정렬)', () => {
+    const a = h(2, { 기초: { ok: ['Q-1'], no: [] } });
+    const b = h(1, { 기초: { ok: [], no: ['Q-1'] } });
+    expect(aggregateLatestChapterStats([a, b]).stats)
+      .toEqual(aggregateLatestChapterStats([b, a]).stats);
+  });
+
+  it('세트가 달라도 같은 문항 id면 한 번만 센다(기출 재출제 중복 방지)', () => {
+    const { stats } = aggregateLatestChapterStats([
+      h(1, { 기초: { ok: ['CSTS-2402-004'], no: [] } }),
+      h(2, { 기초: { ok: ['CSTS-2402-004'], no: [] } }), // 다른 세트의 동일 문항
+    ]);
+    expect(stats.기초.t).toBe(1);
+  });
+
+  it('문항 id가 없는 과거 회차는 제외하고 그 수를 알린다', () => {
+    const out = aggregateLatestChapterStats([
+      h(1, undefined, { 기초: { c: 1, t: 2 } }),  // 구 이력(챕터 집계만 있음)
+      h(2, { 기초: { ok: ['Q-9'], no: [] } }),
+      h(3, undefined, undefined),                 // 챕터 분석 대상 자체가 아님
+    ]);
+    expect(out.stats).toEqual({ 기초: { c: 1, t: 1 } });
+    expect(out.legacyRounds).toBe(1);
+  });
+
+  it('집계할 회차가 없으면 빈 결과다(화면이 폴백을 고를 수 있게)', () => {
+    expect(aggregateLatestChapterStats([]).stats).toEqual({});
+    expect(aggregateLatestChapterStats([h(1, undefined, { 기초: { c: 1, t: 1 } })]).stats).toEqual({});
   });
 });
