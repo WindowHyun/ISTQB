@@ -101,7 +101,7 @@ describe('importUserData (Phase 4)', () => {
     await s.exportUserData();
     vi.unstubAllGlobals();
     const parsed = JSON.parse(captured);
-    expect(parsed.schemaVersion).toBe(1);
+    expect(parsed.schemaVersion).toBe(2);
     expect(typeof parsed.exportedAt).toBe('string');
     expect(['istqb', 'csts']).toContain(parsed.product);
   });
@@ -124,9 +124,59 @@ describe('importUserData (Phase 4)', () => {
       expect(clickSpy).not.toHaveBeenCalled(); // blob 다운로드로 폴백하지 않음
       expect(sentName).toMatch(/_backup_\d+\.json$/);
       const parsed = JSON.parse(sentPayload);
-      expect(parsed.schemaVersion).toBe(1);
+      expect(parsed.schemaVersion).toBe(2);
     } finally {
       delete (window as unknown as { AndroidBackup?: unknown }).AndroidBackup;
     }
+  });
+});
+
+// 백업 스키마 v2 — 회차 이력에 chapterQuestions(챕터별 정답/오답 문항 id)가 추가됐다.
+// 구버전 앱은 이 필드를 모르고 sanitizeHistory가 allowlist 방식이라 조용히 버린 뒤
+// 그대로 DB에 저장한다. 버전을 올려 구버전이 아예 거부하게 만든 것이 이 방어의 요지다.
+describe('백업 스키마 v2 — 하위 호환과 미래 버전 거부', () => {
+  it('구버전 백업(v1)은 그대로 가져올 수 있다', async () => {
+    const s = await freshStorage();
+    const r = await s.importUserData(backupFile({
+      schemaVersion: 1, product: 'istqb',
+      histories: { a: { id: 'a', setId: 'ISTQB-FL-V4-A', mode: 'exam', answers: {}, correct: 1, total: 1 } },
+    }));
+    expect(r.ok).toBe(true);
+  });
+
+  it('버전이 없는 아주 오래된 백업도 허용한다', async () => {
+    const s = await freshStorage();
+    const r = await s.importUserData(backupFile({
+      product: 'istqb',
+      histories: { a: { id: 'a', setId: 'ISTQB-FL-V4-A', mode: 'exam', answers: {}, correct: 1, total: 1 } },
+    }));
+    expect(r.ok).toBe(true);
+  });
+
+  it('현재 버전(v2) 백업을 가져올 때 chapterQuestions가 살아남는다', async () => {
+    const s = await freshStorage();
+    const r = await s.importUserData(backupFile({
+      schemaVersion: 2, product: 'istqb',
+      histories: {
+        a: {
+          id: 'a', setId: 'ISTQB-FL-V4-A', mode: 'exam', answers: {}, correct: 1, total: 1,
+          chapterStats: { 기초: { c: 1, t: 1 } },
+          chapterQuestions: { 기초: { ok: ['ISTQB-FL-V4-A-001'], no: [] } },
+        },
+      },
+    }));
+    expect(r.ok).toBe(true);
+    const h = s.sanitizeHistory({
+      id: 'a', setId: 'S', mode: 'exam', answers: {},
+      chapterQuestions: { 기초: { ok: ['Q1'], no: ['Q2'] } },
+    });
+    expect(h?.chapterQuestions).toEqual({ 기초: { ok: ['Q1'], no: ['Q2'] } });
+  });
+
+  it('미래 버전(v3)은 거부하고 사유를 알린다', async () => {
+    const s = await freshStorage();
+    const r = await s.importUserData(backupFile({ schemaVersion: 3, histories: {} }));
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/업데이트/);
   });
 });

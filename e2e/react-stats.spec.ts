@@ -297,3 +297,59 @@ test.describe("챕터 분모 — 재풀이", () => {
     expect(after2).toBe(40);
   });
 });
+
+// 세트 간 재수록(기출 재출제) — 같은 문제가 여러 세트에 실려 있는데 id는 세트마다 다르다.
+// id 비교만으로는 걸러지지 않아, 2404를 풀고 2405를 푼 사용자에게서 같은 문제가 챕터
+// 분모에 두 번 들어갔다. 위 "재풀이" 테스트는 단일 세트라 이 경로를 지나지 않는다.
+test.describe("챕터 분모 — 세트 간 재수록", () => {
+  // index.json의 duplicateGroups에 실제로 들어 있는 그룹.
+  const DUP = ["CSTS-FL-2404-001", "CSTS-FL-2405-001"];
+  const UNIQ_2404 = ["CSTS-FL-2404-011", "CSTS-FL-2404-012"];
+  const UNIQ_2405 = ["CSTS-FL-2405-021", "CSTS-FL-2405-022"];
+  const CH = "소프트웨어 테스트 기초";
+
+  async function seedCstsRounds(page: Page) {
+    await page.goto("/");
+    await page.evaluate(async (p: { dup: string[]; u4: string[]; u5: string[]; ch: string }) => {
+      const db: IDBDatabase = await new Promise((res, rej) => {
+        const r = indexedDB.open("istqb-db", 1);
+        r.onupgradeneeded = () => {
+          if (!r.result.objectStoreNames.contains("history")) r.result.createObjectStore("history", { keyPath: "id" });
+        };
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      });
+      const round = (id: string, setId: string, ids: string[], at: number) => ({
+        id, setId, mode: "exam", certification: "csts", setTitle: setId,
+        answers: {}, correct: ids.length, total: ids.length, elapsedSeconds: 600, createdAt: at,
+        chapterStats: { [p.ch]: { c: ids.length, t: ids.length } },
+        chapterQuestions: { [p.ch]: { ok: ids, no: [] } },
+      });
+      await new Promise<void>((res, rej) => {
+        const tx = db.transaction("history", "readwrite");
+        tx.objectStore("history").clear();
+        // 2404 회차: 재수록 1문항 + 고유 2문항 / 2405 회차: 같은 문제의 다른 id + 고유 2문항
+        tx.objectStore("history").put(round("r1", "CSTS-FL-2404", [p.dup[0], ...p.u4], 1750000001000));
+        tx.objectStore("history").put(round("r2", "CSTS-FL-2405", [p.dup[1], ...p.u5], 1750000002000));
+        tx.oncomplete = () => res();
+        tx.onerror = () => rej(tx.error);
+      });
+    }, { dup: DUP, u4: UNIQ_2404, u5: UNIQ_2405, ch: CH });
+  }
+
+  test("같은 문제가 두 세트에 실려 있어도 분모를 한 번만 센다", async ({ page }) => {
+    await seedCstsRounds(page);
+    await openProduct(page, "CSTS");
+    await page.getByTestId("stats-open").click();
+    await expect(page.getByTestId("stats-dashboard")).toBeVisible();
+
+    // 두 회차 합계 6문항이지만 그중 한 쌍이 같은 문제이므로 분모는 5여야 한다.
+    // 중복 제거가 없으면 6이 나온다(수정 전 코드에서 실패하는 것을 확인함).
+    const denom = await page.locator(".sc-rate").evaluateAll((els) =>
+      els.reduce((sum, el) => {
+        const m = (el.textContent || "").match(/\d+\s*\/\s*(\d+)/);
+        return sum + (m ? Number(m[1]) : 0);
+      }, 0));
+    expect(denom).toBe(5);
+  });
+});
