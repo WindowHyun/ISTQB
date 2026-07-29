@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useQuizStore, QUICK_SIZES } from '../../store/useQuizStore';
+import { useQuizStore, QUICK_SIZES, QUICK_SET_ID } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { useSetCounts } from '../../hooks/useSetCounts';
 import { TimerClock } from '../common/TimerClock';
@@ -168,9 +168,35 @@ export const Sidebar = () => {
       showToast('시험 응시 중에는 오답 풀기를 시작할 수 없습니다. 먼저 채점하세요.', 'info');
       return;
     }
+    const { reviewIds } = useQuizStore.getState();
+    // 퀵은 setId가 센티넬(QUICK)이라 아래 조회가 항상 '오답 없음'이 된다 — 퀵 오답은
+    // 문항의 출처 세트별 버킷에 담기기 때문이다. 그대로 두면 방금 10문항을 틀린 사용자가
+    // "현재 문제 세트에는 오답이 없습니다"라는 사실과 다른 안내를 받는다.
+    // 오답이 가장 많은 출처 세트로 옮겨 거기서부터 푼다(동수면 setId 순 — 결정적).
+    if (setId === QUICK_SET_ID) {
+      const target = Object.entries(reviewIds)
+        .filter(([key, ids]) => key.endsWith('-quick') && ids.length > 0)
+        .map(([key, ids]) => ({ sid: key.slice(0, -'-quick'.length), count: ids.length }))
+        // 다른 제품의 세트가 섞이지 않게 현재 제품의 세트만 후보로 둔다.
+        .filter(({ sid }) => sets.some((s) => s.id === sid))
+        .sort((a, b) => b.count - a.count || a.sid.localeCompare(b.sid))[0];
+      if (!target) {
+        showToast('퀵에서 틀린 문항이 없습니다.', 'info');
+        return;
+      }
+      const title = sets.find((s) => s.id === target.sid)?.title ?? target.sid;
+      setSetId(target.sid);
+      clearAnswers(target.sid, 'review');
+      setMode('review');
+      beginSession();
+      closeDrawer();
+      // 퀵은 여러 세트에서 뽑으므로 한 번에 다 풀 수 없다 — 어디로 갔는지, 나머지는
+      // 어디서 보는지 알려 주지 않으면 오답이 사라진 것처럼 보인다.
+      showToast(`${title}의 오답부터 풉니다. 다른 세트 오답은 오답 노트에서 볼 수 있어요.`, 'info');
+      return;
+    }
     // 현재 세트에 오답이 없으면 빈 오답 모드로 이동하지 않고 안내만 한다(모드 유지).
     // 오답 대상은 useQuestions의 review 모드와 동일한 합집합 기준으로 판정한다.
-    const { reviewIds } = useQuizStore.getState();
     // useQuestions의 review 합집합과 같은 키 목록이어야 한다 — 여기서 -quick이 빠지면
     // 퀵 오답만 있는 세트에서 "오답이 없습니다"라고 막아 놓고, 정작 오답노트에는 문항이 있다.
     const hasWrong = [`${setId}-exam`, `${setId}-random`, `${setId}-quick`, setId].some(

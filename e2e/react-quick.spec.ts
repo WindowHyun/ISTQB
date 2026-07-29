@@ -165,6 +165,40 @@ test.describe("퀵 랜덤", () => {
     expect(info.wrongWithSource).toBe(info.wrongTotal); // 출처 없으면 오답노트가 뭉친다
     expect(info.sources).toBeGreaterThan(1);  // 전 세트 출제의 흔적
   });
+  // 퀵의 setId는 센티넬이라 오답 조회가 항상 빈 결과다 — 그대로 두면 방금 여러 문항을
+  // 틀린 사용자가 "현재 문제 세트에는 오답이 없습니다"라는 사실과 다른 안내를 받고,
+  // 오답 모드로 넘어가지도 못한다(퀵 화면에 그대로 머문다).
+  test("퀵 직후 '오답 다시 풀기'가 출처 세트의 오답으로 이어진다", async ({ page }) => {
+    await startQuick(page, "ISTQB", "10");
+    for (let i = 0; i < 10; i += 1) {
+      const o = page.locator("#options .option").first();
+      if (await o.count()) await o.click();
+      const n = page.locator("#nextBtn");
+      if (!(await n.count()) || (await n.isDisabled())) break;
+      await n.click();
+    }
+    await page.getByTestId("grade-button").click();
+    const confirm = page.getByTestId("confirm-grade");
+    if (await confirm.count()) await confirm.click();
+    await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
+
+    await page.getByRole("button", { name: "오답 다시 풀기" }).click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+
+    // 오답 모드로 실제로 넘어갔다면 답안 네임스페이스가 갈려 진행률이 0부터 시작하고,
+    // 복습 완료 버튼이 나타난다(퀵에 머물렀다면 10/10에 그 버튼이 없다).
+    await expect(page.locator("#progressText")).toContainText("0 / ");
+    await expect(page.getByTestId("complete-review-btn")).toBeVisible();
+    // 센티넬이 아니라 실제 세트로 옮겨갔는지.
+    const sid = await page.evaluate(() => {
+      const raw = localStorage.getItem("istqb-fl-v4-sample-ui-state");
+      return raw ? JSON.parse(raw).setId : null;
+    });
+    expect(sid).not.toBe("QUICK");
+    expect(sid).toContain("ISTQB");
+  });
+
   // 오답노트는 회차가 아니라 문항의 출처 세트로 묶여야 한다. 회차 단위로 묶으면 퀵의
   // setId가 센티넬이라 서로 다른 세트의 오답이 '퀵 랜덤' 한 덩어리가 되고, 지문을 불러올
   // 경로가 없어 번호만 뜬다(번호가 겹치면 조용히 유실되기도 한다).
