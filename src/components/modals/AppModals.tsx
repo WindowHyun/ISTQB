@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore, ExamHistory } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
+import { gradeKeyFor } from '../../utils/answerKey';
 import { useTheme, ThemePref } from '../../hooks/useTheme';
 import { exportUserData, importUserData, removeHistoriesEverywhere } from '../../utils/storage';
 import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
@@ -374,7 +375,7 @@ export const AppModals = () => {
     clearAnswers(setId, mode);
     // 이 세트/모드의 오답(review) 대상도 비운다 — 남기면 삭제된 회차의 오답이
     // 오답 모드에 유령처럼 남는다(오답 노트에는 없는데 오답 풀이엔 나오는 불일치).
-    setReviewIds(`${setId}-${mode}`, []);
+    setReviewIds(gradeKeyFor(setId, mode), []);
     const ids = Object.values(histories)
       .filter((h) => h.setId === setId && h.mode === mode)
       .map((h) => h.id);

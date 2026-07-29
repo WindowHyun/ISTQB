@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../../store/useQuizStore';
+import { answerKeyFor, gradeKeyFor } from '../../utils/answerKey';
 import { Question } from '../../hooks/useQuestions';
 import { isQuestionCorrect } from '../../utils/answer';
 import { formatAnswerList } from '../../utils/answerDisplay';
@@ -61,7 +62,7 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
   })));
   const [showFeedback, setShowFeedback] = useState(false);
 
-  const answerKey = `${setId}-${mode}-${question.id || question.number}`;
+  const answerKey = answerKeyFor(setId, mode, question);
   // `|| []` 폴백을 useMemo로 감싸 참조를 안정화 — handleSelect(useCallback) 의존성이
   // 매 렌더 바뀌는 것을 막는다(react-hooks/exhaustive-deps 경고 해소).
   const selected = React.useMemo(() => answers[answerKey] || [], [answers, answerKey]);
@@ -79,7 +80,7 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
       : [];
 
   const isMulti = hasOptions && question.answer.length > 1;
-  const isGraded = Boolean(graded[`${setId}-${mode}`]);
+  const isGraded = Boolean(graded[gradeKeyFor(setId, mode)]);
   // 연습·오답 모드는 즉시 피드백, 시험·랜덤은 채점 후 공개.
   const immediate = mode === 'practice' || mode === 'review';
   const reveal = showFeedback || isGraded;
@@ -90,7 +91,7 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
     // 넣으면 답을 고를 때마다 핸들러 참조가 바뀌어 모든 OptionItem이 리렌더되고
     // React.memo가 실효를 잃는다(파일 상단 주석의 O1 의도 유지).
     const state = useQuizStore.getState();
-    if (state.graded[`${state.setId}-${state.mode}`]) return;
+    if (state.graded[gradeKeyFor(state.setId, state.mode)]) return;
     const current = state.answers[answerKey] || [];
     let newSelected = [...current];
     if (isMulti) {

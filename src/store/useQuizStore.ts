@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { answerKeyPrefix, gradeKeyFor } from '../utils/answerKey';
 
 export type QuizMode = 'home' | 'exam' | 'practice' | 'random' | 'review';
 
@@ -228,7 +229,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     const nextAnswers = { ...state.answers };
     for (const key in nextAnswers) {
       // 답안 키는 `${setId}-${mode}-${qid}` — 구분자까지 포함해 유사 접두 세트id 오삭제를 방지.
-      if (key.startsWith(`${setId}-${mode}-`)) {
+      if (key.startsWith(answerKeyPrefix(setId, mode))) {
         delete nextAnswers[key];
       }
     }
@@ -241,7 +242,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     if (mode === 'exam') delete nextExamStartedAt[setId];
     return {
       answers: nextAnswers,
-      graded: { ...state.graded, [`${setId}-${mode}`]: false },
+      graded: { ...state.graded, [gradeKeyFor(setId, mode)]: false },
       examStarted: nextExamStarted,
       examStartedAt: nextExamStartedAt,
     };

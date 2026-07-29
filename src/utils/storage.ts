@@ -1,6 +1,7 @@
 import { useQuizStore, QuizState, QuizMode, ExamHistory, sessionScopeDefaults } from '../store/useQuizStore';
 import debounce from 'lodash-es/debounce';
 import { showToast } from './toast';
+import { answerKeyPrefix, gradeKeyFor } from './answerKey';
 
 const DB_NAME = "istqb-db";
 const STORE_NAME = "history";
@@ -343,7 +344,7 @@ export function findGradedRoundMatch(
     .filter((h) => h.setId === setId && h.mode === mode && (h.chapter ?? null) === chapter)
     .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0) || b.id.localeCompare(a.id))[0];
   if (!latest || !latest.answers) return null;
-  const prefix = `${setId}-${mode}-`;
+  const prefix = answerKeyPrefix(setId, mode);
   const restored = Object.entries(answers).filter(([k]) => k.startsWith(prefix));
   const recorded = Object.entries(latest.answers).filter(([k]) => k.startsWith(prefix));
   if (!restored.length || restored.length !== recorded.length) return null;
@@ -487,7 +488,7 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
       // 같은 답안이 중복 회차로 적립된다. 채점 상태를 복원하고 전용 안내 모달로 분기한다.
       // (채점 후 시험 답안은 잠금돼 변할 수 없으므로 "답안 동일 = 그 회차 그대로"가 성립)
       const gradedMatch =
-        hasExamProgress && !store.graded[`${sid}-exam`]
+        hasExamProgress && !store.graded[gradeKeyFor(sid, "exam")]
           ? findGradedExamMatch(histories, sid, sanitizedAnswers)
           : null;
       if (gradedMatch) {

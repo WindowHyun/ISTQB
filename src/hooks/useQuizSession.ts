@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../store/useQuizStore';
 import { useQuestions, Question } from './useQuestions';
 import { isQuestionCorrect, isAnswered } from '../utils/answer';
+import { answerKeyFor, gradeKeyFor } from '../utils/answerKey';
 import { buildChapterStats } from '../utils/chapterStats';
 import { computeCstsWeightedScore } from '../utils/scoring';
 import { saveHistoryToDB } from '../utils/storage';
@@ -26,7 +27,7 @@ export function useQuizSession() {
   // 각 모드는 자체 답안 네임스페이스를 사용한다(오답 모드는 재풀이용 별도 기록).
   // useCallback: 아래 파생 메모들의 의존성이라 매 렌더 참조가 바뀌면 메모가 무효화된다.
   const answerKeyOf = useCallback(
-    (q: Question) => `${setId}-${mode}-${q.id || q.number}`,
+    (q: Question) => answerKeyFor(setId, mode, q),
     [setId, mode],
   );
 
@@ -54,7 +55,7 @@ export function useQuizSession() {
     [currentQuestions, answers, answerKeyOf],
   );
 
-  const gradeKey = `${setId}-${mode}`;
+  const gradeKey = gradeKeyFor(setId, mode);
   const isGraded = Boolean(graded[gradeKey]);
   // 시험 단계 파생 상태의 단일 원천 — 게이트(QuestionWorkspace)·잠금(Sidebar)·
   // 통계 연습 버튼(AppModals)이 모두 이 값을 쓴다. 규칙을 한 곳만 고치면 되게 한다.
@@ -126,7 +127,7 @@ export function useQuizSession() {
     // 채점 이력을 IndexedDB에 영속화(새로고침 후 통계 대시보드에서 조회).
     saveHistoryToDB(history);
     // 모드별로 저장해 랜덤 채점이 시험 오답 목록을 덮어쓰지 않게 한다(오답 모드는 합집합을 읽음).
-    setReviewIds(`${setId}-${mode}`, wrongIds);
+    setReviewIds(gradeKey, wrongIds);
     // 다시 틀린 문항은 '복습함'에서 되돌린다 — 아니면 한 번 복습했다는 이유로
     // 이후 계속 오답인데도 재풀이 목록에 영영 나타나지 않는다.
     unmarkReviewed(setId, wrongItems.map((w) => w.number));
