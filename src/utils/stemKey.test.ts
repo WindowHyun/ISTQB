@@ -18,8 +18,26 @@ for (const set of index.sets) {
 }
 
 describe('stemKey — 재수록 판정 규칙', () => {
-  it('마크업·공백·문장부호 차이를 흡수한다', () => {
-    expect(normalize('<b>테스트</b> 케이스, 설계!')).toBe(normalize('테스트 케이스 설계'));
+  it('공백·문장부호 차이를 흡수한다', () => {
+    expect(normalize('테스트 케이스, 설계!')).toBe(normalize('테스트  케이스 설계'));
+  });
+
+  // parser.tsx는 <u>…</u>만 밑줄로 렌더하고 그 외 꺾쇠는 문자 그대로 보여준다.
+  it('렌더러가 해석하는 <u>만 지운다 — 밑줄 유무는 같은 문항이다', () => {
+    expect(normalize('다음 중 <u>유효한</u> 것은?')).toBe(normalize('다음 중 유효한 것은?'));
+  });
+
+  // 일반적인 태그 제거(/<[^>]+>/g)를 쓰면 이것들이 통째로 사라져 문항의 뜻이 달라진다.
+  // 실제 데이터에 <보기> 85건, <제어 흐름 그래프> 1건, 부등호 비교가 여러 건 있다.
+  it('태그가 아닌 꺾쇠는 내용이므로 보존한다', () => {
+    expect(normalize('<보기> 항목')).toContain('보기');
+    expect(normalize('<제어 흐름 그래프>를 보고')).toContain('제어흐름그래프');
+    expect(normalize('D < 0 이면 오류')).toContain('<');
+    expect(normalize('A < B 관계')).not.toBe(normalize('A 관계'));
+  });
+
+  it('꺾쇠 표기의 공백 차이는 흡수한다(<보 기> / < 보 기 >)', () => {
+    expect(normalize('<보 기>')).toBe(normalize('< 보 기 >'));
   });
 
   it('지문이 너무 짧으면 키를 만들지 않는다 — 우연한 일치로 병합되는 것을 막는다', () => {
