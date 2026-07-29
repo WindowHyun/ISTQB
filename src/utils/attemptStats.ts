@@ -45,7 +45,10 @@ export interface SetTimeline {
  * 화면 안에서 숫자가 어긋난다 — 어느 섹션이든 이 술어 하나를 쓴다.
  */
 export function isSetLevelRound(h: ExamHistory): boolean {
-  return !h.chapter;
+  // 퀵(10~20문항, 전 세트 혼합)도 세트 전체 회차가 아니다. 챕터 미니 시험을 제외한 것과
+  // 같은 이유다 — 짧은 세션은 정답률이 쉽게 높게 나와 '최고 정답률'과 평균을 부풀린다.
+  // 이 조건이 빠지면 예전에 고친 "챕터 미니 시험이 최고 정답률을 부풀림"이 그대로 재발한다.
+  return !h.chapter && h.mode !== 'quick';
 }
 
 // ▲/▼/± 델타 라벨 — 결과 모달(직전 대비)과 통계 타임라인(성장폭)이 공유해
@@ -146,7 +149,10 @@ export interface MiniTestRound {
   id: string;
   setId: string;
   title: string;
-  chapter: string;
+  /** 챕터 미니 시험이면 챕터명, 퀵이면 null(세트·챕터에 매이지 않는다). */
+  chapter: string | null;
+  /** 회차 종류 — 화면이 '챕터 미니'와 '퀵'을 구분해 표시한다. */
+  kind: 'mini' | 'quick';
   correct: number;
   total: number;
   rate: number;
@@ -164,13 +170,16 @@ export function buildMiniTestRounds(
   titleOf: (setId: string) => string,
 ): MiniTestRound[] {
   return histories
-    .filter((h): h is ExamHistory & { correct: number; total: number; chapter: string } =>
-      isScored(h) && !!h.chapter)
+    // 퀵도 짧은 세션이라 요약·타임라인에서 빠진다 — 여기 없으면 화면 어디에도 나타나지
+    // 않아 잘못 기록된 회차를 지울 방법이 없다(전체 비우기뿐).
+    .filter((h): h is ExamHistory & { correct: number; total: number } =>
+      isScored(h) && (!!h.chapter || h.mode === 'quick'))
     .map((h) => ({
       id: h.id,
       setId: h.setId,
       title: titleOf(h.setId),
-      chapter: h.chapter,
+      chapter: h.chapter ?? null,
+      kind: (h.mode === 'quick' ? 'quick' : 'mini') as 'mini' | 'quick',
       correct: h.correct,
       total: h.total,
       rate: attemptRatePercent(h),

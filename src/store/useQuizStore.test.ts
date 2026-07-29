@@ -207,3 +207,44 @@ describe("useQuizStore 세션/네비/타이머 액션", () => {
     expect(useQuizStore.getState().examStartedAt).toEqual({ A: 111 });
   });
 });
+
+// 퀵의 setId·mode는 항상 같아서 채점 키(QUICK-quick)도 늘 같다. 이전 회차의 채점 상태를
+// 비우지 않으면 두 번째 세션이 '이미 채점됨'으로 시작해 보기가 잠기고 채점 버튼도 안 뜬다.
+// (유저 관점 전수 시나리오에서 실제로 두 번째 퀵의 보기 클릭이 먹지 않아 발견됐다)
+describe('startQuick — 이전 회차 잔재 정리', () => {
+  it('이전 퀵의 채점 상태를 해제한다', () => {
+    useQuizStore.setState({ graded: { 'QUICK-quick': true, 'A-exam': true } });
+    useQuizStore.getState().startQuick(10);
+    expect(useQuizStore.getState().graded['QUICK-quick']).toBe(false);
+    // 다른 세트·모드의 채점 상태는 건드리지 않는다.
+    expect(useQuizStore.getState().graded['A-exam']).toBe(true);
+  });
+
+  it('이전 퀵의 답안만 지운다 — 재수록 문항이 다시 뽑혀도 옛 답이 남지 않는다', () => {
+    useQuizStore.setState({
+      answers: {
+        'QUICK-quick-Q1': ['a'],
+        'QUICK-quick-Q2': ['b'],
+        'A-exam-Q1': ['c'],
+      },
+    });
+    useQuizStore.getState().startQuick(15);
+    expect(useQuizStore.getState().answers).toEqual({ 'A-exam-Q1': ['c'] });
+  });
+
+  it('추첨을 비우고 문항 수를 반영하며 재추첨 신호를 올린다', () => {
+    useQuizStore.setState({
+      quickDraw: { certification: 'csts', items: [{ id: 'X', setId: 'S' }] },
+      quickNonce: 3,
+      index: 7,
+    });
+    useQuizStore.getState().startQuick(20);
+    const s = useQuizStore.getState();
+    expect(s.quickDraw).toBeNull();
+    expect(s.quickSize).toBe(20);
+    expect(s.quickNonce).toBe(4);
+    expect(s.index).toBe(0);
+    expect(s.mode).toBe('quick');
+    expect(s.setId).toBe('QUICK');
+  });
+});

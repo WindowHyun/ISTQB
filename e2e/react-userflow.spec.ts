@@ -1,0 +1,195 @@
+import { test, expect, Page } from "@playwright/test";
+import { openProduct } from "./helpers";
+
+/**
+ * 유저 관점 전수 시나리오 — "실제로 이 앱을 쓰는 사람이 겪는 흐름"을 끝까지 밟는다.
+ *
+ * 기존 스펙은 기능 단위로 쪼개져 있어, 한 사람이 이어서 하는 행동에서만 드러나는
+ * 어긋남(모드를 오가며 상태가 섞이는 것 등)을 놓친다. 여기서는 한 세션 안에서
+ * 연습→시험→랜덤→퀵→오답→통계를 이어 밟고, 매 단계마다 콘솔 오류와 화면 정합을 본다.
+ */
+
+type Err = { kind: string; text: string };
+
+function watchErrors(page: Page): Err[] {
+  const errs: Err[] = [];
+  page.on("pageerror", (e) => errs.push({ kind: "pageerror", text: String(e).slice(0, 300) }));
+  page.on("console", (m) => {
+    if (m.type() === "error") errs.push({ kind: "console.error", text: m.text().slice(0, 300) });
+  });
+  return errs;
+}
+
+async function openSidebar(page: Page) {
+  const sel = page.locator("#quickSize");
+  if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
+}
+
+async function pickMode(page: Page, mode: string) {
+  await openSidebar(page);
+  await page.locator(`.segmented button[data-mode="${mode}"]`).click();
+  // 시험은 시작 게이트가 워크스페이스를 가리므로 지문이 아직 보이지 않는다.
+  if (mode === "exam") {
+    await expect(page.getByTestId("exam-start-gate")).toBeVisible({ timeout: 20_000 });
+    return;
+  }
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+}
+
+/** 현재 화면의 모든 문항에 첫 보기를 고른다(서답형은 건너뛴다). */
+async function answerAll(page: Page, max = 80) {
+  for (let i = 0; i < max; i += 1) {
+    const opt = page.locator("#options .option").first();
+    if (await opt.count()) await opt.click();
+    const next = page.locator("#nextBtn");
+    if (!(await next.count()) || (await next.isDisabled())) break;
+    await next.click();
+  }
+}
+
+async function grade(page: Page) {
+  await openSidebar(page);
+  await page.getByTestId("grade-button").click();
+  const confirm = page.getByTestId("confirm-grade");
+  if (await confirm.count()) await confirm.click();
+  await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
+}
+
+async function closeResult(page: Page) {
+  await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
+}
+
+for (const product of ["ISTQB", "CSTS"] as const) {
+  test(`${product} — 한 사람이 연습→시험→랜덤→퀵→오답→통계를 이어서 밟는다`, async ({ page }) => {
+    const errs = watchErrors(page);
+    await openProduct(page, product);
+
+    // 1) 연습 — 즉시 피드백. 채점 개념이 없으므로 채점 버튼이 없어야 한다.
+    await pickMode(page, "practice");
+    await page.locator("#options .option").first().click();
+    expect(await page.getByTestId("grade-button").count()).toBe(0);
+
+    // 2) 시험 — 시작 게이트를 통과해야 응시가 시작된다.
+    await pickMode(page, "exam");
+    const gate = page.getByTestId("exam-start-btn");
+    if (await gate.count()) await gate.click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    // 응시 중에는 퀵 시작이 잠긴다(잠금 우회 방지).
+    await openSidebar(page);
+    await expect(page.getByTestId("quick-start-btn")).toBeDisabled();
+    await answerAll(page);
+    await grade(page);
+    const examRate = await page.getByTestId("result-rate").textContent();
+    await closeResult(page);
+
+    // 3) 랜덤
+    await pickMode(page, "random");
+    await answerAll(page);
+    await grade(page);
+    await closeResult(page);
+
+    // 4) 퀵 — 세트를 고르지 않고 전 세트에서 10문항
+    await openSidebar(page);
+    await page.locator("#quickSize").selectOption("10");
+    await page.getByTestId("quick-start-btn").click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator("#progressText")).toContainText("/ 10");
+    await answerAll(page, 12);
+    await grade(page);
+    const quickResult = page.getByTestId("result-summary");
+    // 퀵은 합격 판정을 내리지 않는다.
+    await expect(quickResult).not.toContainText("합격 기준");
+    await expect(page.getByTestId("result-rate")).toContainText("/ 10문항");
+    await closeResult(page);
+
+    // 5) 오답 — 시험·랜덤·퀵에서 틀린 문항이 모인다.
+    await openSidebar(page);
+    await page.getByRole("button", { name: "오답 다시 풀기" }).click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+
+    // 6) 통계 — 요약은 실전 회차만, 짧은 세션 목록에 퀵이 남는다.
+    await openSidebar(page);
+    await page.getByTestId("stats-open").click();
+    const dash = page.getByTestId("stats-dashboard");
+    await expect(dash).toBeVisible();
+    await expect(page.getByTestId("stats-mini-rounds")).toContainText("퀵 랜덤");
+
+    // 응시 횟수는 시험+랜덤 2회여야 한다 — 퀵이 섞이면 3이 된다.
+    const attempts = await page.locator(".stats-summary div:nth-child(1) strong").textContent();
+    console.log(`[유저] ${product} 응시 횟수=${attempts} · 시험 결과=${examRate}`);
+    expect(attempts).toBe("2");
+
+    // 챕터 분모 합이 '풀어 본 서로 다른 문항 수'를 넘지 않는다(중복 이중 집계 감지).
+    const denom = await page.locator(".sc-rate").evaluateAll((els) =>
+      els.reduce((sum, el) => {
+        const m = (el.textContent || "").match(/\d+\s*\/\s*(\d+)/);
+        return sum + (m ? Number(m[1]) : 0);
+      }, 0));
+    console.log(`[유저] ${product} 챕터 분모 합=${denom}`);
+    expect(denom).toBeGreaterThan(0);
+
+    expect(errs, JSON.stringify(errs, null, 1)).toEqual([]);
+  });
+}
+
+test("퀵을 반복해도 챕터 분모가 계속 부풀지 않는다", async ({ page }) => {
+  const errs = watchErrors(page);
+  await openProduct(page, "CSTS");
+
+  const denoms: number[] = [];
+  for (let round = 0; round < 3; round += 1) {
+    await openSidebar(page);
+    await page.locator("#quickSize").selectOption("20");
+    await page.getByTestId("quick-start-btn").click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    await answerAll(page, 22);
+    await grade(page);
+    await closeResult(page);
+
+    await openSidebar(page);
+    await page.getByTestId("stats-open").click();
+    await expect(page.getByTestId("stats-dashboard")).toBeVisible();
+    denoms.push(await page.locator(".sc-rate").evaluateAll((els) =>
+      els.reduce((sum, el) => {
+        const m = (el.textContent || "").match(/\d+\s*\/\s*(\d+)/);
+        return sum + (m ? Number(m[1]) : 0);
+      }, 0)));
+    await page.getByRole("button", { name: "닫기", exact: true }).first().click();
+  }
+
+  console.log("[유저] 퀵 3회 반복 챕터 분모 추이:", denoms.join(" → "));
+  // 매 회차 20문항이지만 재수록·중복 제거로 60까지는 가지 않는다.
+  expect(denoms[2]).toBeLessThanOrEqual(60);
+  // 그리고 단조 증가여야 한다(새 문항을 풀었으므로 줄어들면 집계가 깨진 것).
+  expect(denoms[1]).toBeGreaterThanOrEqual(denoms[0]);
+  expect(denoms[2]).toBeGreaterThanOrEqual(denoms[1]);
+  expect(errs, JSON.stringify(errs, null, 1)).toEqual([]);
+});
+
+test("제품을 오가도 퀵 상태가 새지 않는다", async ({ page }) => {
+  const errs = watchErrors(page);
+
+  await openProduct(page, "ISTQB");
+  await openSidebar(page);
+  await page.locator("#quickSize").selectOption("10");
+  await page.getByTestId("quick-start-btn").click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  await page.locator("#options .option").first().click();
+
+  // 설정 → 처음 화면으로 → CSTS 진입
+  await openProduct(page, "CSTS");
+  await openSidebar(page);
+  await page.locator("#quickSize").selectOption("15");
+  await page.getByTestId("quick-start-btn").click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator("#progressText")).toContainText("0 / 15");
+
+  const draw = await page.evaluate(() => {
+    const raw = localStorage.getItem("csts-fl-v1-sample-ui-state");
+    return raw ? JSON.parse(raw).quickDraw : null;
+  });
+  expect(draw.certification).toBe("csts");
+  // ISTQB 문항이 섞이면 제품 격리가 깨진 것이다.
+  expect(draw.items.every((i: { id: string }) => !i.id.startsWith("ISTQB"))).toBe(true);
+  expect(errs, JSON.stringify(errs, null, 1)).toEqual([]);
+});

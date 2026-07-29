@@ -11,11 +11,12 @@ test.describe("사이트 사용법(사용설명서)", () => {
     await page.getByTestId("guide-open").click();
     const guide = page.getByTestId("user-guide");
     await expect(guide).toBeVisible();
-    // 4개 모드와 핵심 규칙이 설명돼 있다.
+    // 각 모드와 핵심 규칙이 설명돼 있다.
     await expect(guide).toContainText("연습");
     await expect(guide).toContainText("시험 시작");
     await expect(guide).toContainText("새 문제 뽑기");
     await expect(guide).toContainText("미니 시험");
+    await expect(guide).toContainText("퀵 랜덤");
     await expect(guide).toContainText("✓ 극복");
     await expect(guide).toContainText("기록 내보내기");
     await page.keyboard.press("Escape");
@@ -30,7 +31,7 @@ test.describe("사이트 사용법(사용설명서)", () => {
     await page.getByTestId("guide-open-settings").click();
     const guide = page.getByTestId("user-guide");
     await expect(guide).toBeVisible();
-    await expect(guide).toContainText("풀이 모드 4가지");
+    await expect(guide).toContainText("풀이 모드 5가지");
     // 설정 모달은 닫힌 상태여야 한다(모달 겹침 방지).
     await expect(page.getByRole("heading", { name: "설정" })).toHaveCount(0);
   });

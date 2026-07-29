@@ -373,14 +373,15 @@ export const StatsDashboard = ({ histories, sets, duplicateGroups, onClose, onCl
             )}
 
             {miniRounds.length > 0 && (
-              <section className="stats-minis" aria-label="챕터 미니 시험 기록" data-testid="stats-mini-rounds">
-                {/* 미니 회차는 타임라인에서 빠지므로 여기서 보여준다 — 종전에는 아래 목록에
-                    "랜덤 0/10"으로만 떠서 어느 챕터의 미니인지 알 수 없었다. */}
-                <h4>챕터 미니 시험 <small>최대 10문항 재측정 · 위 요약에는 넣지 않습니다</small></h4>
+              <section className="stats-minis" aria-label="짧은 세션 기록" data-testid="stats-mini-rounds">
+                {/* 짧은 세션(챕터 미니·퀵)은 타임라인에서 빠지므로 여기서 보여준다 — 종전에는 아래
+                    목록에 "랜덤 0/10"으로만 떠서 어느 챕터의 미니인지 알 수 없었다. 퀵도 여기 없으면
+                    화면 어디에도 나타나지 않아 개별 삭제가 불가능하다. */}
+                <h4>짧은 세션 <small>챕터 미니 시험 · 퀵 랜덤 · 위 요약에는 넣지 않습니다</small></h4>
                 <ul className="mini-rounds">
                   {miniRounds.map((m) => (
                     <li key={m.id} className={m.rate < weakThreshold ? 'weak' : ''} data-testid="mini-round-item">
-                      <span className="mr-chapter">{m.chapter}</span>
+                      <span className="mr-chapter">{m.chapter ?? '퀵 랜덤'}</span>
                       <span className="mr-rate">{m.rate}% <small>({m.correct}/{m.total})</small></span>
                       {m.elapsedSeconds != null && (
                         <span className="mr-time">소요 {formatClock(m.elapsedSeconds)}</span>
@@ -390,7 +391,7 @@ export const StatsDashboard = ({ histories, sets, duplicateGroups, onClose, onCl
                         type="button"
                         className="stl-round-del"
                         data-testid="round-delete-btn"
-                        aria-label={`${m.chapter} 미니 시험 기록 삭제`}
+                        aria-label={`${m.chapter ?? '퀵 랜덤'} ${m.kind === 'quick' ? '기록' : '미니 시험 기록'} 삭제`}
                         title="이 회차 기록만 삭제"
                         onClick={() => onDeleteRound(m.id)}
                       >

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../store/useQuizStore';
 import { loadIndex, loadSetQuestions, subscribeLoads } from '../utils/questionLoader';
+import { makeCanonicalIdResolver } from '../utils/chapterStats';
 
 // Fisher–Yates shuffle: 균일 분포를 보장한다. (sort 비교자에 Math.random을 쓰면 편향됨)
 function shuffleQuestions<T>(items: T[]): T[] {
@@ -32,6 +33,9 @@ export interface Question {
   // 세부 주제 태그(향후 확장). 현재는 비어 있을 수 있음.
   tags?: string[];
   difficulty?: string;
+  // 퀵 랜덤에서만 채워진다 — 전 세트 혼합이라 문항만 봐서는 어느 세트 것인지 알 수 없다.
+  // 오답을 각 세트의 오답노트로 흘려보내고, 복원 시 어떤 세트를 로드할지 정하는 데 쓴다.
+  sourceSetId?: string;
 }
 
 // index.json의 세트 요약(평면 배열, certification 포함).
@@ -65,6 +69,43 @@ export interface AppData {
 const MINI_TEST_SIZE = 10;
 const RANDOM_DRAW_SIZE = 40;
 
+/**
+ * 퀵 랜덤 추첨 풀을 만든다 — 제품의 전 세트에서 뽑되 같은 문제를 두 번 넣지 않는다.
+ *
+ * 중복 제거를 문항 id로 하면 안 된다. 같은 문제가 여러 세트에 재수록돼 있는데 id에는
+ * 세트 접두가 붙어 있어(CSTS-FL-2404-001 vs CSTS-FL-2405-001) 서로 다른 id다.
+ * index.json의 duplicateGroups(빌드 타임 생성)로 대표 id를 구해 그룹당 하나만 남긴다.
+ * 챕터 통계도 같은 표를 쓰므로 "퀵에서는 안 겹치는데 통계 분모는 두 번 센다"가 생기지 않는다.
+ *
+ * 서답형은 제외한다 — 입력·채점에 시간이 걸려 10문항 세션의 절반 이상을 먹는다.
+ * '퀵'이라는 이름과 맞지 않아 화면에도 출제 범위를 명시한다.
+ */
+export function buildQuickPool(
+  perSet: { setId: string; questions: Question[] }[],
+  canonicalIdOf: (id: string) => string,
+): QuickCandidate[] {
+  const pool: QuickCandidate[] = [];
+  const seen = new Set<string>();
+  for (const { setId, questions } of perSet) {
+    for (const q of questions) {
+      if (q.type === 'short_answer') continue;
+      const id = q.id || `legacy-${q.number}`;
+      const key = canonicalIdOf(id);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      pool.push({ question: q, setId, id });
+    }
+  }
+  return pool;
+}
+
+/** 퀵 추첨 후보 — 문항과 그 출처 세트. 출처가 있어야 오답이 각 세트의 오답노트로 흘러간다. */
+export interface QuickCandidate {
+  question: Question;
+  setId: string;
+  id: string;
+}
+
 export function useQuestions() {
   const [appData, setAppData] = useState<AppData | null>(null);
   const [currentQuestions, setCurrentQuestions] = useState<Question[]>([]);
@@ -72,11 +113,15 @@ export function useQuestions() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   // 슬라이스 구독(O1) — 타이머 틱·답안 변경에 이 훅이 리렌더를 유발하지 않는다.
-  const { setId, mode, reviewIds, chapterFilter, randomNonce, reviewedOk } = useQuizStore(useShallow((s) => ({
-    setId: s.setId, mode: s.mode, reviewIds: s.reviewIds, chapterFilter: s.chapterFilter,
-    reviewedOk: s.reviewedOk[s.setId],
-    randomNonce: s.randomNonce,
-  })));
+  const { setId, mode, reviewIds, chapterFilter, randomNonce, reviewedOk, activeProduct, quickNonce } =
+    useQuizStore(useShallow((s) => ({
+      setId: s.setId, mode: s.mode, reviewIds: s.reviewIds, chapterFilter: s.chapterFilter,
+      reviewedOk: s.reviewedOk[s.setId],
+      randomNonce: s.randomNonce,
+      activeProduct: s.activeProduct,
+      // 퀵 재추첨 트리거 — 추첨 자체를 구독하지 않으므로 effect를 다시 돌릴 신호가 따로 필요하다.
+      quickNonce: s.quickNonce,
+    })));
 
   // 다른 인스턴스의 "다시 시도"가 성공하면 이 인스턴스도 캐시에서 다시 읽어 복구한다 —
   // 없으면 재시도 버튼이 있는 워크스페이스만 살아나고 사이드바·상단바는 빈 채로 남는다.
@@ -98,8 +143,62 @@ export function useQuestions() {
     return () => { cancelled = true; };
   }, [reloadKey]);
 
+  // 퀵 랜덤 — 제품의 전 세트에서 뽑으므로 세트 하나를 여는 아래 effect와 경로가 다르다.
+  // 세트별 JSON은 questionLoader가 Promise 캐시로 들고 있어, 이미 연 세트는 재요청하지 않는다.
+  useEffect(() => {
+    if (!appData || mode !== 'quick' || !activeProduct) return;
+    let cancelled = false;
+
+    const sets = appData.sets.filter((s) => s.certification.toLowerCase() === activeProduct);
+    if (!sets.length) return;
+
+    Promise.all(sets.map((s) => loadSetQuestions(s.path).then((questions) => ({ setId: s.id, questions }))))
+      .then((perSet) => {
+        if (cancelled) return;
+        setLoadError(null);
+        const canonicalIdOf = makeCanonicalIdResolver(appData.duplicateGroups);
+        const pool = buildQuickPool(perSet, canonicalIdOf);
+        // 출처 세트를 문항에 실어 둔다 — 채점 때 오답을 각 세트의 오답노트로 보내려면
+        // 문항만으로 어느 세트에서 왔는지 알 수 있어야 한다. 로더 캐시의 원본을 변이하지
+        // 않도록 얕은 복사본에 붙인다(캐시는 다른 모드와 공유된다).
+        const withSource = new Map<string, Question>(
+          pool.map((c) => [c.id, { ...c.question, sourceSetId: c.setId }]),
+        );
+
+        // 저장된 추첨이 현재 제품과 맞으면 같은 문항으로 이어푼다 — 새로고침 이어풀기.
+        const saved = useQuizStore.getState().quickDraw;
+        if (saved && saved.certification === activeProduct && saved.items.length) {
+          const restored = saved.items
+            .map((it) => withSource.get(it.id))
+            .filter((q): q is Question => !!q);
+          if (restored.length === saved.items.length) {
+            setCurrentQuestions(restored);
+            return;
+          }
+          // id가 다 풀리지 않으면(데이터 변경 등) 아래에서 새로 추첨한다.
+        }
+
+        const size = useQuizStore.getState().quickSize;
+        const drawn = shuffleQuestions(pool).slice(0, Math.min(size, pool.length));
+        useQuizStore.getState().setQuickDraw({
+          certification: activeProduct,
+          items: drawn.map((c) => ({ id: c.id, setId: c.setId })),
+        });
+        setCurrentQuestions(drawn.map((c) => withSource.get(c.id)).filter((q): q is Question => !!q));
+      })
+      .catch((err) => {
+        console.error('Failed to load sets for quick', err);
+        if (cancelled) return;
+        setLoadError('문제 세트를 불러오지 못했습니다. 네트워크 상태를 확인해 주세요.');
+        setCurrentQuestions([]);
+      });
+    return () => { cancelled = true; };
+  }, [appData, mode, activeProduct, quickNonce, reloadKey]);
+
   useEffect(() => {
     if (!appData || !setId) return;
+    // 퀵은 위 effect가 담당한다 — setId가 센티넬이라 아래 세트 조회는 성립하지 않는다.
+    if (mode === 'quick') return;
 
     const targetSet = appData.sets.find((s) => s.id === setId);
     if (!targetSet) return;
@@ -135,10 +234,13 @@ export function useQuestions() {
         useQuizStore.getState().setRandomDraw({ setId, chapter, ids: drawn.map(idOf) });
         setCurrentQuestions(drawn);
       } else if (mode === 'review') {
-        // 시험·랜덤 각각의 오답 합집합(+구버전 setId 단독 키 호환)을 복습 대상으로 한다.
+        // 시험·랜덤·퀵 각각의 오답 합집합(+구버전 setId 단독 키 호환)을 복습 대상으로 한다.
+        // 퀵은 전 세트에서 뽑으므로 채점 시 출처 세트별로 갈라 담긴다 — 여기서 읽지 않으면
+        // 퀵에서 틀린 문항이 오답노트에 영영 나타나지 않는다.
         const ids = new Set([
           ...(reviewIds[`${setId}-exam`] || []),
           ...(reviewIds[`${setId}-random`] || []),
+          ...(reviewIds[`${setId}-quick`] || []),
           ...(reviewIds[setId] || []),
         ]);
         // 이미 다시 풀어 맞힌 문항은 뺀다 — 아무리 맞혀도 목록이 줄지 않으면

@@ -170,7 +170,10 @@ export function sanitizeAnswers(value: unknown): Record<string, string[]> {
 
 // 이력은 풀이 모드에서만 생성된다. VALID_MODES는 여기서 파생 — 두 목록을 따로
 // 관리하면 모드 추가 시 한쪽 누락으로 이력이 무단 폐기되는 사고가 난다.
-const HISTORY_MODES: QuizMode[] = ["exam", "practice", "random", "review"];
+// 'quick'이 빠지면 퀵 회차의 mode가 아래에서 'exam'으로 보정돼, isSetLevelRound가
+// 10~20문항짜리 짧은 회차를 세트 전체 실전으로 세고 최고 정답률·평균을 부풀린다
+// (예전에 고친 "챕터 미니 시험이 최고 정답률을 부풀림"과 같은 결함). 계약은 단위 테스트로 고정.
+const HISTORY_MODES: QuizMode[] = ["exam", "practice", "random", "review", "quick"];
 const VALID_MODES: string[] = ["home", ...HISTORY_MODES];
 
 // 외부(IndexedDB 구버전 데이터·백업 파일) 이력을 정제한다 — sanitizeAnswers/sanitizeUiState와
@@ -298,6 +301,22 @@ export function sanitizeUiState(value: unknown): Partial<QuizState> {
   // 챕터 필터 — 비어 있지 않은 문자열만 통과(없으면 전체).
   if (typeof value.chapterFilter === 'string' && value.chapterFilter) {
     out.chapterFilter = value.chapterFilter;
+  }
+  // 퀵 추첨 스냅샷 — 제품과 (문항 id, 출처 세트) 쌍이 온전할 때만 통과(손상·조작 값 방어).
+  // 출처 세트가 없으면 오답 귀속과 복원이 성립하지 않으므로 그 항목은 버린다.
+  if (isPlainObject(value.quickDraw)) {
+    const qd = value.quickDraw as UnknownRecord;
+    const rawItems = Array.isArray(qd.items) ? qd.items : [];
+    const items: { id: string; setId: string }[] = [];
+    for (const it of rawItems) {
+      if (!isPlainObject(it)) continue;
+      const id = it.id;
+      const setId = it.setId;
+      if (typeof id === 'string' && id && typeof setId === 'string' && setId) items.push({ id, setId });
+    }
+    if (typeof qd.certification === 'string' && qd.certification && items.length) {
+      out.quickDraw = { certification: qd.certification, items };
+    }
   }
   // 랜덤 추첨 스냅샷 — setId·ids가 유효할 때만 통과(손상 값 방어). chapter는 없으면 null(일반 랜덤).
   if (isPlainObject(value.randomDraw)) {
@@ -522,6 +541,8 @@ export const saveUiState = debounce((state: Partial<QuizState>) => {
       navCollapsed: state.navCollapsed,
       // 랜덤 추첨(뽑힌 문항 id) — 새로고침 시 같은 문항으로 이어풀기 위해 영속화.
       randomDraw: state.randomDraw,
+      // 퀵 추첨 — 없으면 새로고침 시 다시 뽑혀 풀던 문항과 답안이 사라진다.
+      quickDraw: state.quickDraw,
       // 챕터 집중 연습/미니 시험의 필터 — 영속화하지 않으면 새로고침 시 전체 세트로
       // 돌아가 랜덤(이어풀기)과 동작이 어긋난다. 배너의 '전체 보기'로 언제든 해제 가능.
       chapterFilter: state.chapterFilter,
@@ -653,6 +674,7 @@ export async function exportUserData() {
       reviewIds: state.reviewIds,
       navCollapsed: state.navCollapsed,
       randomDraw: state.randomDraw,
+      quickDraw: state.quickDraw,
       chapterFilter: state.chapterFilter,
     },
     answers: state.answers,
@@ -853,6 +875,7 @@ useQuizStore.subscribe((state, prevState) => {
     state.reviewIds !== prevState.reviewIds ||
     state.navCollapsed !== prevState.navCollapsed ||
     state.randomDraw !== prevState.randomDraw ||
+    state.quickDraw !== prevState.quickDraw ||
     state.chapterFilter !== prevState.chapterFilter ||
     // 시험 시작 시각이 잡히는 순간 즉시 저장한다 — 이걸 놓치면 앱을 껐다 켰을 때
     // 기준점이 없어 제한시간이 처음부터 다시 흐른다.

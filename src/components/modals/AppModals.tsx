@@ -198,26 +198,37 @@ export const AppModals = () => {
   // useMemo: AppModals는 answers를 구독(useQuizSession)해 답안 클릭마다 리렌더되므로,
   // 메모 없이는 오답노트가 닫혀 있어도 매 클릭 전체 이력 정렬·병합을 재계산한다.
   const wrongNoteBySet: WrongNoteSetView[] = React.useMemo(() => {
+    // 회차가 아니라 '문항의 출처 세트'로 묶는다. 퀵 회차는 setId가 센티넬(QUICK)이고
+    // 문항이 여러 세트에서 왔으므로, 회차 단위로 묶으면 서로 다른 세트의 오답이 '퀵 랜덤'
+    // 한 덩어리가 된다 — 지문을 불러올 경로가 없어 번호만 뜨고, 번호가 겹치면 유실된다.
+    // wrongItems.setId가 있으면 그것을, 없으면(일반 회차) 회차의 setId를 출처로 본다.
     const bySet = new Map<string, ExamHistory[]>();
     for (const h of Object.values(productHistories)) {
       if ((h.wrongItems?.length ?? 0) === 0) continue;
-      const list = bySet.get(h.setId) ?? [];
-      list.push(h);
-      bySet.set(h.setId, list);
+      for (const sid of new Set((h.wrongItems ?? []).map((it) => it.setId ?? h.setId))) {
+        const list = bySet.get(sid) ?? [];
+        list.push(h);
+        bySet.set(sid, list);
+      }
     }
     const merged: WrongNoteSetView[] = [];
     for (const [sid, hs] of bySet) {
       hs.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)); // 최신 우선
       const items = new Map<number, NonNullable<ExamHistory['wrongItems']>[number]>();
       for (const h of hs) {
-        for (const it of h.wrongItems ?? []) {
+        // 이 회차의 오답 중 지금 보고 있는 세트에서 온 것만 취한다.
+        for (const it of (h.wrongItems ?? []).filter((x) => (x.setId ?? h.setId) === sid)) {
           if (!items.has(it.number)) items.set(it.number, it); // 최신 회차 기록이 대표
         }
       }
       const wrongList = Array.from(items.values()).sort((a, b) => a.number - b.number);
       merged.push({
         setId: sid,
-        setTitle: hs[0].setTitle,
+        // 제목은 index.json을 먼저 본다 — 퀵 회차의 setTitle('퀵 랜덤')을 그대로 쓰면
+        // 출처 세트로 갈라 놓고도 그룹 이름이 전부 '퀵 랜덤'이 된다.
+        // 세트가 index.json에서 빠진 경우를 위해 회차에 저장된 제목을 폴백으로 둔다.
+        setTitle: appData?.sets.find((s) => s.id === sid)?.title
+          ?? hs.find((h) => h.setId === sid)?.setTitle,
         attemptCount: hs.length,
         latestCreatedAt: hs[0].createdAt,
         wrongItems: wrongList,
@@ -231,7 +242,7 @@ export const AppModals = () => {
       });
     }
     return merged.sort((a, b) => (b.latestCreatedAt || 0) - (a.latestCreatedAt || 0));
-  }, [productHistories]);
+  }, [productHistories, appData]);
   const selectedWrong = wrongNoteSetId
     ? wrongNoteBySet.find((h) => h.setId === wrongNoteSetId) ?? null
     : null;
@@ -959,7 +970,7 @@ export const AppModals = () => {
 
       {resultOpen && (
         <ResultSummary
-          setTitle={currentSet?.title || ''}
+          setTitle={mode === 'quick' ? '퀵 랜덤' : (currentSet?.title || '')}
           certification={activeProduct}
           correct={correctCount}
           total={total}
@@ -970,6 +981,8 @@ export const AppModals = () => {
           // 챕터 미니 시험(랜덤+필터)은 회차 라벨도 구분 — "랜덤 N회차"로 표기하면
           // 세트 전체 랜덤과 섞여 보인다(회차 번호는 같은 챕터 미니끼리만 센다).
           modeLabel={compareChapter ? `${compareChapter} 미니` : (MODE_LABEL[mode] ?? mode)}
+          // 퀵은 세트 전체를 푼 것이 아니라 합격 판정의 근거가 없다.
+          hidePassVerdict={mode === 'quick'}
           onClose={() => setResultOpen(false)}
           onOpenWrongNote={() => { setResultOpen(false); setWrongNoteOpen(true); }}
           onRetry={() => {

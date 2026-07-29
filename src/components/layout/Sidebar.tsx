@@ -1,12 +1,13 @@
 import React, { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useQuizStore } from '../../store/useQuizStore';
+import { useQuizStore, QUICK_SIZES } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { useSetCounts } from '../../hooks/useSetCounts';
 import { TimerClock } from '../common/TimerClock';
 import { BRAND_LOGO_SRC } from '../../utils/brandLogo';
 import { showToast } from '../../utils/toast';
 import { FEEDBACK_SHEET_URL } from '../../utils/links';
+import { isGradedMode } from '../../utils/modeLabel';
 
 
 const MODE_LABELS: { mode: 'practice' | 'exam' | 'random' | 'review'; label: string }[] = [
@@ -25,6 +26,7 @@ export const Sidebar = () => {
     setStatsOpen, setSettingsOpen, setWrongNoteOpen, setResultOpen, setDrawerOpen,
     setQuitExamOpen, redrawRandom, setRandomDraw,
     setPendingSetChange, commitSetChange, setPendingRedraw,
+    quickSize, startQuick,
   } = useQuizStore(useShallow((s) => ({
     mode: s.mode, setId: s.setId, activeProduct: s.activeProduct, drawerOpen: s.drawerOpen,
     setMode: s.setMode, setSetId: s.setSetId, beginSession: s.beginSession,
@@ -36,8 +38,13 @@ export const Sidebar = () => {
     redrawRandom: s.redrawRandom, setRandomDraw: s.setRandomDraw,
     setPendingSetChange: s.setPendingSetChange, commitSetChange: s.commitSetChange,
     setPendingRedraw: s.setPendingRedraw,
+    quickSize: s.quickSize, startQuick: s.startQuick,
   })));
   const asideRef = React.useRef<HTMLElement>(null);
+  // 문항 수는 '시작'을 누를 때까지 로컬 상태로 둔다 — 고르는 즉시 스토어에 쓰면
+  // 진행 중인 세션과 무관한 값 변경이 영속화 구독을 계속 깨운다.
+  const [quickSizeLocal, setQuickSizeLocal] = React.useState<number>(quickSize);
+  const certLabel = activeProduct === 'csts' ? 'CSTS' : 'ISTQB';
 
   // 모바일 드로어 포커스 관리(B1) — 열리면 첫 컨트롤로 포커스 이동 + Tab 순환 트랩,
   // 닫히면 연 버튼(☰)으로 포커스 복귀. 데스크톱에서는 drawerOpen이 항상 false라 무영향.
@@ -79,11 +86,15 @@ export const Sidebar = () => {
   const setCounts = useSetCounts(sets);
 
   // 제품 선택 후 세트가 미선택(또는 다른 제품 세트)이면 첫 세트를 자동 선택해 문항을 로드.
+  // 퀵은 예외 — setId가 어느 세트에도 없는 센티넬(QUICK)이라 여기 걸리면 실제 세트 id로
+  // 덮어써진다. 그러면 답안 키가 QUICK-quick-*에서 그 세트 기준으로 바뀌어 풀던 진행이
+  // 사라지고, 영속화된 setId도 오염돼 새로고침 이어풀기가 깨진다.
   useEffect(() => {
+    if (mode === 'quick') return;
     if (sets.length && !sets.some((s) => s.id === setId)) {
       setSetId(sets[0].id);
     }
-  }, [appData, activeProduct, setId, setSetId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [appData, activeProduct, setId, setSetId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 모바일 드로어 안에서 컨트롤을 조작하면 드로어를 닫아 문제로 복귀한다.
   const closeDrawer = () => setDrawerOpen(false);
@@ -138,6 +149,18 @@ export const Sidebar = () => {
     closeDrawer();
   };
 
+  const handleStartQuick = () => {
+    // 이 버튼은 모드 세그먼트 밖이라 disabled 하나에만 기대면 잠금을 우회할 수 있다
+    // (핸들러 가드 이중 방어 — 오답 풀기 버튼과 같은 이유).
+    if (examLocked) {
+      showToast('시험 응시 중에는 퀵 랜덤을 시작할 수 없습니다. 먼저 채점하세요.', 'info');
+      return;
+    }
+    startQuick(quickSizeLocal);
+    beginSession();
+    closeDrawer();
+  };
+
   const handleRetryWrong = () => {
     // 응시 중 잠금 — 이 버튼은 세그먼트 밖이라 disabled에 걸리지 않지만 setMode+resetTimer를
     // 호출하므로, 여기서 막지 않으면 잠금을 우회해 시험 타이머가 소실된다.
@@ -148,11 +171,13 @@ export const Sidebar = () => {
     // 현재 세트에 오답이 없으면 빈 오답 모드로 이동하지 않고 안내만 한다(모드 유지).
     // 오답 대상은 useQuestions의 review 모드와 동일한 합집합 기준으로 판정한다.
     const { reviewIds } = useQuizStore.getState();
-    const hasWrong = [`${setId}-exam`, `${setId}-random`, setId].some(
+    // useQuestions의 review 합집합과 같은 키 목록이어야 한다 — 여기서 -quick이 빠지면
+    // 퀵 오답만 있는 세트에서 "오답이 없습니다"라고 막아 놓고, 정작 오답노트에는 문항이 있다.
+    const hasWrong = [`${setId}-exam`, `${setId}-random`, `${setId}-quick`, setId].some(
       (key) => (reviewIds[key] || []).length > 0,
     );
     if (!hasWrong) {
-      showToast('현재 문제 세트에는 오답이 없습니다. 시험·랜덤 모드에서 채점하면 기록됩니다.', 'info');
+      showToast('현재 문제 세트에는 오답이 없습니다. 시험·랜덤·퀵 모드에서 채점하면 기록됩니다.', 'info');
       return;
     }
     // 오답 다시 풀기: 이전 재풀이 답안을 비우고 오답(review) 모드로 전환해 틀린 문항만 새로 푼다.
@@ -164,7 +189,7 @@ export const Sidebar = () => {
 
   const productSubtitle = activeProduct === 'istqb' ? 'ISTQB FL v4.0' : 'CSTS';
   const productBadge = (activeProduct || '').toUpperCase();
-  const showGradeSection = mode === 'exam' || mode === 'random';
+  const showGradeSection = isGradedMode(mode);
 
   // 오답 모드 '복습 완료' — 맞힌 문항을 재풀이 대상에서 빼 목록이 실제로 줄어들게 한다.
   // 종전에는 오답을 전부 맞혀도 다음에 같은 목록이 그대로 나와 루프가 닫히지 않았다.
@@ -295,6 +320,38 @@ export const Sidebar = () => {
               </option>
             ))}
           </select>
+        </section>
+
+        {/* 퀵 랜덤 — 세트를 고르지 않고 제품 전체에서 짧게 푼다. 세그먼트(세트 안의 풀이 모드)와
+            성격이 달라 별도 섹션에 둔다: 세그먼트에 넣으면 위 세트 선택과 무관한데도
+            "선택한 세트를 퀵으로 푼다"로 읽힌다. */}
+        <section className="panel quick-panel">
+          <label htmlFor="quickSize">⚡ 퀵 랜덤</label>
+          <div className="quick-row">
+            <select
+              id="quickSize"
+              value={quickSize}
+              onChange={(e) => setQuickSizeLocal(Number(e.target.value))}
+              disabled={examLocked}
+              aria-label="퀵 랜덤 문항 수"
+            >
+              {QUICK_SIZES.map((n) => (
+                <option key={n} value={n}>{n}문항</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="quick-start-btn"
+              data-testid="quick-start-btn"
+              disabled={examLocked}
+              onClick={handleStartQuick}
+            >
+              시작
+            </button>
+          </div>
+          <p className="action-hint">
+            {certLabel} 전 세트에서 4지선다·진위형만 뽑습니다. 제한시간 없음 · 위 요약에는 넣지 않습니다.
+          </p>
         </section>
 
         <section className="panel">
