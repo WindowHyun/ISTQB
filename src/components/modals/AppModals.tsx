@@ -959,7 +959,7 @@ export const AppModals = () => {
 
       {resultOpen && (
         <ResultSummary
-          setTitle={currentSet?.title || ''}
+          setTitle={mode === 'quick' ? '퀵 랜덤' : (currentSet?.title || '')}
           certification={activeProduct}
           correct={correctCount}
           total={total}
@@ -970,6 +970,8 @@ export const AppModals = () => {
           // 챕터 미니 시험(랜덤+필터)은 회차 라벨도 구분 — "랜덤 N회차"로 표기하면
           // 세트 전체 랜덤과 섞여 보인다(회차 번호는 같은 챕터 미니끼리만 센다).
           modeLabel={compareChapter ? `${compareChapter} 미니` : (MODE_LABEL[mode] ?? mode)}
+          // 퀵은 세트 전체를 푼 것이 아니라 합격 판정의 근거가 없다.
+          hidePassVerdict={mode === 'quick'}
           onClose={() => setResultOpen(false)}
           onOpenWrongNote={() => { setResultOpen(false); setWrongNoteOpen(true); }}
           onRetry={() => {

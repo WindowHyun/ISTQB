@@ -275,3 +275,35 @@ describe('isSetLevelRound / buildMiniTestRounds', () => {
     expect([...inTimeline, ...inMini].sort()).toEqual(['e1', 'm1', 'r1']);
   });
 });
+
+// 퀵(10~20문항, 전 세트 혼합)은 세트 전체 회차가 아니다. 이 조건이 빠지면 예전에 고친
+// "챕터 미니 시험이 최고 정답률을 부풀림"이 퀵으로 그대로 재발한다.
+describe('퀵 회차 분리', () => {
+  const q = (over: Partial<ExamHistory> = {}): ExamHistory =>
+    ({ id: 'q1', setId: 'QUICK', mode: 'quick', answers: {}, correct: 9, total: 10, ...over });
+
+  it('퀵은 세트 전체 회차가 아니다', () => {
+    expect(isSetLevelRound(q())).toBe(false);
+  });
+
+  it('요약 집합에서 빠져 최고 정답률을 부풀리지 않는다', () => {
+    const exam: ExamHistory =
+      { id: 'e1', setId: 'A', mode: 'exam', answers: {}, correct: 26, total: 40 };
+    const setLevel = [exam, q()].filter(isSetLevelRound);
+    expect(setLevel).toEqual([exam]);
+  });
+
+  it('짧은 세션 목록에는 남는다 — 없으면 화면 어디에도 안 보여 개별 삭제가 불가능하다', () => {
+    const rounds = buildMiniTestRounds([q({ createdAt: 1 })], () => '제목');
+    expect(rounds).toHaveLength(1);
+    expect(rounds[0].kind).toBe('quick');
+    expect(rounds[0].chapter).toBeNull();
+  });
+
+  it('챕터 미니와 퀵이 섞여도 종류로 구분된다', () => {
+    const mini: ExamHistory =
+      { id: 'm1', setId: 'A', mode: 'random', answers: {}, correct: 9, total: 10, chapter: '기초', createdAt: 2 };
+    const rounds = buildMiniTestRounds([mini, q({ createdAt: 1 })], () => '제목');
+    expect(rounds.map((r) => r.kind)).toEqual(['mini', 'quick']);
+  });
+});

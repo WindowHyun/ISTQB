@@ -1552,6 +1552,26 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 .result-score strong { font-size: 44px; font-weight: 800; line-height: 1; }
 .result-score.pass { background: var(--success-50); color: var(--success); }
 .result-score.fail { background: var(--danger-50); color: var(--danger); }
+/* 퀵 랜덤 — 합격/불합격 색을 쓰지 않는다. 10~20문항 표본에 빨강을 칠하면 판정이 없다고
+   써 놓아도 '떨어졌다'로 읽힌다. 중립 표면에 개수만 보여준다. */
+.result-score.neutral { background: var(--surface-2); color: var(--text); }
+/* "7 / 10문항"은 %(두 글자)보다 길어 44px에서 좁은 화면을 넘친다. */
+.result-score.neutral strong { font-size: 32px; }
+
+/* 퀵 랜덤 진입 — 문항 수 선택 + 시작을 한 줄에 둔다. */
+.quick-row { display: flex; gap: 8px; align-items: center; }
+.quick-row select { flex: 1 1 auto; min-width: 0; }
+.quick-start-btn {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  font-weight: 700;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--primary-solid);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+.quick-start-btn:disabled { opacity: .5; cursor: not-allowed; }
 .result-badge { font-size: 13px; font-weight: 700; }
 
 /* 직전 회차 대비(Phase 2) — 회차 칩 + 델타 + 직전 정답률을 한 줄에 간격 두고 배치 */

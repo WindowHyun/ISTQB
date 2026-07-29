@@ -111,3 +111,42 @@ describe("sanitizeHistory", () => {
     expect(h!.wrongItems).toEqual([{ number: 5, myAnswer: [], correctAnswer: ["a"] }]);
   });
 });
+
+// HISTORY_MODES에 'quick'이 빠지면 mode가 'exam'으로 보정돼, 10~20문항짜리 퀵 회차가
+// 세트 전체 실전으로 집계되면서 최고 정답률·평균을 부풀린다.
+describe('sanitizeHistory — 퀵 모드 보존', () => {
+  it("mode 'quick'을 'exam'으로 바꾸지 않는다", () => {
+    const h = sanitizeHistory({
+      id: 'q1', setId: 'QUICK', mode: 'quick', answers: {}, correct: 7, total: 10,
+    });
+    expect(h?.mode).toBe('quick');
+  });
+
+  it('알 수 없는 모드는 여전히 exam으로 보정한다(구버전 기록 보존)', () => {
+    expect(sanitizeHistory({ id: 'x', setId: 'A', mode: 'nonsense', answers: {} })?.mode).toBe('exam');
+  });
+});
+
+describe('sanitizeUiState — quickDraw', () => {
+  it('제품과 (문항 id, 출처 세트)가 온전하면 통과한다', () => {
+    const ui = sanitizeUiState({
+      quickDraw: { certification: 'csts', items: [{ id: 'Q1', setId: 'S1' }] },
+    });
+    expect(ui.quickDraw).toEqual({ certification: 'csts', items: [{ id: 'Q1', setId: 'S1' }] });
+  });
+
+  // 출처 세트가 없으면 오답 귀속도 복원도 성립하지 않는다 — 조용히 통과시키면
+  // 채점 때 오답이 어느 세트로도 가지 못하고 사라진다.
+  it('출처 세트가 없는 항목은 버린다', () => {
+    const ui = sanitizeUiState({
+      quickDraw: { certification: 'csts', items: [{ id: 'Q1' }, { id: 'Q2', setId: 'S2' }] },
+    });
+    expect(ui.quickDraw?.items).toEqual([{ id: 'Q2', setId: 'S2' }]);
+  });
+
+  it('남는 항목이 없거나 제품이 없으면 통째로 버린다', () => {
+    expect(sanitizeUiState({ quickDraw: { certification: 'csts', items: [{ id: 'Q1' }] } }).quickDraw).toBeUndefined();
+    expect(sanitizeUiState({ quickDraw: { items: [{ id: 'Q1', setId: 'S1' }] } }).quickDraw).toBeUndefined();
+    expect(sanitizeUiState({ quickDraw: 'oops' }).quickDraw).toBeUndefined();
+  });
+});

@@ -6,6 +6,7 @@ import { isQuestionCorrect, isAnswered } from '../utils/answer';
 import { answerKeyFor, gradeKeyFor } from '../utils/answerKey';
 import { buildChapterStats } from '../utils/chapterStats';
 import { computeCstsWeightedScore } from '../utils/scoring';
+import { isGradedMode } from '../utils/modeLabel';
 import { saveHistoryToDB } from '../utils/storage';
 
 // 사이드바(통계·채점·진행률)와 워크스페이스(문항·네비)가 공유하는 파생 상태/액션.
@@ -68,7 +69,7 @@ export function useQuizSession() {
   // 워크스페이스만 가리므로, 이 조건이 없으면 사이드바 '채점하기'로 응시한 적 없는
   // 시험이 0/N 유령 회차로 기록된다.
   const examUnderway = mode !== 'exam' || !!examStarted || answered > 0;
-  const canGrade = (mode === 'exam' || mode === 'random') && !isGraded && total > 0 && examUnderway;
+  const canGrade = isGradedMode(mode) && !isGraded && total > 0 && examUnderway;
   const progressPercent = total ? Math.round((answered / total) * 100) : 0;
 
   const handleGrade = () => {
@@ -89,7 +90,11 @@ export function useQuizSession() {
       myAnswer: answers[answerKeyOf(q)] || [],
       correctAnswer: q.answer,
     }));
-    const setTitle = appData?.sets.find((s) => s.id === setId)?.title;
+    // 퀵은 세트 하나에 매이지 않아 index.json에서 제목을 찾을 수 없다 — 그대로 두면
+    // 통계 목록에 센티넬 'QUICK'이 그대로 노출된다.
+    const setTitle = mode === 'quick'
+      ? '퀵 랜덤'
+      : appData?.sets.find((s) => s.id === setId)?.title;
     const chapterOutcome = buildChapterStats(currentQuestions, answers, answerKeyOf);
     const gradedAnswers: Record<string, string[]> = {};
     currentQuestions.forEach((q) => {
@@ -126,11 +131,37 @@ export function useQuizSession() {
     addHistory(history);
     // 채점 이력을 IndexedDB에 영속화(새로고침 후 통계 대시보드에서 조회).
     saveHistoryToDB(history);
-    // 모드별로 저장해 랜덤 채점이 시험 오답 목록을 덮어쓰지 않게 한다(오답 모드는 합집합을 읽음).
-    setReviewIds(gradeKey, wrongIds);
-    // 다시 틀린 문항은 '복습함'에서 되돌린다 — 아니면 한 번 복습했다는 이유로
-    // 이후 계속 오답인데도 재풀이 목록에 영영 나타나지 않는다.
-    unmarkReviewed(setId, wrongItems.map((w) => w.number));
+    if (mode === 'quick') {
+      // 퀵의 setId는 센티넬이라 `QUICK-quick` 버킷에 넣으면 어느 세트의 오답 모드에서도
+      // 읽히지 않는다 — 틀린 문항이 오답노트에서 통째로 사라진다.
+      // 문항에 실어 둔 출처 세트로 갈라 각 세트의 `-quick` 버킷에 넣는다.
+      // 이번 회차에 나온 세트만 덮어쓴다(다른 세트의 이전 퀵 오답은 그대로 둔다) —
+      // 그 세트를 다시 뽑지 않았는데 지우면 아직 못 고친 오답이 조용히 사라진다.
+      const wrongBySet = new Map<string, string[]>();
+      const wrongNumbersBySet = new Map<string, number[]>();
+      const touchedSets = new Set<string>();
+      for (const q of currentQuestions) {
+        const src = q.sourceSetId;
+        if (!src) continue;
+        touchedSets.add(src);
+      }
+      for (const q of wrongQs) {
+        const src = q.sourceSetId;
+        if (!src) continue;
+        wrongBySet.set(src, [...(wrongBySet.get(src) ?? []), q.id || `legacy-${q.number}`]);
+        wrongNumbersBySet.set(src, [...(wrongNumbersBySet.get(src) ?? []), q.number]);
+      }
+      for (const src of touchedSets) {
+        setReviewIds(gradeKeyFor(src, 'quick'), wrongBySet.get(src) ?? []);
+        unmarkReviewed(src, wrongNumbersBySet.get(src) ?? []);
+      }
+    } else {
+      // 모드별로 저장해 랜덤 채점이 시험 오답 목록을 덮어쓰지 않게 한다(오답 모드는 합집합을 읽음).
+      setReviewIds(gradeKey, wrongIds);
+      // 다시 틀린 문항은 '복습함'에서 되돌린다 — 아니면 한 번 복습했다는 이유로
+      // 이후 계속 오답인데도 재풀이 목록에 영영 나타나지 않는다.
+      unmarkReviewed(setId, wrongItems.map((w) => w.number));
+    }
     setGraded(gradeKey, true);
   };
 

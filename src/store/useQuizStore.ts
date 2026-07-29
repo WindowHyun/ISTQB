@@ -1,7 +1,15 @@
 import { create } from 'zustand';
 import { answerKeyPrefix, gradeKeyFor } from '../utils/answerKey';
 
-export type QuizMode = 'home' | 'exam' | 'practice' | 'random' | 'review';
+// quick: 제품의 전 세트에서 10~20문항을 뽑아 짧게 푸는 모드. 세트 하나에 매이지 않으므로
+// setId는 QUICK_SET_ID 센티넬을 쓴다(실재하는 세트 id와 겹치지 않는다 — 계약은 단위 테스트로 고정).
+export type QuizMode = 'home' | 'exam' | 'practice' | 'random' | 'review' | 'quick';
+
+/** 퀵 랜덤 회차의 setId. 어느 세트에도 속하지 않는다는 표식이다. */
+export const QUICK_SET_ID = 'QUICK';
+
+/** 퀵에서 고를 수 있는 문항 수. 듀오링고식 짧은 세션 규모. */
+export const QUICK_SIZES = [10, 15, 20] as const;
 
 export interface ExamHistory {
   id: string;
@@ -92,6 +100,11 @@ export interface QuizState {
   // 랜덤 현재 추첨(뽑힌 문항 id 목록)을 영속화해 새로고침 시 같은 문항으로 이어풀게 한다.
   // null이면 미추첨/재추첨 필요. 모드 진입·'새 문제 뽑기'는 이 값을 비워 새 추첨을 유도한다.
   randomDraw: { setId: string; chapter: string | null; ids: string[] } | null;
+  // 퀵 추첨 스냅샷 — 전 세트에서 뽑으므로 randomDraw(세트 하나 전제)와 별도 필드다.
+  // 문항 id만으로는 어느 세트에서 왔는지 알 수 없어(오답 귀속·복원에 필요) setId를 함께 남긴다.
+  quickDraw: { certification: string; items: { id: string; setId: string }[] } | null;
+  quickSize: number;
+  quickNonce: number;
 
   // Actions
   setActiveProduct: (product: 'istqb' | 'csts') => void;
@@ -140,6 +153,9 @@ export interface QuizState {
   commitSetChange: (setId: string) => void;
   redrawRandom: () => void;
   setRandomDraw: (draw: QuizState['randomDraw']) => void;
+  setQuickDraw: (draw: QuizState['quickDraw']) => void;
+  /** 퀵 진입 — 문항 수를 정하고 새로 추첨하게 한다(기존 추첨은 버린다). */
+  startQuick: (size: number) => void;
   resetToGate: () => void;
   hydrate: (state: Partial<QuizState>) => void;
 }
@@ -158,6 +174,11 @@ export const sessionScopeDefaults = () => ({
   chapterFilter: null as string | null,
   // 제품 전환 시 이전 제품의 랜덤 추첨이 새 제품으로 새지 않게 초기화(복원 시 해당 제품 값으로 덮음).
   randomDraw: null as { setId: string; chapter: string | null; ids: string[] } | null,
+  // 퀵도 제품 스코프다 — 제품을 바꾸면 이전 제품 문항으로 이어풀기가 되지 않게 비운다.
+  quickDraw: null as { certification: string; items: { id: string; setId: string }[] } | null,
+  // 사용자가 고른 퀵 문항 수. 추첨 시점에만 쓰이므로 세션 스코프로 충분하다.
+  quickSize: QUICK_SIZES[0] as number,
+  quickNonce: 0,
 });
 
 export const useQuizStore = create<QuizState>((set, get) => ({
@@ -193,6 +214,9 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   reviewedOk: {},
   randomNonce: 0,
   randomDraw: null,
+  quickDraw: null,
+  quickSize: QUICK_SIZES[0] as number,
+  quickNonce: 0,
 
   setActiveProduct: (activeProduct) => set({ activeProduct }),
   // 모드/세트가 바뀌면 챕터 필터는 의미를 잃으므로 함께 해제한다(필터는 현재 연습 세션 한정).
@@ -316,6 +340,12 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   // '새 문제 뽑기' — 세대(nonce)를 올리고 저장된 추첨을 비워 useQuestions가 새로 추첨하게 한다.
   redrawRandom: () => set((state) => ({ randomNonce: state.randomNonce + 1, randomDraw: null })),
   setRandomDraw: (randomDraw) => set({ randomDraw }),
+  setQuickDraw: (quickDraw) => set({ quickDraw }),
+  // 추첨을 비워 새로 뽑게 한다 — 진입할 때마다 같은 문항이 나오면 '퀵'의 의미가 없다.
+  startQuick: (quickSize) => set((state) => ({
+    mode: 'quick', setId: QUICK_SET_ID, quickSize, quickDraw: null, index: 0,
+    chapterFilter: null, quickNonce: state.quickNonce + 1,
+  })),
   // 진입/캐시 복원 시 항상 최초 화면(제품 선택 게이트)으로 — 오버레이도 모두 닫는다.
   resetToGate: () => set({
     mode: 'home', activeProduct: null,
