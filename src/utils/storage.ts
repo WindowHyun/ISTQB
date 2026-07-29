@@ -1,6 +1,7 @@
 import { useQuizStore, QuizState, QuizMode, ExamHistory, sessionScopeDefaults } from '../store/useQuizStore';
 import debounce from 'lodash-es/debounce';
 import { showToast } from './toast';
+import { answerKeyPrefix, gradeKeyFor } from './answerKey';
 
 const DB_NAME = "istqb-db";
 const STORE_NAME = "history";
@@ -223,6 +224,20 @@ export function sanitizeHistory(value: unknown): ExamHistory | null {
     }
     if (Object.keys(chapterStats).length) out.chapterStats = chapterStats;
   }
+  if (isPlainObject(value.chapterQuestions)) {
+    // 챕터별 문항 id 목록 — 최신 시도 집계의 입력이다. 문자열 id만 통과시키고,
+    // 같은 회차 안에서 정답/오답 양쪽에 든 id는 오답으로 본다(모순 데이터는 보수적으로).
+    const chapterQuestions: Record<string, { ok: string[]; no: string[] }> = {};
+    for (const [ch, cell] of Object.entries(value.chapterQuestions)) {
+      if (ch === "__proto__" || ch === "constructor" || ch === "prototype") continue;
+      if (!isPlainObject(cell)) continue;
+      const no = stringArray(cell.no);
+      const wrong = new Set(no);
+      const ok = stringArray(cell.ok).filter((id) => !wrong.has(id));
+      if (ok.length || no.length) chapterQuestions[ch] = { ok, no };
+    }
+    if (Object.keys(chapterQuestions).length) out.chapterQuestions = chapterQuestions;
+  }
   if (Array.isArray(value.wrongItems)) {
     out.wrongItems = value.wrongItems
       .filter(isPlainObject)
@@ -329,7 +344,7 @@ export function findGradedRoundMatch(
     .filter((h) => h.setId === setId && h.mode === mode && (h.chapter ?? null) === chapter)
     .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0) || b.id.localeCompare(a.id))[0];
   if (!latest || !latest.answers) return null;
-  const prefix = `${setId}-${mode}-`;
+  const prefix = answerKeyPrefix(setId, mode);
   const restored = Object.entries(answers).filter(([k]) => k.startsWith(prefix));
   const recorded = Object.entries(latest.answers).filter(([k]) => k.startsWith(prefix));
   if (!restored.length || restored.length !== recorded.length) return null;
@@ -473,7 +488,7 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
       // 같은 답안이 중복 회차로 적립된다. 채점 상태를 복원하고 전용 안내 모달로 분기한다.
       // (채점 후 시험 답안은 잠금돼 변할 수 없으므로 "답안 동일 = 그 회차 그대로"가 성립)
       const gradedMatch =
-        hasExamProgress && !store.graded[`${sid}-exam`]
+        hasExamProgress && !store.graded[gradeKeyFor(sid, "exam")]
           ? findGradedExamMatch(histories, sid, sanitizedAnswers)
           : null;
       if (gradedMatch) {
@@ -613,7 +628,16 @@ export const saveAnswers = debounce((answers: Record<string, string[]>) => {
 
 // 백업 파일 스키마 버전(Phase 4) — 구조가 바뀌면 올린다. import는 이보다 높은(미래)
 // 버전을 거부해 알 수 없는 구조가 절반만 적용되는 사고를 막는다(버전 없음 = 구버전, 허용).
-const BACKUP_SCHEMA_VERSION = 1;
+//
+// v2: 회차 이력에 chapterQuestions(챕터별 정답/오답 문항 id)가 추가됐다. 버전을 올리는
+// 이유는 이 필드가 구버전 앱에서 조용히 파괴되기 때문이다 — sanitizeHistory는 아는 필드만
+// 골라 새 객체를 만드는 allowlist 방식이라 모르는 필드를 버리고, 가져오기는 그렇게 정제한
+// 결과를 그대로 DB에 put한다. 즉 신버전 백업을 구버전 앱에서 한 번 가져오면 문항 id가
+// 사라진 채 저장되고, 그 회차들은 이후 영영 '문항 정보 없는 과거 회차'로 남는다.
+// 서비스 워커가 prompt 방식이라 사용자가 업데이트를 미룰 수 있어 구버전이 한동안 살아 있다.
+// 버전을 올리면 구버전이 "앱을 업데이트한 뒤 가져오세요"로 거부한다 — 가져오지 못하는 쪽이
+// 조용히 잃는 쪽보다 낫다. 구버전 백업(v1·버전 없음)을 신버전이 읽는 것은 그대로 된다.
+const BACKUP_SCHEMA_VERSION = 2;
 
 export async function exportUserData() {
   const state = useQuizStore.getState();

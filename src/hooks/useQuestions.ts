@@ -46,6 +46,10 @@ export interface SetSummary {
 export interface AppData {
   schemaVersion?: number;
   sets: SetSummary[];
+  // 세트 간 재수록 문항 그룹(빌드 타임 생성, scripts/build-duplicate-groups.js).
+  // 같은 문제가 여러 세트에 실려 있고 id는 세트마다 달라, 이 표가 없으면 챕터 통계가
+  // 같은 문제를 두 번 센다. 각 그룹은 문항 id 배열이며 첫 원소가 대표다.
+  duplicateGroups?: string[][];
 }
 
 // 랜덤 추첨의 단일 원천은 스토어의 randomDraw(뽑힌 문항 id 목록)다.

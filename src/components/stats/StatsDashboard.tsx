@@ -4,7 +4,12 @@ import { ExamHistory } from '../../store/useQuizStore';
 import { SetSummary } from '../../hooks/useQuestions';
 import { formatClock } from '../../utils/time';
 import { displayRatePercent } from '../../utils/scoring';
-import { aggregateChapterStats, weightedRatePercent } from '../../utils/chapterStats';
+import {
+  aggregateChapterStats,
+  aggregateLatestChapterStats,
+  makeCanonicalIdResolver,
+  weightedRatePercent,
+} from '../../utils/chapterStats';
 import {
   buildSetTimelines, buildMiniTestRounds, formatDeltaPp, attemptRatePercent, isSetLevelRound,
 } from '../../utils/attemptStats';
@@ -15,9 +20,17 @@ import { MODE_LABEL } from '../../utils/modeLabel';
 // (ISTQB 65% / CSTS 75%). 고정 65는 CSTS에서 66~74% 약점을 놓친다.
 const WEAK_THRESHOLD_BY_CERT: Record<string, number> = { istqb: 65, csts: 75 };
 
-// 약점 순위에 올리기 위한 최소 누적 출제 수. 이보다 적으면 정답률이 0%/100%로 널뛰어
+// 약점 순위에 올리기 위한 최소 출제 수. 이보다 적으면 정답률이 0%/100%로 널뛰어
 // 순위가 실력이 아니라 표본 크기를 반영한다(1문항 챕터는 맞히면 100%, 틀리면 0%).
-// 세트 하나로는 못 채워도 여러 회차·세트에 걸쳐 누적되면 순위로 올라온다.
+//
+// 문항 단위 최신 시도로 바뀌면서 t의 상한이 '그 챕터의 서로 다른 문항 수'로 내려갔다
+// (종전에는 재풀이할수록 t가 늘어 결국 게이트를 넘었다). 값을 유지할지 실측으로 확인했다:
+//   세트 1개만 푼 경우 챕터별 문항 수 — ISTQB 각 세트 [2,4,6,8,9,11],
+//   CSTS 본시험 세트 [5~7 이상 전부], CSTS-EL-2018만 [1,2,2,3,3,9]로 특이하게 적다.
+//   제품 전 세트를 풀면 ISTQB [8,20,28,38,44,48] · CSTS [43,45,52,59,73,119]로 전부 넘는다.
+// 즉 5를 유지해도 순위표가 비는 경우는 없고, 낮추면 1~2문항 챕터가 다시 1위 약점이 되는
+// 과거 버그로 되돌아간다. 그래서 값은 5로 두고, 대신 '무엇을 해야 표본이 차는지'를
+// 정확히 안내한다(같은 세트 반복이 아니라 다른 세트 — 아래 lowSample 섹션 주석 참조).
 const MIN_CHAPTER_SAMPLE = 5;
 
 // 회차 날짜 표기 — 로케일을 ko-KR로 고정한다. toLocaleDateString()을 인자 없이 쓰면
@@ -41,6 +54,8 @@ function formatRoundDate(ms: number): string {
 interface StatsDashboardProps {
   histories: Record<string, ExamHistory>;
   sets: SetSummary[];
+  // 세트 간 재수록 문항 그룹 — 같은 문제를 챕터 분모에 두 번 세지 않기 위해 필요하다.
+  duplicateGroups?: string[][];
   onClose: () => void;
   onClear: () => void;
   /** 챕터 집중 연습 진입(현재 세트를 해당 챕터로 필터해 연습 모드로). */
@@ -55,7 +70,7 @@ interface StatsDashboardProps {
   onDeleteRound: (id: string) => void;
 }
 
-export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeChapter, onMiniTestChapter, practiceLocked, certification, onDeleteRound }: StatsDashboardProps) => {
+export const StatsDashboard = ({ histories, sets, duplicateGroups, onClose, onClear, onPracticeChapter, onMiniTestChapter, practiceLocked, certification, onDeleteRound }: StatsDashboardProps) => {
   const weakThreshold = WEAK_THRESHOLD_BY_CERT[certification ?? 'istqb'] ?? 65;
   // 빈 상태 판정에만 쓰는 개수. 실전·미니를 모두 세어, 미니만 푼 사용자에게
   // "기록 없음"이 뜨지 않게 한다(미니 섹션에는 내용이 있으므로 모순이 된다).
@@ -98,8 +113,16 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
   // 표본이 가장 작은 챕터가 늘 1위 약점이 된다. 실제 데이터에서 세트당 1~4문항짜리
   // 챕터가 흔해(CSTS 2018은 6개 중 5개), 1문항을 틀린 챕터(0%)가 19문항을 풀어 10%가
   // 나온 진짜 약점보다 위에 온다 — 앱이 엉뚱한 챕터를 공부하라고 지시하게 된다.
-  const { rankedChapters, lowSampleChapters } = useMemo(() => {
-    const agg = aggregateChapterStats(Object.values(histories));
+  // 재수록 문항을 대표 id로 접는 함수. 표는 45그룹뿐이라 Map 구성 비용이 작고,
+  // 표가 바뀌지 않는 한 참조가 유지돼 아래 집계 메모가 매 렌더 무효화되지 않는다.
+  const canonicalIdOf = useMemo(() => makeCanonicalIdResolver(duplicateGroups), [duplicateGroups]);
+  const { rankedChapters, lowSampleChapters, staleRounds } = useMemo(() => {
+    const all_ = Object.values(histories);
+    // 문항 단위 최신 시도 기준(재풀이해도 분모가 늘지 않는다). 문항 id를 남기지 않던
+    // 과거 회차만 있으면 셀 것이 없으므로 종전 누적 방식으로 폴백한다.
+    const latest = aggregateLatestChapterStats(all_, canonicalIdOf);
+    const useLatest = Object.keys(latest.stats).length > 0;
+    const agg = useLatest ? latest.stats : aggregateChapterStats(all_);
     const all = Object.entries(agg)
       .map(([name, { c, t }]) => ({ name, c, t, rate: displayRatePercent(c, t) }))
       .sort((a, b) => a.rate - b.rate || b.t - a.t);
@@ -107,8 +130,10 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
       rankedChapters: all.filter((ch) => ch.t >= MIN_CHAPTER_SAMPLE),
       // 표본 많은 순 — 판단 보류 그룹 안에서는 '가장 먼저 표본이 찰' 챕터를 위에 둔다.
       lowSampleChapters: all.filter((ch) => ch.t < MIN_CHAPTER_SAMPLE).sort((a, b) => b.t - a.t),
+      // 최신 기준으로 셀 때 빠진 과거 회차 수(폴백 중이면 0 — 그때는 전부 집계된다).
+      staleRounds: useLatest ? latest.legacyRounds : 0,
     };
-  }, [histories]);
+  }, [histories, canonicalIdOf]);
   const chapterRows = rankedChapters;
   // 챕터 집계가 없는(구버전에서 채점한) 회차가 섞여 있으면 안내한다.
   const legacyCount = useMemo(
@@ -161,11 +186,18 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
                     두 버튼의 차이는 종전에 title(툴팁)에만 있었는데, 모바일은 hover가 없어
                     툴팁이 뜨지 않는다 — 폰으로 쓰는 사용자는 차이를 알 방법이 없었다.
                     화면에 보이는 설명으로 옮기고, 제목은 '왜 쓰는지'를 먼저 말한다. */}
-                <h4>약한 챕터부터 <small>전 세트 합산 · 정답률 낮은 순</small></h4>
+                <h4>약한 챕터부터 <small>풀어 본 문항 기준 · 정답률 낮은 순</small></h4>
                 <p className="stats-hint sc-legend">
                   <strong>연습</strong>은 그 챕터 문항을 해설과 함께 익히는 용도예요(기록에 남지 않습니다).
                   {' '}<strong>미니 시험</strong>은 그 챕터에서 <strong>최대 10문항</strong>을 뽑아 채점해
                   정답률을 다시 잽니다(현재 세트에 그보다 적으면 있는 만큼만 출제됩니다).
+                </p>
+                {/* 종전에는 회차별 출제 수를 그대로 더해, 같은 문항을 다시 풀 때마다 분모가
+                    커졌다(6문항 챕터가 "0/18"). 지금은 문항마다 가장 최근 결과만 세므로
+                    괄호 안 숫자가 '내가 풀어 본 서로 다른 문항 수'다 — 복습해도 늘지 않는다.
+                    설명이 길면 모바일에서 데이터보다 안내가 먼저 화면을 채운다 — 한 줄로 둔다. */}
+                <p className="stats-hint sc-legend">
+                  괄호 안은 <strong>풀어 본 서로 다른 문항 수</strong> — 다시 풀면 최근 결과로 바뀝니다.
                 </p>
                 {/* 잠금 사유도 종전엔 툴팁뿐이라 모바일에서는 "버튼이 왜 안 눌리지"로만 보였다. */}
                 {practiceLocked && (
@@ -215,6 +247,12 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
                 {legacyCount > 0 && (
                   <p className="stats-hint">챕터 집계가 없는 이전 회차 {legacyCount}건은 제외됨(새로 채점하면 반영).</p>
                 )}
+                {staleRounds > 0 && (
+                  <p className="stats-hint" data-testid="stats-stale-rounds">
+                    문항 정보가 없는 이전 회차 {staleRounds}건은 제외됨 — 그 회차는 어떤 문항을
+                    풀었는지 남아 있지 않아 중복을 걸러낼 수 없어요(다시 풀면 반영됩니다).
+                  </p>
+                )}
               </section>
             )}
 
@@ -222,7 +260,12 @@ export const StatsDashboard = ({ histories, sets, onClose, onClear, onPracticeCh
               <section className="stats-chapters stats-lowsample" aria-label="표본이 적은 챕터" data-testid="stats-lowsample">
                 {/* 표본이 적으면 정답률이 0%/100%로 널뛴다 — 순위에 섞으면 실력이 아니라
                     표본 크기로 줄을 세우게 되므로, 판단을 보류한다고 명시하고 분리한다. */}
-                <h4>아직 판단하기 이른 챕터 <small>{MIN_CHAPTER_SAMPLE}문항 미만 · 더 풀면 순위에 올라옵니다</small></h4>
+                {/* 문구 주의: 분모는 이제 '풀어 본 서로 다른 문항 수'라 같은 세트를 다시 풀어도
+                    늘지 않는다. 종전의 "더 풀면 순위에 올라옵니다"는 세트를 다 푼 사용자에게
+                    거짓이 된다 — 실제로 표본을 늘리는 건 '다른 세트'다. 세트 하나에 챕터당
+                    1~4문항뿐인 경우가 있어(CSTS 2018은 6챕터 중 5개) 아무리 반복해도
+                    순위에 오르지 못하는 상태가 실재한다. */}
+                <h4>아직 판단하기 이른 챕터 <small>{MIN_CHAPTER_SAMPLE}문항 미만 · 다른 세트를 풀면 표본이 쌓입니다</small></h4>
                 {chapterRows.length === 0 && (
                   <p className="stats-hint sc-legend">
                     <strong>연습</strong>은 해설과 함께 익히는 용도(기록에 남지 않음),

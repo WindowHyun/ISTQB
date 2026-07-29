@@ -1,5 +1,6 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../../store/useQuizStore';
+import { gradeKeyFor } from '../../utils/answerKey';
 import { formatClock } from '../../utils/time';
 import { examLimitSeconds, remainingSeconds } from '../../utils/examTime';
 
@@ -15,7 +16,7 @@ export const TimerClock = () => {
       mode: s.mode,
       activeProduct: s.activeProduct,
       // 채점을 마쳤는지(세트·모드 단위) — 채점 후에는 카운트다운이 의미를 잃는다.
-      isGraded: Boolean(s.graded[`${s.setId}-${s.mode}`]),
+      isGraded: Boolean(s.graded[gradeKeyFor(s.setId, s.mode)]),
     })),
   );
   // 채점 후에는 남은 시간 대신 '소요 시간'을 보여준다 — 그대로 두면 시험이 끝났는데도
