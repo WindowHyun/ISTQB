@@ -342,10 +342,23 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   setRandomDraw: (randomDraw) => set({ randomDraw }),
   setQuickDraw: (quickDraw) => set({ quickDraw }),
   // 추첨을 비워 새로 뽑게 한다 — 진입할 때마다 같은 문항이 나오면 '퀵'의 의미가 없다.
-  startQuick: (quickSize) => set((state) => ({
-    mode: 'quick', setId: QUICK_SET_ID, quickSize, quickDraw: null, index: 0,
-    chapterFilter: null, quickNonce: state.quickNonce + 1,
-  })),
+  startQuick: (quickSize) => set((state) => {
+    // 이전 퀵 회차의 답안·채점 상태를 반드시 비운다. 퀵의 setId·mode는 항상 같아서
+    // 채점 키(QUICK-quick)도 늘 같다 — 남겨 두면 두 번째 세션이 '이미 채점됨' 상태로
+    // 시작해 보기가 잠기고(정답이 미리 공개된 채) 채점 버튼도 뜨지 않는다.
+    // 답안도 함께 지운다: 재수록 문항이 다시 뽑히면 이전 회차의 답이 선택된 채로 보인다.
+    const prefix = answerKeyPrefix(QUICK_SET_ID, 'quick');
+    const nextAnswers = { ...state.answers };
+    for (const key in nextAnswers) {
+      if (key.startsWith(prefix)) delete nextAnswers[key];
+    }
+    return {
+      mode: 'quick', setId: QUICK_SET_ID, quickSize, quickDraw: null, index: 0,
+      chapterFilter: null, quickNonce: state.quickNonce + 1,
+      answers: nextAnswers,
+      graded: { ...state.graded, [gradeKeyFor(QUICK_SET_ID, 'quick')]: false },
+    };
+  }),
   // 진입/캐시 복원 시 항상 최초 화면(제품 선택 게이트)으로 — 오버레이도 모두 닫는다.
   resetToGate: () => set({
     mode: 'home', activeProduct: null,
