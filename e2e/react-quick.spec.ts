@@ -215,8 +215,11 @@ test.describe("퀵 랜덤", () => {
     const confirm = page.getByTestId("confirm-grade");
     if (await confirm.count()) await confirm.click();
     await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 15_000 });
-    await page.getByRole("button", { name: "오답 노트 보기" }).click();
-    await expect(page.getByTestId("wrong-note")).toBeVisible();
+    // 퀵 결과 모달에는 '오답 노트 보기'를 두지 않는다(오답이 회차가 아니라 출처 세트별로
+    // 흩어지므로) — 사이드바의 상시 진입로로 연다.
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
+    await page.getByRole("button", { name: /오답 노트/ }).first().click();
+    await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 20_000 });
 
     const groups = page.getByTestId("wrong-note-set-btn");
     // 10문항이 여러 세트에서 왔으므로 그룹도 여럿이어야 한다(1이면 한 덩어리로 뭉친 것).

@@ -26,6 +26,12 @@ interface ResultSummaryProps {
    * 떨어진다는 뜻으로 읽힌다 — 세트 전체를 푼 것이 아니므로 그 판정의 근거가 없다.
    */
   hidePassVerdict?: boolean;
+  /**
+   * '오답 노트 보기' 버튼을 숨긴다(퀵 랜덤). 퀵의 오답은 회차가 아니라 각 문항의 출처
+   * 세트별로 흩어져 노트에 들어간다 — 결과 모달에서 바로 열면 방금 푼 회차의 오답만
+   * 모여 있을 것이라 기대하게 되지만 실제로는 세트별 전 회차 합산이 보인다.
+   */
+  hideWrongNote?: boolean;
 }
 
 export const ResultSummary = ({
@@ -42,6 +48,7 @@ export const ResultSummary = ({
   onOpenWrongNote,
   onRetry,
   hidePassVerdict,
+  hideWrongNote,
 }: ResultSummaryProps) => {
   const { passed, ratePercent, criterionLabel, scoreLabel } = evaluatePass(certification, correct, total, cstsWeighted);
   const wrong = total - correct;
@@ -96,7 +103,7 @@ export const ResultSummary = ({
         </dl>
 
         <div className="result-actions">
-          {wrong > 0 && (
+          {wrong > 0 && !hideWrongNote && (
             <button type="button" className="primary" onClick={onOpenWrongNote}>
               오답 노트 보기
             </button>

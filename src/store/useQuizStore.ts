@@ -8,6 +8,13 @@ export type QuizMode = 'home' | 'exam' | 'practice' | 'random' | 'review' | 'qui
 /** 퀵 랜덤 회차의 setId. 어느 세트에도 속하지 않는다는 표식이다. */
 export const QUICK_SET_ID = 'QUICK';
 
+/**
+ * 실제로 풀이가 일어나는 모드 목록(게이트 'home' 제외) — 답안·채점 키가 생기는 모드다.
+ * storage의 이력 허용 모드도 여기서 파생한다: 두 목록을 따로 관리하면 모드를 추가할 때
+ * 한쪽 누락으로 이력이 무단 폐기되거나(그 결함이 실제로 났다) 초기화가 반쪽이 된다.
+ */
+export const PLAY_MODES = ['exam', 'practice', 'random', 'review', 'quick'] as const;
+
 /** 퀵에서 고를 수 있는 문항 수. 듀오링고식 짧은 세션 규모. */
 export const QUICK_SIZES = [10, 15, 20] as const;
 
@@ -122,6 +129,12 @@ export interface QuizState {
   /** 시험 응시 개시 시각 기록/해제 — 제한시간의 기준점. */
   setExamStartedAt: (setId: string, at: number | null) => void;
   clearAnswers: (setId: string, mode: QuizMode) => void;
+  /**
+   * 주어진 세트들의 풀이 흔적을 한 번에 비운다 — 답안·채점 상태·시험 게이트·오답 대상·
+   * 재풀이 진척까지. 이력(IndexedDB) 삭제와 짝을 이룬다: 이력만 지우면 오답노트에는
+   * 없는데 오답 모드에는 나오는 유령 상태가 남는다.
+   */
+  resetProgressForSets: (setIds: string[]) => void;
   // id 목록으로 이력을 지운다. 호출은 storage.removeHistoriesEverywhere(메모리+DB 동시 삭제)로만.
   removeHistories: (ids: string[]) => void;
   tickTimer: () => void;
@@ -272,6 +285,34 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       examStarted: nextExamStarted,
       examStartedAt: nextExamStartedAt,
     };
+  }),
+  resetProgressForSets: (setIds) => set((state) => {
+    if (!setIds.length) return state;
+    // 접두 일치로 지우면 유사한 이름의 다른 세트까지 함께 날아간다 —
+    // (setId, mode) 조합으로 정확한 키를 만들어 지운다.
+    const answerPrefixes = setIds.flatMap((id) => PLAY_MODES.map((m) => answerKeyPrefix(id, m)));
+    const gradeKeys = new Set(setIds.flatMap((id) => PLAY_MODES.map((m) => gradeKeyFor(id, m))));
+
+    const answers = { ...state.answers };
+    for (const key in answers) {
+      if (answerPrefixes.some((p) => key.startsWith(p))) delete answers[key];
+    }
+    const graded = { ...state.graded };
+    const reviewIds = { ...state.reviewIds };
+    for (const key of gradeKeys) {
+      delete graded[key];
+      // 오답 대상 — 남기면 삭제된 회차의 오답이 오답 모드에 계속 출제된다.
+      delete reviewIds[key];
+    }
+    const examStarted = { ...state.examStarted };
+    const examStartedAt = { ...state.examStartedAt };
+    const reviewedOk = { ...state.reviewedOk };
+    for (const id of setIds) {
+      delete examStarted[id];
+      delete examStartedAt[id];
+      delete reviewedOk[id];
+    }
+    return { answers, graded, reviewIds, examStarted, examStartedAt, reviewedOk };
   }),
   removeHistories: (ids) => set((state) => {
     const nextHistories = { ...state.histories };

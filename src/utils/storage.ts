@@ -1,4 +1,4 @@
-import { useQuizStore, QuizState, QuizMode, ExamHistory, sessionScopeDefaults } from '../store/useQuizStore';
+import { useQuizStore, QuizState, QuizMode, ExamHistory, sessionScopeDefaults, PLAY_MODES } from '../store/useQuizStore';
 import debounce from 'lodash-es/debounce';
 import { showToast } from './toast';
 import { answerKeyPrefix, gradeKeyFor } from './answerKey';
@@ -173,7 +173,9 @@ export function sanitizeAnswers(value: unknown): Record<string, string[]> {
 // 'quick'이 빠지면 퀵 회차의 mode가 아래에서 'exam'으로 보정돼, isSetLevelRound가
 // 10~20문항짜리 짧은 회차를 세트 전체 실전으로 세고 최고 정답률·평균을 부풀린다
 // (예전에 고친 "챕터 미니 시험이 최고 정답률을 부풀림"과 같은 결함). 계약은 단위 테스트로 고정.
-export const HISTORY_MODES: QuizMode[] = ["exam", "practice", "random", "review", "quick"];
+// 목록을 여기서 다시 적지 않는다 — 스토어의 PLAY_MODES가 단일 원천이다(둘이 갈리면
+// 새 모드의 이력이 조용히 exam으로 보정된다).
+export const HISTORY_MODES: QuizMode[] = [...PLAY_MODES];
 const VALID_MODES: string[] = ["home", ...HISTORY_MODES];
 
 // 외부(IndexedDB 구버전 데이터·백업 파일) 이력을 정제한다 — sanitizeAnswers/sanitizeUiState와

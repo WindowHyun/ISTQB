@@ -216,6 +216,8 @@ export const Sidebar = () => {
   const productSubtitle = activeProduct === 'istqb' ? 'ISTQB FL v4.0' : 'CSTS';
   const productBadge = (activeProduct || '').toUpperCase();
   const showGradeSection = isGradedMode(mode);
+  // 퀵을 푸는 중(채점 전) — 시작 버튼을 감출지 판단한다.
+  const quickUnderway = mode === 'quick' && !isGraded;
 
   // 오답 모드 '복습 완료' — 맞힌 문항을 재풀이 대상에서 빼 목록이 실제로 줄어들게 한다.
   // 종전에는 오답을 전부 맞혀도 다음에 같은 목록이 그대로 나와 루프가 닫히지 않았다.
@@ -348,38 +350,6 @@ export const Sidebar = () => {
           </select>
         </section>
 
-        {/* 퀵 랜덤 — 세트를 고르지 않고 제품 전체에서 짧게 푼다. 세그먼트(세트 안의 풀이 모드)와
-            성격이 달라 별도 섹션에 둔다: 세그먼트에 넣으면 위 세트 선택과 무관한데도
-            "선택한 세트를 퀵으로 푼다"로 읽힌다. */}
-        <section className="panel quick-panel">
-          <label htmlFor="quickSize">⚡ 퀵 랜덤</label>
-          <div className="quick-row">
-            <select
-              id="quickSize"
-              value={quickSize}
-              onChange={(e) => setQuickSizeLocal(Number(e.target.value))}
-              disabled={examLocked}
-              aria-label="퀵 랜덤 문항 수"
-            >
-              {QUICK_SIZES.map((n) => (
-                <option key={n} value={n}>{n}문항</option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="quick-start-btn"
-              data-testid="quick-start-btn"
-              disabled={examLocked}
-              onClick={handleStartQuick}
-            >
-              시작
-            </button>
-          </div>
-          <p className="action-hint">
-            {certLabel} 전 세트에서 4지선다·진위형만 뽑습니다. 제한시간 없음 · 위 요약에는 넣지 않습니다.
-          </p>
-        </section>
-
         <section className="panel">
           <label>풀이 모드</label>
           <div className="segmented" role="group" aria-label="풀이 모드">
@@ -412,6 +382,48 @@ export const Sidebar = () => {
               </button>
             </>
           )}
+        </section>
+
+        {/* 퀵 랜덤 — 세트를 고르지 않고 제품 전체에서 짧게 푼다. 세그먼트(세트 안의 풀이 모드)와
+            성격이 달라 별도 섹션에 둔다: 세그먼트에 넣으면 위 세트 선택과 무관한데도
+            "선택한 세트를 퀵으로 푼다"로 읽힌다.
+            위치: 세트 선택과 풀이 모드는 둘 다 "고른 세트를 어떻게 풀 것인가"라 붙어 있어야
+            읽히는데, 그 사이에 끼어 있으면 두 컨트롤을 갈라놓는다. 성격이 다른 별도 진입로이므로
+            세트 계열 컨트롤 뒤로 뺀다. */}
+        <section className="panel quick-panel">
+          <label htmlFor="quickSize">⚡ 퀵 랜덤</label>
+          <div className="quick-row">
+            <select
+              id="quickSize"
+              value={quickSize}
+              onChange={(e) => setQuickSizeLocal(Number(e.target.value))}
+              disabled={examLocked}
+              aria-label="퀵 랜덤 문항 수"
+            >
+              {QUICK_SIZES.map((n) => (
+                <option key={n} value={n}>{n}문항</option>
+              ))}
+            </select>
+            {/* 퀵을 푸는 중에는 시작 버튼을 감춘다 — 남겨 두면 그 자리에서 누르는 순간
+                진행 중이던 답안이 경고 없이 버려지고 새 추첨으로 갈아탄다.
+                채점을 마치면 다시 나타나 다음 회차로 갈 수 있다. */}
+            {!quickUnderway && (
+              <button
+                type="button"
+                className="quick-start-btn"
+                data-testid="quick-start-btn"
+                disabled={examLocked}
+                onClick={handleStartQuick}
+              >
+                시작
+              </button>
+            )}
+          </div>
+          <p className="action-hint">
+            {quickUnderway
+              ? '퀵 진행 중 — 채점하면 다시 시작할 수 있습니다.'
+              : `${certLabel} 전 세트에서 4지선다·진위형만 뽑습니다. 제한시간 없음 · 위 요약에는 넣지 않습니다.`}
+          </p>
         </section>
 
         <section className="stats">
