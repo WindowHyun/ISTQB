@@ -2,55 +2,77 @@ import { test, expect } from "@playwright/test";
 import { openProduct } from "./helpers";
 
 /**
- * 이 검사는 하나의 질문에 답하려고 있다: 첫 WebKit 실행에서 보기 버튼이 30초 동안
- * Playwright의 "stable" 판정을 통과하지 못한 것이, 판정 기준이 사람보다 엄격해서인가
- * 아니면 Safari에서 무언가 실제로 계속 움직여서인가.
+ * WebKit에서 긴 클릭 루프가 Playwright의 "stable" 판정을 통과하지 못하는 원인을 찾는다.
  *
- * 후자라면 제품 결함이다 — 사용자에게는 잔떨림과 불필요한 합성 작업(배터리)으로 나타난다.
- * 그래서 동작 최소화를 끈 상태(= 기본 사용자)에서 실제 경계 상자를 프레임마다 재
- * 언제 멈추는지 측정한다.
+ * stable 판정은 requestAnimationFrame 두 프레임 연속으로 경계 상자가 같아야 통과한다.
+ * 따라서 실패 원인은 물리적으로 둘 중 하나다:
+ *   (A) rAF가 돌지 않는다      — 판정이 영원히 대기한다
+ *   (B) 상자가 계속 변한다      — 레이아웃이 수렴하지 않는다
+ * 어느 쪽인지 재면 원인이 갈린다.
  */
-test("WebKit: 보기 버튼이 상호작용 뒤 실제로 멈추는가(잔떨림 측정)", async ({ page }) => {
-  test.setTimeout(120_000);
-  // webkit 프로젝트는 reducedMotion을 켜 두므로, 여기서만 기본 사용자 상태로 되돌린다.
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await openProduct(page, "ISTQB");
-  await expect(page.locator("#options .option").first()).toBeVisible({ timeout: 20_000 });
 
-  // 마우스를 보기 위에 올려 호버·누름 전환을 실제로 발동시킨다.
-  const box = (await page.locator("#options .option").first().boundingBox())!;
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.mouse.up();
+type Probe = { iter: number; frames: number; changed: number; sameNode: boolean };
 
-  // 이후 2초 동안 프레임마다 상자를 재고, 마지막으로 '변한' 시점을 찾는다.
-  const result = await page.evaluate(async () => {
-    const el = document.querySelector("#options .option") as HTMLElement;
-    const started = performance.now();
+async function probe(page: import("@playwright/test").Page, iter: number): Promise<Probe> {
+  return page.evaluate(async (i) => {
+    const el = document.querySelector("#options .option") as HTMLElement | null;
+    if (!el) return { iter: i, frames: -1, changed: -1, sameNode: false };
+    const first = el;
+    let frames = 0;
+    let changed = 0;
     let last = el.getBoundingClientRect();
-    let lastChange = 0;
-    let samples = 0;
+    const t0 = performance.now();
     await new Promise<void>((done) => {
       const tick = () => {
+        frames += 1;
         const r = el.getBoundingClientRect();
-        samples += 1;
-        if (Math.abs(r.width - last.width) > 0.01 || Math.abs(r.height - last.height) > 0.01
-            || Math.abs(r.x - last.x) > 0.01 || Math.abs(r.y - last.y) > 0.01) {
-          lastChange = performance.now() - started;
-        }
+        if (Math.abs(r.x - last.x) > 0.01 || Math.abs(r.y - last.y) > 0.01
+            || Math.abs(r.width - last.width) > 0.01 || Math.abs(r.height - last.height) > 0.01) changed += 1;
         last = r;
-        if (performance.now() - started < 2000) requestAnimationFrame(tick);
+        if (performance.now() - t0 < 400) requestAnimationFrame(tick);
         else done();
       };
       requestAnimationFrame(tick);
     });
-    return { lastChange: Math.round(lastChange), samples };
-  });
+    return { iter: i, frames, changed, sameNode: document.querySelector("#options .option") === first };
+  }, iter);
+}
 
-  console.log(`· 마지막 변화 ${result.lastChange}ms · 표본 ${result.samples}프레임`);
-  // 트랜지션은 0.06~0.12초다. 500ms 안에 멈추지 않으면 무언가 계속 움직이고 있다는 뜻이고,
-  // 그건 판정 기준의 문제가 아니라 제품의 문제다.
-  expect(result.lastChange, `상호작용 뒤 ${result.lastChange}ms까지 계속 움직였다`).toBeLessThan(500);
+test("WebKit 원인 규명: 긴 클릭 루프에서 rAF와 레이아웃이 어떻게 되는가", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await openProduct(page, "ISTQB");
+
+  // 퀵 10문항 — 실패한 스펙과 같은 조건.
+  const sel = page.locator("#quickSize");
+  if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
+  await sel.selectOption("10");
+  await page.getByTestId("quick-start-btn").click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+
+  const probes: Probe[] = [];
+  for (let i = 0; i < 10; i += 1) {
+    probes.push(await probe(page, i));
+    // Playwright의 actionability를 우회해 루프를 진행시킨다 — 여기서 재려는 것은
+    // 클릭 가능 여부가 아니라 클릭 이후 페이지가 어떤 상태가 되는가다.
+    await page.evaluate(() => {
+      (document.querySelector("#options .option") as HTMLElement | null)?.click();
+      (document.querySelector("#nextBtn") as HTMLElement | null)?.click();
+    });
+    await page.waitForTimeout(120);
+  }
+
+  for (const p of probes) {
+    console.log(`· iter ${p.iter}: rAF ${p.frames}프레임/400ms · 상자 변화 ${p.changed}회 · 같은 노드 ${p.sameNode}`);
+  }
+  const starved = probes.filter((p) => p.frames >= 0 && p.frames < 5);
+  const unstable = probes.filter((p) => p.changed > 2);
+  console.log(`\n=== rAF 기아 ${starved.length}회 · 레이아웃 미수렴 ${unstable.length}회 ===`);
+
+  // (A) rAF가 400ms에 5프레임도 못 돌면 판정은 영원히 대기한다.
+  expect(starved.map((p) => p.iter), `rAF가 멈춘 반복: ${JSON.stringify(starved)}`).toEqual([]);
+  // (B) 상자가 400ms 내내 계속 변하면 두 프레임 연속 동일이 성립하지 않는다.
+  expect(unstable.map((p) => p.iter), `레이아웃이 수렴하지 않은 반복: ${JSON.stringify(unstable)}`).toEqual([]);
 });
