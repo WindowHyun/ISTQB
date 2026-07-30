@@ -178,7 +178,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 ## CI 품질 게이트
 
 - GitHub Actions **14 job**(push/PR 병렬):
-  - **기능·품질 11** — `lint`(ESLint + `tsc` 앱 + `tsc -p tsconfig.test.json` 테스트·e2e) · `verify(데이터)` · `pdf-data`(원본 PDF 대조 — 텍스트 2,489조각·정답 626·밑줄 146) · `unit`(+커버리지 임계값 게이트) · `mutation`(Stryker 뮤테이션 스코어 break 85 게이트) · `build`(+번들 크기 예산) · `android-build`(Capacitor 동기화·APK 빌드) · `e2e`(기능 404) · `nonfunctional`(성능·부하·메모리·타이머·오프라인·데이터 내구성·장기 스케일 13, CI 완화 예산) · `apk`(Pixel 7 프로파일 + WebView UA + 안전영역 모사 20 — 실제 배포 형태인 APK의 회귀를 게이트로 감시) · `webkit`(Safari 60 — 사용자가 Safari로도 쓰므로 IndexedDB·Blob·서비스워커·Date 등 엔진 계층을 지나는 핵심 경로를 태운다).
+  - **기능·품질 11** — `lint`(ESLint + `tsc` 앱 + `tsc -p tsconfig.test.json` 테스트·e2e) · `verify(데이터)` · `pdf-data`(원본 PDF 대조 — 텍스트 2,489조각·정답 626·밑줄 146) · `unit`(+커버리지 임계값 게이트) · `mutation`(Stryker 뮤테이션 스코어 break 85 게이트) · `build`(+번들 크기 예산) · `android-build`(Capacitor 동기화·APK 빌드) · `e2e`(기능 404) · `nonfunctional`(성능·부하·메모리·타이머·오프라인·데이터 내구성·장기 스케일 13, CI 완화 예산) · `apk`(Pixel 7 프로파일 + WebView UA + 안전영역 모사 20 — 실제 배포 형태인 APK의 회귀를 게이트로 감시) · `webkit`(Safari 63 — 사용자가 Safari로도 쓰므로 IndexedDB·Blob·서비스워커·Date 등 엔진 계층을 지나는 핵심 경로를 태운다).
   - **보안 3** — `audit`(의존성 취약점, 배포 번들 기준) · `secrets`(gitleaks 시크릿 스캔) · `codeql`(JS/TS 정적분석: XSS·프로토타입 오염 등).
 - 모든 job 통과해야 머지 → **결함·취약점의 main 유입 차단**. 동시성·캐시·최소권한(CodeQL만 job 레벨 `security-events: write`) 설정.
 - 각 CI 워크플로의 동작 방식·코드 설명(CI·매일 예약 E2E·Android 배포): [`docs/ci/`](docs/ci/README.md).
@@ -210,7 +210,7 @@ flowchart LR
   REACT --> CAP
 
   subgraph 품질["품질 게이트 (GitHub Actions · 14 job)"]
-    CI["기능·품질: lint · verify · pdf-data(PDF 대조) · unit(436) · mutation(91.9%) · build · android-build · e2e(404) · nonfunctional(13) · apk(20) · webkit(60)<br/>보안: audit · secrets · codeql"]
+    CI["기능·품질: lint · verify · pdf-data(PDF 대조) · unit(436) · mutation(91.9%) · build · android-build · e2e(404) · nonfunctional(13) · apk(20) · webkit(63)<br/>보안: audit · secrets · codeql"]
   end
   REACT -.검증.-> CI
   SRC -.정합성 verify.-> CI
@@ -270,7 +270,7 @@ npm run test:cov    # 유닛 테스트 + 커버리지(임계값 게이트)
 npm run test:e2e    # Playwright React 기능 E2E (404개)
 npm run test:nf     # 비기능 E2E — 성능·부하·메모리·오프라인 (13개)
 npm run test:apk    # APK/WebView E2E — Pixel 7 프로파일 (20개)
-npm run test:webkit # Safari/WebKit E2E — 엔진 계층 핵심 경로 (60개)
+npm run test:webkit # Safari/WebKit E2E — 엔진 계층 핵심 경로 (63개)
 npm run test:mutation  # 뮤테이션 테스트 (Stryker, break 85)
 npm run typecheck:test # 테스트·e2e 타입 검사
 npm run verify      # 데이터 정합성 검증 (626문항 정답·이미지·스키마)

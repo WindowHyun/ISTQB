@@ -45,7 +45,12 @@ export default defineConfig({
       // 모바일 Safari(iPhone)는 후속으로 — 여기 실린 스펙들이 .segmented·#quickSize를
       // 직접 만지는데 모바일에서는 드로어 안이라 스펙 수정이 먼저 필요하다.
       name: "webkit",
-      testMatch: /(react-smoke|react-grade|react-functional|react-qtypes|react-persistence|react-quick|react-exam-timer|react-edge-import|react-pwa|react-review-loop|react-modes|react-webkit-motion)\.spec\.ts/,
+      // react-quick-wrongnote·react-reset-ghost는 저장소 계층이라 여기 있어야 한다:
+      // 퀵 오답 임시 목록은 localStorage에 24시간 TTL로 남고, '이력 비우기'는 IndexedDB
+      // 삭제와 localStorage 정리를 함께 한다. Safari는 storage 정책이 가장 유별난
+      // 브라우저라 이 경로가 Chromium에서만 검증되면 "Safari에서만 안 지워진다"를 놓친다.
+      // (react-quick은 이미 대상인데 그 옆 파일만 빠져 있던 것도 일관성이 없었다.)
+      testMatch: /(react-smoke|react-grade|react-functional|react-qtypes|react-persistence|react-quick-wrongnote|react-quick|react-reset-ghost|react-exam-timer|react-edge-import|react-pwa|react-review-loop|react-modes|react-webkit-motion)\.spec\.ts/,
       // reducedMotion: WebKit에서 호버/누름 트랜스폼(.option의 scale, 팔레트의 translateY)이
       // 전환 중인 동안 Playwright의 "stable" 판정을 통과하지 못해, 연속 클릭 루프가
       // 30초 타임아웃으로 죽었다(첫 CI 실행에서 4건). 사람이 누를 때는 문제가 아니라
