@@ -218,98 +218,49 @@ async function goAny(page: Page, m: AnyMode) {
   await page.waitForTimeout(180);
 }
 
-/**
- * 진행 상태 — 같은 칸이라도 출발 모드가 어떤 상태냐에 따라 전이 경로가 갈린다.
- * 종전에는 25칸을 전부 '갓 진입' 상태로만 밟아, 응시 중 잠금이나 채점 완료 상태에서
- * 빠져나오는 경로는 이 스윕에 걸리지 않았다.
- *
- * 상태를 모드마다 정직하게 정의한다 — 연습·오답은 채점 개념이 없으므로 graded를 만들지
- * 않는다(없는 상태를 만든 척하면 칸 수만 늘고 검사는 무력해진다).
- */
-type Progress = "fresh" | "inProgress" | "graded";
-const STATES: Record<AnyMode, Progress[]> = {
-  practice: ["fresh", "inProgress"],
-  review: ["fresh", "inProgress"],
-  exam: ["fresh", "inProgress", "graded"],
-  random: ["fresh", "inProgress", "graded"],
-  quick: ["fresh", "inProgress", "graded"],
-};
+test("전이 전수: 5모드 25개 순서쌍을 모두 밟아도 앱이 살아 있다", async ({ page }) => {
+  test.setTimeout(900_000);
+  const errs: string[] = [];
+  page.on("pageerror", (e) => errs.push(String(e).slice(0, 160)));
 
-/** from 모드를 주어진 상태까지 끌고 간다. */
-async function reach(page: Page, m: AnyMode, st: Progress) {
-  await goAny(page, m);
-  if (st === "fresh") return;
-  // 시험은 시작 게이트를 통과해야 문항이 나온다.
-  const gate = page.getByTestId("exam-start-btn");
-  if (await gate.count()) await gate.click({ timeout: 5000 }).catch(() => {});
-  for (let i = 0; i < 2; i += 1) {
-    const o = page.locator("#options .option").first();
-    if (await o.count()) await o.click({ timeout: 3000 }).catch(() => {});
-    const n = page.locator("#nextBtn");
-    if ((await n.count()) && !(await n.isDisabled())) await n.click({ timeout: 3000 }).catch(() => {});
-  }
-  if (st !== "graded") return;
-  await page.getByTestId("grade-button").click({ timeout: 5000 }).catch(() => {});
-  const c = page.getByTestId("confirm-grade");
-  if (await c.count()) await c.click({ timeout: 3000 }).catch(() => {});
-  const res = page.getByTestId("result-summary");
-  if (await res.count()) {
-    await res.getByRole("button", { name: "닫기", exact: true }).click({ timeout: 5000 }).catch(() => {});
-  }
-}
+  let walked = 0;
+  for (const from of ALL_MODES) {
+    for (const to of ALL_MODES) {
+      await page.goto("/");
+      await page.evaluate(() => localStorage.clear());
+      await openProduct(page, "ISTQB");
 
-/**
- * from 모드마다 별도 테스트로 낸다 — 65칸을 한 테스트에 몰면 직렬로 돌아 벽시계가
- * 그만큼 길어진다. 쪼개 두면 워커가 나눠 가져 스위트 전체 시간에 주는 영향이 작다.
- */
-for (const from of ALL_MODES) {
-  const states = STATES[from];
-  test(`전이 전수: ${from}(${states.length}상태) → 5모드 어디로 가도 앱이 살아 있다`, async ({ page }) => {
-    test.setTimeout(900_000);
-    const errs: string[] = [];
-    page.on("pageerror", (e) => errs.push(String(e).slice(0, 160)));
-    const local: string[] = [];
-    let walked = 0;
-
-    for (const st of states) {
-      for (const to of ALL_MODES) {
-        await page.goto("/");
-        await page.evaluate(() => localStorage.clear());
-        await openProduct(page, "ISTQB");
-
-        // 오답 모드로 가려면 오답이 있어야 한다 — 없으면 사양상 진입하지 않는다.
-        if (from === "review" || to === "review") {
-          await goAny(page, "random");
-          await page.locator("#options .option").first().click();
-          await page.getByTestId("grade-button").click();
-          const c = page.getByTestId("confirm-grade");
-          if (await c.count()) await c.click();
-          await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
-          await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
-        }
-
-        await reach(page, from, st);
-        await goAny(page, to);
-        walked += 1;
-
-        const where = `${from}[${st}]→${to}`;
-        const alive = await page.evaluate(() => ({
-          shell: !!document.querySelector(".app-shell"),
-          gate: !!document.querySelector('[data-testid="exam-start-gate"]'),
-          stem: !!document.querySelector("#questionStem"),
-          empty: !!document.querySelector(".nav-summary"),
-          result: !!document.querySelector('[data-testid="result-summary"]'),
-          overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
-        }));
-        if (!alive.shell) local.push(`${where}: 앱 셸이 사라짐`);
-        // 지문·게이트·빈 안내·결과 중 하나는 있어야 한다 — 넷 다 없으면 흰 화면이다.
-        if (!alive.stem && !alive.gate && !alive.empty && !alive.result) local.push(`${where}: 화면이 비었다`);
-        if (alive.overflow) local.push(`${where}: 문서 가로 넘침`);
+      // 오답 모드로 가려면 오답이 있어야 한다 — 없으면 사양상 진입하지 않는다.
+      // random/review가 관여하는 칸을 실제로 밟으려면 먼저 오답을 만들어 둔다.
+      if (from === "review" || to === "review") {
+        await goAny(page, "random");
+        await page.locator("#options .option").first().click();
+        await page.getByTestId("grade-button").click();
+        const c = page.getByTestId("confirm-grade");
+        if (await c.count()) await c.click();
+        await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
+        await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
       }
+
+      await goAny(page, from);
+      await goAny(page, to);
+      walked += 1;
+
+      // 어느 칸에서도 앱이 죽거나 화면이 비면 안 된다.
+      const alive = await page.evaluate(() => ({
+        shell: !!document.querySelector(".app-shell"),
+        gate: !!document.querySelector('[data-testid="exam-start-gate"]'),
+        stem: !!document.querySelector("#questionStem"),
+        empty: !!document.querySelector(".nav-summary"),
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      }));
+      if (!alive.shell) bad(`${from}→${to}: 앱 셸이 사라짐`);
+      // 지문·게이트·빈 안내(오답 없음 등) 중 하나는 있어야 한다 — 셋 다 없으면 흰 화면이다.
+      if (!alive.stem && !alive.gate && !alive.empty) bad(`${from}→${to}: 화면이 비었다`);
+      if (alive.overflow) bad(`${from}→${to}: 문서 가로 넘침`);
     }
-    console.log(`· 전이 ${from}: ${walked}칸(${states.length}상태 × 5모드) 검사 완료`);
-    if (errs.length) local.push(`JS 오류: ${JSON.stringify(errs.slice(0, 5))}`);
-    for (const l of local) console.log("  ✗ " + l);
-    expect(local, local.join("\n")).toEqual([]);
-  });
-}
+  }
+  console.log(`· 5모드 전이 전수 ${walked}칸 (5×5) 검사 완료`);
+  if (errs.length) bad(`JS 오류: ${JSON.stringify(errs.slice(0, 5))}`);
+  expect(problems, problems.join("\n")).toEqual([]);
+});
