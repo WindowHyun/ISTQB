@@ -173,7 +173,7 @@ export function sanitizeAnswers(value: unknown): Record<string, string[]> {
 // 'quick'이 빠지면 퀵 회차의 mode가 아래에서 'exam'으로 보정돼, isSetLevelRound가
 // 10~20문항짜리 짧은 회차를 세트 전체 실전으로 세고 최고 정답률·평균을 부풀린다
 // (예전에 고친 "챕터 미니 시험이 최고 정답률을 부풀림"과 같은 결함). 계약은 단위 테스트로 고정.
-const HISTORY_MODES: QuizMode[] = ["exam", "practice", "random", "review", "quick"];
+export const HISTORY_MODES: QuizMode[] = ["exam", "practice", "random", "review", "quick"];
 const VALID_MODES: string[] = ["home", ...HISTORY_MODES];
 
 // 외부(IndexedDB 구버전 데이터·백업 파일) 이력을 정제한다 — sanitizeAnswers/sanitizeUiState와
@@ -245,11 +245,21 @@ export function sanitizeHistory(value: unknown): ExamHistory | null {
     out.wrongItems = value.wrongItems
       .filter(isPlainObject)
       .filter((it) => typeof it.number === "number" && Number.isFinite(it.number))
-      .map((it) => ({
-        number: it.number as number,
-        myAnswer: stringArray(it.myAnswer),
-        correctAnswer: stringArray(it.correctAnswer),
-      }));
+      .map((it) => {
+        const item: NonNullable<ExamHistory["wrongItems"]>[number] = {
+          number: it.number as number,
+          myAnswer: stringArray(it.myAnswer),
+          correctAnswer: stringArray(it.correctAnswer),
+        };
+        // 퀵 회차의 setId는 'QUICK'이라는 가짜 세트라, 오답이 실제로 어느 세트에서
+        // 나왔는지는 이 항목별 setId에만 남는다. allowlist에서 빠뜨리면 이 필드가
+        // 사라지는데, loadHistoriesFromDB가 읽을 때마다 정제하므로 새로고침 한 번에
+        // 오답노트가 '퀵 랜덤' 한 덩어리로 뭉치고 세트 간 번호 충돌로 항목이 서로를
+        // 덮어쓴다. 없는 경우(일반 회차)는 만들어 붙이지 않는다 — 호출부가
+        // `it.setId ?? h.setId`로 회차 setId를 폴백하기 때문이다.
+        if (typeof it.setId === "string" && it.setId) item.setId = it.setId;
+        return item;
+      });
   }
   return out;
 }

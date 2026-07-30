@@ -125,6 +125,43 @@ describe('sanitizeHistory — 퀵 모드 보존', () => {
   it('알 수 없는 모드는 여전히 exam으로 보정한다(구버전 기록 보존)', () => {
     expect(sanitizeHistory({ id: 'x', setId: 'A', mode: 'nonsense', answers: {} })?.mode).toBe('exam');
   });
+
+  // 퀵 회차의 setId는 'QUICK'이라는 가짜 세트다 — 오답이 어느 세트에서 나왔는지는
+  // wrongItems[].setId에만 남는다. 이걸 잃으면 오답노트가 전부 '퀵 랜덤' 한 덩어리로
+  // 뭉치고, 세트가 달라 같은 번호가 여럿인 문항들이 서로를 덮어쓴다.
+  // sanitizeHistory는 allowlist 재구축이라 목록에 없는 필드는 조용히 사라지는데,
+  // loadHistoriesFromDB가 읽을 때마다 정제하므로 새로고침 한 번이면 그렇게 된다.
+  it('wrongItems의 출처 세트(setId)를 보존한다', () => {
+    const h = sanitizeHistory({
+      id: 'q2', setId: 'QUICK', mode: 'quick', answers: {}, correct: 8, total: 10,
+      wrongItems: [
+        { number: 3, myAnswer: ['a'], correctAnswer: ['b'], setId: 'ISTQB-FL-V4-A' },
+        { number: 3, myAnswer: ['c'], correctAnswer: ['d'], setId: 'ISTQB-FL-V4-B' },
+      ],
+    });
+    expect(h!.wrongItems).toEqual([
+      { number: 3, myAnswer: ['a'], correctAnswer: ['b'], setId: 'ISTQB-FL-V4-A' },
+      { number: 3, myAnswer: ['c'], correctAnswer: ['d'], setId: 'ISTQB-FL-V4-B' },
+    ]);
+  });
+
+  // 일반 회차(시험·랜덤)는 출처가 회차의 setId 하나뿐이라 항목에 setId가 없다.
+  // 없는 걸 빈 문자열 등으로 채우면 AppModals의 `it.setId ?? h.setId` 폴백이 깨진다.
+  it('출처 세트가 없는 항목에는 setId를 만들어 붙이지 않는다', () => {
+    const h = sanitizeHistory({
+      id: 'e1', setId: 'ISTQB-FL-V4-A', mode: 'exam', answers: {},
+      wrongItems: [{ number: 1, myAnswer: ['a'], correctAnswer: ['b'] }],
+    });
+    expect(h!.wrongItems![0]).not.toHaveProperty('setId');
+  });
+
+  it('문자열이 아닌 setId는 버린다(조작 백업 방어)', () => {
+    const h = sanitizeHistory({
+      id: 'e2', setId: 'A', mode: 'quick', answers: {},
+      wrongItems: [{ number: 1, myAnswer: [], correctAnswer: [], setId: 42 }],
+    });
+    expect(h!.wrongItems![0]).not.toHaveProperty('setId');
+  });
 });
 
 describe('sanitizeUiState — quickDraw', () => {
