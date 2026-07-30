@@ -44,7 +44,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 - **PDF ↔ 데이터 전수 정합성 검증(상시 CI 게이트)** — 626문항을 **원본 PDF 13종에서 독립 추출해 텍스트 2,489조각·정답 626문항·밑줄 강조 146곳을 전수 대조**하는 게이트(`scripts/verify-pdf-data.py`, CI `pdf-data` job)를 상시 운영. 배포 전 6축 검수(텍스트·정답·밑줄·강조·이미지/그래프·표)로 표 구조 손실·그림 누락·밑줄 144곳 누락을 발견·교정해 현재 불일치 0. 더해 `npm run verify`로 정답·이미지·스키마 자동 점검 + 전 문항 렌더 스윕(404·예외·깨진 이미지 0).
 - **자격증별 컷스코어·접근성** — ISTQB 65% / CSTS 환산 52.5점 합격 판정, 색각 대비 글리프·포커스 트랩·reduced-motion 등 a11y 반영.
 - **결함 RCA & 회귀 방지** — PDF 원본 ↔ 앱 렌더를 전수 대조해 결함을 찾고, 반복 결함의 근본원인을 분석해 **클래스 단위**로 차단(케이스별 회귀 테스트 추가).
-- **CI 품질 게이트** — GitHub Actions **13-job** 통과 시에만 머지: 기능·품질 10(lint(+테스트/e2e 타입검사)·verify·**pdf-data(원본 PDF 대조)**·unit·**mutation**·build·android-build·e2e·**nonfunctional**·**apk(WebView)**) + **보안 3(의존성 감사·시크릿 스캔·CodeQL 정적분석)**. unit은 커버리지 임계값, mutation은 뮤테이션 스코어(break 85), build는 번들 크기 예산, nonfunctional은 성능·부하·메모리·타이머·오프라인·데이터 내구성까지 게이트. 추가로 **매일 예약 E2E**(`daily-e2e.yml`, KST 09:17)가 회귀를 상시 감시하고 실패 시 이슈로 알림.
+- **CI 품질 게이트** — GitHub Actions **14-job** 통과 시에만 머지: 기능·품질 11(lint(+테스트/e2e 타입검사)·verify·**pdf-data(원본 PDF 대조)**·unit·**mutation**·build·android-build·e2e·**nonfunctional**·**apk(WebView)**·**webkit(Safari)**) + **보안 3(의존성 감사·시크릿 스캔·CodeQL 정적분석)**. unit은 커버리지 임계값, mutation은 뮤테이션 스코어(break 85), build는 번들 크기 예산, nonfunctional은 성능·부하·메모리·타이머·오프라인·데이터 내구성까지 게이트. 추가로 **매일 예약 E2E**(`daily-e2e.yml`, KST 09:17)가 회귀를 상시 감시하고 실패 시 이슈로 알림.
 
 ## QA 역량 매핑
 
@@ -52,7 +52,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 |---------|----------------------|------|
 | 테스트 자동화 | Playwright **E2E 437개**(기능·비기능·APK) + Vitest **유닛 436개**(속성 기반 22 포함) 작성·CI 연동 | `e2e/`, `src/**/*.test.ts` |
 | 테스트 설계 | 모드·문항유형·네비·설정·영속성·엣지(경계·격리·복원·대용량 import)·표/그림·반응형·접근성으로 시나리오 분해 | [`docs/e2e-test-scenarios.md`](docs/e2e-test-scenarios.md) |
-| 회귀 방지 | 결함 수정마다 회귀 테스트 추가(수정 전 실패 확인), CI 머지 게이트 | 파서 회귀 케이스, 13-job CI |
+| 회귀 방지 | 결함 수정마다 회귀 테스트 추가(수정 전 실패 확인), CI 머지 게이트 | 파서 회귀 케이스, 14-job CI |
 | 결함 발견·RCA | **PDF 원본 ↔ 앱 렌더 전수 대조**로 결함 식별, 반복 결함 근본원인 분석 | 아래 [Case Studies](#결함-발견--근본원인-분석-case-studies) |
 | 결함 관리 | GitHub Issues 등록·추적 + 커밋/이슈 대시보드 | `docs/commit-dashboard.html` |
 | 데이터 품질 검증 | 626문항 정답/이미지/스키마 자동 검증 스크립트 | `npm run verify` |
@@ -175,8 +175,8 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 
 ## CI 품질 게이트
 
-- GitHub Actions **13 job**(push/PR 병렬):
-  - **기능·품질 10** — `lint`(ESLint + `tsc` 앱 + `tsc -p tsconfig.test.json` 테스트·e2e) · `verify(데이터)` · `pdf-data`(원본 PDF 대조 — 텍스트 2,489조각·정답 626·밑줄 146) · `unit`(+커버리지 임계값 게이트) · `mutation`(Stryker 뮤테이션 스코어 break 85 게이트) · `build`(+번들 크기 예산) · `android-build`(Capacitor 동기화·APK 빌드) · `e2e`(기능 404) · `nonfunctional`(성능·부하·메모리·타이머·오프라인·데이터 내구성·장기 스케일 13, CI 완화 예산) · `apk`(Pixel 7 프로파일 + WebView UA + 안전영역 모사 20 — 실제 배포 형태인 APK의 회귀를 게이트로 감시).
+- GitHub Actions **14 job**(push/PR 병렬):
+  - **기능·품질 11** — `lint`(ESLint + `tsc` 앱 + `tsc -p tsconfig.test.json` 테스트·e2e) · `verify(데이터)` · `pdf-data`(원본 PDF 대조 — 텍스트 2,489조각·정답 626·밑줄 146) · `unit`(+커버리지 임계값 게이트) · `mutation`(Stryker 뮤테이션 스코어 break 85 게이트) · `build`(+번들 크기 예산) · `android-build`(Capacitor 동기화·APK 빌드) · `e2e`(기능 404) · `nonfunctional`(성능·부하·메모리·타이머·오프라인·데이터 내구성·장기 스케일 13, CI 완화 예산) · `apk`(Pixel 7 프로파일 + WebView UA + 안전영역 모사 20 — 실제 배포 형태인 APK의 회귀를 게이트로 감시) · `webkit`(Safari 56 — 사용자가 Safari로도 쓰므로 IndexedDB·Blob·서비스워커·Date 등 엔진 계층을 지나는 핵심 경로를 태운다).
   - **보안 3** — `audit`(의존성 취약점, 배포 번들 기준) · `secrets`(gitleaks 시크릿 스캔) · `codeql`(JS/TS 정적분석: XSS·프로토타입 오염 등).
 - 모든 job 통과해야 머지 → **결함·취약점의 main 유입 차단**. 동시성·캐시·최소권한(CodeQL만 job 레벨 `security-events: write`) 설정.
 - 각 CI 워크플로의 동작 방식·코드 설명(CI·매일 예약 E2E·Android 배포): [`docs/ci/`](docs/ci/README.md).
@@ -207,8 +207,8 @@ flowchart LR
   PUB --> REACT
   REACT --> CAP
 
-  subgraph 품질["품질 게이트 (GitHub Actions · 13 job)"]
-    CI["기능·품질: lint · verify · pdf-data(PDF 대조) · unit(436) · mutation(91.9%) · build · android-build · e2e(404) · nonfunctional(13) · apk(20)<br/>보안: audit · secrets · codeql"]
+  subgraph 품질["품질 게이트 (GitHub Actions · 14 job)"]
+    CI["기능·품질: lint · verify · pdf-data(PDF 대조) · unit(436) · mutation(91.9%) · build · android-build · e2e(404) · nonfunctional(13) · apk(20) · webkit(56)<br/>보안: audit · secrets · codeql"]
   end
   REACT -.검증.-> CI
   SRC -.정합성 verify.-> CI
@@ -268,6 +268,7 @@ npm run test:cov    # 유닛 테스트 + 커버리지(임계값 게이트)
 npm run test:e2e    # Playwright React 기능 E2E (404개)
 npm run test:nf     # 비기능 E2E — 성능·부하·메모리·오프라인 (13개)
 npm run test:apk    # APK/WebView E2E — Pixel 7 프로파일 (20개)
+npm run test:webkit # Safari/WebKit E2E — 엔진 계층 핵심 경로 (56개)
 npm run test:mutation  # 뮤테이션 테스트 (Stryker, break 85)
 npm run typecheck:test # 테스트·e2e 타입 검사
 npm run verify      # 데이터 정합성 검증 (626문항 정답·이미지·스키마)
@@ -307,4 +308,4 @@ npm run size        # 번들 크기 예산 검사 (build 후)
 ## 회고 & 개선
 
 - **배운 점**: 데이터 정합성 비용, 반복 결함의 **근본원인 분석**과 회귀 테스트의 ROI, 환경 제약 하의 검증 설계.
-- **향후**: 컴포넌트 단위 테스트로 커버리지 게이트 범위 확대, Lighthouse 점수 정량화, 페어와이즈 3-way 이상 조합, 브라우저 다종(WebKit) 검증, 데이터 추출 파이프라인 자동화.
+- **향후**: 모바일 Safari(iPhone) 검증 확대, WebKit에서 긴 클릭 루프가 stable 판정을 통과하지 못하는 원인 규명(현재 4건 제외 중), 컴포넌트 단위 테스트로 커버리지 게이트 범위 확대, Lighthouse 점수 정량화, 데이터 추출 파이프라인 자동화.
