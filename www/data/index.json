@@ -271,5 +271,10 @@
       "CSTS-FL-2404-056",
       "CSTS-FL-2405-055"
     ]
-  ]
+  ],
+  "duplicateChapters": {
+    "CSTS-EL-2019-012": "테스트 프로세스와 도구",
+    "CSTS-EL-SW-EXAMPLE-018": "소프트웨어 개발과 테스트",
+    "CSTS-EL-SW-EXAMPLE-051": "소프트웨어 개발과 테스트"
+  }
 }

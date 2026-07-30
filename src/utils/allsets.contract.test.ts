@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { buildQuickPool } from '../hooks/useQuestions';
+import { buildQuickPool, drawQuick } from '../hooks/useQuestions';
 import { makeCanonicalIdResolver } from './chapterStats';
 
 /**
@@ -89,12 +89,34 @@ describe('모든 세트 — 퀵 랜덤 풀 기여', () => {
     }
   });
 
-  it.each([['ISTQB'], ['CSTS']])('%s — 퀵 풀에 서답형이 없다', (cert) => {
+  // 사양 변경: 서답형도 퀵에 나온다(종전에는 풀에서 통째로 뺐다). 다만 한 회차를 점령하지
+  // 않도록 추첨에서 30% 상한을 둔다. ISTQB에는 서답형 문항이 아예 없으므로 "있어야 한다"로
+  // 못 박으면 데이터 사실과 어긋난다 — 원본에 있는 만큼 풀에도 있는지로 본다.
+  it.each([['ISTQB'], ['CSTS']])('%s — 퀵 풀이 유형을 걸러내지 않는다', (cert) => {
     const perSet = loaded
       .filter(({ set }) => set.certification === cert)
       .map(({ set, questions }) => ({ setId: set.id, questions: questions as never[] }));
     const pool = buildQuickPool(perSet, canonical);
-    expect(pool.filter((c) => (c.question as Q).type === 'short_answer')).toEqual([]);
+    // 재수록 제거로 줄 수는 있어도, 유형 때문에 통째로 빠지면 안 된다.
+    const inPool = pool.filter((c) => (c.question as Q).type === 'short_answer').length;
+    const inSource = perSet.reduce(
+      (n, { questions }) => n + (questions as Q[]).filter((q) => q.type === 'short_answer').length, 0);
+    if (inSource === 0) expect(inPool).toBe(0);
+    else expect(inPool, `원본 ${inSource}개인데 풀에 ${inPool}개`).toBeGreaterThan(0);
+  });
+
+  it.each([['CSTS']])('%s — 추첨하면 서답형이 30%%를 넘지 않는다', (cert) => {
+    const perSet = loaded
+      .filter(({ set }) => set.certification === cert)
+      .map(({ set, questions }) => ({ setId: set.id, questions: questions as never[] }));
+    const pool = buildQuickPool(perSet, canonical);
+    for (const size of [10, 15, 20]) {
+      const drawn = drawQuick(pool, size);
+      expect(drawn).toHaveLength(size);
+      const shorts = drawn.filter((c) => (c.question as Q).type === 'short_answer').length;
+      // 상한은 floor(size * 0.3) — 선택형이 모자랄 때만 넘길 수 있는데 이 풀은 충분하다.
+      expect(shorts, `${size}문항 중 서답형 ${shorts}개`).toBeLessThanOrEqual(Math.floor(size * 0.3));
+    }
   });
 });
 

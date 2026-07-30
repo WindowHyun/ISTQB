@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildChapterStats, aggregateChapterStats, aggregateLatestChapterStats,
-  makeCanonicalIdResolver, weightedRatePercent,
+  makeCanonicalIdResolver, weightedRatePercent, makeCanonicalChapterResolver
 } from './chapterStats';
 import type { Question } from '../hooks/useQuestions';
 import type { ExamHistory } from '../store/useQuizStore';
@@ -223,5 +223,39 @@ describe('makeCanonicalIdResolver', () => {
     const r = makeCanonicalIdResolver([['A'], 'oops', [1, 2], ['X', 'Y']] as unknown as string[][]);
     expect(r('A')).toBe('A');
     expect(r('Y')).toBe('X');
+  });
+});
+
+// 같은 문제가 세트마다 다른 챕터로 태깅된 경우가 있다(실제 3건). 대표 챕터 표가 없으면
+// "마지막에 푼 회차의 챕터가 이긴다"가 되어, 사용자의 풀이 순서에 따라 통계가 달라진다.
+// 원본 데이터는 그대로 두고 집계에서만 결정론적으로 통일한다.
+describe('makeCanonicalChapterResolver — 재수록 챕터 통일', () => {
+  const h = (id: string, createdAt: number, ch: string, qid: string) => ({
+    id, setId: 'S', mode: 'exam' as const, answers: {}, createdAt,
+    chapterQuestions: { [ch]: { ok: [qid], no: [] } },
+  });
+
+  it('표가 없으면 회차가 적어 둔 챕터를 그대로 쓴다', () => {
+    const r = makeCanonicalChapterResolver(undefined);
+    expect(r('X')).toBeUndefined();
+    expect(r('A-1')).toBeUndefined();
+  });
+
+  it('푼 순서가 달라도 같은 챕터로 집계된다', () => {
+    const canonical = makeCanonicalIdResolver([['A-1', 'B-1']]);
+    const chapterOf = makeCanonicalChapterResolver({ 'A-1': '테스트 기법' });
+
+    // B세트를 나중에 푼 경우 — 표가 없으면 B의 챕터('프로세스')가 이긴다.
+    const later = aggregateLatestChapterStats(
+      [h('h1', 100, '테스트 기법', 'A-1'), h('h2', 200, '프로세스', 'B-1')],
+      canonical, chapterOf,
+    );
+    // A세트를 나중에 푼 경우.
+    const earlier = aggregateLatestChapterStats(
+      [h('h1', 200, '테스트 기법', 'A-1'), h('h2', 100, '프로세스', 'B-1')],
+      canonical, chapterOf,
+    );
+    expect(Object.keys(later.stats)).toEqual(['테스트 기법']);
+    expect(later.stats).toEqual(earlier.stats);
   });
 });

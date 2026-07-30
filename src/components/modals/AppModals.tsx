@@ -945,6 +945,8 @@ export const AppModals = () => {
           histories={productHistories}
           sets={sets}
           duplicateGroups={appData?.duplicateGroups}
+          duplicateChapters={appData?.duplicateChapters}
+          quickRounds={freshQuickRounds(quickRounds)}
           onClose={() => setStatsOpen(false)}
           onClear={handleClearHistories}
           onPracticeChapter={handlePracticeChapter}

@@ -56,6 +56,9 @@ export interface AppData {
   // 같은 문제가 여러 세트에 실려 있고 id는 세트마다 달라, 이 표가 없으면 챕터 통계가
   // 같은 문제를 두 번 센다. 각 그룹은 문항 id 배열이며 첫 원소가 대표다.
   duplicateGroups?: string[][];
+  // 재수록 그룹의 대표 챕터 — 같은 문제가 세트마다 다른 챕터로 태깅된 경우를 결정론적으로
+  // 통일한다(원본 데이터는 그대로 두고 집계에서만 맞춘다). 갈리는 그룹만 실린다.
+  duplicateChapters?: Record<string, string>;
 }
 
 // 랜덤 추첨의 단일 원천은 스토어의 randomDraw(뽑힌 문항 id 목록)다.
@@ -79,8 +82,8 @@ const RANDOM_DRAW_SIZE = 40;
  * index.json의 duplicateGroups(빌드 타임 생성)로 대표 id를 구해 그룹당 하나만 남긴다.
  * 챕터 통계도 같은 표를 쓰므로 "퀵에서는 안 겹치는데 통계 분모는 두 번 센다"가 생기지 않는다.
  *
- * 서답형은 제외한다 — 입력·채점에 시간이 걸려 10문항 세션의 절반 이상을 먹는다.
- * '퀵'이라는 이름과 맞지 않아 화면에도 출제 범위를 명시한다.
+ * 서답형도 넣는다(사양 변경). 다만 한 회차를 점령하지 않도록 추첨 단계에서 상한을 둔다
+ * — drawQuick 참고. 풀 자체는 유형을 가리지 않는다.
  */
 export function buildQuickPool(
   perSet: { setId: string; questions: Question[] }[],
@@ -90,7 +93,6 @@ export function buildQuickPool(
   const seen = new Set<string>();
   for (const { setId, questions } of perSet) {
     for (const q of questions) {
-      if (q.type === 'short_answer') continue;
       const id = q.id || `legacy-${q.number}`;
       const key = canonicalIdOf(id);
       if (seen.has(key)) continue;
@@ -99,6 +101,35 @@ export function buildQuickPool(
     }
   }
   return pool;
+}
+
+/**
+ * 서답형이 한 회차를 점령하지 않도록 상한을 둔다. 서답형은 입력에 시간이 걸려,
+ * 10문항 중 8개가 서답형이면 '퀵'이라는 이름이 성립하지 않는다. 상한을 넘는 서답형은
+ * 건너뛰고 선택형으로 채운다(풀에 선택형이 모자라면 결국 서답형으로 채워진다).
+ */
+export const QUICK_SHORT_ANSWER_RATIO = 0.3;
+
+export function drawQuick(pool: QuickCandidate[], size: number, shuffled?: QuickCandidate[]): QuickCandidate[] {
+  const order = shuffled ?? shuffleQuestions(pool);
+  const cap = Math.floor(size * QUICK_SHORT_ANSWER_RATIO);
+  const picked: QuickCandidate[] = [];
+  const deferred: QuickCandidate[] = [];
+  let shorts = 0;
+  for (const c of order) {
+    if (picked.length >= size) break;
+    if (c.question.type === 'short_answer') {
+      if (shorts >= cap) { deferred.push(c); continue; }
+      shorts += 1;
+    }
+    picked.push(c);
+  }
+  // 선택형이 모자라 자리가 비면 미뤄 둔 서답형으로 채운다 — 문항 수를 줄이는 것보다 낫다.
+  for (const c of deferred) {
+    if (picked.length >= size) break;
+    picked.push(c);
+  }
+  return picked;
 }
 
 /** 퀵 추첨 후보 — 문항과 그 출처 세트. 출처가 있어야 오답이 각 세트의 오답노트로 흘러간다. */
@@ -181,7 +212,7 @@ export function useQuestions() {
         }
 
         const size = useQuizStore.getState().quickSize;
-        const drawn = shuffleQuestions(pool).slice(0, Math.min(size, pool.length));
+        const drawn = drawQuick(pool, Math.min(size, pool.length));
         useQuizStore.getState().setQuickDraw({
           certification: activeProduct,
           items: drawn.map((c) => ({ id: c.id, setId: c.setId })),

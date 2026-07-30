@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { buildQuickPool, type Question } from './useQuestions';
+import { buildQuickPool, drawQuick, type Question } from './useQuestions';
 import { makeCanonicalIdResolver } from '../utils/chapterStats';
 
 const q = (id: string, over: Partial<Question> = {}): Question => ({
@@ -28,13 +28,34 @@ describe('buildQuickPool', () => {
     expect(pool.map((c) => [c.id, c.setId])).toEqual([['A-1', 'S1'], ['A-2', 'S1'], ['B-1', 'S2']]);
   });
 
-  // 서답형은 입력·채점에 시간이 걸려 10문항 세션의 절반 이상을 먹는다 — '퀵'이 성립하지 않는다.
-  it('서답형은 제외한다', () => {
+  // 사양 변경: 서답형도 퀵에 나온다. 거르는 지점이 풀에서 추첨(drawQuick)으로 옮겨 갔다 —
+  // 입력에 시간이 걸리는 것은 여전하므로 한 회차를 점령하지 않게 상한만 둔다.
+  it('유형을 가리지 않는다 — 서답형도 풀에 넣는다', () => {
     const pool = buildQuickPool(
       [{ setId: 'S1', questions: [q('A-1'), q('A-2', { type: 'short_answer' }), q('A-3', { type: 'true_false' })] }],
       identity,
     );
-    expect(pool.map((c) => c.id)).toEqual(['A-1', 'A-3']);
+    expect(pool.map((c) => c.id)).toEqual(['A-1', 'A-2', 'A-3']);
+  });
+
+  it('추첨은 서답형을 상한(30%)까지만 넣고 나머지는 선택형으로 채운다', () => {
+    const questions = [
+      ...Array.from({ length: 8 }, (_, i) => q(`S-${i}`, { type: 'short_answer' })),
+      ...Array.from({ length: 8 }, (_, i) => q(`M-${i}`)),
+    ];
+    const drawn = drawQuick(buildQuickPool([{ setId: 'S1', questions }], identity), 10);
+    expect(drawn).toHaveLength(10);
+    expect(drawn.filter((c) => c.question.type === 'short_answer').length).toBeLessThanOrEqual(3);
+  });
+
+  // 선택형이 모자라면 문항 수를 줄이는 것보다 서답형으로 채우는 편이 낫다.
+  it('선택형이 모자라면 상한을 넘겨서라도 문항 수를 채운다', () => {
+    const questions = [
+      ...Array.from({ length: 9 }, (_, i) => q(`S-${i}`, { type: 'short_answer' })),
+      q('M-0'),
+    ];
+    const drawn = drawQuick(buildQuickPool([{ setId: 'S1', questions }], identity), 10);
+    expect(drawn).toHaveLength(10);
   });
 
   // 재수록 문항은 세트마다 id가 다르다 — id 비교만으로는 걸러지지 않아,
@@ -84,8 +105,12 @@ describe('buildQuickPool — 실제 문항 데이터', () => {
     expect(poolFor(cert).length).toBeGreaterThan(100);
   });
 
-  it.each([['ISTQB'], ['CSTS']])('%s 풀에 서답형이 하나도 없다', (cert) => {
-    expect(poolFor(cert).filter((c) => c.question.type === 'short_answer')).toEqual([]);
+  // ISTQB에는 서답형 문항이 아예 없으므로 "있어야 한다"로 못 박으면 데이터 사실과 어긋난다.
+  it.each([['ISTQB'], ['CSTS']])('%s 풀이 유형 때문에 문항을 빼지 않는다', (cert) => {
+    const inPool = poolFor(cert).filter((c) => c.question.type === 'short_answer').length;
+    const inSource = cert === 'CSTS' ? 1 : 0; // CSTS에는 서답형이 있고 ISTQB에는 없다
+    if (inSource === 0) expect(inPool).toBe(0);
+    else expect(inPool).toBeGreaterThan(0);
   });
 
   it.each([['ISTQB'], ['CSTS']])('%s 풀에 같은 문제가 두 번 들어가지 않는다', (cert) => {

@@ -97,6 +97,12 @@ export interface LatestChapterStats {
 export function aggregateLatestChapterStats(
   histories: ExamHistory[],
   canonicalIdOf: (id: string) => string = (id) => id,
+  /**
+   * 재수록 그룹의 대표 챕터(빌드 타임 생성 표). 같은 문제가 세트마다 다른 챕터로
+   * 태깅된 경우가 있는데, 이것이 없으면 "마지막에 푼 회차의 챕터가 이긴다"가 되어
+   * 사용자의 풀이 순서에 따라 통계가 달라진다. 원본 데이터는 건드리지 않는다.
+   */
+  canonicalChapterOf: (canonicalId: string) => string | undefined = () => undefined,
 ): LatestChapterStats {
   const stats: ChapterStats = Object.create(null);
   const seen = new Set<string>();
@@ -117,7 +123,9 @@ export function aggregateLatestChapterStats(
           const key = canonicalIdOf(id);
           if (seen.has(key)) continue;
           seen.add(key);
-          const cell = (stats[ch] ||= { c: 0, t: 0 });
+          // 대표 챕터가 있으면 그쪽으로 센다 — 어느 세트에서 풀었든 같은 칸에 쌓인다.
+          const bucket = canonicalChapterOf(key) ?? ch;
+          const cell = (stats[bucket] ||= { c: 0, t: 0 });
           cell.t += 1;
           if (correct) cell.c += 1;
         }
@@ -133,6 +141,14 @@ export function aggregateLatestChapterStats(
  * 대표는 그룹의 첫 원소(생성 시 정렬돼 있어 결정적)다. 표에 없는 문항은 자기 자신이
  * 대표이므로 그대로 돌려준다 — 626문항 중 94개만 표에 있어 대부분은 이 경로다.
  */
+/** duplicateChapters 표를 조회 함수로 만든다(표가 없으면 항상 undefined). */
+export function makeCanonicalChapterResolver(
+  map?: Record<string, string>,
+): (canonicalId: string) => string | undefined {
+  if (!map || !Object.keys(map).length) return () => undefined;
+  return (id) => map[id];
+}
+
 export function makeCanonicalIdResolver(groups?: string[][]): (id: string) => string {
   if (!groups?.length) return (id) => id;
   const map = new Map<string, string>();

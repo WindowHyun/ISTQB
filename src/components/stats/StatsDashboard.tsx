@@ -8,6 +8,7 @@ import {
   aggregateChapterStats,
   aggregateLatestChapterStats,
   makeCanonicalIdResolver,
+  makeCanonicalChapterResolver,
   weightedRatePercent,
 } from '../../utils/chapterStats';
 import {
@@ -58,6 +59,7 @@ interface StatsDashboardProps {
   sets: SetSummary[];
   // 세트 간 재수록 문항 그룹 — 같은 문제를 챕터 분모에 두 번 세지 않기 위해 필요하다.
   duplicateGroups?: string[][];
+  duplicateChapters?: Record<string, string>;
   onClose: () => void;
   onClear: () => void;
   /** 챕터 집중 연습 진입(현재 세트를 해당 챕터로 필터해 연습 모드로). */
@@ -72,7 +74,7 @@ interface StatsDashboardProps {
   onDeleteRound: (id: string) => void;
 }
 
-export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGroups, onClose, onClear, onPracticeChapter, onMiniTestChapter, practiceLocked, certification, onDeleteRound }: StatsDashboardProps) => {
+export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGroups, duplicateChapters, onClose, onClear, onPracticeChapter, onMiniTestChapter, practiceLocked, certification, onDeleteRound }: StatsDashboardProps) => {
   const weakThreshold = WEAK_THRESHOLD_BY_CERT[certification ?? 'istqb'] ?? 65;
   // 빈 상태 판정에만 쓰는 개수. 실전·미니를 모두 세어, 미니만 푼 사용자에게
   // "기록 없음"이 뜨지 않게 한다(미니 섹션에는 내용이 있으므로 모순이 된다).
@@ -118,13 +120,14 @@ export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGro
   // 재수록 문항을 대표 id로 접는 함수. 표는 45그룹뿐이라 Map 구성 비용이 작고,
   // 표가 바뀌지 않는 한 참조가 유지돼 아래 집계 메모가 매 렌더 무효화되지 않는다.
   const canonicalIdOf = useMemo(() => makeCanonicalIdResolver(duplicateGroups), [duplicateGroups]);
+  const canonicalChapterOf = useMemo(() => makeCanonicalChapterResolver(duplicateChapters), [duplicateChapters]);
   const { rankedChapters, lowSampleChapters, staleRounds } = useMemo(() => {
     // 퀵을 여기에만 합산한다 — 회차 목록·요약·타임라인은 histories만 보므로 퀵은
     // '기록 없음'을 유지하면서도 약점 분석에는 기여한다(24시간 뒤 자연히 빠진다).
     const all_ = [...Object.values(histories), ...quickRounds];
     // 문항 단위 최신 시도 기준(재풀이해도 분모가 늘지 않는다). 문항 id를 남기지 않던
     // 과거 회차만 있으면 셀 것이 없으므로 종전 누적 방식으로 폴백한다.
-    const latest = aggregateLatestChapterStats(all_, canonicalIdOf);
+    const latest = aggregateLatestChapterStats(all_, canonicalIdOf, canonicalChapterOf);
     const useLatest = Object.keys(latest.stats).length > 0;
     const agg = useLatest ? latest.stats : aggregateChapterStats(all_);
     const all = Object.entries(agg)
@@ -137,7 +140,7 @@ export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGro
       // 최신 기준으로 셀 때 빠진 과거 회차 수(폴백 중이면 0 — 그때는 전부 집계된다).
       staleRounds: useLatest ? latest.legacyRounds : 0,
     };
-  }, [histories, quickRounds, canonicalIdOf]);
+  }, [histories, quickRounds, canonicalIdOf, canonicalChapterOf]);
   const chapterRows = rankedChapters;
   // 챕터 집계가 없는(구버전에서 채점한) 회차가 섞여 있으면 안내한다.
   const legacyCount = useMemo(
