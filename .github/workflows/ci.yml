@@ -38,6 +38,11 @@ jobs:
         run: npm run lint
       - name: Typecheck (tsc --noEmit)
         run: npm run typecheck
+      # 앱 tsconfig는 테스트를 exclude한다(빌드 대상이 아니므로). 그 결과 테스트와 e2e는
+      # 타입 검사를 한 번도 받지 않아, 죽은 비교나 어긋난 fixture가 조용히 통과했다.
+      # vitest·playwright는 타입 검사 없이 트랜스파일만 하므로 런타임에서도 안 드러난다.
+      - name: Typecheck tests & e2e
+        run: npm run typecheck:test
 
   verify-data:
     name: Verify data & content

@@ -243,8 +243,8 @@ describe('isSetLevelRound / buildMiniTestRounds', () => {
   const titleOf = (id: string) => (id === 'A' ? '세트 A' : id);
 
   it('챕터 미니 회차만 실전 회차에서 갈라낸다', () => {
-    expect(isSetLevelRound(h({ id: '1', setId: 'A', mode: 'exam', correct: 20, total: 40 }))).toBe(true);
-    expect(isSetLevelRound(h({ id: '2', setId: 'A', mode: 'random', correct: 9, total: 10, chapter: '테스트 기초' }))).toBe(false);
+    expect(isSetLevelRound(h({ id: '1', setId: 'A', mode: 'exam', correct: 20, total: 40, createdAt: 100 }))).toBe(true);
+    expect(isSetLevelRound(h({ id: '2', setId: 'A', mode: 'random', correct: 9, total: 10, createdAt: 200, chapter: '테스트 기초' }))).toBe(false);
   });
 
   it('미니 회차를 챕터명과 함께 최신순으로 돌려준다', () => {
