@@ -100,7 +100,10 @@ const CLICKABLE = [
   ".sidebar button:not(.feedback-link)",
 ].join(", ");
 
-for (const seed of [42]) {
+// 시드가 하나면 몽키는 매번 똑같은 150수를 둔다 — 무작위 탐색이라기보다 고정 시나리오다.
+// 시드를 늘리면 서로 다른 경로를 밟으면서도 각 실행은 재현 가능한 상태로 남는다.
+// (테스트는 병렬로 도는 별개 케이스라 벽시계 시간은 거의 늘지 않는다.)
+for (const seed of [42, 1337, 20260730]) {
   test(`몽키: 무작위 150회 조작 후에도 불변식이 유지된다 (시드 ${seed})`, async ({ page }) => {
     test.setTimeout(600_000);
     const errors: string[] = [];
@@ -129,6 +132,15 @@ for (const seed of [42]) {
           const junk = ["", " ", "가나다", "'\"<>&", "A".repeat(300)][Math.floor(rand() * 5)];
           await input.fill(junk).catch(() => {});
           trail.push(`type:${junk.slice(0, 8)}`);
+        }
+      }
+      // 가끔 퀵 문항 수를 바꾼다 — CLICKABLE은 button만 훑어서 select가 통째로 빠져 있었다.
+      if (rand() < 0.05) {
+        const sel = page.locator("#quickSize");
+        if (await sel.count() && await sel.isVisible().catch(() => false)) {
+          const size = ["10", "15", "20"][Math.floor(rand() * 3)];
+          await sel.selectOption(size).catch(() => {});
+          trail.push(`quickSize:${size}`);
         }
       }
       // 가끔 Esc를 누른다.
