@@ -4,11 +4,14 @@
   "testRunner": "vitest",
   "vitest": { "configFile": "vitest.stryker.config.ts" },
   "coverageAnalysis": "perTest",
+  "_comment_mutate": "answerKey/modeLabel은 코드량은 작지만 틀리면 손실이 크다 — answerKey는 저장 키의 단일 원천이라 문자열 하나만 어긋나도 사용자의 풀이 진행이 통째로 사라지고, modeLabel의 GRADED_MODES는 '채점하기' 노출과 실제 채점 가능 여부를 함께 결정한다.",
   "mutate": [
     "src/utils/answer.ts",
     "src/utils/scoring.ts",
     "src/utils/chapterStats.ts",
-    "src/utils/attemptStats.ts"
+    "src/utils/attemptStats.ts",
+    "src/utils/answerKey.ts",
+    "src/utils/modeLabel.ts"
   ],
   "reporters": ["clear-text", "progress", "html"],
   "_comment_break": "break 85: 현재 스코어 93.5% 대비 여유를 두되, 테스트 효력이 유의미하게 무뎌지면 CI가 실패한다.",

@@ -26,6 +26,7 @@
     "test:nf": "playwright test --project=nonfunctional",
     "test:apk": "playwright test --project=apk --project=apk-nf",
     "typecheck": "tsc --noEmit",
+    "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
     "lint": "eslint .",
     "fix:questions": "node scripts/fix-questions.js",
     "test:mutation": "stryker run",

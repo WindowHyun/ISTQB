@@ -159,7 +159,7 @@ test("상태 전이: 전 모드에서 진행률 표기가 모드별로 독립인
     await goMode(page, m, true);
     const other = (await state(page)).progress;
     // 모드마다 답안 네임스페이스가 다르므로 연습의 답이 새어 나가면 안 된다.
-    if (other === practice && m !== "practice") {
+    if (other === practice) {
       note(`  (${m} 진행률이 연습과 동일: ${other} — 문항 수가 같으면 우연일 수 있음)`);
     }
     await goMode(page, "practice", true);

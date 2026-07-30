@@ -220,6 +220,13 @@ function buildRichBlocks(text: unknown, inline = false): Block[] {
   function renderCodeBlock(lines: string[]): HTMLElement {
     const block = document.createElement("span");
     block.className = "code-block";
+    // 코드 블록은 overflow-x: auto라 가로로 스크롤되는데, 포커스를 받을 수 없으면
+    // 키보드·스크린리더 사용자는 잘린 부분을 영영 볼 수 없다(WCAG 2.1.1, axe
+    // scrollable-region-focusable/serious). tabindex로 포커스를 열어 주고, 이름 없는
+    // 포커스 대상이 되지 않도록 role/label을 함께 준다.
+    block.tabIndex = 0;
+    block.setAttribute("role", "group");
+    block.setAttribute("aria-label", "코드 블록");
     block.textContent = lines.join("\n");
     return block;
   }
