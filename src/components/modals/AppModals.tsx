@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useQuizStore, ExamHistory } from '../../store/useQuizStore';
+import { useQuizStore, ExamHistory, QUICK_SET_ID } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { gradeKeyFor } from '../../utils/answerKey';
 import { useTheme, ThemePref } from '../../hooks/useTheme';
@@ -81,6 +81,7 @@ export const AppModals = () => {
     quitExamOpen, gradedResume, pendingSetChange,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
     setMode, beginSession, clearAnswers, setReviewIds, setSetId, setChapterFilter, setResumePrompt,
+    resetProgressForSets,
     setQuitExamOpen, setGradedResume, setRandomDraw,
     setPendingSetChange, commitSetChange, reviewedOk,
     pendingRedraw, setPendingRedraw, confirmExitExam, setConfirmExitExam,
@@ -98,6 +99,7 @@ export const AppModals = () => {
     setResultOpen: s.setResultOpen, setPaletteOpen: s.setPaletteOpen, setDrawerOpen: s.setDrawerOpen,
     setConfirmGradeOpen: s.setConfirmGradeOpen, setMode: s.setMode, beginSession: s.beginSession,
     clearAnswers: s.clearAnswers, setReviewIds: s.setReviewIds, setSetId: s.setSetId,
+    resetProgressForSets: s.resetProgressForSets,
     setChapterFilter: s.setChapterFilter, setResumePrompt: s.setResumePrompt,
     setQuitExamOpen: s.setQuitExamOpen, setGradedResume: s.setGradedResume,
     setRandomDraw: s.setRandomDraw,
@@ -335,7 +337,13 @@ export const AppModals = () => {
     // 삭제가 실제로 커밋된 뒤에만 완료를 알린다(실패 시엔 removeHistoriesEverywhere가
     // 오류 토스트를 띄우고 화면의 이력도 그대로 남는다).
     const ok = await removeHistoriesEverywhere([...Object.keys(productHistories), ...orphanIds]);
-    if (ok) showToast('현재 자격증의 응시 이력을 모두 삭제했습니다.', 'success');
+    if (!ok) return;
+    // 이력만 지우면 답안·채점 상태·오답 대상이 남아, 오답노트에는 없는 오답이 오답 모드에
+    // 계속 출제되고 그 세트를 다시 채점하면 같은 기록이 그대로 되살아난다("초기화했는데
+    // 이전 기록이 재생성됨"). 이력과 그 이력에서 파생된 상태를 함께 비운다.
+    // 퀵 회차의 setId는 실재 세트가 아닌 센티넬이라 목록에 따로 넣어야 한다.
+    resetProgressForSets([...sets.map((x) => x.id), QUICK_SET_ID]);
+    showToast('현재 자격증의 응시 이력과 풀이 기록을 모두 삭제했습니다.', 'success');
   };
 
   // 약점 챕터 집중 세션(Phase 3): 통계에서 챕터를 고르면 그 챕터로 필터해 진입한다.
@@ -983,6 +991,10 @@ export const AppModals = () => {
           modeLabel={compareChapter ? `${compareChapter} 미니` : (MODE_LABEL[mode] ?? mode)}
           // 퀵은 세트 전체를 푼 것이 아니라 합격 판정의 근거가 없다.
           hidePassVerdict={mode === 'quick'}
+          // 퀵의 오답은 회차 단위로 모이지 않고 각 문항의 출처 세트별로 흩어져 노트에
+          // 들어간다. 결과 모달에서 바로 열면 방금 푼 회차의 오답만 보일 것이라
+          // 기대하게 되는데 실제로는 세트별 전 회차 합산이 뜬다 — 진입로를 두지 않는다.
+          hideWrongNote={mode === 'quick'}
           onClose={() => setResultOpen(false)}
           onOpenWrongNote={() => { setResultOpen(false); setWrongNoteOpen(true); }}
           onRetry={() => {

@@ -248,3 +248,68 @@ describe('startQuick — 이전 회차 잔재 정리', () => {
     expect(s.setId).toBe('QUICK');
   });
 });
+
+// 이력만 지우고 답안·채점 상태·오답 대상을 남기면, 오답노트에는 없는 오답이 오답 모드에
+// 계속 출제되고 그 세트를 다시 채점하면 같은 기록이 되살아난다("초기화했는데 이전 기록이
+// 재생성됨"). 실제로 '이력 비우기'가 그 상태였다.
+describe('resetProgressForSets — 이력 삭제와 짝이 되는 상태 정리', () => {
+  const seed = () => useQuizStore.setState({
+    answers: {
+      'A-exam-1': ['a'], 'A-practice-2': ['b'], 'A-review-3': ['c'],
+      'QUICK-quick-Q1': ['d'],
+      'B-exam-1': ['keep'],           // 다른 제품 세트 — 건드리면 안 된다
+    },
+    graded: { 'A-exam': true, 'QUICK-quick': true, 'B-exam': true },
+    reviewIds: { 'A-exam': ['1', '2'], 'QUICK-quick': ['Q1'], 'B-exam': ['9'] },
+    reviewedOk: { A: [1, 2], B: [3] },
+    examStarted: { A: true, B: true },
+    examStartedAt: { A: 111, B: 222 },
+  });
+
+  it('지정한 세트의 답안·채점·오답 대상·재풀이 진척을 한 번에 비운다', () => {
+    seed();
+    useQuizStore.getState().resetProgressForSets(['A', 'QUICK']);
+    const s = useQuizStore.getState();
+    expect(Object.keys(s.answers)).toEqual(['B-exam-1']);
+    expect(s.graded['A-exam']).toBeUndefined();
+    expect(s.graded['QUICK-quick']).toBeUndefined();
+    // 남기면 삭제한 회차의 오답이 오답 모드에 유령처럼 출제된다.
+    expect(s.reviewIds['A-exam']).toBeUndefined();
+    expect(s.reviewIds['QUICK-quick']).toBeUndefined();
+    expect(s.reviewedOk.A).toBeUndefined();
+    expect(s.examStarted.A).toBeUndefined();
+    expect(s.examStartedAt.A).toBeUndefined();
+  });
+
+  it('목록에 없는 세트는 손대지 않는다(다른 제품 기록 보호)', () => {
+    seed();
+    useQuizStore.getState().resetProgressForSets(['A', 'QUICK']);
+    const s = useQuizStore.getState();
+    expect(s.answers['B-exam-1']).toEqual(['keep']);
+    expect(s.graded['B-exam']).toBe(true);
+    expect(s.reviewIds['B-exam']).toEqual(['9']);
+    expect(s.reviewedOk.B).toEqual([3]);
+    expect(s.examStartedAt.B).toBe(222);
+  });
+
+  // 접두 일치로 지우면 이름이 겹치는 다른 세트까지 함께 날아간다.
+  it('이름이 접두로 겹치는 세트를 함께 지우지 않는다', () => {
+    useQuizStore.setState({
+      answers: { 'A-exam-1': ['x'], 'A-B-exam-1': ['y'] },
+      graded: { 'A-exam': true, 'A-B-exam': true },
+      reviewIds: {}, reviewedOk: {}, examStarted: {}, examStartedAt: {},
+    });
+    useQuizStore.getState().resetProgressForSets(['A']);
+    const s = useQuizStore.getState();
+    expect(s.answers['A-exam-1']).toBeUndefined();
+    expect(s.answers['A-B-exam-1']).toEqual(['y']);
+    expect(s.graded['A-B-exam']).toBe(true);
+  });
+
+  it('빈 목록이면 상태를 바꾸지 않는다', () => {
+    seed();
+    const before = useQuizStore.getState().answers;
+    useQuizStore.getState().resetProgressForSets([]);
+    expect(useQuizStore.getState().answers).toBe(before);
+  });
+});
