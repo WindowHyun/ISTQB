@@ -202,8 +202,11 @@ test.describe("APK 기능 · 퀵 랜덤(터치)", () => {
     }
     await submitGrade(page, "grade-button-m");
     await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
-    await page.getByRole("button", { name: "오답 노트 보기" }).tap();
-    await expect(page.getByTestId("wrong-note")).toBeVisible();
+    // 퀵 결과 모달에는 '오답 노트 보기'가 없다 — 드로어의 상시 진입로로 연다.
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).tap();
+    await page.getByTestId("drawer-open").tap();
+    await page.getByRole("button", { name: /오답 노트/ }).first().tap();
+    await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 20_000 });
     const before = await page.getByTestId("wrong-note-set-btn").count();
     // 전 세트에서 뽑은 20문항 중 오답이 여러 세트에 걸치면 그룹도 여럿이어야 한다.
     expect(before, "오답노트 그룹이 하나도 없다").toBeGreaterThan(0);
