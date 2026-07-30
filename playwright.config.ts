@@ -37,6 +37,18 @@ export default defineConfig({
       },
     },
     {
+      // Safari(WebKit) — 사용자가 Safari로도 쓰므로 Chromium 단독 검증으로는 부족하다.
+      // Safari 고유의 결함은 대부분 엔진 계층에 산다: IndexedDB 트랜잭션 처리, Blob·File
+      // 다운로드(백업 내보내기/가져오기), 서비스워커(PWA), Date 파싱(시험 타이머).
+      // 그래서 전 스펙을 다시 돌리는 대신 그 계층을 지나는 핵심 경로만 태운다
+      // (전량 재실행은 e2e 잡을 두 배로 만들면서 얻는 것은 대부분 중복이다).
+      // 모바일 Safari(iPhone)는 후속으로 — 여기 실린 스펙들이 .segmented·#quickSize를
+      // 직접 만지는데 모바일에서는 드로어 안이라 스펙 수정이 먼저 필요하다.
+      name: "webkit",
+      testMatch: /(react-smoke|react-grade|react-functional|react-qtypes|react-persistence|react-quick|react-exam-timer|react-edge-import|react-pwa|react-review-loop|react-modes)\.spec\.ts/,
+      use: { ...devices["Desktop Safari"], viewport: { width: 1280, height: 900 }, baseURL: REACT_URL },
+    },
+    {
       // APK(WebView) 비기능 — 성능·스트레스·메모리·복원력(모바일 프로파일).
       name: "apk-nf",
       testMatch: /apk-nonfunctional\.spec\.ts/,
