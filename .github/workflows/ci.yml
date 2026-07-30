@@ -276,6 +276,46 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  # 이 앱이 실제로 배포되는 형태는 APK(Android WebView)다. 그런데 apk/apk-nf 프로젝트는
+  # playwright.config.ts에 정의돼 있고 스펙도 18개 있으면서, 어느 워크플로에도 걸려 있지
+  # 않아 사람이 손으로 돌릴 때만 실행됐다 — 안전영역·제스처바·터치 타깃 회귀가 자동
+  # 게이트 밖에 있었다는 뜻이다. 데스크톱 E2E는 이 축을 대신 잡아주지 못한다(뷰포트를
+  # 줄여도 WebView UA·안전영역 변수는 재현되지 않는다).
+  apk:
+    name: APK/WebView (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+      - name: Install Playwright (chromium + system deps)
+        run: npx playwright install --with-deps chromium
+      # Pixel 7 프로파일 + WebView UA + 안전영역 주입 모사 — 기능 10 + 비기능 8.
+      - name: Run APK suites
+        run: npm run test:apk
+      - name: Upload Playwright report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-apk
+          path: playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
   # ── 보안(체크리스트 #4) ──────────────────────────────────────────
   audit:
     name: Dependency audit (npm)
