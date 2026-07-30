@@ -46,7 +46,18 @@ export default defineConfig({
       // 직접 만지는데 모바일에서는 드로어 안이라 스펙 수정이 먼저 필요하다.
       name: "webkit",
       testMatch: /(react-smoke|react-grade|react-functional|react-qtypes|react-persistence|react-quick|react-exam-timer|react-edge-import|react-pwa|react-review-loop|react-modes)\.spec\.ts/,
-      use: { ...devices["Desktop Safari"], viewport: { width: 1280, height: 900 }, baseURL: REACT_URL },
+      // reducedMotion: WebKit에서 호버/누름 트랜스폼(.option의 scale, 팔레트의 translateY)이
+      // 전환 중인 동안 Playwright의 "stable" 판정을 통과하지 못해, 연속 클릭 루프가
+      // 30초 타임아웃으로 죽었다(첫 CI 실행에서 4건). 사람이 누를 때는 문제가 아니라
+      // 판정 기준이 사람보다 엄격한 것이므로 제품 결함은 아니다. 동시에 이 설정은
+      // 꾸며낸 상태가 아니라 실제 사용자 설정이며, 앱이 그 요청을 제대로 존중하는지도
+      // 함께 밟게 된다(globals.css의 prefers-reduced-motion 전역 규칙).
+      use: {
+        ...devices["Desktop Safari"],
+        viewport: { width: 1280, height: 900 },
+        baseURL: REACT_URL,
+        reducedMotion: "reduce",
+      },
     },
     {
       // APK(WebView) 비기능 — 성능·스트레스·메모리·복원력(모바일 프로파일).

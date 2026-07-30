@@ -1095,9 +1095,21 @@ body[data-theme="dark"] .table-image-frame {
 .question-nav button.correct::after { content: "✓"; color: var(--success); }
 .question-nav button.missed::after { content: "✕"; color: var(--danger); }
 
+/* 동작 최소화 요청 존중 — 종전에는 스켈레톤과 토스트 둘만 껐다. 그래서 이 설정을 켠
+   사용자에게도 보기 누름(scale)·팔레트 호버(translateY) 같은 트랜스폼이 그대로 돌았다.
+   전역으로 끈다. duration을 0이 아니라 0.01ms로 두는 이유는 transitionend가 여전히
+   발화해야 하기 때문이다(toast.ts가 그 이벤트로 DOM을 정리한다 — 타임아웃 폴백이 있지만
+   이벤트가 정상 경로다). */
 @media (prefers-reduced-motion: reduce) {
-  .skeleton { animation: none; }
-  .toast { transition: none; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .skeleton { animation: none !important; }
 }
 
 /* 데이터 표(HTML) — SVG 대신 줄바꿈 가능한 실제 표 */
