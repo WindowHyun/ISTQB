@@ -9,6 +9,19 @@ export type QuizMode = 'home' | 'exam' | 'practice' | 'random' | 'review' | 'qui
 export const QUICK_SET_ID = 'QUICK';
 
 /**
+ * 퀵 회차 보관 기간 — 24시간. 퀵은 회차 기록을 남기지 않는 모드라(요약·타임라인·이력
+ * 목록에 나오지 않는다) 채점 결과를 어딘가 영구 보관하면 그 사양과 모순된다. 다만 방금
+ * 틀린 것을 바로 못 보면 학습이 끊기므로, 만료가 있는 임시 보관으로 절충한다.
+ */
+export const QUICK_ROUND_TTL_MS = 24 * 60 * 60 * 1000;
+
+/** 만료되지 않은 퀵 회차만 고른다(읽는 시점에 거른다 — 타이머를 두면 앱이 꺼진 동안 안 돈다). */
+export function freshQuickRounds(rounds: ExamHistory[] | undefined, now = Date.now()): ExamHistory[] {
+  if (!rounds?.length) return [];
+  return rounds.filter((r) => now - (r.createdAt ?? 0) < QUICK_ROUND_TTL_MS);
+}
+
+/**
  * 실제로 풀이가 일어나는 모드 목록(게이트 'home' 제외) — 답안·채점 키가 생기는 모드다.
  * storage의 이력 허용 모드도 여기서 파생한다: 두 목록을 따로 관리하면 모드를 추가할 때
  * 한쪽 누락으로 이력이 무단 폐기되거나(그 결함이 실제로 났다) 초기화가 반쪽이 된다.
@@ -56,6 +69,11 @@ export interface QuizState {
   index: number;
   answers: Record<string, string[]>;
   histories: Record<string, ExamHistory>;
+  /**
+   * 퀵 회차 — 이력(histories)과 분리해 둔다. 여기 있는 것은 회차 목록·요약·타임라인에
+   * 들어가지 않고, 챕터 통계와 '최근 퀵 오답'에만 쓰이며 24시간 뒤 사라진다.
+   */
+  quickRounds: ExamHistory[];
   reviewIds: Record<string, string[]>;
   graded: Record<string, boolean>;
   // 시험 시작 게이트(Phase 1) — 세트별로 "시작하기"를 눌러 응시를 개시했는지.
@@ -122,6 +140,8 @@ export interface QuizState {
   setIndex: (index: number | ((prev: number) => number)) => void;
   setAnswer: (key: string, selected: string[]) => void;
   addHistory: (history: ExamHistory) => void;
+  /** 퀵 회차를 임시 보관에 넣는다(만료된 것은 이때 함께 청소한다). */
+  addQuickRound: (round: ExamHistory) => void;
   // 오답(review) 대상 문항 id 목록. 키는 `${setId}-${mode}`(과거 데이터는 setId 단독일 수 있음).
   setReviewIds: (key: string, ids: string[]) => void;
   setGraded: (key: string, value: boolean) => void;
@@ -203,6 +223,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   index: 0,
   answers: {},
   histories: {},
+  quickRounds: [],
   reviewIds: {},
   graded: {},
   examStarted: {},
@@ -248,6 +269,10 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   })),
   addHistory: (history) => set((state) => ({
     histories: { ...state.histories, [history.id]: history }
+  })),
+  addQuickRound: (round) => set((state) => ({
+    // 넣을 때 만료분을 함께 버린다 — 읽는 쪽에서도 거르지만, 저장소가 무한정 자라는 것은 막는다.
+    quickRounds: [...freshQuickRounds(state.quickRounds), round],
   })),
   setReviewIds: (key, ids) => set((state) => ({
     reviewIds: { ...state.reviewIds, [key]: ids }

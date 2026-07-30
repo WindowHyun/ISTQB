@@ -329,6 +329,11 @@ export function sanitizeUiState(value: unknown): Partial<QuizState> {
   }
   // 퀵 추첨 스냅샷 — 제품과 (문항 id, 출처 세트) 쌍이 온전할 때만 통과(손상·조작 값 방어).
   // 출처 세트가 없으면 오답 귀속과 복원이 성립하지 않으므로 그 항목은 버린다.
+  if (Array.isArray(value.quickRounds)) {
+    // 이력과 같은 정제기를 태운다(같은 모양이므로) — 만료 판정은 읽는 쪽에서 한다.
+    const rounds = value.quickRounds.map(sanitizeHistory).filter((h): h is ExamHistory => h !== null);
+    if (rounds.length) out.quickRounds = rounds;
+  }
   if (isPlainObject(value.quickDraw)) {
     const qd = value.quickDraw as UnknownRecord;
     const rawItems = Array.isArray(qd.items) ? qd.items : [];
@@ -576,6 +581,10 @@ export const saveUiState = debounce((state: Partial<QuizState>) => {
       examStartedAt: state.examStartedAt,
       // 오답 재풀이 진척 — 저장하지 않으면 새로고침마다 복습이 헛일이 된다.
       reviewedOk: state.reviewedOk,
+      // 퀵 회차(24시간 임시). 이력(IndexedDB)이 아니라 여기 둔다 — 퀵은 회차 기록을
+      // 남기지 않는 모드라 영구 저장소에 넣으면 사양과 모순된다.
+      // 내보내기(exportUserData)에는 넣지 않는다: 복원 시점엔 이미 만료됐을 값이다.
+      quickRounds: state.quickRounds,
     };
     localStorage.setItem(uiStorageKey(), JSON.stringify(safeState));
     
