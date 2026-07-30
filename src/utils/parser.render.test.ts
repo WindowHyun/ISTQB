@@ -262,3 +262,24 @@ describe("RichText — inline 모드(보기 텍스트) 회귀", () => {
     expect(el.querySelector(".structured-list")).not.toBeNull();
   });
 });
+
+// 코드 블록은 overflow-x: auto라 가로로 잘리는데, 포커스를 받을 수 없으면 키보드·
+// 스크린리더 사용자는 잘린 부분을 영영 볼 수 없다(WCAG 2.1.1, axe
+// scrollable-region-focusable/serious). E2E(react-a11y-axe)가 한 문항을 지정해 보지만,
+// 렌더러 자체의 계약은 여기서 못 박는다 — 속성 한 줄이 지워져도 유닛이 잡아야 한다.
+describe("RichText — 코드 블록 접근성", () => {
+  it("코드 블록이 키보드 포커스를 받을 수 있고 이름을 갖는다", async () => {
+    const el = await renderRichTextEl([{ type: "code", lines: ["int a = 1;", "print(a);"] }]);
+    const block = el.querySelector(".code-block");
+    expect(block, "코드 블록이 렌더되지 않았다").not.toBeNull();
+    expect(block!.getAttribute("tabindex")).toBe("0");
+    // 이름 없는 포커스 대상이 되면 스크린리더가 "무엇에 왔는지" 알릴 수 없다.
+    expect(block!.getAttribute("role")).toBe("group");
+    expect(block!.getAttribute("aria-label")).toBeTruthy();
+  });
+
+  it("코드 줄바꿈을 보존한다", async () => {
+    const el = await renderRichTextEl([{ type: "code", lines: ["a", "b"] }]);
+    expect(el.querySelector(".code-block")!.textContent).toBe("a\nb");
+  });
+});
