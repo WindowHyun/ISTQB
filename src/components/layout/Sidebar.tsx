@@ -402,9 +402,7 @@ export const Sidebar = () => {
               // "골라도 안 바뀐다"로 보인다(실제로 그 상태였다).
               value={quickSizeLocal}
               onChange={(e) => setQuickSizeLocal(Number(e.target.value))}
-              // 퀵을 푸는 중에는 시작 버튼이 없어 고른 값을 적용할 방법이 없다 —
-              // 조용히 무시하지 말고 잠가서 상태를 그대로 드러낸다(채점하면 풀린다).
-              disabled={examLocked || quickUnderway}
+              disabled={examLocked}
               aria-label="퀵 랜덤 문항 수"
             >
               {QUICK_SIZES.map((n) => (
@@ -413,8 +411,11 @@ export const Sidebar = () => {
             </select>
             {/* 퀵을 푸는 중에는 시작 버튼을 감춘다 — 남겨 두면 그 자리에서 누르는 순간
                 진행 중이던 답안이 경고 없이 버려지고 새 추첨으로 갈아탄다.
-                채점을 마치면 다시 나타나 다음 회차로 갈 수 있다. */}
-            {!quickUnderway && (
+                채점을 마치면 다시 나타나 다음 회차로 갈 수 있다.
+                예외: 진행 중에 문항 수를 바꾼 경우에는 다시 띄운다. 감춘 채로 두면 값을
+                골라도 아무 일이 없어 "골라도 안 바뀐다"가 된다 — 바꾼 의도는 새로 시작하려는
+                것이므로 그 길을 열어 주되, 라벨로 결과(새 추첨)를 밝힌다. */}
+            {(!quickUnderway || quickSizeLocal !== quickSize) && (
               <button
                 type="button"
                 className="quick-start-btn"
@@ -422,13 +423,15 @@ export const Sidebar = () => {
                 disabled={examLocked}
                 onClick={handleStartQuick}
               >
-                시작
+                {quickUnderway ? '새로 시작' : '시작'}
               </button>
             )}
           </div>
           <p className="action-hint">
             {quickUnderway
-              ? '퀵 진행 중 — 채점하면 다시 시작할 수 있습니다.'
+              ? (quickSizeLocal !== quickSize
+                  ? `퀵 진행 중 — '새로 시작'을 누르면 ${quickSizeLocal}문항으로 다시 뽑습니다(현재 답안은 사라집니다).`
+                  : '퀵 진행 중 — 채점하면 다시 시작할 수 있습니다.')
               : `${certLabel} 전 세트에서 4지선다·진위형만 뽑습니다. 제한시간 없음 · 위 요약에는 넣지 않습니다.`}
           </p>
         </section>
