@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useQuizStore, ExamHistory, QUICK_SET_ID } from '../../store/useQuizStore';
+import { useQuizStore, ExamHistory, QUICK_SET_ID, freshQuickRounds } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { gradeKeyFor } from '../../utils/answerKey';
 import { useTheme, ThemePref } from '../../hooks/useTheme';
@@ -76,7 +76,7 @@ export const AppModals = () => {
   // 슬라이스 구독(O1). elapsedSeconds는 결과 모달이 열려 있을 때만 반영해
   // 닫혀 있는 동안 타이머 틱으로 리렌더되지 않게 한다(열려 있으면 기존처럼 초 단위 갱신).
   const {
-    setId, mode, activeProduct, histories, resultElapsedSeconds, chapterFilter,
+    setId, mode, activeProduct, histories, quickRounds, resultElapsedSeconds, chapterFilter,
     settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, resumePrompt,
     quitExamOpen, gradedResume, pendingSetChange,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
@@ -88,6 +88,7 @@ export const AppModals = () => {
     redrawRandom, resetToGate,
   } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, activeProduct: s.activeProduct, histories: s.histories,
+    quickRounds: s.quickRounds,
     resultElapsedSeconds: s.resultOpen ? s.elapsedSeconds : 0,
     chapterFilter: s.chapterFilter,
     settingsOpen: s.settingsOpen, statsOpen: s.statsOpen, wrongNoteOpen: s.wrongNoteOpen,
@@ -199,6 +200,32 @@ export const AppModals = () => {
   // 전용 뷰 타입(WrongNoteSetView) — 도메인 ExamHistory를 가짜 id(merged-*)로 위조하지 않는다.
   // useMemo: AppModals는 answers를 구독(useQuizSession)해 답안 클릭마다 리렌더되므로,
   // 메모 없이는 오답노트가 닫혀 있어도 매 클릭 전체 이력 정렬·병합을 재계산한다.
+  /**
+   * 최근 퀵 오답 — 세트 그룹과 섞지 않는다(퀵은 세트를 다 푼 것이 아니다).
+   * 보기 전용이라 상세 진입을 두지 않는다: 퀵은 여러 세트에서 뽑히므로 문항 번호가
+   * 겹치는데(A세트 3번·B세트 3번), 번호로 상세를 찾는 기존 경로로는 구분할 수 없다.
+   */
+  const quickWrongs = React.useMemo(() => {
+    const rounds = freshQuickRounds(quickRounds)
+      .filter((r) => !r.certification || r.certification === activeProduct)
+      .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)); // 최신 회차가 대표
+    const seen = new Map<string, { setId: string; setTitle: string; item: NonNullable<ExamHistory['wrongItems']>[number] }>();
+    for (const r of rounds) {
+      for (const it of r.wrongItems ?? []) {
+        const sid = it.setId ?? r.setId;
+        const key = `${sid}:${it.number}`;
+        if (seen.has(key)) continue;
+        seen.set(key, {
+          setId: sid,
+          setTitle: appData?.sets.find((x) => x.id === sid)?.title ?? sid,
+          item: it,
+        });
+      }
+    }
+    return [...seen.values()].sort((a, b) =>
+      a.setTitle.localeCompare(b.setTitle, 'ko') || a.item.number - b.item.number);
+  }, [quickRounds, activeProduct, appData]);
+
   const wrongNoteBySet: WrongNoteSetView[] = React.useMemo(() => {
     // 회차가 아니라 '문항의 출처 세트'로 묶는다. 퀵 회차는 setId가 센티넬(QUICK)이고
     // 문항이 여러 세트에서 왔으므로, 회차 단위로 묶으면 서로 다른 세트의 오답이 '퀵 랜덤'
@@ -606,11 +633,35 @@ export const AppModals = () => {
       {wrongNoteOpen && (
         <Modal title="오답 노트" onClose={() => { setWrongNoteOpen(false); setWrongNoteSetId(null); setWrongNoteQuestionNo(null); }}>
           <div className="modal-body" data-testid="wrong-note">
-            {wrongNoteBySet.length === 0 ? (
+            {wrongNoteBySet.length === 0 && quickWrongs.length === 0 ? (
               <p>표시할 오답이 없습니다. (시험·랜덤 모드에서 채점하면 기록됩니다)</p>
             ) : !selectedWrong ? (
               // 1단계: 오답이 있는 세트 선택
               <>
+              {/* 퀵 오답 — 세트 그룹과 분리해 먼저 보여준다. 만료가 있는 임시 목록이라
+                  "언제 사라지는가"를 문구로 밝힌다. 보기 전용(상세 진입 없음). */}
+              {quickWrongs.length > 0 && (
+                <section className="quick-wrong-note" data-testid="quick-wrong-note">
+                  <h4>⚡ 최근 퀵 오답 {quickWrongs.length}개</h4>
+                  <p className="stats-hint">
+                    퀵은 회차 기록을 남기지 않습니다. 이 목록은 채점 후 24시간 뒤 자동으로 사라져요.
+                  </p>
+                  <ul className="quick-wrong-list">
+                    {quickWrongs.map(({ setId: sid, setTitle, item }) => (
+                      <li key={`${sid}:${item.number}`} data-testid="quick-wrong-item">
+                        <span className="qw-src">{setTitle}</span>
+                        <span className="qw-no">{item.number}번</span>
+                        <span className="qw-ans">
+                          내 답 <b>{fmtAns(item.myAnswer)}</b> · 정답 <b>{fmtAns(item.correctAnswer)}</b>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              {wrongNoteBySet.length === 0 && (
+                <p>세트별 오답은 아직 없습니다. (시험·랜덤 모드에서 채점하면 기록됩니다)</p>
+              )}
               {/* 노트(전 회차 누적)와 '오답 다시 풀기'(최근 채점 기준)의 범위 차이 안내(A4). */}
               <p className="stats-hint">
                 오답 노트는 전 회차 누적 기록이에요. 사이드바의 ‘오답 다시 풀기’는 최근 채점 기준으로 출제됩니다.

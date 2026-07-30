@@ -1774,3 +1774,30 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 /* 시험 제한시간 임박 표시 — 남은 시간 5분 이하 경고, 1분 이하 위험 */
 .timer-warn { color: #b26a00; }
 .timer-danger { color: #c0392b; font-weight: 800; }
+
+/* ── 오답 노트의 퀵 섹션 ─────────────────────────────────────────────
+   세트 그룹과 시각적으로 갈라 둔다 — 퀵은 세트를 다 푼 기록이 아니고 만료가 있다. */
+.quick-wrong-note {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2, var(--surface));
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+.quick-wrong-note h4 { margin: 0 0 4px; font-size: 15px; }
+.quick-wrong-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.quick-wrong-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 14px;
+}
+.qw-src { color: var(--muted); font-size: 12.5px; }
+.qw-no { font-weight: 700; }
+.qw-ans { flex: 1 1 12ch; color: var(--muted); }
+.qw-ans b { color: var(--text); font-weight: 600; }
