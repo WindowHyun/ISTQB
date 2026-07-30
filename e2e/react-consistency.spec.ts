@@ -154,8 +154,13 @@ test("정합성: 오답 수가 결과·오답노트·재풀이에서 어긋나�
   const wrongFromResult = num(body, /오답\s*(\d+)개/);
 
   // 2) 오답노트에 실린 문항 수(전 그룹 합)
-  await page.getByRole("button", { name: "오답 노트 보기" }).click();
-  await expect(page.getByTestId("wrong-note")).toBeVisible();
+  // 퀵 결과 모달에는 '오답 노트 보기'를 두지 않는다 — 퀵 오답은 회차가 아니라 각 문항의
+  // 출처 세트별로 흩어져 들어가므로, 결과에서 바로 열면 방금 회차의 오답을 기대하게 되지만
+  // 실제로는 세트별 전 회차 합산이 뜬다. 사이드바의 상시 진입로로 연다.
+  await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
+  await openBar(page);
+  await page.getByRole("button", { name: /오답 노트/ }).first().click();
+  await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 20_000 });
   const groups = page.getByTestId("wrong-note-set-btn");
   const groupCount = await groups.count();
   let noteTotal = 0;
