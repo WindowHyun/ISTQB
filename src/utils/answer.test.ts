@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isAnswerCorrect, isQuestionCorrect, isAnswered } from "./answer";
+import { isAnswerCorrect, isQuestionCorrect, isAnswered, shortAnswerCandidates } from "./answer";
 
 // QuestionCard/QuestionWorkspace 공유 정답판정 로직 유닛 테스트 (#76).
 describe("isAnswerCorrect", () => {
@@ -98,5 +98,67 @@ describe("isAnswered", () => {
   it("객관식은 기존 키 비교를 따른다", () => {
     expect(isQuestionCorrect(["a", "b"], ["b", "a"], "multiple_choice")).toBe(true);
     expect(isQuestionCorrect(["a"], ["b"], "multiple_choice")).toBe(false);
+  });
+});
+
+// 서답형 허용답 전개 — 이 함수가 정하는 것은 "무엇을 정답으로 인정하는가"다.
+// isQuestionCorrect를 통해서만 보면 후보가 하나 더 늘어도 기존 검사는 전부 통과한다:
+// 맞던 입력은 여전히 맞기 때문이다(뮤테이션에서 엉뚱한 후보를 끼워 넣는 변이가 살아남았다).
+// 그래서 전개 결과를 그대로 고정한다 — 과다 인정은 오답을 정답으로 세는 방향의 결함이다.
+describe("shortAnswerCandidates — 허용답 전개 고정", () => {
+  it("괄호 병기는 원문·본문·괄호안을 모두 후보로 낸다", () => {
+    expect(shortAnswerCandidates(["로그(Log)"])).toEqual(["로그(Log)", "로그(Log)", "로그", "Log"]);
+  });
+
+  it("콤마로 묶인 동의어를 개별 후보로 펼친다", () => {
+    expect(shortAnswerCandidates(["동등 분할(클래스), 동치 분할"])).toEqual([
+      "동등 분할(클래스), 동치 분할", "동등 분할(클래스)", "동등 분할", "클래스", "동치 분할", "동치 분할",
+    ]);
+  });
+
+  it("공백을 낀 슬래시·'또는'으로 나눈다", () => {
+    expect(shortAnswerCandidates(["재테스팅 / retesting / 재테스트"])).toEqual([
+      "재테스팅 / retesting / 재테스트", "재테스팅", "재테스팅", "retesting", "retesting", "재테스트", "재테스트",
+    ]);
+    expect(shortAnswerCandidates(["가 또는 나"])).toEqual(["가 또는 나", "가", "가", "나", "나"]);
+  });
+
+  // 용어 내부의 슬래시("조건/결정")까지 쪼개면 "조건"만 써도 정답이 된다 — 과다 인정.
+  it("공백 없는 슬래시는 용어 내부 구분이므로 나누지 않는다", () => {
+    expect(shortAnswerCandidates(["조건/결정"])).toEqual(["조건/결정", "조건/결정", "조건/결정"]);
+  });
+
+  // 빈 조각이 후보로 새면 빈 입력이 정답이 될 수 있다.
+  it("빈 조각과 괄호만 남는 조각을 후보로 내지 않는다", () => {
+    expect(shortAnswerCandidates(["로그,  , Log"])).toEqual(["로그,  , Log", "로그", "로그", "Log", "Log"]);
+    expect(shortAnswerCandidates(["(Log)"])).toEqual(["(Log)", "(Log)", "Log"]);
+    expect(shortAnswerCandidates([""])).toEqual([""]);
+  });
+});
+
+describe("서답형 — 과다 인정 방어", () => {
+  it("용어 내부 슬래시의 한쪽만 써서는 정답이 아니다", () => {
+    expect(isQuestionCorrect(["조건/결정"], ["조건/결정"], "short_answer")).toBe(true);
+    expect(isQuestionCorrect(["조건/결정"], ["조건"], "short_answer")).toBe(false);
+    expect(isQuestionCorrect(["조건/결정"], ["결정"], "short_answer")).toBe(false);
+  });
+
+  it("허용답과 무관한 입력은 정답이 아니다", () => {
+    expect(isQuestionCorrect(["로그(Log)"], ["로그"], "short_answer")).toBe(true);
+    expect(isQuestionCorrect(["로그(Log)"], ["로그인"], "short_answer")).toBe(false);
+    expect(isQuestionCorrect(["로그(Log)"], ["Stryker was here"], "short_answer")).toBe(false);
+  });
+
+  // 정답키가 손상돼 배열이 아니면 판정 불가다. 정답으로 세면 그 문항은 무조건 맞는다.
+  it("정답키가 배열이 아니면 오답으로 처리한다", () => {
+    expect(isQuestionCorrect(undefined as unknown as string[], ["아무 답"], "short_answer")).toBe(false);
+    expect(isQuestionCorrect("로그" as unknown as string[], ["로그"], "short_answer")).toBe(false);
+  });
+
+  it("다답형에서 한 칸이라도 비면 오답이다", () => {
+    const p = [{ label: "가", answer: ["4"] }, { label: "나", answer: ["7"] }];
+    expect(isQuestionCorrect([], ["4", "7"], "short_answer", p)).toBe(true);
+    expect(isQuestionCorrect([], ["4", " "], "short_answer", p)).toBe(false);
+    expect(isQuestionCorrect([], ["4"], "short_answer", p)).toBe(false);
   });
 });
