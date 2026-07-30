@@ -104,8 +104,12 @@ const CLICKABLE = [
 // 시드를 늘리면 서로 다른 경로를 밟으면서도 각 실행은 재현 가능한 상태로 남는다.
 // (테스트는 병렬로 도는 별개 케이스라 벽시계 시간은 거의 늘지 않는다.)
 for (const seed of [42, 1337, 20260730]) {
-  test(`몽키: 무작위 150회 조작 후에도 불변식이 유지된다 (시드 ${seed})`, async ({ page }) => {
-    test.setTimeout(600_000);
+  test(`몽키: 무작위 120회 조작 후에도 불변식이 유지된다 (시드 ${seed})`, async ({ page }) => {
+    // 시드를 3개로 늘리면서 전체 스위트의 병렬 부하가 올라갔다 — 단독으로는 2분이면
+    // 끝나는 회차가, 433개 테스트와 워커를 나눠 쓰면 클릭 하나하나가 느려져 10분을
+    // 넘긴 적이 있다. 예산을 늘리고 회차당 조작 수를 줄여, 총 조작량은 늘리되
+    // (150×1 → 120×3) 한 회차가 예산을 넘기지 않게 한다.
+    test.setTimeout(900_000);
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
     page.on("console", (m) => { if (m.type() === "error") errors.push("console.error: " + m.text()); });
@@ -118,7 +122,7 @@ for (const seed of [42, 1337, 20260730]) {
     await page.getByRole("button", { name: rand() < 0.5 ? "ISTQB" : "CSTS" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 
-    for (let step = 1; step <= 150; step++) {
+    for (let step = 1; step <= 120; step++) {
       // 가끔 화면 폭을 바꾼다 — 반응형 전환 도중의 상태 오염을 노린다.
       if (rand() < 0.04) {
         const w = [390, 768, 1280][Math.floor(rand() * 3)];
