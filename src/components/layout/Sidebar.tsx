@@ -44,6 +44,8 @@ export const Sidebar = () => {
   // 문항 수는 '시작'을 누를 때까지 로컬 상태로 둔다 — 고르는 즉시 스토어에 쓰면
   // 진행 중인 세션과 무관한 값 변경이 영속화 구독을 계속 깨운다.
   const [quickSizeLocal, setQuickSizeLocal] = React.useState<number>(quickSize);
+  // 스토어 값이 밖에서 바뀌면(퀵 시작으로 확정, 새로고침 복원) 화면도 따라간다.
+  React.useEffect(() => { setQuickSizeLocal(quickSize); }, [quickSize]);
   const certLabel = activeProduct === 'csts' ? 'CSTS' : 'ISTQB';
 
   // 모바일 드로어 포커스 관리(B1) — 열리면 첫 컨트롤로 포커스 이동 + Tab 순환 트랩,
@@ -395,9 +397,14 @@ export const Sidebar = () => {
           <div className="quick-row">
             <select
               id="quickSize"
-              value={quickSize}
+              // 표시 값은 로컬 상태를 따라야 한다. 스토어 값에 묶어 두면 onChange가
+              // 로컬만 바꾸므로 다시 그릴 때 원래 값으로 튕겨, 사용자에게는
+              // "골라도 안 바뀐다"로 보인다(실제로 그 상태였다).
+              value={quickSizeLocal}
               onChange={(e) => setQuickSizeLocal(Number(e.target.value))}
-              disabled={examLocked}
+              // 퀵을 푸는 중에는 시작 버튼이 없어 고른 값을 적용할 방법이 없다 —
+              // 조용히 무시하지 말고 잠가서 상태를 그대로 드러낸다(채점하면 풀린다).
+              disabled={examLocked || quickUnderway}
               aria-label="퀵 랜덤 문항 수"
             >
               {QUICK_SIZES.map((n) => (

@@ -38,8 +38,29 @@ async function probe(page: import("@playwright/test").Page, iter: number): Promi
   }, iter);
 }
 
+/** 앱이 전혀 없는 페이지에서의 rAF 속도 — 이 브라우저·환경 자체의 기준선. */
+async function baselineFps(page: import("@playwright/test").Page): Promise<number> {
+  await page.goto("data:text/html,<h1>baseline</h1>");
+  return page.evaluate(async () => {
+    let frames = 0;
+    const t0 = performance.now();
+    await new Promise<void>((done) => {
+      const tick = () => {
+        frames += 1;
+        if (performance.now() - t0 < 400) requestAnimationFrame(tick);
+        else done();
+      };
+      requestAnimationFrame(tick);
+    });
+    return frames;
+  });
+}
+
 test("WebKit 원인 규명: 긴 클릭 루프에서 rAF와 레이아웃이 어떻게 되는가", async ({ page }) => {
   test.setTimeout(180_000);
+  // 기준선을 먼저 잰다. 앱 없는 페이지도 느리면 원인은 앱이 아니라 환경이다.
+  const base = await baselineFps(page);
+  console.log(`· 기준선(앱 없음): rAF ${base}프레임/400ms`);
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -67,12 +88,17 @@ test("WebKit 원인 규명: 긴 클릭 루프에서 rAF와 레이아웃이 어�
   for (const p of probes) {
     console.log(`· iter ${p.iter}: rAF ${p.frames}프레임/400ms · 상자 변화 ${p.changed}회 · 같은 노드 ${p.sameNode}`);
   }
-  const starved = probes.filter((p) => p.frames >= 0 && p.frames < 5);
+  const worst = Math.min(...probes.map((p) => p.frames));
   const unstable = probes.filter((p) => p.changed > 2);
-  console.log(`\n=== rAF 기아 ${starved.length}회 · 레이아웃 미수렴 ${unstable.length}회 ===`);
+  console.log(`\n=== 기준선 ${base} · 앱 최저 ${worst} · 레이아웃 미수렴 ${unstable.length}회 ===`);
 
-  // (A) rAF가 400ms에 5프레임도 못 돌면 판정은 영원히 대기한다.
-  expect(starved.map((p) => p.iter), `rAF가 멈춘 반복: ${JSON.stringify(starved)}`).toEqual([]);
   // (B) 상자가 400ms 내내 계속 변하면 두 프레임 연속 동일이 성립하지 않는다.
+  // 이건 브라우저와 무관하게 앱의 문제이므로 절대 기준으로 본다.
   expect(unstable.map((p) => p.iter), `레이아웃이 수렴하지 않은 반복: ${JSON.stringify(unstable)}`).toEqual([]);
+
+  // (A) rAF 기아 — 절대 프레임 수로 재면 브라우저·환경 차이를 앱 탓으로 돌리게 된다.
+  // 앱 없는 페이지의 기준선과 견줘, 앱이 프레임을 굶기는지만 본다.
+  // 기준선의 절반 아래로 떨어지면 앱이 메인 스레드를 붙들고 있다는 뜻이다.
+  expect(worst, `기준선 ${base}프레임 대비 앱에서 ${worst}프레임 — 앱이 메인 스레드를 붙들고 있다`)
+    .toBeGreaterThanOrEqual(Math.floor(base / 2));
 });

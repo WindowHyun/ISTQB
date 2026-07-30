@@ -77,3 +77,27 @@ test("시험·랜덤 결과에는 오답노트 버튼이 그대로 있다(퀵만
   await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId("result-summary").getByRole("button", { name: "오답 노트 보기" })).toBeVisible();
 });
+
+test("퀵 문항 수를 고르면 콤보박스가 그 값을 유지한다", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await openProduct(page, "ISTQB");
+  await openBar(page);
+
+  const sel = page.locator("#quickSize");
+  await expect(sel).toHaveValue("10");
+
+  // 고른 값이 화면에 남아야 한다. controlled value가 스토어에 묶여 있으면
+  // 다시 그릴 때 원래 값으로 튕겨, 사용자는 "골라도 안 바뀐다"를 본다.
+  await sel.selectOption("20");
+  await expect(sel, "고른 값이 유지되지 않고 되돌아갔다").toHaveValue("20");
+
+  await sel.selectOption("15");
+  await expect(sel).toHaveValue("15");
+
+  // 고른 값이 실제 출제 수와도 일치해야 한다(표시만 맞고 출제가 다르면 더 나쁘다).
+  await page.getByTestId("quick-start-btn").click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator("#progressText")).toContainText("/ 15");
+});
