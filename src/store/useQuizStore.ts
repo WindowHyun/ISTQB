@@ -142,6 +142,7 @@ export interface QuizState {
   addHistory: (history: ExamHistory) => void;
   /** 퀵 회차를 임시 보관에 넣는다(만료된 것은 이때 함께 청소한다). */
   addQuickRound: (round: ExamHistory) => void;
+  clearQuickRounds: (certification?: string | null) => void;
   // 오답(review) 대상 문항 id 목록. 키는 `${setId}-${mode}`(과거 데이터는 setId 단독일 수 있음).
   setReviewIds: (key: string, ids: string[]) => void;
   setGraded: (key: string, value: boolean) => void;
@@ -273,6 +274,14 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   addQuickRound: (round) => set((state) => ({
     // 넣을 때 만료분을 함께 버린다 — 읽는 쪽에서도 거르지만, 저장소가 무한정 자라는 것은 막는다.
     quickRounds: [...freshQuickRounds(state.quickRounds), round],
+  })),
+  clearQuickRounds: (certification) => set((state) => ({
+    // 이력 비우기는 현재 제품만 지운다 — 퀵도 같은 범위를 따른다.
+    // certification이 없던 과거 회차는 어느 제품인지 알 수 없으므로 함께 버린다
+    // (24시간 임시 목록이라 보존 가치가 없고, 남으면 지울 방법이 사라진다).
+    quickRounds: certification
+      ? state.quickRounds.filter((r) => !!r.certification && r.certification !== certification)
+      : [],
   })),
   setReviewIds: (key, ids) => set((state) => ({
     reviewIds: { ...state.reviewIds, [key]: ids }

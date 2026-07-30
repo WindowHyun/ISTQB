@@ -105,6 +105,66 @@ test("WebKit 원인 규명: 어느 단계에서 프레임이 죽는가", async (
   expect(blank.frames, "빈 페이지조차 느리면 환경 문제다").toBeGreaterThan(10);
 });
 
+/**
+ * 앞 단계 측정에서 프레임 저하가 **화면이 무거워지는 순서**가 아니라 **시간 순서**를
+ * 따라가는 것으로 보였다(빈 17 → 게이트 10 → 연습 2 → 퀵 1, DOM은 172개뿐).
+ * DOM 172개를 그리는 데 1초가 걸리는 브라우저는 없다. 그렇다면 같은 시간 동안 프로세스를
+ * 먹고 있는 다른 일이 있다는 뜻이고, 첫 로드 직후에만 도는 그런 일은 하나뿐이다 —
+ * **서비스워커 precache 110엔트리**(전 세트 문항 JSON 포함).
+ *
+ * 그래서 세 조건을 같은 화면에서 잰다: 로드 직후 · 캐시가 안정된 뒤 · SW를 지운 뒤.
+ * 뒤 두 조건에서 회복되면 원인은 앱 렌더가 아니라 precache다(그리고 그건 실사용자에게도
+ * 첫 실행이 굼뜨다는 뜻이라 그대로 둘 문제가 아니다).
+ */
+test("WebKit 원인 규명: 첫 로드의 서비스워커 precache가 프레임을 먹는가", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
+  const cachedEntries = () => page.evaluate(async () => {
+    if (!('caches' in window)) return -1;
+    let n = 0;
+    for (const key of await caches.keys()) n += (await (await caches.open(key)).keys()).length;
+    return n;
+  });
+
+  await openProduct(page, "ISTQB");
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  const fresh = await fps(page);
+  const freshCached = await cachedEntries();
+
+  // 캐시 엔트리 수가 더 늘지 않을 때까지 기다린다(최대 60초) — precache가 끝난 시점.
+  let stable = freshCached;
+  for (let i = 0; i < 30; i += 1) {
+    await page.waitForTimeout(2_000);
+    const now = await cachedEntries();
+    if (now === stable) break;
+    stable = now;
+  }
+  const settled = await fps(page);
+
+  // SW를 지우고 다시 들어간다 — precache가 아예 없는 조건.
+  await page.evaluate(async () => {
+    const regs = await navigator.serviceWorker?.getRegistrations?.() ?? [];
+    await Promise.all(regs.map((r) => r.unregister()));
+    for (const key of await caches.keys()) await caches.delete(key);
+  });
+  await page.goto("/");
+  const noSwGate = await fps(page);
+  await page.getByRole("button", { name: "ISTQB" }).click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  const noSw = await fps(page);
+
+  console.log(`· 로드 직후(문항): ${fresh.frames}프레임/400ms · 최대 간격 ${fresh.maxGap}ms · 캐시 ${freshCached}개`);
+  console.log(`· 캐시 안정 후(문항): ${settled.frames}프레임/400ms · 최대 간격 ${settled.maxGap}ms · 캐시 ${stable}개`);
+  console.log(`· SW 제거 후(게이트): ${noSwGate.frames}프레임/400ms · 최대 간격 ${noSwGate.maxGap}ms · DOM ${noSwGate.nodes}개`);
+  console.log(`· SW 제거 후(문항): ${noSw.frames}프레임/400ms · 최대 간격 ${noSw.maxGap}ms · DOM ${noSw.nodes}개`);
+
+  // 아직 원인 규명 단계라 게이트로 걸지 않는다 — 셋 다 측정됐는지만 확인한다.
+  expect(fresh.frames).toBeGreaterThan(0);
+  expect(settled.frames).toBeGreaterThan(0);
+  expect(noSw.frames).toBeGreaterThan(0);
+});
+
 test("WebKit 원인 규명: 긴 클릭 루프에서 rAF와 레이아웃이 어떻게 되는가", async ({ page }) => {
   test.setTimeout(180_000);
   // 기준선을 먼저 잰다. 앱 없는 페이지도 느리면 원인은 앱이 아니라 환경이다.

@@ -142,11 +142,13 @@ test("정합성: 오답 수가 결과·오답노트·재풀이에서 어긋나�
   await page.evaluate(() => localStorage.clear());
   await openProduct(page, "ISTQB");
 
+  // 세트 단위 회차(랜덤)로 대조한다 — 퀵은 회차를 남기지 않아 세트 오답노트·재풀이에
+  // 들어가지 않으므로, 이 삼자 대조의 재료가 될 수 없다(그 분리는 아래에서 따로 본다).
   await openBar(page);
-  await page.locator("#quickSize").selectOption("10");
-  await page.getByTestId("quick-start-btn").click();
+  await page.locator('.segmented button[data-mode="random"]').click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-  await answerAll(page, 12);
+  const roundTotal = num(await page.locator("#progressText").textContent(), /\/\s*(\d+)/);
+  await answerAll(page, (roundTotal ?? 40) + 2);
   await grade(page);
 
   // 1) 결과 모달의 오답 수
@@ -154,9 +156,6 @@ test("정합성: 오답 수가 결과·오답노트·재풀이에서 어긋나�
   const wrongFromResult = num(body, /오답\s*(\d+)개/);
 
   // 2) 오답노트에 실린 문항 수(전 그룹 합)
-  // 퀵 결과 모달에는 '오답 노트 보기'를 두지 않는다 — 퀵 오답은 회차가 아니라 각 문항의
-  // 출처 세트별로 흩어져 들어가므로, 결과에서 바로 열면 방금 회차의 오답을 기대하게 되지만
-  // 실제로는 세트별 전 회차 합산이 뜬다. 사이드바의 상시 진입로로 연다.
   await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
   await openBar(page);
   await page.getByRole("button", { name: /오답 노트/ }).first().click();
@@ -183,6 +182,34 @@ test("정합성: 오답 수가 결과·오답노트·재풀이에서 어긋나�
   if (retryTotal === null || retryTotal < 1) bad(`재풀이 대상이 없다 (${retryTotal})`);
   if (wrongFromResult !== null && retryTotal !== null && retryTotal > wrongFromResult) {
     bad(`재풀이 대상(${retryTotal})이 전체 오답(${wrongFromResult})보다 많다`);
+  }
+
+  // 4) 퀵을 한 회차 더 풀어도 위 세 숫자는 그대로여야 한다 — 퀵 오답은 임시 목록으로만
+  //    간다. 여기서 세트 그룹 합이 늘면 "기록을 남기지 않는다"는 약속이 깨진 것이다.
+  await openBar(page);
+  await page.locator("#quickSize").selectOption("10");
+  await page.getByTestId("quick-start-btn").click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  await answerAll(page, 12);
+  await grade(page);
+  const quickWrong = num(await page.getByTestId("result-summary").innerText(), /오답\s*(\d+)개/);
+  await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
+
+  await openBar(page);
+  await page.getByRole("button", { name: /오답 노트/ }).first().click();
+  await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 20_000 });
+  let noteTotalAfter = 0;
+  const groupsAfter = page.getByTestId("wrong-note-set-btn");
+  for (let i = 0; i < (await groupsAfter.count()); i += 1) {
+    noteTotalAfter += num(await groupsAfter.nth(i).innerText(), /오답\s*(\d+)/) ?? 0;
+  }
+  const quickItems = await page.getByTestId("quick-wrong-item").count();
+  console.log(`· 퀵 오답 ${quickWrong} | 퀵 목록 ${quickItems} | 세트 그룹 합 ${noteTotal}→${noteTotalAfter}`);
+  if (noteTotalAfter !== noteTotal) {
+    bad(`퀵을 풀었더니 세트 오답노트 합이 ${noteTotal}→${noteTotalAfter}로 변했다`);
+  }
+  if (quickWrong !== null && quickItems !== quickWrong) {
+    bad(`퀵 결과 오답(${quickWrong})과 퀵 오답 목록(${quickItems})이 다르다`);
   }
 
   expect(problems, problems.join("\n")).toEqual([]);

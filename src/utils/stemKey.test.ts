@@ -6,7 +6,7 @@ import path from 'node:path';
 // 정규화 규칙은 빌드 스크립트에만 있다(런타임은 생성된 표를 읽기만 하므로 번들에 실리지
 // 않는다). createRequire로 CJS 모듈을 직접 들여와 규칙 자체를 검증한다.
 const require_ = createRequire(import.meta.url);
-const { stemKeyOf, normalize } = require_('../../scripts/lib/stemKey.cjs');
+const { stemKeyOf, answerTextKeyOf, normalize } = require_('../../scripts/lib/stemKey.cjs');
 
 const dataRoot = path.resolve(process.cwd(), 'www/data');
 const readJson = (rel: string) => JSON.parse(fs.readFileSync(path.join(dataRoot, rel), 'utf8'));
@@ -58,13 +58,42 @@ describe('stemKey — 재수록 판정 규칙', () => {
 
 // 표는 생성물이라 데이터가 바뀌면 낡는다. verify가 --check로 막지만, 단위 레벨에서도
 // 표의 내용 자체가 성립하는지(오병합이 없는지) 검사한다.
+// 두 번째 규칙 — 보기 순서를 섞은 재수록을 잡되, 지문만 같은 별개 문항은 여전히 가른다.
+describe('answerTextKey — 정답 본문 기준 판정', () => {
+  const stem = [{ text: '결함 관리에 대한 설명으로 옳은 것은 무엇인가?' }];
+  const q = (answer: string[], options: { key: string; text: string }[]) => ({ stem, answer, options });
+
+  it('보기 순서만 다르면 같은 키다(정답 키는 갈려도)', () => {
+    const a = q(['a'], [
+      { key: 'a', text: '결함관리는 결함 해결 과정 전반을 모니터링 한다.' },
+      { key: 'b', text: '종료 처리한 결함은 다시 등록할 수 없다.' },
+    ]);
+    const b = q(['b'], [
+      { key: 'a', text: '종료 처리한 결함은 다시 등록할 수 없다.' },
+      { key: 'b', text: '결함 관리는 결함 해결 과정 전반을 모니터링 한다.' },
+    ]);
+    expect(stemKeyOf(a)).not.toBe(stemKeyOf(b));   // 종전 규칙은 놓친다
+    expect(answerTextKeyOf(a)).toBe(answerTextKeyOf(b));
+  });
+
+  it('지문이 같아도 정답 본문이 다르면 다른 키다(오병합 방지)', () => {
+    const a = q(['a'], [{ key: 'a', text: '가나다라마바사' }, { key: 'b', text: '아자차카타파하' }]);
+    const b = q(['a'], [{ key: 'a', text: '아자차카타파하' }, { key: 'b', text: '가나다라마바사' }]);
+    expect(answerTextKeyOf(a)).not.toBe(answerTextKeyOf(b));
+  });
+
+  it('보기가 없는 유형(서답형)은 판단을 포기한다 — null', () => {
+    expect(answerTextKeyOf({ stem, answer: ['테스트 케이스'], options: [] })).toBeNull();
+  });
+});
+
 describe('duplicateGroups — 생성된 표의 정합성', () => {
   const groups: string[][] = index.duplicateGroups;
 
-  it('표가 존재하고 45그룹 94문항이다', () => {
+  it('표가 존재하고 46그룹 96문항이다', () => {
     expect(Array.isArray(groups)).toBe(true);
-    expect(groups.length).toBe(45);
-    expect(groups.reduce((n, g) => n + g.length, 0)).toBe(94);
+    expect(groups.length).toBe(46);
+    expect(groups.reduce((n, g) => n + g.length, 0)).toBe(96);
   });
 
   it('모든 id가 실재하고, 한 문항이 두 그룹에 속하지 않는다', () => {

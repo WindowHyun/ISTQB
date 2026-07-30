@@ -7,7 +7,7 @@
  * 두 번 들어간다. 앱이 "이 둘은 같은 문제"임을 알려면 표가 필요하다.
  *
  * 왜 빌드 타임인가: 런타임에 만들려면 통계 화면을 열 때마다 제품의 전 세트를 내려받아
- * 지문을 정규화해야 한다. 표는 45그룹뿐이라 index.json에 실어 두면 조회만으로 끝난다.
+ * 지문을 정규화해야 한다. 표는 46그룹뿐이라 index.json에 실어 두면 조회만으로 끝난다.
  *
  * 왜 별도 JSON 파일이 아닌가: validate-questions.js가 www/data/istqb·csts 하위의
  * .json을 전부 문항 세트로 검증한다. 새 파일을 두면 그 검증이 깨진다. index.json은
@@ -22,7 +22,7 @@
  */
 const fs = require("fs");
 const path = require("path");
-const { stemKeyOf } = require("./lib/stemKey.cjs");
+const { stemKeyOf, answerTextKeyOf } = require("./lib/stemKey.cjs");
 
 const dataRoot = path.join(__dirname, "..", "www", "data");
 const indexPath = path.join(dataRoot, "index.json");
@@ -34,26 +34,64 @@ function readJson(p) {
 /**
  * 재수록 그룹 목록. 각 그룹은 문항 id 배열이며, 그룹·그룹 내 모두 정렬해
  * 같은 입력이면 항상 같은 출력이 나오게 한다(--check가 순서 차이로 오탐하지 않도록).
+ *
+ * 두 동일성 키의 합집합으로 묶는다(어느 한쪽으로만 같아도 같은 문제):
+ *   - stemKeyOf        지문 + 정답 키(a/b/c) + 보기 수 — 보기 본문이 손질된 재수록을 잡는다.
+ *   - answerTextKeyOf  지문 + 정답 '본문' + 보기 수 — 보기 순서를 섞은 재수록을 잡는다.
+ * 한쪽만으로는 각각 1그룹·4그룹을 놓친다(근거는 lib/stemKey.cjs 주석).
+ * 합집합이므로 연쇄 병합이 가능해, 아래에서 3개 이상 묶인 그룹을 함께 보고한다.
  */
 function buildGroups(index) {
-  const byKey = new Map();
+  const rows = [];
   for (const set of index.sets) {
     const payload = readJson(path.join(dataRoot, set.path.replace(/^\.\//, "")));
     for (const q of payload.questions || []) {
-      const key = stemKeyOf(q);
-      if (!key || !q.id) continue;
-      if (!byKey.has(key)) byKey.set(key, []);
-      byKey.get(key).push({ id: q.id, setId: set.id });
+      if (q.id) rows.push({ id: q.id, setId: set.id, q });
     }
   }
 
+  // union-find — 두 키가 만드는 연결을 모두 합친다.
+  const parent = new Map(rows.map((r) => [r.id, r.id]));
+  const find = (x) => {
+    while (parent.get(x) !== x) {
+      parent.set(x, parent.get(parent.get(x)));
+      x = parent.get(x);
+    }
+    return x;
+  };
+  const union = (a, b) => {
+    const ra = find(a);
+    const rb = find(b);
+    if (ra !== rb) parent.set(ra, rb);
+  };
+  for (const keyOf of [stemKeyOf, answerTextKeyOf]) {
+    const byKey = new Map();
+    for (const r of rows) {
+      const key = keyOf(r.q);
+      if (!key) continue;
+      if (!byKey.has(key)) byKey.set(key, []);
+      byKey.get(key).push(r.id);
+    }
+    for (const ids of byKey.values()) {
+      for (let i = 1; i < ids.length; i += 1) union(ids[0], ids[i]);
+    }
+  }
+
+  const setOf = new Map(rows.map((r) => [r.id, r.setId]));
+  const byRoot = new Map();
+  for (const r of rows) {
+    const root = find(r.id);
+    if (!byRoot.has(root)) byRoot.set(root, []);
+    byRoot.get(root).push(r.id);
+  }
+
   const groups = [];
-  for (const members of byKey.values()) {
+  for (const members of byRoot.values()) {
     if (members.length < 2) continue;
     // 같은 세트 안의 중복은 대상이 아니다 — 문항 id가 이미 다르므로 별개 문항으로 다룬다.
     // (현 데이터에는 0건이지만, 생기더라도 세트 내 문항 수를 임의로 줄이지 않는다.)
-    if (new Set(members.map((m) => m.setId)).size < 2) continue;
-    groups.push(members.map((m) => m.id).sort());
+    if (new Set(members.map((id) => setOf.get(id))).size < 2) continue;
+    groups.push([...members].sort());
   }
   groups.sort((a, b) => a[0].localeCompare(b[0]));
   return groups;

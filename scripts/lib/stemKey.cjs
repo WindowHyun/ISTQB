@@ -16,7 +16,10 @@
  * 그래서 지문 + 정답 + 보기 개수를 쓴다. 실측으로 두 요건을 모두 만족하는 기준이다:
  *   - B-040/C-040은 정답이 달라 분리된다(오병합 없음).
  *   - 표기만 손질된 6그룹은 정답·보기 수가 같아 합쳐진다.
- * 결과: 교차 세트 중복 45그룹 94문항. 그룹 내 유형 불일치 0, 제품 교차 0.
+ *
+ * 여기에 두 번째 규칙(answerTextKeyOf)을 합집합으로 더한다 — 보기 순서를 섞어 재수록한
+ * 문항은 정답 키가 갈려 위 규칙만으로는 못 잡기 때문이다(아래 주석 참조).
+ * 결과: 교차 세트 중복 46그룹 96문항. 그룹 내 유형 불일치 0, 제품 교차 0.
  *
  * 정규화가 하는 일: 마크업·공백·문장부호를 걷어내 표기 차이만 다른 재수록을 같은 키로
  * 모은다. 규칙이 조금만 달라져도 그룹 수가 흔들리므로 여기 한 곳에서만 정의한다.
@@ -77,4 +80,39 @@ function stemKeyOf(question) {
   return `${stem}##${answer}##${optionCount}`;
 }
 
-module.exports = { stemKeyOf, normalize, collectText };
+/**
+ * 두 번째 동일성 키 — 정답을 '키(a/b/c)'가 아니라 '정답 보기의 본문'으로 비교한다.
+ *
+ * 왜 필요한가: 재수록하면서 보기 순서를 섞은 문항이 있다. 그러면 지문도 보기 개수도
+ * 같은데 정답 키만 a↔b로 갈려(stemKeyOf 기준) 같은 문제가 서로 다른 문제로 남는다.
+ * 실측 1건(CSTS-EL-2019-022 / CSTS-FL-2403-047 — 정답 본문 동일, 순서만 다름).
+ *
+ * 왜 stemKeyOf를 이 방식으로 바꾸지 않는가: 재수록 시 보기 본문도 손질된다("결함관리"/
+ * "결함 관리" 수준을 넘어 문장이 바뀌는 경우). 본문 기준으로 갈아타면 지금 올바르게
+ * 묶인 4그룹이 도로 갈라진다(실측 45그룹 → 42그룹). 그래서 대체가 아니라 추가 규칙으로
+ * 쓴다 — 두 키 중 하나라도 같으면 같은 문제로 본다(합집합). 실측 45그룹 → 46그룹.
+ *
+ * 오병합 위험: 지문이 같고 정답 본문도 같은 서로 다른 문제는 사실상 같은 문제다.
+ * (B-040/C-040처럼 지문만 같고 정답이 다른 쌍은 여기서도 갈린다.)
+ */
+function answerTextKeyOf(question) {
+  const parts = [];
+  collectText(question.stem, parts);
+  const stem = normalize(parts.join(" "));
+  if (stem.length < 10) return null;
+  const options = question.options || [];
+  const textOf = (key) => {
+    const o = options.find((x) => (x.key ?? x.id ?? x.label) === key);
+    if (!o) return null;
+    const t = [];
+    if (typeof o.text === "string") t.push(o.text);
+    collectText(o, t);
+    return normalize(t.join(" "));
+  };
+  const answers = [...(question.answer || [])].map(textOf);
+  // 정답 보기를 찾지 못하면(서답형 등 보기 없는 유형) 이 규칙은 판단을 포기한다.
+  if (!answers.length || answers.some((a) => !a)) return null;
+  return `${stem}##${answers.sort().join("|")}##${options.length}`;
+}
+
+module.exports = { stemKeyOf, answerTextKeyOf, normalize, collectText };

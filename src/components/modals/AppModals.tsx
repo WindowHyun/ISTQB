@@ -81,14 +81,14 @@ export const AppModals = () => {
     quitExamOpen, gradedResume, pendingSetChange,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
     setMode, beginSession, clearAnswers, setReviewIds, setSetId, setChapterFilter, setResumePrompt,
-    resetProgressForSets,
+    resetProgressForSets, clearQuickRounds,
     setQuitExamOpen, setGradedResume, setRandomDraw,
     setPendingSetChange, commitSetChange, reviewedOk,
     pendingRedraw, setPendingRedraw, confirmExitExam, setConfirmExitExam,
     redrawRandom, resetToGate,
   } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, activeProduct: s.activeProduct, histories: s.histories,
-    quickRounds: s.quickRounds,
+    quickRounds: s.quickRounds, clearQuickRounds: s.clearQuickRounds,
     resultElapsedSeconds: s.resultOpen ? s.elapsedSeconds : 0,
     chapterFilter: s.chapterFilter,
     settingsOpen: s.settingsOpen, statsOpen: s.statsOpen, wrongNoteOpen: s.wrongNoteOpen,
@@ -200,14 +200,20 @@ export const AppModals = () => {
   // 전용 뷰 타입(WrongNoteSetView) — 도메인 ExamHistory를 가짜 id(merged-*)로 위조하지 않는다.
   // useMemo: AppModals는 answers를 구독(useQuizSession)해 답안 클릭마다 리렌더되므로,
   // 메모 없이는 오답노트가 닫혀 있어도 매 클릭 전체 이력 정렬·병합을 재계산한다.
+  // 현재 제품의 유효(미만료) 퀵 회차 — 오답노트와 통계가 같은 모집단을 본다.
+  // 제품 필터가 빠지면 CSTS에서 푼 퀵이 ISTQB 챕터 통계에 남의 챕터로 끼어든다.
+  const productQuickRounds = React.useMemo(
+    () => freshQuickRounds(quickRounds).filter((r) => !r.certification || r.certification === activeProduct),
+    [quickRounds, activeProduct],
+  );
+
   /**
    * 최근 퀵 오답 — 세트 그룹과 섞지 않는다(퀵은 세트를 다 푼 것이 아니다).
    * 보기 전용이라 상세 진입을 두지 않는다: 퀵은 여러 세트에서 뽑히므로 문항 번호가
    * 겹치는데(A세트 3번·B세트 3번), 번호로 상세를 찾는 기존 경로로는 구분할 수 없다.
    */
   const quickWrongs = React.useMemo(() => {
-    const rounds = freshQuickRounds(quickRounds)
-      .filter((r) => !r.certification || r.certification === activeProduct)
+    const rounds = [...productQuickRounds]
       .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)); // 최신 회차가 대표
     const seen = new Map<string, { setId: string; setTitle: string; item: NonNullable<ExamHistory['wrongItems']>[number] }>();
     for (const r of rounds) {
@@ -224,7 +230,7 @@ export const AppModals = () => {
     }
     return [...seen.values()].sort((a, b) =>
       a.setTitle.localeCompare(b.setTitle, 'ko') || a.item.number - b.item.number);
-  }, [quickRounds, activeProduct, appData]);
+  }, [productQuickRounds, appData]);
 
   const wrongNoteBySet: WrongNoteSetView[] = React.useMemo(() => {
     // 회차가 아니라 '문항의 출처 세트'로 묶는다. 퀵 회차는 setId가 센티넬(QUICK)이고
@@ -370,6 +376,9 @@ export const AppModals = () => {
     // 이전 기록이 재생성됨"). 이력과 그 이력에서 파생된 상태를 함께 비운다.
     // 퀵 회차의 setId는 실재 세트가 아닌 센티넬이라 목록에 따로 넣어야 한다.
     resetProgressForSets([...sets.map((x) => x.id), QUICK_SET_ID]);
+    // 퀵 임시 회차는 이력이 아니라 별도 보관이라 위 삭제에 걸리지 않는다 — 함께 지우지
+    // 않으면 "이력 비우기" 직후에도 오답노트에 퀵 오답이 그대로 남는다(초기화 미완).
+    clearQuickRounds(activeProduct);
     showToast('현재 자격증의 응시 이력과 풀이 기록을 모두 삭제했습니다.', 'success');
   };
 
@@ -946,7 +955,7 @@ export const AppModals = () => {
           sets={sets}
           duplicateGroups={appData?.duplicateGroups}
           duplicateChapters={appData?.duplicateChapters}
-          quickRounds={freshQuickRounds(quickRounds)}
+          quickRounds={productQuickRounds}
           onClose={() => setStatsOpen(false)}
           onClear={handleClearHistories}
           onPracticeChapter={handlePracticeChapter}

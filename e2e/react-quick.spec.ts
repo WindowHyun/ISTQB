@@ -116,7 +116,10 @@ test.describe("퀵 랜덤", () => {
     expect(await page.locator(".stats-summary").count()).toBe(0);
     // 사양 변경: 퀵은 회차 기록을 남기지 않는다 — 짧은 세션 목록에도 나오지 않는다.
     // (오답만 24시간 임시로 오답노트의 퀵 섹션에 남는다: react-quick-wrongnote.spec.ts)
-    await expect(page.getByTestId("stats-dashboard")).toContainText("아직 채점한 기록이 없습니다");
+    await expect(page.getByTestId("stats-mini-rounds")).toHaveCount(0);
+    // 그래도 챕터 분석에는 기여한다 — "기록 없음"으로 화면을 통째로 가리면 안 된다.
+    expect(await page.locator(".sc-rate").count(),
+      "퀵만 풀었더니 챕터 분석이 비었다").toBeGreaterThan(0);
   });
 
     // 영속 계약 — 퀵 회차가 IndexedDB에 어떤 모양으로 남는지. 여기서 하나라도 빠지면

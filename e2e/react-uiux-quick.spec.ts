@@ -282,10 +282,12 @@ test("UX: 퀵 안내 문구가 잘리지 않고 출제 범위를 알린다", asy
   if (!hint) { bad("퀵 안내 문구가 없다"); }
   else {
     note(`안내: ${hint.text}`);
-    // 출제 범위를 명시하지 않으면 "서답형이 안 나온다"가 결함 신고로 돌아온다.
+    // 출제 범위를 명시하지 않으면 "서답형이 왜 나오냐"가 결함 신고로 돌아온다.
     if (!/전 세트/.test(hint.text)) bad("안내에 '전 세트 출제'가 없다");
-    if (!/진위형|4지선다/.test(hint.text)) bad("안내에 출제 유형 범위가 없다");
+    if (!/서답형/.test(hint.text)) bad("안내에 출제 유형 범위가 없다");
     if (!/제한시간/.test(hint.text)) bad("안내에 제한시간 여부가 없다");
+    // 퀵은 회차 이력을 남기지 않는다 — 이 사실을 안내에서 알 수 있어야 한다.
+    if (!/기록/.test(hint.text)) bad("안내에 회차 기록 여부가 없다");
     if (hint.clipped) bad("안내 문구가 세로로 잘렸다");
   }
   expect(problems, problems.join("\n")).toEqual([]);

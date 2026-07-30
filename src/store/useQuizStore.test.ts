@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useQuizStore } from "./useQuizStore";
+import { useQuizStore, freshQuickRounds, QUICK_ROUND_TTL_MS, ExamHistory } from "./useQuizStore";
 
 // #75 채점 루프가 의존하는 store 액션 검증 (#76 — store 로직 유닛 테스트).
 function reset() {
@@ -311,5 +311,60 @@ describe('resetProgressForSets — 이력 삭제와 짝이 되는 상태 정리'
     const before = useQuizStore.getState().answers;
     useQuizStore.getState().resetProgressForSets([]);
     expect(useQuizStore.getState().answers).toBe(before);
+  });
+});
+
+// 퀵 회차는 이력(histories)이 아니라 별도 보관이라, 만료·삭제 규칙이 이력과 다르다.
+// 이 규칙이 깨지면 "기록을 남기지 않는다"는 약속이나 "이력 비우기"가 조용히 무력화된다.
+describe('퀵 임시 회차(quickRounds)', () => {
+  const round = (id: string, cert: ExamHistory['certification'], createdAt: number): ExamHistory => ({
+    id, setId: 'QUICK', mode: 'quick', answers: {}, certification: cert, createdAt,
+  });
+
+  beforeEach(() => {
+    useQuizStore.setState({ quickRounds: [] });
+  });
+
+  it('freshQuickRounds는 24시간이 지난 회차를 버린다', () => {
+    const now = 1_700_000_000_000;
+    const kept = round('new', 'istqb', now - QUICK_ROUND_TTL_MS + 1_000);
+    const gone = round('old', 'istqb', now - QUICK_ROUND_TTL_MS - 1_000);
+    expect(freshQuickRounds([kept, gone], now).map((r) => r.id)).toEqual(['new']);
+  });
+
+  it('createdAt이 없는 회차는 즉시 만료로 본다(무기한 잔존 방지)', () => {
+    expect(freshQuickRounds([round('x', 'istqb', undefined as unknown as number)], 1_700_000_000_000)).toEqual([]);
+  });
+
+  it('addQuickRound는 넣으면서 만료분을 함께 버린다', () => {
+    useQuizStore.setState({ quickRounds: [round('old', 'istqb', 0)] });
+    useQuizStore.getState().addQuickRound(round('new', 'istqb', Date.now()));
+    expect(useQuizStore.getState().quickRounds.map((r) => r.id)).toEqual(['new']);
+  });
+
+  it('clearQuickRounds는 해당 자격증 회차만 지운다', () => {
+    const now = Date.now();
+    useQuizStore.setState({
+      quickRounds: [round('i', 'istqb', now), round('c', 'csts', now)],
+    });
+    useQuizStore.getState().clearQuickRounds('istqb');
+    expect(useQuizStore.getState().quickRounds.map((r) => r.id)).toEqual(['c']);
+  });
+
+  // 자격증을 모르는 회차를 남기면 어느 제품의 '이력 비우기'로도 지워지지 않는다.
+  it('clearQuickRounds는 자격증 미상 회차도 함께 지운다', () => {
+    const now = Date.now();
+    useQuizStore.setState({
+      quickRounds: [round('legacy', undefined, now), round('c', 'csts', now)],
+    });
+    useQuizStore.getState().clearQuickRounds('istqb');
+    expect(useQuizStore.getState().quickRounds.map((r) => r.id)).toEqual(['c']);
+  });
+
+  it('clearQuickRounds()에 자격증을 주지 않으면 전부 지운다', () => {
+    const now = Date.now();
+    useQuizStore.setState({ quickRounds: [round('i', 'istqb', now), round('c', 'csts', now)] });
+    useQuizStore.getState().clearQuickRounds();
+    expect(useQuizStore.getState().quickRounds).toEqual([]);
   });
 });

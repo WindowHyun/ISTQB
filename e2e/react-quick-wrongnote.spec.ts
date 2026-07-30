@@ -74,7 +74,44 @@ test("퀵은 회차 기록을 남기지 않는다(이력·요약에 안 잡힘)"
 
   await openBar(page);
   await page.getByTestId("stats-open").click();
+  const dash = page.getByTestId("stats-dashboard");
+  await expect(dash).toBeVisible();
+  // 회차로는 어디에도 안 잡힌다 — 요약(응시 횟수)·타임라인·짧은 세션 목록 모두.
+  await expect(page.locator(".stats-summary"), "퀵이 응시 횟수로 잡혔다").toHaveCount(0);
+  await expect(page.getByTestId("stats-mini-rounds"), "퀵이 짧은 세션 목록에 남았다").toHaveCount(0);
+  await expect(page.getByTestId("mini-round-item")).toHaveCount(0);
+  // 그러나 챕터 분석에는 기여한다 — 여기까지 비면 퀵으로 공부한 것이 통째로 사라진다.
+  // 10문항이면 챕터당 표본이 작아 '판단하기 이른 챕터' 쪽에 실릴 수 있으므로 둘 다 센다.
+  const chapterRows = await page.locator(".sc-rate").count();
+  expect(chapterRows, "퀵만 풀었더니 챕터 분석이 비었다").toBeGreaterThan(0);
+});
+
+test("이력 비우기는 퀵 오답 임시 목록까지 지운다", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await openProduct(page, "ISTQB");
+  await playQuick(page, "10");
+
+  await openBar(page);
+  await page.getByTestId("stats-open").click();
   await expect(page.getByTestId("stats-dashboard")).toBeVisible();
-  await expect(page.getByTestId("stats-dashboard"), "퀵이 회차 이력으로 표시됐다")
-    .toContainText("아직 채점한 기록이 없습니다");
+  // 퀵만 있어도 비우기 진입로가 있어야 한다 — 없으면 지울 방법이 24시간 대기뿐이다.
+  await page.getByRole("button", { name: "이력 비우기" }).click();
+  await page.getByTestId("stats-clear-confirm").click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("stats-dashboard")).toBeHidden();
+
+  await openBar(page);
+  await page.getByRole("button", { name: /오답 노트/ }).first().click();
+  await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId("quick-wrong-note"), "비우기 후에도 퀵 오답이 남았다").toHaveCount(0);
+
+  // 새로고침해도 되살아나지 않는다(localStorage 영속분까지 지워졌는가).
+  await page.keyboard.press("Escape");
+  await openProduct(page, "ISTQB");
+  await openBar(page);
+  await page.getByRole("button", { name: /오답 노트/ }).first().click();
+  await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId("quick-wrong-note"), "새로고침하니 퀵 오답이 되살아났다").toHaveCount(0);
 });
