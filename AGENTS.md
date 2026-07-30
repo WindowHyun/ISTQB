@@ -23,7 +23,12 @@
 - 문제 데이터(`www/data/**`)를 수정한 뒤에는 `python3 scripts/verify-pdf-data.py`(원본 PDF 대조 — 텍스트·정답·밑줄)도 통과해야 합니다(CI `pdf-data` job과 동일).
 - UI/렌더링/이미지/표/선택지 변경은 `docs/harness/ui-render-harness.md`에 따라 React E2E·스크린샷으로 확인합니다.
 - Android 또는 패키징되는 웹 에셋 변경은 `npm run cap:sync`와 `docs/harness/android-build-harness.md`의 Android 빌드 점검 필요 여부를 판단합니다.
-- React 앱(운영 배포)·렌더링·풀이 동작 변경은 `npm test`(유닛 151개)와 `npm run test:e2e`(React E2E 305개, `docs/e2e-test-scenarios.md`)로 회귀를 검증합니다.
+- React 앱(운영 배포)·렌더링·풀이 동작 변경은 `npm test`(유닛 436개)와 `npm run test:e2e`(React 기능 E2E 404개, `docs/e2e-test-scenarios.md`)로 회귀를 검증합니다.
+- 모바일 레이아웃·안전영역·터치 타깃에 영향이 있으면 `npm run test:apk`(APK/WebView 20개)도 실행합니다 — 데스크톱 E2E는 뷰포트를 줄여도 WebView UA·안전영역 변수를 재현하지 못합니다.
+- 성능·오프라인·저장 내구성에 영향이 있으면 `npm run test:nf`(비기능 13개)를 실행합니다.
+- 채점·통계·저장 키 등 핵심 순수 로직을 고쳤다면 `npm run test:mutation`(Stryker, CI break 85)으로 테스트의 결함 검출력을 확인합니다.
+- 테스트·e2e 파일을 추가·수정했다면 `npm run typecheck:test`를 실행합니다 — 앱 `tsconfig`는 테스트를 exclude하므로 이 명령이 아니면 타입 검사를 받지 않습니다.
+- 추가한 테스트가 헛돌지 않는지 확인합니다: 대상 결함을 일부러 되돌려 **실패하는 것을 보고** 원복합니다.
 - 요청된 변경에서 기존 하네스가 잡지 못하는 결함 유형이 드러나면, 작업 완료로 보기 전에 하네스를 보강하거나 보강안을 제시합니다.
 
 ## 보고 기준
