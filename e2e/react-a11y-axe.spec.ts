@@ -102,6 +102,24 @@ test("axe: 다크 모드 + 모바일 390px", async ({ page }) => {
   await scan(page, "다크-드로어", found);
   await page.keyboard.press("Escape");
 
+  // 다크 스캔이 390px에만 있어 팔레트가 접힌 채였다 — 데스크톱 폭에서 팔레트가 펼쳐진
+  // 상태, 그것도 문항에 답한 뒤(.current.answered)를 보지 않으면 상태 배경과 현재 표시
+  // 색이 겹치는 조합이 드러나지 않는다(실제로 3.49:1 위반이 여기 숨어 있었다).
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.reload();
+  await page.getByRole("button", { name: "CSTS" }).click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  await page.locator("#options .option").first().click();
+  await page.waitForTimeout(300);
+  await scan(page, "다크-데스크톱-팔레트(답한 뒤)", found);
+
+  // 뒤따르는 검사들은 모바일 전용 컨트롤(점프 핀 등)을 만지므로 폭을 되돌린다 —
+  // 데스크톱으로 둔 채 넘기면 그 컨트롤이 숨어 있어 뒤 테스트가 통째로 멎는다.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  await page.getByRole("button", { name: "CSTS" }).click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+
   // 서답형 화면(입력 라벨·설명 연결 검사)
   const idx = await (await page.request.get("/data/index.json")).json();
   const setId = await page.locator("#examSelect").inputValue();
