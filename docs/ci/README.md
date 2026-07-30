@@ -7,7 +7,7 @@
 
 | 워크플로 | 파일 | 트리거 | 하는 일 | 문서 |
 | --- | --- | --- | --- | --- |
-| **CI** | `.github/workflows/ci.yml` | push(main)·PR·수동 | 11 job 병렬 — 기능·품질: lint · verify-data · **pdf-data** · unit · **mutation** · build · **e2e** · **nonfunctional**, 보안: **audit** · **secrets** · **codeql** | [`ci.md`](./ci.md) |
+| **CI** | `.github/workflows/ci.yml` | push(main)·PR·수동 | 13 job 병렬 — 기능·품질: lint · verify-data · **pdf-data** · unit · **mutation** · build · android-build · **e2e** · **nonfunctional** · **apk**, 보안: **audit** · **secrets** · **codeql** | [`ci.md`](./ci.md) |
 | **Daily E2E** | `.github/workflows/daily-e2e.yml` | 매일 예약(KST 09:17)·수동 | 코드 변화 없이도 E2E 회귀 상시 감시, 실패 시 이슈 알림 | [`daily-e2e.md`](./daily-e2e.md) |
 | **Android → Firebase** | `.github/workflows/android-firebase.yml` | 수동·`v*` 태그 | React 빌드 → Capacitor sync → APK → Firebase App Distribution 배포 | [`android-firebase.md`](./android-firebase.md) |
 

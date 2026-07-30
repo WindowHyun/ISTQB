@@ -1,50 +1,82 @@
-# React E2E 테스트 시나리오 (305개)
+# E2E 테스트 시나리오 (437개 — 기능 404 · 비기능 13 · APK/WebView 20)
 
 > 대상: React 앱(`index.vite.html` → Vercel `dist` 배포본). Playwright로 자동화.
-> 실행: CI `react` 프로젝트(`testMatch: /react-.*\.spec\.ts/`) — `npm run test:e2e`.
+> 실행: 기능 `npm run test:e2e`(`react` 프로젝트) · 비기능 `npm run test:nf` · APK/WebView `npm run test:apk`.
+> 세 프로젝트 모두 CI 게이트다(`e2e` · `nonfunctional` · `apk` job).
 > CI 실행 메커니즘(빌드·서버 기동·병렬·재시도)은 [`ci/ci.md`](./ci/ci.md) 참고.
 > 공용 헬퍼: `e2e/helpers.ts` (`openProduct`, `openSet`, `modeBtn`, `gotoQuestion`, `submitGrade`).
 > 표기: G(전제) / W(행위) / T(기대).
 
 ---
 
-## 스펙 파일 인덱스 (총 305 — Phase 1~4·전이·랜덤 스모크·흐름 UX 추가분은 하단 표 참고)
+## 스펙 파일 인덱스 — 기능(react) 404 / 52파일
 
 | 스펙 파일 | 개수 | 영역 |
 |-----------|------|------|
-| `react-smoke / react-grade / react-feedback / react-functional` | 10 | 스모크·핵심 흐름 |
+| `react-study-ux` | 27 | 이어풀기 배너·제출 전 검토·오답노트 재설계·재응시·결과 nowrap·aria-live |
+| `react-edge-modes` | 23 | 엣지: 모드 격리·리셋·잠금·시험 전환 가드 |
+| `react-edge-modal` | 20 | 엣지: 모달 Esc/백드롭·통계·토글·오답노트 문항 보기 |
+| `react-edge-content` | 19 | 엣지: 라이트박스·표·콘솔·토스트·콘텐츠 표시 회귀 |
+| `react-edge-grade` | 18 | 엣지: 미응답 확인·컷스코어·복수정답·진위형·단답형 |
+| `react-final` | 18 | 최종점검 회귀 |
+| `react-edge-persist` | 16 | 엣지: 복원·가져오기·테마/콘솔 지속·저장 불가 환경 |
+| `react-edge-responsive` | 15 | 엣지: 드로어·점프핀·하단바·320px·768px |
+| `react-transition` | 15 | 상태 전이(S0~S4 × 39전이) |
+| `react-edge-figtable` | 14 | 엣지: 특정 표/그림 문항 |
+| `react-edge-nav` | 14 | 엣지: 경계 네비게이션 |
+| `react-flow-ux` | 13 | 응시 포기·채점완료 가드·미니 시험·새 문제 뽑기·극복 배지 |
+| `react-stats` | 11 | 학습 통계 대시보드 |
+| `react-a11y` | 10 | 접근성(ARIA·키보드) |
+| `react-qtypes` | 10 | 문항 유형(진위형·단답형·복수정답) |
+| `react-quick` | 10 | **퀵 랜덤** 출제·채점·이어풀기·잠금 |
+| `react-edge-import` | 9 | 엣지: 대용량/비정상 import 견고성 |
+| `react-content` | 8 | 콘텐츠 렌더링·라이트박스 |
+| `react-back-dismiss` | 7 | 뒤로가기로 모달 닫기 |
+| `react-edge` | 7 | 엣지(빈 오답·경계·rapid) |
+| `react-features` | 7 | 다크모드·결과요약·통계·미응답확인·포커스 |
+| `react-functional` | 7 | 핵심 기능 흐름 |
+| `react-guards` | 7 | 진입·전환 가드 |
+| `react-persistence` | 7 | 영속성/백업 |
+| `react-responsive` | 7 | 반응형(모바일·태블릿) |
 | `react-modes` | 6 | 풀이 모드 |
 | `react-navigation` | 6 | 네비게이션 |
+| `react-robustness` | 6 | 견고성(비정상 입력·상태) |
 | `react-settings` | 6 | 설정 |
-| `react-qtypes` | 6 | 문항 유형(진위형·단답형·복수정답) |
-| `react-content` | 8 | 콘텐츠 렌더링·라이트박스 |
-| `react-persistence` | 7 | 영속성/백업 |
-| `react-edge` | 7 | 엣지(빈 오답·경계·rapid) |
-| `react-responsive` | 7 | 반응형(모바일·태블릿) |
-| `react-a11y` | 9 | 접근성(ARIA·키보드) |
+| `react-uiux-quick` | 6 | **퀵 UI/UX** — axe·키보드·터치 타깃·테마×글자 12조합·대비 |
+| `react-transition-quick` | 5 | **5모드 전이 25칸 전수** + 퀵 왕복·연속 회차·세트 격리 |
+| `react-consistency` | 4 | **정합성** — 결과·통계·이력·팔레트가 같은 값을 보는가 |
 | `react-layout` | 4 | 하이브리드 레이아웃(팔레트·드로어) |
-| `react-features` | 7 | 다크모드·결과요약·통계·미응답확인·라이트박스 포커스 |
+| `react-review-loop` | 4 | 오답 재풀이 루프 |
+| `react-state-matrix` | 4 | 상태 매트릭스 |
+| `react-userflow` | 4 | 사용자 시나리오(전 기능 종단) |
+| `react-a11y-axe` | 3 | **axe-core WCAG 2.1 AA** — 주요 화면·다크/모바일·**코드 블록 문항** |
 | `react-debug` | 3 | 화면 콘솔(`?debug`) |
-| `react-final` | 18 | 최종점검 회귀 |
-| `react-edge-nav` | 14 | 엣지: 경계 네비게이션 |
-| `react-edge-modes` | 23 | 엣지: 모드 격리·리셋·잠금·시험 전환 가드 |
-| `react-edge-grade` | 17 | 엣지: 미응답 확인·컷스코어·복수정답·진위형·단답형 |
-| `react-edge-persist` | 16 | 엣지: 복원·가져오기·테마/콘솔 지속·**저장 불가 환경(localStorage 예외)** |
-| `react-edge-modal` | 18 | 엣지: 모달 Esc/백드롭·통계·토글·**오답노트 문항 보기** |
-| `react-edge-content` | 19 | 엣지: 라이트박스·표·콘솔·토스트·**콘텐츠 표시 수정 회귀(밑줄·들여쓰기·병합)** |
-| `react-edge-responsive` | 15 | 엣지: 드로어·점프핀·하단바·320px·768px·통계 버튼 줄바꿈 회귀 |
-| `react-edge-figtable` | 13 | 엣지: 특정 표/그림 문항 |
-| `react-edge-import` | 9 | 엣지: 대용량/비정상 import 견고성 |
-| `react-pwa` | 2 | PWA 새 버전 업데이트 배너 |
-| `react-study-ux` | 24 | 이어풀기 배너·제출 전 검토·오답노트 재설계(세트 선택)·시험 모드 유지/재응시·이어풀기·새로풀기 선택·결과 nowrap·피드백 aria-live |
-| `react-transition` | 15 | 상태 전이 전수(S0~S4 × 39전이) |
-| `react-phase2` | 3 | 회차 비교·타임라인·델타 방향(데이터 오라클) |
-| `react-weakness` | 2 | 챕터 약점 분석·오답 전 회차 합산 |
-| `react-flow-ux` | 8 | 응시 포기·채점완료 가드·미니 시험·새 문제 뽑기·재추첨 토스트·극복 배지 |
-| `react-guide` | 2 | 사이트 사용법(게이트·설정 진입점) |
-| `react-random-smoke` | 1 | 시드 랜덤 스모크(JSON 오라클, `SMOKE_SEED` 재현) |
+| `react-monkey` | 3 | **몽키** — 시드 3개 × 무작위 120회 조작 후 불변식 |
+| `react-phase2` | 3 | 회차 비교·타임라인·델타(데이터 오라클) |
+| `react-exam-timer` | 2 | 시험 제한시간 |
+| `react-feedback-link` | 2 | 제보 링크 |
+| `react-fullsweep` | 2 | **전 문항 626 렌더 스윕**(2폭) |
+| `react-guide` | 2 | 사이트 사용법 |
+| `react-pwa` | 2 | PWA 업데이트 배너 |
+| `react-weakness` | 2 | 챕터 약점·오답 합산 |
+| `react-feedback` | 1 | 즉시 피드백 |
+| `react-fullgrade` | 1 | **12세트 전수 채점**(100%) |
+| `react-grade` | 1 | 채점 루프 |
+| `react-pairwise` | 1 | **페어와이즈** 2-way 전수(16/120 조합) |
+| `react-random-smoke` | 1 | 시드 랜덤 스모크(JSON 오라클, `SMOKE_SEED`) |
+| `react-smoke` | 1 | 스모크 |
 
-> 아래는 초기 핵심 70개의 상세 G·W·T이며, 이후 엣지·확장 196개는 위 인덱스의 각 스펙 파일에 동일한 G·W·T 구조로 구현되어 있습니다.
+## 비기능(nonfunctional) 13 — `npm run test:nf`
+
+NF1~NF12 성능(로드·렌더·이동·채점)·부하(고속 입력·모드 전환)·메모리(힙·DOM)·타이머 정확도·오프라인 복원력·데이터 내구성·장기 스케일(이력 1,000건). **NF13**은 세트를 한 번도 열지 않은 상태에서 오프라인으로 전환해 **퀵이 전 세트 precache만으로 출제되는지** 확인하며, `setOffline`이 실제로 걸렸는지 프로브로 먼저 증명한다(그 확인이 없으면 캐시가 비어도 통과하는 무력한 검사가 된다).
+
+## APK/WebView 20 — `npm run test:apk`
+
+Pixel 7 디바이스 프로파일 + WebView UA + `MainActivity`의 안전영역 주입 모사. 기능 12(AF1~AF12): 상단바·드로어·하단 액션바의 상태바/제스처바 회피, 터치 풀이·채점, 웹뷰 재시작 복원, 가로 넘침 금지, 가로 모드 2종, **AF11 퀵 컨트롤의 제스처바 회피·44px 터치 타깃**, **AF12 퀵 오답노트의 출처 세트 그룹이 웹뷰 재시작에도 유지**. 비기능 8(ANF1~ANF8): 모바일 로드·렌더·이동 성능, 드로어 개폐·연타 스트레스, 채점 응답, 재시작 5회 내구성, DOM/힙 예산.
+
+> 데스크톱 E2E가 뷰포트만 줄여서는 이 축을 대신하지 못한다 — WebView UA도 안전영역 변수도 재현되지 않기 때문이다.
+
+> 아래는 초기 핵심 70개의 상세 G·W·T이며, 이후 확장분은 위 인덱스의 각 스펙 파일에 동일한 G·W·T 구조로 구현되어 있습니다.
 
 ---
 
@@ -175,7 +207,8 @@
   figure=ISTQB-A Q23, 보기 표=CSTS-2404 Q33, 가나다라=CSTS-2018 Q10.
 - 진입 시 항상 제품 선택 게이트가 뜨므로(설계상) 새로고침 복원은 "재선택 후 복원"으로 검증.
 - 저장 불가 환경(엣지-영속성): `addInitScript`로 `localStorage.setItem`이 예외를 던지도록 모사해 제품 선택·문항 진입·테마/글자 크기 설정이 크래시 없이 동작하는지 검증(`safeStorage` 래퍼 회귀).
-- 로컬 검증: 설치된 chromium headless 기준 **305/305 통과**(+비기능 12). CI는 자체 브라우저로 동일 실행.
+- 로컬 검증(main `83a34fa`, 2026-07-30): 4개 프로젝트 **437/437 통과**(기능 404 · 비기능 13 · APK 12 · APK 비기능 8). CI는 자체 브라우저로 동일 실행하며 `e2e`·`nonfunctional`·`apk` 세 잡으로 나뉜다.
+- 테스트 효력 확인: 새로 추가한 검사는 대상 결함을 일부러 되돌려 **실패하는 것을 본 뒤** 원복하는 절차를 거친다 (예: 퀵 오답노트 출처 그룹 검사는 정제에서 `wrongItems[].setId`를 빼면 `5개 그룹 → 1개`로 실패한다).
 
 ---
 
