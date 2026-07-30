@@ -142,6 +142,83 @@ test.describe("APK 기능 · 핵심 플로우(터치)", () => {
   });
 });
 
+// 퀵은 이 프로젝트에서 한 번도 안 돌았다. 데스크톱 스펙이 뷰포트를 390px로 줄여
+// 터치 타깃을 재긴 하지만, WebView UA도 안전영역 변수도 없는 환경이라 여기서
+// 검증되는 것(제스처바 회피·드로어 안 컨트롤·웹뷰 재시작 복원)을 대신해 주지 못한다.
+test.describe("APK 기능 · 퀵 랜덤(터치)", () => {
+  test.beforeEach(async ({ page }) => simulateApkInsets(page));
+
+  const startQuick = async (page: Page, size: string) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "ISTQB" }).tap();
+    await page.getByTestId("drawer-open").tap();
+    await page.locator("#quickSize").selectOption(size);
+    await page.getByTestId("quick-start-btn").tap();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  };
+
+  test("AF11 드로어 안 퀵 컨트롤이 제스처바를 피하고 탭으로 출제된다", async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto("/");
+    await page.getByRole("button", { name: "ISTQB" }).tap();
+    await page.getByTestId("drawer-open").tap();
+
+    const viewport = page.viewportSize()!;
+    for (const target of [page.locator("#quickSize"), page.getByTestId("quick-start-btn")]) {
+      await expect(target).toBeVisible();
+      const box = (await target.boundingBox())!;
+      // 제스처바에 걸리면 탭이 시스템 제스처로 먹혀 "눌러도 반응 없는" 컨트롤이 된다.
+      expect(box.y + box.height, "퀵 컨트롤이 제스처바 영역에 걸린다")
+        .toBeLessThanOrEqual(viewport.height - SAFE_BOTTOM + 1);
+      // 실기기 터치 최소 크기(44px) — 데스크톱 스펙에서 고쳤지만 여기선 미검증이었다.
+      expect(box.height, "터치 타깃이 44px 미만").toBeGreaterThanOrEqual(44);
+    }
+
+    await page.locator("#quickSize").selectOption("10");
+    await page.getByTestId("quick-start-btn").tap();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator(".mtb-meta").first()).toContainText("/ 10");
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow, "퀵 화면에서 가로 넘침").toBeLessThanOrEqual(0);
+    expect(errors).toEqual([]);
+  });
+
+  // 퀵 회차의 setId는 'QUICK'이라 오답의 출처 세트는 wrongItems[].setId에만 남는다.
+  // 이력은 읽을 때마다 정제되므로, 정제가 그 필드를 흘리면 채점 직후에는 멀쩡하다가
+  // 웹뷰 재시작 한 번에 오답노트가 '퀵 랜덤' 한 덩어리로 뭉친다(실제로 났던 결함).
+  // 재시작이 일상인 APK에서 재라, 이 축은 여기서 잡는 게 맞다.
+  test("AF12 퀵 채점 후 오답노트 출처 세트 그룹이 웹뷰 재시작에도 유지된다", async ({ page }) => {
+    const errors = collectErrors(page);
+    await startQuick(page, "20");
+
+    for (let i = 0; i < 20; i += 1) {
+      const opt = page.locator("#options .option").first();
+      if (await opt.count()) await opt.tap();
+      const next = page.getByRole("button", { name: "다음 문제" });
+      if (!(await next.count()) || (await next.isDisabled())) break;
+      await next.tap();
+    }
+    await submitGrade(page, "grade-button-m");
+    await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
+    await page.getByRole("button", { name: "오답 노트 보기" }).tap();
+    await expect(page.getByTestId("wrong-note")).toBeVisible();
+    const before = await page.getByTestId("wrong-note-set-btn").count();
+    // 전 세트에서 뽑은 20문항 중 오답이 여러 세트에 걸치면 그룹도 여럿이어야 한다.
+    expect(before, "오답노트 그룹이 하나도 없다").toBeGreaterThan(0);
+
+    await page.reload(); // 앱 프로세스 재시작 = 이력 재정제 경로
+    await page.getByRole("button", { name: "ISTQB" }).tap();
+    await page.getByTestId("drawer-open").tap();
+    await page.getByRole("button", { name: "오답 노트" }).first().tap();
+    await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 20_000 });
+    const after = await page.getByTestId("wrong-note-set-btn").count();
+    expect(after, `재시작 전 ${before}개 그룹이 후 ${after}개로 뭉쳤다`).toBe(before);
+    expect(errors).toEqual([]);
+  });
+});
+
 test.describe("APK 기능 · 가로 모드(넓은 폭, >880px)", () => {
   // Pixel 7 가로(915px)는 데스크톱 브레이크포인트(>880)로 전환된다 — 설계 의도.
   test.use({ viewport: { width: 915, height: 412 } });

@@ -1,6 +1,6 @@
 import { test, expect, Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { openProduct } from "./helpers";
+import { openProduct, openSet, gotoQuestion } from "./helpers";
 
 const note = (s: string) => console.log("· " + s);
 
@@ -132,5 +132,30 @@ test("axe: 다크 모드 + 모바일 390px", async ({ page }) => {
   await scan(page, "다크-서답형", found);
 
   note(`\n=== axe(다크·모바일) 위반 총 ${found.length}건 ===`);
+  expect(found, found.join("\n")).toEqual([]);
+});
+
+// 코드 블록이 실린 문항은 지금까지 어떤 axe 스캔에도 걸리지 않았다 — 위 "주요 화면"
+// 스캔은 각 세트의 1번 문항에 머물고, 퀵 스캔은 무작위 추첨이라 뽑히는 날에만 본다.
+// 실제로 퀵 스캔이 우연히 밟아 serious 위반(scrollable-region-focusable)을 드러냈다.
+// 우연에 맡기지 않도록 코드 블록이 있는 문항을 지정해 스캔한다.
+// (28개 문항이 코드 블록을 갖고 있어, 이 결함은 퀵이 아니라 앱 전역의 것이었다.)
+test("axe: 코드 블록이 있는 문항 — 스크롤 영역의 키보드 접근", async ({ page }) => {
+  test.setTimeout(300_000);
+  const found: string[] = [];
+
+  await openSet(page, "CSTS", "CSTS-FL-2404");
+  await gotoQuestion(page, 22);
+  const block = page.locator(".code-block").first();
+  await expect(block, "22번에 코드 블록이 없다 — 데이터가 바뀌었으면 대상 문항을 갱신할 것")
+    .toBeVisible();
+
+  // 가로로 잘리는 코드를 키보드만으로 볼 수 있어야 한다(WCAG 2.1.1).
+  await expect(block).toHaveAttribute("tabindex", "0");
+  await block.focus();
+  await expect(block).toBeFocused();
+
+  await scan(page, "코드블록-문항", found);
+  note(`\n=== axe 위반 총 ${found.length}건 ===`);
   expect(found, found.join("\n")).toEqual([]);
 });

@@ -5,7 +5,9 @@ import { loadIndex, loadSetQuestions, subscribeLoads } from '../utils/questionLo
 import { makeCanonicalIdResolver } from '../utils/chapterStats';
 
 // Fisher–Yates shuffle: 균일 분포를 보장한다. (sort 비교자에 Math.random을 쓰면 편향됨)
-function shuffleQuestions<T>(items: T[]): T[] {
+// 경계가 한 칸만 어긋나도(`* i` 또는 `i >= 0`) 조용히 편향된다 — 눈으로는 여전히
+// "섞인 것처럼" 보이므로 분포 테스트로 고정한다(useQuestions.draw.test.ts).
+export function shuffleQuestions<T>(items: T[]): T[] {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));

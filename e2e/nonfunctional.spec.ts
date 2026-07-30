@@ -229,6 +229,78 @@ test.describe("비기능 · 정확도/복원력", () => {
     }
   });
 
+  // NF10은 "오프라인에서 앱 껍데기가 뜨는가"까지만 본다. 퀵은 이 앱에서 유일하게
+  // 제품 전 세트(ISTQB 5개 / CSTS 7개)의 문항 JSON을 한꺼번에 읽는 모드라, 세트 하나만
+  // 캐시돼 있으면 나머지를 못 읽고 빈 화면이 된다. 캐시 대상이 precache가 아니라 런타임
+  // 캐시로 새면 "온라인에서 한 번 들어가 본 세트만" 나오는 식으로 조용히 반쪽이 된다.
+  // 그래서 오프라인 전환 전에 어떤 세트에도 들어가지 않는다 — precache만으로 되는지 본다.
+  test("NF13 오프라인 복원력(PWA): 세트를 한 번도 안 열고도 퀵이 출제된다", async ({ page, context }, testInfo) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "ISTQB" }).waitFor();
+    const swState = await page.evaluate(async () => {
+      if (!("serviceWorker" in navigator)) return "unsupported";
+      try {
+        const reg = await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise<null>((r) => setTimeout(() => r(null), 8000)),
+        ]);
+        return reg ? "active" : "timeout";
+      } catch { return "error"; }
+    });
+    note(testInfo, "SW 상태", swState);
+    if (swState !== "active") {
+      testInfo.annotations.push({ type: "skip-reason", description: "SW 미활성 — 오프라인 검증 생략" });
+      return;
+    }
+    await page.waitForTimeout(1500); // precache 적재 여유
+
+    const failed: string[] = [];
+    page.on("requestfailed", (r) => { if (/\.json$/.test(r.url())) failed.push(r.url()); });
+
+    await context.setOffline(true);
+    try {
+      await page.reload({ waitUntil: "domcontentloaded" });
+
+      // 오프라인이 실제로 걸렸는지 먼저 증명한다. setOffline이 무력화되면 아래 검증이
+      // 전부 온라인 통신으로 통과해 버려, 캐시가 비어도 초록으로 남는 테스트가 된다.
+      // precache 대상이 아닌 URL은 반드시 실패해야 한다.
+      const probe = await page.evaluate(async () => {
+        try { await fetch(`/__offline_probe__?t=${Date.now()}`, { cache: "no-store" }); return "reached"; }
+        catch { return "blocked"; }
+      });
+      expect(probe, "setOffline이 걸리지 않았다 — 이 테스트는 무력하다").toBe("blocked");
+
+      await page.getByRole("button", { name: "ISTQB" }).click();
+      await page.locator("#quickSize").selectOption("20");
+      await page.getByTestId("quick-start-btn").click();
+      await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+      // 풀이 자체가 되는지까지 본다 — 지문만 뜨고 보기가 비면 데이터가 반쪽으로 온 것이다.
+      await expect(page.locator("#options .option").first()).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator("#progressText")).toContainText("/ 20");
+
+      // 오프라인에서 뽑힌 20문항이 실제로 여러 세트에서 왔는지 — 한 세트만 캐시돼도
+      // 문항 수는 20으로 채워질 수 있어(같은 세트에서 20개) 개수만으로는 못 잡는다.
+      // UI 상태 키는 제품별로 갈리므로 이름을 박지 않고 *-ui-state를 훑는다.
+      // 저장은 debounce(500ms)라 poll로 기다린다.
+      const sourceSetCount = async () => page.evaluate(() => {
+        for (const k of Object.keys(localStorage)) {
+          if (!k.endsWith("-ui-state")) continue;
+          try {
+            const items = (JSON.parse(localStorage.getItem(k) ?? "{}").quickDraw?.items ?? []) as { setId?: string }[];
+            if (items.length) return new Set(items.map((i) => i.setId).filter(Boolean)).size;
+          } catch { /* 다음 키 */ }
+        }
+        return 0;
+      });
+      await expect.poll(sourceSetCount, { timeout: 10_000 }).toBeGreaterThan(1);
+      note(testInfo, "출처 세트 수", `${await sourceSetCount()}`);
+      note(testInfo, "실패한 JSON 요청", `${failed.length}`);
+      expect(failed, `오프라인에서 문항 JSON을 못 읽음:\n${failed.join("\n")}`).toEqual([]);
+    } finally {
+      await context.setOffline(false);
+    }
+  });
+
   test("NF11 데이터 내구성: 연속 응답→즉시 reload에도 답안 보존", async ({ page }, testInfo) => {
     await openSet(page, "ISTQB", A);
     await modeBtn(page, "연습").click();

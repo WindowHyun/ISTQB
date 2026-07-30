@@ -180,3 +180,75 @@ describe('백업 스키마 v2 — 하위 호환과 미래 버전 거부', () => 
     expect(r.reason).toMatch(/업데이트/);
   });
 });
+
+// 퀵은 다른 모드와 두 가지가 다르다: 회차의 setId가 'QUICK'이라는 가짜 세트이고,
+// 답안 키(QUICK-quick-*)와 추첨(quickDraw)이 UI 상태에 얹힌다. 백업 왕복 테스트가
+// 전부 시험/랜덤 회차로만 돼 있어 이 축은 한 번도 밟히지 않았다.
+describe('백업 × 퀵 랜덤', () => {
+  it('퀵 회차를 가져오면 모드와 오답의 출처 세트가 살아남는다', async () => {
+    const s = await freshStorage();
+    const r = await s.importUserData(backupFile({
+      schemaVersion: 2, product: 'istqb',
+      histories: {
+        q: {
+          id: 'q', setId: 'QUICK', mode: 'quick', answers: {}, correct: 8, total: 10,
+          wrongItems: [
+            { number: 3, myAnswer: ['a'], correctAnswer: ['b'], setId: 'ISTQB-FL-V4-A' },
+            { number: 3, myAnswer: ['c'], correctAnswer: ['d'], setId: 'ISTQB-FL-V4-B' },
+          ],
+        },
+      },
+    }));
+    expect(r.ok).toBe(true);
+    const loaded = (await s.loadHistoriesFromDB()).q;
+    // mode가 exam으로 보정되면 10문항 회차가 세트 전체 실전으로 집계된다.
+    expect(loaded.mode).toBe('quick');
+    // 출처 세트를 잃으면 오답노트가 '퀵 랜덤' 한 덩어리로 뭉치고,
+    // 세트가 달라 같은 3번인 두 문항이 서로를 덮어쓴다.
+    expect(loaded.wrongItems?.map((it) => it.setId)).toEqual(['ISTQB-FL-V4-A', 'ISTQB-FL-V4-B']);
+  });
+
+  it('내보내기에 퀵 추첨과 퀵 답안이 담긴다', async () => {
+    vi.resetModules();
+    // storage와 store를 같은 모듈 그래프에서 가져와야 exportUserData가 읽는 인스턴스와
+    // 여기서 세팅하는 인스턴스가 같아진다.
+    const s = await import('./storage');
+    const { useQuizStore } = await import('../store/useQuizStore');
+    useQuizStore.setState({
+      mode: 'quick', setId: 'QUICK',
+      quickDraw: { certification: 'istqb', items: [{ id: 'ISTQB-FL-V4-A-003', setId: 'ISTQB-FL-V4-A' }] },
+      answers: { 'QUICK-quick-ISTQB-FL-V4-A-003': ['b'] },
+    });
+
+    let captured = '';
+    const realBlob = globalThis.Blob;
+    vi.stubGlobal('Blob', class extends realBlob {
+      constructor(parts: BlobPart[], opts?: BlobPropertyBag) {
+        super(parts, opts);
+        captured = String(parts[0]);
+      }
+    });
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    vi.stubGlobal('URL', { ...URL, createObjectURL: () => 'blob:x', revokeObjectURL: () => {} });
+    await s.exportUserData();
+    vi.unstubAllGlobals();
+
+    const parsed = JSON.parse(captured);
+    // quickDraw가 빠지면 백업에서 복원해도 "무엇을 뽑았는지"가 없어 진행이 사라진다.
+    expect(parsed.state.quickDraw).toEqual({
+      certification: 'istqb', items: [{ id: 'ISTQB-FL-V4-A-003', setId: 'ISTQB-FL-V4-A' }],
+    });
+    expect(parsed.answers['QUICK-quick-ISTQB-FL-V4-A-003']).toEqual(['b']);
+  });
+
+  it('가져온 퀵 추첨이 정제를 통과해 UI 상태로 복원된다', async () => {
+    const s = await freshStorage();
+    const ui = s.sanitizeUiState({
+      mode: 'quick', setId: 'QUICK',
+      quickDraw: { certification: 'istqb', items: [{ id: 'Q1', setId: 'ISTQB-FL-V4-A' }] },
+    });
+    // 'quick'이 VALID_MODES에서 빠지면 복원 시 모드가 통째로 무시돼 연습 화면으로 떨어진다.
+    expect(ui.mode).toBe('quick');
+    expect(ui.quickDraw?.items).toEqual([{ id: 'Q1', setId: 'ISTQB-FL-V4-A' }]);
+  });
+});
