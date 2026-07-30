@@ -25,7 +25,12 @@ export function normalizeText(value: string): string {
 // - 구분자 규약은 정답 대조 스크립트(verify-pdf-data.py: `[,/]|또는|\s{2,}`)와 맞춘다.
 //   단, 슬래시는 "조건/결정" 같은 용어 내부 구분과 섞이지 않도록 공백을 낀 경우만 분리한다.
 // - 전개는 후보를 늘리기만 하므로 종전에 맞던 입력을 틀리게 만들지 않는다(원문 전체도 후보에 포함).
-function shortAnswerCandidates(answer: string[]): string[] {
+//
+// export하는 이유: 이 함수가 정하는 것은 "무엇을 정답으로 인정하는가"다. isQuestionCorrect를
+// 통해서만 보면 후보가 하나 더 늘어나도(= 오답을 정답으로 세도) 기존 검사는 전부 통과한다 —
+// 맞던 입력은 여전히 맞기 때문이다. 실제로 뮤테이션 테스트에서 후보 목록에 엉뚱한 문자열을
+// 끼워 넣는 변이가 살아남았다. 전개 결과를 그대로 고정할 수 있어야 과다 인정을 막는다.
+export function shortAnswerCandidates(answer: string[]): string[] {
   const out: string[] = [];
   for (const raw of answer) {
     const whole = String(raw);
