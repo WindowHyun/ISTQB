@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { sanitizeAnswers, sanitizeUiState, sanitizeHistory } from "./storage";
+import type { ExamHistory } from "../store/useQuizStore";
 
 // 외부 입력(localStorage/백업 JSON) 검증 로직 유닛 테스트 (#65/#76).
 describe("sanitizeAnswers", () => {
@@ -155,6 +156,30 @@ describe('sanitizeHistory — 퀵 모드 보존', () => {
     expect(h!.wrongItems![0]).not.toHaveProperty('setId');
   });
 
+  // CSTS 회차의 표시 %는 채점 시점 가중 점수 스냅샷을 쓴다(attemptStats:71, chapterStats:160).
+  // 이 필드를 정제가 흘리면 새로고침 후 통계가 단순 정답률로 떨어져, 결과 모달의 합격
+  // 판정과 통계의 %가 어긋난다 — 예전에 고친 "결과 모달만 가중, 통계는 단순"과 같은 결함이
+  // 저장 계층에서 되살아나는 셈이다.
+  it('CSTS 가중 점수 스냅샷(cstsWeighted)을 보존한다', () => {
+    const h = sanitizeHistory({
+      id: 'c1', setId: 'CSTS-EL-2018', mode: 'exam', answers: {},
+      correct: 30, total: 40, cstsWeighted: { score: 42, maxScore: 55 },
+    });
+    expect(h!.cstsWeighted).toEqual({ score: 42, maxScore: 55 });
+  });
+
+  it('손상된 가중 점수는 버린다(음수·비유한·maxScore 0)', () => {
+    const bad = (cstsWeighted: unknown) =>
+      sanitizeHistory({ id: 'c', setId: 'S', mode: 'exam', answers: {}, cstsWeighted })?.cstsWeighted;
+    expect(bad({ score: NaN, maxScore: 10 })).toBeUndefined();
+    expect(bad({ score: -1, maxScore: 10 })).toBeUndefined();
+    expect(bad({ score: 5, maxScore: 0 })).toBeUndefined();   // 0으로 나누면 NaN%가 화면에 뜬다
+    expect(bad({ score: 5 })).toBeUndefined();
+    expect(bad('oops')).toBeUndefined();
+    // correct/total과 같은 규칙 — 얻은 점수는 만점을 넘지 못한다(손상 백업의 300% 차단).
+    expect(bad({ score: 99, maxScore: 10 })).toEqual({ score: 10, maxScore: 10 });
+  });
+
   it('문자열이 아닌 setId는 버린다(조작 백업 방어)', () => {
     const h = sanitizeHistory({
       id: 'e2', setId: 'A', mode: 'quick', answers: {},
@@ -185,5 +210,40 @@ describe('sanitizeUiState — quickDraw', () => {
     expect(sanitizeUiState({ quickDraw: { certification: 'csts', items: [{ id: 'Q1' }] } }).quickDraw).toBeUndefined();
     expect(sanitizeUiState({ quickDraw: { items: [{ id: 'Q1', setId: 'S1' }] } }).quickDraw).toBeUndefined();
     expect(sanitizeUiState({ quickDraw: 'oops' }).quickDraw).toBeUndefined();
+  });
+});
+
+// ── 결함 클래스 가드 ────────────────────────────────────────────────────────
+// sanitizeHistory는 allowlist 재구축이고 loadHistoriesFromDB가 읽을 때마다 통과시키므로,
+// 목록에 빠진 필드는 "채점 직후엔 맞다가 새로고침하면 사라지는" 형태로 조용히 새어 나간다.
+// 실제로 두 번 났다 — wrongItems[].setId(오답노트가 '퀵 랜덤' 한 덩어리로 뭉침)와
+// cstsWeighted(통계 %가 결과 모달의 합격 판정과 어긋남).
+//
+// 그래서 개별 필드 테스트가 아니라 클래스를 막는다: 아래 fixture는 Required<ExamHistory>라
+// 인터페이스에 필드가 하나 추가되면 타입 검사가 먼저 깨져 여기를 고치게 되고, 채우고 나면
+// 왕복 동등성이 정제 누락을 잡는다.
+describe('sanitizeHistory — 필드 유실 가드(전 필드 왕복)', () => {
+  it('저장되는 모든 필드가 정제를 통과해 그대로 돌아온다', () => {
+    const full: Required<ExamHistory> = {
+      id: 'h-full',
+      setId: 'CSTS-EL-2018',
+      mode: 'quick',
+      certification: 'csts',
+      answers: { 'QUICK-quick-CSTS-EL-2018-003': ['b'] },
+      correct: 8,
+      total: 10,
+      elapsedSeconds: 421,
+      createdAt: 1_770_000_000_000,
+      setTitle: 'CSTS 실전 2018',
+      wrongItems: [
+        { number: 3, myAnswer: ['a'], correctAnswer: ['b'], setId: 'CSTS-EL-2018' },
+        { number: 7, myAnswer: ['c'], correctAnswer: ['d'], setId: 'CSTS-EL-2019' },
+      ],
+      chapterStats: { 테스트설계: { c: 4, t: 6 } },
+      chapterQuestions: { 테스트설계: { ok: ['Q1', 'Q2'], no: ['Q3'] } },
+      cstsWeighted: { score: 11.5, maxScore: 14 },
+      chapter: '테스트설계',
+    };
+    expect(sanitizeHistory(full)).toEqual(full);
   });
 });

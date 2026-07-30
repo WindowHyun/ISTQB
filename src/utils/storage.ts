@@ -241,6 +241,19 @@ export function sanitizeHistory(value: unknown): ExamHistory | null {
     }
     if (Object.keys(chapterQuestions).length) out.chapterQuestions = chapterQuestions;
   }
+  // CSTS 합격 판정과 통계의 표시 %는 채점 시점 가중 점수 스냅샷을 쓴다
+  // (attemptStats.attemptRatePercent, chapterStats의 가중 집계). 여기서 흘리면
+  // 채점 직후에는 맞다가 새로고침 뒤 통계만 단순 정답률로 떨어져, 같은 회차가
+  // 결과 모달과 통계에서 다른 %로 보인다. correct/total과 같은 규칙으로 정제한다 —
+  // 음수·비유한 거부, maxScore 0 폐기(0으로 나누면 NaN%가 화면에 뜬다),
+  // 얻은 점수는 만점으로 클램프.
+  if (isPlainObject(value.cstsWeighted)) {
+    const score = finiteNumber(value.cstsWeighted.score);
+    const maxScore = finiteNumber(value.cstsWeighted.maxScore);
+    if (score !== undefined && maxScore !== undefined && score >= 0 && maxScore > 0) {
+      out.cstsWeighted = { score: Math.min(score, maxScore), maxScore };
+    }
+  }
   if (Array.isArray(value.wrongItems)) {
     out.wrongItems = value.wrongItems
       .filter(isPlainObject)
