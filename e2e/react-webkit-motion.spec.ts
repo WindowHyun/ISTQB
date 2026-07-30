@@ -56,6 +56,55 @@ async function baselineFps(page: import("@playwright/test").Page): Promise<numbe
   });
 }
 
+/** 지금 이 화면에서 400ms 동안 도는 rAF 프레임 수와, 프레임 간 최대 간격(ms). */
+async function fps(page: import("@playwright/test").Page) {
+  return page.evaluate(async () => {
+    let frames = 0;
+    let maxGap = 0;
+    let prev = performance.now();
+    const t0 = prev;
+    await new Promise<void>((done) => {
+      const tick = () => {
+        const now = performance.now();
+        maxGap = Math.max(maxGap, now - prev);
+        prev = now;
+        frames += 1;
+        if (now - t0 < 400) requestAnimationFrame(tick);
+        else done();
+      };
+      requestAnimationFrame(tick);
+    });
+    return { frames, maxGap: Math.round(maxGap), nodes: document.querySelectorAll("*").length };
+  });
+}
+
+// 앱의 어느 단계에서 프레임이 죽는지 좁힌다. 기준선(앱 없음)과 견줘 단계마다 재면
+// 원인이 있는 화면이 드러난다 — 게이트에서 이미 죽으면 앱 셸, 문항 화면에서 죽으면 렌더다.
+test("WebKit 원인 규명: 어느 단계에서 프레임이 죽는가", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("data:text/html,<h1>b</h1>");
+  const blank = await fps(page);
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  const gate = await fps(page);
+  await openProduct(page, "ISTQB");
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  const practice = await fps(page);
+  const sel0 = page.locator("#quickSize");
+  if (!(await sel0.isVisible())) await page.getByTestId("drawer-open").click();
+  await sel0.selectOption("10");
+  await page.getByTestId("quick-start-btn").click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  const quick = await fps(page);
+
+  for (const [name, r] of [["빈 페이지", blank], ["게이트", gate], ["연습 문항", practice], ["퀵 진행", quick]] as const) {
+    console.log(`· ${name}: ${r.frames}프레임/400ms · 최대 간격 ${r.maxGap}ms · DOM ${r.nodes}개`);
+  }
+  expect(blank.frames, "빈 페이지조차 느리면 환경 문제다").toBeGreaterThan(10);
+});
+
 test("WebKit 원인 규명: 긴 클릭 루프에서 rAF와 레이아웃이 어떻게 되는가", async ({ page }) => {
   test.setTimeout(180_000);
   // 기준선을 먼저 잰다. 앱 없는 페이지도 느리면 원인은 앱이 아니라 환경이다.
