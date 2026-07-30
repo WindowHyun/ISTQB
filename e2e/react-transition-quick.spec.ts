@@ -193,3 +193,74 @@ test("전이: 퀵 진행 중 세트 셀렉트를 바꿔도 퀵이 오염되지 �
   }
   expect(problems, problems.join("\n")).toEqual([]);
 });
+
+/**
+ * 5모드 전이 전수 — 25개 순서쌍을 기계적으로 전부 밟는다.
+ *
+ * 기존 커버리지를 세어 보니 exam·practice·quick은 모든 상대와 왕복하지만
+ * random↔review는 어느 스펙도 밟지 않았다. "대부분 덮었다"와 "전수"는 다르므로
+ * 목록을 코드가 만들게 해서 빠진 칸이 생기지 않게 한다.
+ */
+const ALL_MODES = ["practice", "exam", "random", "review", "quick"] as const;
+type AnyMode = typeof ALL_MODES[number];
+
+async function goAny(page: Page, m: AnyMode) {
+  if (m === "quick") {
+    await page.locator("#quickSize").selectOption("10").catch(() => {});
+    await page.getByTestId("quick-start-btn").click({ timeout: 5000 }).catch(() => {});
+  } else {
+    await page.locator(`.segmented button[data-mode="${m}"]`).click({ timeout: 5000 }).catch(() => {});
+    for (const id of ["confirm-exit-exam-modal", "pending-set-change-modal"]) {
+      const md = page.getByTestId(id);
+      if (await md.count()) await md.locator("button").last().click({ timeout: 2000 }).catch(() => {});
+    }
+  }
+  await page.waitForTimeout(180);
+}
+
+test("전이 전수: 5모드 25개 순서쌍을 모두 밟아도 앱이 살아 있다", async ({ page }) => {
+  test.setTimeout(900_000);
+  const errs: string[] = [];
+  page.on("pageerror", (e) => errs.push(String(e).slice(0, 160)));
+
+  let walked = 0;
+  for (const from of ALL_MODES) {
+    for (const to of ALL_MODES) {
+      await page.goto("/");
+      await page.evaluate(() => localStorage.clear());
+      await openProduct(page, "ISTQB");
+
+      // 오답 모드로 가려면 오답이 있어야 한다 — 없으면 사양상 진입하지 않는다.
+      // random/review가 관여하는 칸을 실제로 밟으려면 먼저 오답을 만들어 둔다.
+      if (from === "review" || to === "review") {
+        await goAny(page, "random");
+        await page.locator("#options .option").first().click();
+        await page.getByTestId("grade-button").click();
+        const c = page.getByTestId("confirm-grade");
+        if (await c.count()) await c.click();
+        await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
+        await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
+      }
+
+      await goAny(page, from);
+      await goAny(page, to);
+      walked += 1;
+
+      // 어느 칸에서도 앱이 죽거나 화면이 비면 안 된다.
+      const alive = await page.evaluate(() => ({
+        shell: !!document.querySelector(".app-shell"),
+        gate: !!document.querySelector('[data-testid="exam-start-gate"]'),
+        stem: !!document.querySelector("#questionStem"),
+        empty: !!document.querySelector(".nav-summary"),
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      }));
+      if (!alive.shell) bad(`${from}→${to}: 앱 셸이 사라짐`);
+      // 지문·게이트·빈 안내(오답 없음 등) 중 하나는 있어야 한다 — 셋 다 없으면 흰 화면이다.
+      if (!alive.stem && !alive.gate && !alive.empty) bad(`${from}→${to}: 화면이 비었다`);
+      if (alive.overflow) bad(`${from}→${to}: 문서 가로 넘침`);
+    }
+  }
+  console.log(`· 5모드 전이 전수 ${walked}칸 (5×5) 검사 완료`);
+  if (errs.length) bad(`JS 오류: ${JSON.stringify(errs.slice(0, 5))}`);
+  expect(problems, problems.join("\n")).toEqual([]);
+});
