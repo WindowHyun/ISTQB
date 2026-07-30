@@ -91,3 +91,21 @@ export async function gotoQuestion(page: Page, num: number) {
 export async function confirmImport(page: Page) {
   await page.getByTestId("import-confirm").click();
 }
+
+/**
+ * 한 테스트가 화면을 수십 번 갈아 끼우며 이동할 때 쓴다.
+ *
+ * vite preview는 스위트가 붐비거나 연속 이동이 잦으면 간헐적으로 net::ERR_ABORTED로
+ * 끊는다. 조합·테마 순회처럼 "이동 자체가 검사 대상이 아닌" 테스트에서는 그 한 번의
+ * 끊김이 조합 전체를 날려 버린다. 그 오류에 한해서만 한 번 다시 시도하고, 다른 실패는
+ * 그대로 터뜨린다 — 무턱대고 재시도하면 진짜 로드 실패를 가려 버린다.
+ */
+export async function gotoStable(page: Page, url = "/") {
+  try {
+    await page.goto(url);
+  } catch (e) {
+    if (!String(e).includes("ERR_ABORTED")) throw e;
+    await page.waitForTimeout(1000);
+    await page.goto(url);
+  }
+}

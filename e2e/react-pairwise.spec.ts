@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { openProduct } from "./helpers";
+import { openProduct, gotoStable } from "./helpers";
 
 /**
  * 페어와이즈(all-pairs) 조합 테스트.
@@ -26,51 +26,81 @@ const FACTORS = {
 
 type Combo = { product: string; mode: string; size: string; width: string; graded: string };
 
-/**
- * 탐욕적 all-pairs 생성 — 아직 덮이지 않은 요인쌍을 가장 많이 덮는 조합을 반복해서 고른다.
- * 시드 없는 난수를 쓰지 않으므로 실행마다 같은 집합이 나온다(결과 재현성).
- */
-function allPairs(): Combo[] {
-  const keys = Object.keys(FACTORS) as (keyof typeof FACTORS)[];
-  const pending = new Set<string>();
-  for (let i = 0; i < keys.length; i += 1) {
-    for (let j = i + 1; j < keys.length; j += 1) {
-      for (const a of FACTORS[keys[i]]) for (const b of FACTORS[keys[j]]) {
-        pending.add(`${keys[i]}=${a}|${keys[j]}=${b}`);
-      }
-    }
-  }
-  const all: Combo[] = [];
+/** 요인 k개를 고르는 모든 조합의 인덱스 — t-way 커버링에 쓴다. */
+function indexCombos(n: number, t: number): number[][] {
+  const out: number[][] = [];
+  const walk = (start: number, cur: number[]) => {
+    if (cur.length === t) { out.push([...cur]); return; }
+    for (let i = start; i < n; i += 1) { cur.push(i); walk(i + 1, cur); cur.pop(); }
+  };
+  walk(0, []);
+  return out;
+}
+
+const ALL_COMBOS: Combo[] = (() => {
+  const out: Combo[] = [];
   for (const p of FACTORS.product) for (const m of FACTORS.mode) for (const s of FACTORS.size) {
     for (const w of FACTORS.width) for (const g of FACTORS.graded) {
-      all.push({ product: p, mode: m, size: s, width: w, graded: g });
+      out.push({ product: p, mode: m, size: s, width: w, graded: g });
     }
   }
-  const pairsOf = (c: Combo) => {
-    const out: string[] = [];
-    for (let i = 0; i < keys.length; i += 1) {
-      for (let j = i + 1; j < keys.length; j += 1) {
-        out.push(`${keys[i]}=${c[keys[i]]}|${keys[j]}=${c[keys[j]]}`);
-      }
-    }
-    return out;
-  };
+  return out;
+})();
+
+/**
+ * 탐욕적 t-way 커버링 배열 — 아직 덮이지 않은 요인 조합을 가장 많이 덮는 케이스를
+ * 반복해서 고른다. 시드 없는 난수를 쓰지 않으므로 실행마다 같은 집합이 나온다(재현성).
+ *
+ * 강도를 t=2에서 3으로 올린 근거는 실측이다. 이 요인 집합(2×5×3×2×2 = 120)에서:
+ *   t=2  16 케이스 · 29.6초
+ *   t=3  35 케이스 · 약 65초   ← 채택
+ *   t=4  60 케이스
+ *   전조합 120 케이스 · 약 3.7분
+ * 3-way는 +35초로 모든 3요인 상호작용을 덮는다. 그 위(4-way·전조합)는 비용이 3~4배로
+ * 뛰는데 그 강도에서만 드러나는 결함은 드물어, 여기서 끊는 것이 합리적이다.
+ * 더 올리려면 STRENGTH만 바꾸면 된다 — 케이스 목록은 코드가 만든다.
+ */
+const STRENGTH = 3;
+
+function coveringArray(t: number): Combo[] {
+  const keys = Object.keys(FACTORS) as (keyof typeof FACTORS)[];
+  const sets = indexCombos(keys.length, t);
+  const tupleKeys = (c: Combo) =>
+    sets.map((set) => set.map((i) => `${keys[i]}=${c[keys[i]]}`).join("|"));
+
+  const pending = new Set<string>();
+  for (const c of ALL_COMBOS) for (const k of tupleKeys(c)) pending.add(k);
+
   const chosen: Combo[] = [];
   while (pending.size) {
     let best: Combo | null = null;
     let bestGain = -1;
-    for (const c of all) {
-      const gain = pairsOf(c).filter((p) => pending.has(p)).length;
+    for (const c of ALL_COMBOS) {
+      const gain = tupleKeys(c).filter((k) => pending.has(k)).length;
       if (gain > bestGain) { bestGain = gain; best = c; }
     }
     if (!best || bestGain <= 0) break;
     chosen.push(best);
-    for (const p of pairsOf(best)) pending.delete(p);
+    for (const k of tupleKeys(best)) pending.delete(k);
   }
   return chosen;
 }
 
-const COMBOS = allPairs();
+const COMBOS = coveringArray(STRENGTH);
+
+/** 선택한 집합이 실제로 전 t-조합을 덮는지 — 생성기가 조용히 덜 덮으면 검사가 약해진다. */
+function uncoveredTuples(t: number, chosen: Combo[]): number {
+  const keys = Object.keys(FACTORS) as (keyof typeof FACTORS)[];
+  const sets = indexCombos(keys.length, t);
+  const need = new Set<string>();
+  for (const c of ALL_COMBOS) {
+    for (const set of sets) need.add(set.map((i) => `${keys[i]}=${c[keys[i]]}`).join("|"));
+  }
+  for (const c of chosen) {
+    for (const set of sets) need.delete(set.map((i) => `${keys[i]}=${c[keys[i]]}`).join("|"));
+  }
+  return need.size;
+}
 
 async function openBar(page: Page) {
   const sel = page.locator("#quickSize");
@@ -94,10 +124,13 @@ async function enter(page: Page, c: Combo) {
 }
 
 test.describe("페어와이즈 조합", () => {
-  test(`전 요인쌍을 덮는 ${COMBOS.length}개 조합에서 진입·조작·채점이 깨지지 않는다`, async ({ page }) => {
-    test.setTimeout(600_000);
+  test(`전 ${STRENGTH}요인 조합을 덮는 ${COMBOS.length}개 케이스에서 진입·조작·채점이 깨지지 않는다`, async ({ page }) => {
+    test.setTimeout(900_000);
     const problems: string[] = [];
-    console.log(`· all-pairs 조합 수: ${COMBOS.length} (전조합 120 대비 ${Math.round(COMBOS.length / 120 * 100)}%)`);
+    // 덮지 못한 조합이 하나라도 있으면 "t-way 전수"라는 이름이 거짓이 된다.
+    const missed = uncoveredTuples(STRENGTH, COMBOS);
+    expect(missed, `${STRENGTH}요인 조합 ${missed}개가 덮이지 않았다`).toBe(0);
+    console.log(`· ${STRENGTH}-way 커버링: ${COMBOS.length}케이스 (전조합 ${ALL_COMBOS.length} 대비 ${Math.round(COMBOS.length / ALL_COMBOS.length * 100)}%) · 미커버 0`);
 
     for (const c of COMBOS) {
       const label = `${c.product}/${c.mode}/${c.size}/${c.width}/graded=${c.graded}`;
@@ -108,7 +141,7 @@ test.describe("페어와이즈 조합", () => {
         await page.setViewportSize(
           c.width === "mobile" ? { width: 390, height: 844 } : { width: 1280, height: 900 },
         );
-        await page.goto("/");
+        await gotoStable(page);
         await page.evaluate(() => localStorage.clear());
         await enter(page, c);
 

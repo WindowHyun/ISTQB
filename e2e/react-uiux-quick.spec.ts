@@ -1,6 +1,6 @@
 import { test, expect, Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { openProduct } from "./helpers";
+import { openProduct, gotoStable } from "./helpers";
 
 /**
  * 퀵 랜덤 UI/UX 검사.
@@ -162,16 +162,8 @@ test("UI: 테마 × 글자 크기 조합에서 퀵 화면이 넘치거나 잘리
     for (const font of ["small", "normal", "large"] as const) {
       for (const width of [390, 1280]) {
         await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
-        // 한 테스트가 12번 연속으로 이동한다. 스위트 전체가 붐빌 때 vite preview가
-        // 간헐적으로 net::ERR_ABORTED로 끊는데, 이 검사의 대상은 레이아웃이지 이동의
-        // 안정성이 아니다 — 그 오류에 한해 한 번만 다시 시도한다(다른 실패는 그대로 터뜨린다).
-        try {
-          await page.goto("/");
-        } catch (e) {
-          if (!String(e).includes("ERR_ABORTED")) throw e;
-          await page.waitForTimeout(1000);
-          await page.goto("/");
-        }
+        // 한 테스트가 12번 연속으로 이동한다 — 간헐적 net::ERR_ABORTED 대응은 공용 헬퍼로.
+        await gotoStable(page);
         await page.evaluate(([t, f]) => {
           localStorage.clear();
           localStorage.setItem("istqb-theme", t as string);
