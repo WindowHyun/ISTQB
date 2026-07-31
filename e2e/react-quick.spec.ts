@@ -15,6 +15,26 @@ async function startQuick(page: Page, product: "ISTQB" | "CSTS", size: string) {
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 }
 
+/**
+ * 현재 문항에 답한다 — 유형을 가리지 않는다.
+ *
+ * 사양 변경(B5) 이후 퀵에는 서답형이 최대 30%까지 섞인다. 그래서 "첫 문항에 답한다"를
+ * `#options .option` 클릭으로 쓰면, 뽑기 결과에 따라 3번에 1번꼴로 그 셀렉터가 아예
+ * 존재하지 않아 30초를 기다리다 죽는다(실제로 그렇게 실패했다 — 무작위 추첨이라
+ * '가끔 깨지는 테스트'로 보였을 뿐 원인은 타이밍이 아니라 문항 유형이었다).
+ */
+async function answerCurrent(page: Page) {
+  const short = page.locator(".short-answer-input");
+  const blanks = await short.count();
+  if (blanks) {
+    // 빈칸이 여러 개인 다답형은 '모든 칸'이 차야 답한 것으로 센다(isAnswered).
+    // 첫 칸만 채우면 진행률이 0인 채로 남아, 원인을 모르는 실패가 된다.
+    for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
+    return;
+  }
+  await page.locator("#options .option").first().click();
+}
+
 function readUi(page: Page, product: "istqb" | "csts") {
   const key = product === "csts" ? "csts-fl-v1-sample-ui-state" : "istqb-fl-v4-sample-ui-state";
   return page.evaluate((k: string) => {
@@ -43,14 +63,14 @@ test.describe("퀵 랜덤", () => {
   test("답을 고르면 진행률이 오른다", async ({ page }) => {
     await startQuick(page, "ISTQB", "10");
     await expect(page.locator("#progressText")).toContainText("0 / 10");
-    await page.locator("#options .option").first().click();
+    await answerCurrent(page);
     await expect(page.locator("#progressText")).toContainText("1 / 10");
   });
 
   test("새로고침해도 같은 문항으로 이어 푼다", async ({ page }) => {
     await startQuick(page, "CSTS", "10");
     const before = (await readUi(page, "csts")).quickDraw.items.map((i: { id: string }) => i.id);
-    await page.locator("#options .option").first().click();
+    await answerCurrent(page);
     await expect(page.locator("#progressText")).toContainText("1 / 10");
 
     await page.reload();
@@ -64,21 +84,29 @@ test.describe("퀵 랜덤", () => {
     expect(after).toEqual(before);
   });
 
-  test("서답형은 나오지 않는다 — 입력이 오래 걸려 '퀵'이 성립하지 않는다", async ({ page }) => {
+  // 사양 변경(B5): 서답형도 퀵에 나온다. 다만 한 회차를 점령하면 '퀵'이 아니므로 30% 상한을 둔다.
+  // 종전 검사는 존재하지 않는 셀렉터([data-testid="next-btn"])로 첫 문항에서 바로 빠져나가
+  // 20문항을 한 번도 보지 않았다 — 헛돌던 검사를 실제로 도는 것으로 바꾼다.
+  test("서답형이 섞이되 30%를 넘지 않는다", async ({ page }) => {
     await startQuick(page, "CSTS", "20");
-    // 서답형이 섞였다면 보기 없는 텍스트 입력이 렌더된다.
+    let shortAnswers = 0;
+    let visited = 0;
     for (let i = 0; i < 20; i += 1) {
-      await expect(page.locator("#options .option").first()).toBeVisible();
-      const next = page.locator('[data-testid="next-btn"]');
+      visited += 1;
+      if (await page.locator(".short-answer-input").count()) shortAnswers += 1;
+      const next = page.locator("#nextBtn");
       if (!(await next.count()) || (await next.isDisabled())) break;
       await next.click();
+      await page.waitForTimeout(60);
     }
-    expect(await page.locator("#options input[type=text]").count()).toBe(0);
+    // 셀렉터가 어긋나 조기 이탈하면 검사가 무력해진다 — 실제로 20문항을 밟았는지 먼저 본다.
+    expect(visited, "20문항을 다 훑지 못했다 — 검사가 무력하다").toBe(20);
+    expect(shortAnswers, `20문항 중 서답형 ${shortAnswers}개`).toBeLessThanOrEqual(6);
   });
 
   test("채점 결과에 합격 판정이 없다 — 10문항에 '기준 미달'은 오해를 만든다", async ({ page }) => {
     await startQuick(page, "ISTQB", "10");
-    await page.locator("#options .option").first().click();
+    await answerCurrent(page);
     await page.getByTestId("grade-button").click();
     const confirm = page.getByTestId("confirm-grade");
     if (await confirm.count()) await confirm.click();
@@ -94,8 +122,8 @@ test.describe("퀵 랜덤", () => {
 
   test("퀵 회차는 요약(응시 횟수·최고 정답률)을 부풀리지 않는다", async ({ page }) => {
     await startQuick(page, "ISTQB", "10");
-    // 전 문항 정답을 고를 수 없으므로 첫 보기만 찍고 채점한다 — 요약에 섞이는지만 본다.
-    await page.locator("#options .option").first().click();
+    // 전 문항 정답을 고를 수 없으므로 한 문항만 답하고 채점한다 — 요약에 섞이는지만 본다.
+    await answerCurrent(page);
     await page.getByTestId("grade-button").click();
     const confirm = page.getByTestId("confirm-grade");
     if (await confirm.count()) await confirm.click();
@@ -106,69 +134,24 @@ test.describe("퀵 랜덤", () => {
     await expect(page.getByTestId("stats-dashboard")).toBeVisible();
     // 실전 회차가 하나도 없으므로 요약 블록 자체가 뜨지 않아야 한다.
     expect(await page.locator(".stats-summary").count()).toBe(0);
-    // 대신 짧은 세션 목록에는 남아 개별 삭제가 가능하다.
-    await expect(page.getByTestId("stats-mini-rounds")).toContainText("퀵 랜덤");
+    // 사양 변경: 퀵은 회차 기록을 남기지 않는다 — 짧은 세션 목록에도 나오지 않는다.
+    // (오답만 24시간 임시로 오답노트의 퀵 섹션에 남는다: react-quick-wrongnote.spec.ts)
+    await expect(page.getByTestId("stats-mini-rounds")).toHaveCount(0);
+    // 그래도 챕터 분석에는 기여한다 — "기록 없음"으로 화면을 통째로 가리면 안 된다.
+    expect(await page.locator(".sc-rate").count(),
+      "퀵만 풀었더니 챕터 분석이 비었다").toBeGreaterThan(0);
   });
 
     // 영속 계약 — 퀵 회차가 IndexedDB에 어떤 모양으로 남는지. 여기서 하나라도 빠지면
     // 새로고침·백업 복원 뒤에 조용히 망가진다: mode가 exam으로 보정되면 요약을 부풀리고,
     // chapterQuestions가 없으면 챕터 통계에서 빠지고, wrongItems[].setId가 없으면
     // 오답노트가 다시 출처를 잃는다.
-  test("퀵 회차가 저장소에 온전히 기록된다(모드·챕터·오답 출처)", async ({ page }) => {
-    await openProduct(page, "ISTQB");
-    await page.locator("#quickSize").selectOption("10");
-    await page.getByTestId("quick-start-btn").click();
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-    for (let i = 0; i < 10; i++) {
-      const o = page.locator("#options .option").first();
-      if (await o.count()) await o.click();
-      const n = page.locator("#nextBtn");
-      if (!(await n.count()) || (await n.isDisabled())) break;
-      await n.click();
-    }
-    await page.getByTestId("grade-button").click();
-    const c = page.getByTestId("confirm-grade");
-    if (await c.count()) await c.click();
-    await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
-
-    // IndexedDB에 저장된 퀵 회차를 직접 읽어 백업 왕복 계약을 검사한다.
-    const info = await page.evaluate(async () => {
-      const db: IDBDatabase = await new Promise((res, rej) => {
-        const r = indexedDB.open("istqb-db", 1);
-        r.onsuccess = () => res(r.result);
-        r.onerror = () => rej(r.error);
-      });
-      const all: Record<string, unknown>[] = await new Promise((res) => {
-        const tx = db.transaction("history", "readonly");
-        const q = tx.objectStore("history").getAll();
-        q.onsuccess = () => res(q.result);
-      });
-      const quick = all.find((h) => (h as { mode?: string }).mode === "quick") as {
-        mode: string; setId: string;
-        chapterQuestions?: Record<string, { ok: string[]; no: string[] }>;
-        wrongItems?: { number: number; setId?: string }[];
-      } | undefined;
-      return {
-        found: !!quick,
-        mode: quick?.mode,
-        setId: quick?.setId,
-        chapters: Object.keys(quick?.chapterQuestions ?? {}).length,
-        wrongWithSource: (quick?.wrongItems ?? []).filter((w) => !!w.setId).length,
-        wrongTotal: (quick?.wrongItems ?? []).length,
-        sources: [...new Set((quick?.wrongItems ?? []).map((w) => w.setId))].length,
-      };
-    });
-    console.log("[백업] 퀵 회차:", JSON.stringify(info));
-    expect(info.found).toBe(true);
-    expect(info.mode).toBe("quick");          // exam으로 보정되면 요약을 부풀린다
-    expect(info.chapters).toBeGreaterThan(0); // 없으면 챕터 통계에서 빠진다
-    expect(info.wrongWithSource).toBe(info.wrongTotal); // 출처 없으면 오답노트가 뭉친다
-    expect(info.sources).toBeGreaterThan(1);  // 전 세트 출제의 흔적
-  });
   // 퀵의 setId는 센티넬이라 오답 조회가 항상 빈 결과다 — 그대로 두면 방금 여러 문항을
   // 틀린 사용자가 "현재 문제 세트에는 오답이 없습니다"라는 사실과 다른 안내를 받고,
   // 오답 모드로 넘어가지도 못한다(퀵 화면에 그대로 머문다).
-  test("퀵 직후 '오답 다시 풀기'가 출처 세트의 오답으로 이어진다", async ({ page }) => {
+  // 사양 변경(B1): 퀵 오답은 세트별 오답 버킷에 넣지 않는다 — 세트를 다 풀지도 않았는데
+  // 그 세트의 오답 모드가 퀵 결과로 오염된다. 퀵만 푼 상태에서는 재풀이 대상이 없어야 한다.
+  test("퀵은 세트의 '오답 다시 풀기' 대상을 만들지 않는다", async ({ page }) => {
     await startQuick(page, "ISTQB", "10");
     for (let i = 0; i < 10; i += 1) {
       const o = page.locator("#options .option").first();
@@ -183,74 +166,17 @@ test.describe("퀵 랜덤", () => {
     await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 15_000 });
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
 
-    await page.getByRole("button", { name: "오답 다시 풀기" }).click();
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-
-    // 오답 모드로 실제로 넘어갔다면 답안 네임스페이스가 갈려 진행률이 0부터 시작하고,
-    // 복습 완료 버튼이 나타난다(퀵에 머물렀다면 10/10에 그 버튼이 없다).
-    await expect(page.locator("#progressText")).toContainText("0 / ");
-    await expect(page.getByTestId("complete-review-btn")).toBeVisible();
-    // 센티넬이 아니라 실제 세트로 옮겨갔는지.
-    const sid = await page.evaluate(() => {
-      const raw = localStorage.getItem("istqb-fl-v4-sample-ui-state");
-      return raw ? JSON.parse(raw).setId : null;
+    // 저장된 오답 버킷(reviewIds)이 비어 있어야 한다 — 퀵이 세트 오답을 만들지 않는다.
+    const reviewCount = await page.evaluate(() => {
+      for (const k of Object.keys(localStorage)) {
+        if (!k.endsWith("-ui-state")) continue;
+        const ui = JSON.parse(localStorage.getItem(k) || "{}");
+        return Object.values(ui.reviewIds ?? {}).reduce((n: number, v) => n + (v as string[]).length, 0);
+      }
+      return -1;
     });
-    expect(sid).not.toBe("QUICK");
-    expect(sid).toContain("ISTQB");
+    expect(reviewCount, "퀵 오답이 세트 오답 버킷으로 새어 들어갔다").toBe(0);
   });
 
-  // 오답노트는 회차가 아니라 문항의 출처 세트로 묶여야 한다. 회차 단위로 묶으면 퀵의
-  // setId가 센티넬이라 서로 다른 세트의 오답이 '퀵 랜덤' 한 덩어리가 되고, 지문을 불러올
-  // 경로가 없어 번호만 뜬다(번호가 겹치면 조용히 유실되기도 한다).
-  test("오답노트가 퀵 오답을 출처 세트별로 갈라 보여준다", async ({ page }) => {
-    await startQuick(page, "ISTQB", "10");
-    for (let i = 0; i < 10; i += 1) {
-      const o = page.locator("#options .option").first();
-      if (await o.count()) await o.click();
-      const n = page.locator("#nextBtn");
-      if (!(await n.count()) || (await n.isDisabled())) break;
-      await n.click();
-    }
-    await page.getByTestId("grade-button").click();
-    const confirm = page.getByTestId("confirm-grade");
-    if (await confirm.count()) await confirm.click();
-    await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 15_000 });
-    // 퀵 결과 모달에는 '오답 노트 보기'를 두지 않는다(오답이 회차가 아니라 출처 세트별로
-    // 흩어지므로) — 사이드바의 상시 진입로로 연다.
-    await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
-    await page.getByRole("button", { name: /오답 노트/ }).first().click();
-    await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 20_000 });
 
-    const groups = page.getByTestId("wrong-note-set-btn");
-    // 10문항이 여러 세트에서 왔으므로 그룹도 여럿이어야 한다(1이면 한 덩어리로 뭉친 것).
-    expect(await groups.count()).toBeGreaterThan(1);
-    const note = page.getByTestId("wrong-note");
-    // 그룹 이름은 실제 세트 제목이어야 한다 — '퀵 랜덤'이 보이면 출처를 잃은 것이다.
-    await expect(note).not.toContainText("퀵 랜덤");
-    await expect(note).toContainText("ISTQB FL v4.0 샘플문제");
-  });
-
-  test("퀵에서 틀린 문항이 출처 세트의 오답노트로 간다", async ({ page }) => {
-    await startQuick(page, "ISTQB", "10");
-    // 모든 문항에 답해 확실히 오답을 만든다(첫 보기 일괄 선택).
-    for (let i = 0; i < 10; i += 1) {
-      await page.locator("#options .option").first().click();
-      const next = page.locator('[data-testid="next-btn"]');
-      if (!(await next.count()) || (await next.isDisabled())) break;
-      await next.click();
-    }
-    await page.getByTestId("grade-button").click();
-    const confirm = page.getByTestId("confirm-grade");
-    if (await confirm.count()) await confirm.click();
-    await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 15_000 });
-
-    // 오답은 QUICK 버킷이 아니라 각 출처 세트의 -quick 버킷에 담겨야 한다.
-    const buckets = await page.evaluate(() => {
-      const raw = localStorage.getItem("istqb-fl-v4-sample-ui-state");
-      const ui = raw ? JSON.parse(raw) : {};
-      return Object.keys(ui.reviewIds ?? {});
-    });
-    expect(buckets.some((k) => k.startsWith("QUICK"))).toBe(false);
-    expect(buckets.some((k) => k.endsWith("-quick"))).toBe(true);
-  });
 });

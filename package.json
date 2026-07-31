@@ -25,6 +25,7 @@
     "test:e2e": "playwright test --project=react",
     "test:nf": "playwright test --project=nonfunctional",
     "test:apk": "playwright test --project=apk --project=apk-nf",
+    "test:webkit": "playwright test --project=webkit",
     "typecheck": "tsc --noEmit",
     "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
     "lint": "eslint .",

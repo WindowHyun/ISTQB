@@ -8,6 +8,7 @@ import {
   aggregateChapterStats,
   aggregateLatestChapterStats,
   makeCanonicalIdResolver,
+  makeCanonicalChapterResolver,
   weightedRatePercent,
 } from '../../utils/chapterStats';
 import {
@@ -53,9 +54,12 @@ function formatRoundDate(ms: number): string {
 
 interface StatsDashboardProps {
   histories: Record<string, ExamHistory>;
+  /** 만료되지 않은 퀵 회차 — 챕터 통계에만 합산한다(회차 목록·요약에는 넣지 않는다). */
+  quickRounds?: ExamHistory[];
   sets: SetSummary[];
   // 세트 간 재수록 문항 그룹 — 같은 문제를 챕터 분모에 두 번 세지 않기 위해 필요하다.
   duplicateGroups?: string[][];
+  duplicateChapters?: Record<string, string>;
   onClose: () => void;
   onClear: () => void;
   /** 챕터 집중 연습 진입(현재 세트를 해당 챕터로 필터해 연습 모드로). */
@@ -70,11 +74,13 @@ interface StatsDashboardProps {
   onDeleteRound: (id: string) => void;
 }
 
-export const StatsDashboard = ({ histories, sets, duplicateGroups, onClose, onClear, onPracticeChapter, onMiniTestChapter, practiceLocked, certification, onDeleteRound }: StatsDashboardProps) => {
+export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGroups, duplicateChapters, onClose, onClear, onPracticeChapter, onMiniTestChapter, practiceLocked, certification, onDeleteRound }: StatsDashboardProps) => {
   const weakThreshold = WEAK_THRESHOLD_BY_CERT[certification ?? 'istqb'] ?? 65;
   // 빈 상태 판정에만 쓰는 개수. 실전·미니를 모두 세어, 미니만 푼 사용자에게
   // "기록 없음"이 뜨지 않게 한다(미니 섹션에는 내용이 있으므로 모순이 된다).
-  const roundCount = Object.keys(histories).length;
+  // 퀵도 함께 센다 — 회차 목록에는 남지 않지만 챕터 분석에는 기여하므로, 퀵만 푼
+  // 사용자에게 "기록 없음"을 띄우면 약점 분석을 통째로 가려 버린다.
+  const roundCount = Object.keys(histories).length + quickRounds.length;
 
   // 요약은 '실전 회차'(세트 전체)만 센다.
   // 종전에는 챕터 미니(10문항)까지 섞여, 미니에서 10/10을 받으면 실전 최고가 65%인데도
@@ -113,14 +119,17 @@ export const StatsDashboard = ({ histories, sets, duplicateGroups, onClose, onCl
   // 표본이 가장 작은 챕터가 늘 1위 약점이 된다. 실제 데이터에서 세트당 1~4문항짜리
   // 챕터가 흔해(CSTS 2018은 6개 중 5개), 1문항을 틀린 챕터(0%)가 19문항을 풀어 10%가
   // 나온 진짜 약점보다 위에 온다 — 앱이 엉뚱한 챕터를 공부하라고 지시하게 된다.
-  // 재수록 문항을 대표 id로 접는 함수. 표는 45그룹뿐이라 Map 구성 비용이 작고,
+  // 재수록 문항을 대표 id로 접는 함수. 표는 46그룹뿐이라 Map 구성 비용이 작고,
   // 표가 바뀌지 않는 한 참조가 유지돼 아래 집계 메모가 매 렌더 무효화되지 않는다.
   const canonicalIdOf = useMemo(() => makeCanonicalIdResolver(duplicateGroups), [duplicateGroups]);
+  const canonicalChapterOf = useMemo(() => makeCanonicalChapterResolver(duplicateChapters), [duplicateChapters]);
   const { rankedChapters, lowSampleChapters, staleRounds } = useMemo(() => {
-    const all_ = Object.values(histories);
+    // 퀵을 여기에만 합산한다 — 회차 목록·요약·타임라인은 histories만 보므로 퀵은
+    // '기록 없음'을 유지하면서도 약점 분석에는 기여한다(24시간 뒤 자연히 빠진다).
+    const all_ = [...Object.values(histories), ...quickRounds];
     // 문항 단위 최신 시도 기준(재풀이해도 분모가 늘지 않는다). 문항 id를 남기지 않던
     // 과거 회차만 있으면 셀 것이 없으므로 종전 누적 방식으로 폴백한다.
-    const latest = aggregateLatestChapterStats(all_, canonicalIdOf);
+    const latest = aggregateLatestChapterStats(all_, canonicalIdOf, canonicalChapterOf);
     const useLatest = Object.keys(latest.stats).length > 0;
     const agg = useLatest ? latest.stats : aggregateChapterStats(all_);
     const all = Object.entries(agg)
@@ -133,7 +142,7 @@ export const StatsDashboard = ({ histories, sets, duplicateGroups, onClose, onCl
       // 최신 기준으로 셀 때 빠진 과거 회차 수(폴백 중이면 0 — 그때는 전부 집계된다).
       staleRounds: useLatest ? latest.legacyRounds : 0,
     };
-  }, [histories, canonicalIdOf]);
+  }, [histories, quickRounds, canonicalIdOf, canonicalChapterOf]);
   const chapterRows = rankedChapters;
   // 챕터 집계가 없는(구버전에서 채점한) 회차가 섞여 있으면 안내한다.
   const legacyCount = useMemo(
@@ -374,10 +383,11 @@ export const StatsDashboard = ({ histories, sets, duplicateGroups, onClose, onCl
 
             {miniRounds.length > 0 && (
               <section className="stats-minis" aria-label="짧은 세션 기록" data-testid="stats-mini-rounds">
-                {/* 짧은 세션(챕터 미니·퀵)은 타임라인에서 빠지므로 여기서 보여준다 — 종전에는 아래
-                    목록에 "랜덤 0/10"으로만 떠서 어느 챕터의 미니인지 알 수 없었다. 퀵도 여기 없으면
-                    화면 어디에도 나타나지 않아 개별 삭제가 불가능하다. */}
-                <h4>짧은 세션 <small>챕터 미니 시험 · 퀵 랜덤 · 위 요약에는 넣지 않습니다</small></h4>
+                {/* 짧은 세션(챕터 미니)은 타임라인에서 빠지므로 여기서 보여준다 — 종전에는 아래
+                    목록에 "랜덤 0/10"으로만 떠서 어느 챕터의 미니인지 알 수 없었다.
+                    퀵은 이제 이력에 남지 않아 여기 오지 않는다. 다만 사양 변경 이전에 저장된
+                    퀵 회차가 남아 있을 수 있어, 지울 수 있도록 표시 경로는 유지한다. */}
+                <h4>짧은 세션 <small>챕터 미니 시험 · 위 요약에는 넣지 않습니다</small></h4>
                 <ul className="mini-rounds">
                   {miniRounds.map((m) => (
                     <li key={m.id} className={m.rate < weakThreshold ? 'weak' : ''} data-testid="mini-round-item">

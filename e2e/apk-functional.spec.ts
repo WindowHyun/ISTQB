@@ -189,7 +189,7 @@ test.describe("APK 기능 · 퀵 랜덤(터치)", () => {
   // 이력은 읽을 때마다 정제되므로, 정제가 그 필드를 흘리면 채점 직후에는 멀쩡하다가
   // 웹뷰 재시작 한 번에 오답노트가 '퀵 랜덤' 한 덩어리로 뭉친다(실제로 났던 결함).
   // 재시작이 일상인 APK에서 재라, 이 축은 여기서 잡는 게 맞다.
-  test("AF12 퀵 채점 후 오답노트 출처 세트 그룹이 웹뷰 재시작에도 유지된다", async ({ page }) => {
+  test("AF12 퀵 오답의 출처 세트 표기가 웹뷰 재시작에도 유지된다", async ({ page }) => {
     const errors = collectErrors(page);
     await startQuick(page, "20");
 
@@ -207,17 +207,29 @@ test.describe("APK 기능 · 퀵 랜덤(터치)", () => {
     await page.getByTestId("drawer-open").tap();
     await page.getByRole("button", { name: /오답 노트/ }).first().tap();
     await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 20_000 });
-    const before = await page.getByTestId("wrong-note-set-btn").count();
-    // 전 세트에서 뽑은 20문항 중 오답이 여러 세트에 걸치면 그룹도 여럿이어야 한다.
-    expect(before, "오답노트 그룹이 하나도 없다").toBeGreaterThan(0);
+    // 퀵 오답은 세트 그룹에 섞이지 않고 전용 임시 목록에만 실린다.
+    await expect(page.getByTestId("quick-wrong-note")).toBeVisible();
+    expect(await page.getByTestId("wrong-note-set-btn").count(),
+      "퀵만 풀었는데 세트 오답 그룹이 생겼다").toBe(0);
+
+    // 각 오답에 출처 세트명이 붙는다 — 정제기가 setId를 떨구면 전부 한 이름으로 뭉친다.
+    const srcOf = () => page.locator('[data-testid="quick-wrong-item"] .qw-src')
+      .evaluateAll((els) => els.map((e) => e.textContent ?? ""));
+    const before = await srcOf();
+    expect(before.length, "퀵 오답이 하나도 없다").toBeGreaterThan(0);
+    const beforeSets = new Set(before).size;
+    expect(beforeSets, "출처 세트명이 비어 있다").toBeGreaterThan(0);
 
     await page.reload(); // 앱 프로세스 재시작 = 이력 재정제 경로
     await page.getByRole("button", { name: "ISTQB" }).tap();
     await page.getByTestId("drawer-open").tap();
     await page.getByRole("button", { name: "오답 노트" }).first().tap();
     await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 20_000 });
-    const after = await page.getByTestId("wrong-note-set-btn").count();
-    expect(after, `재시작 전 ${before}개 그룹이 후 ${after}개로 뭉쳤다`).toBe(before);
+    const after = await srcOf();
+    expect(after.length, `재시작 전 오답 ${before.length}개가 후 ${after.length}개가 됐다`)
+      .toBe(before.length);
+    expect(new Set(after).size, `재시작 전 ${beforeSets}개 출처가 후 ${new Set(after).size}개로 뭉쳤다`)
+      .toBe(beforeSets);
     expect(errors).toEqual([]);
   });
 });

@@ -1,6 +1,19 @@
 import { test, expect, Page } from "@playwright/test";
 import { openProduct } from "./helpers";
 
+/** 유형을 가리지 않고 현재 문항에 답한다 — 퀵에는 서답형이 최대 30% 섞인다(B5).
+ *  보기 클릭만 쓰면 뽑기 결과에 따라 셀렉터가 아예 없어 타임아웃으로 죽는다. */
+async function answerCurrent(page: Page) {
+  const short = page.locator(".short-answer-input");
+  const blanks = await short.count();
+  if (blanks) {
+    // 다답형은 모든 칸이 차야 '답함'으로 센다(isAnswered) — 첫 칸만 채우면 진행률이 안 오른다.
+    for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
+    return;
+  }
+  await page.locator("#options .option").first().click();
+}
+
 /**
  * 유저 관점 전수 시나리오 — "실제로 이 앱을 쓰는 사람이 겪는 흐름"을 끝까지 밟는다.
  *
@@ -102,17 +115,27 @@ for (const product of ["ISTQB", "CSTS"] as const) {
     await expect(page.getByTestId("result-rate")).toContainText("/ 10문항");
     await closeResult(page);
 
-    // 5) 오답 — 시험·랜덤·퀵에서 틀린 문항이 모인다.
+    // 5) 오답 노트 — 세트 오답(시험·랜덤)과 퀵 오답이 서로 다른 자리에 모인다.
+    //    퀵은 회차를 남기지 않으므로 세트 그룹에 섞이면 안 되고, 대신 임시 목록으로 보인다.
+    await openSidebar(page);
+    await page.getByRole("button", { name: /오답 노트/ }).first().click();
+    await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("quick-wrong-note")).toBeVisible();
+    expect(await page.getByTestId("quick-wrong-item").count()).toBeGreaterThan(0);
+    await page.keyboard.press("Escape");
+
+    // 6) 오답 재풀이 — 시험·랜덤에서 틀린 문항이 모인다.
     await openSidebar(page);
     await page.getByRole("button", { name: "오답 다시 풀기" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 
-    // 6) 통계 — 요약은 실전 회차만, 짧은 세션 목록에 퀵이 남는다.
+    // 7) 통계 — 퀵은 회차 목록 어디에도 남지 않는다(챕터 집계에만 조용히 기여).
     await openSidebar(page);
     await page.getByTestId("stats-open").click();
     const dash = page.getByTestId("stats-dashboard");
     await expect(dash).toBeVisible();
-    await expect(page.getByTestId("stats-mini-rounds")).toContainText("퀵 랜덤");
+    const minis = page.getByTestId("stats-mini-rounds");
+    if (await minis.count()) await expect(minis).not.toContainText("퀵 랜덤");
 
     // 응시 횟수는 시험+랜덤 2회여야 한다 — 퀵이 섞이면 3이 된다.
     const attempts = await page.locator(".stats-summary div:nth-child(1) strong").textContent();
@@ -158,6 +181,9 @@ test("퀵을 반복해도 챕터 분모가 계속 부풀지 않는다", async ({
   }
 
   console.log("[유저] 퀵 3회 반복 챕터 분모 추이:", denoms.join(" → "));
+  // 퀵은 회차 기록을 남기지 않지만 챕터 분석에는 기여한다 — 0이면 통계 화면이
+  // "기록 없음"으로 가려졌다는 뜻이고, 아래 단조 증가 검사가 통째로 무의미해진다.
+  expect(denoms[0], "퀵만 풀었더니 챕터 통계가 비어 있다").toBeGreaterThan(0);
   // 매 회차 20문항이지만 재수록·중복 제거로 60까지는 가지 않는다.
   expect(denoms[2]).toBeLessThanOrEqual(60);
   // 그리고 단조 증가여야 한다(새 문항을 풀었으므로 줄어들면 집계가 깨진 것).
@@ -174,7 +200,7 @@ test("제품을 오가도 퀵 상태가 새지 않는다", async ({ page }) => {
   await page.locator("#quickSize").selectOption("10");
   await page.getByTestId("quick-start-btn").click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-  await page.locator("#options .option").first().click();
+  await answerCurrent(page);
 
   // 설정 → 처음 화면으로 → CSTS 진입
   await openProduct(page, "CSTS");

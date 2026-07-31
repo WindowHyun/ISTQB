@@ -44,6 +44,8 @@ export const Sidebar = () => {
   // 문항 수는 '시작'을 누를 때까지 로컬 상태로 둔다 — 고르는 즉시 스토어에 쓰면
   // 진행 중인 세션과 무관한 값 변경이 영속화 구독을 계속 깨운다.
   const [quickSizeLocal, setQuickSizeLocal] = React.useState<number>(quickSize);
+  // 스토어 값이 밖에서 바뀌면(퀵 시작으로 확정, 새로고침 복원) 화면도 따라간다.
+  React.useEffect(() => { setQuickSizeLocal(quickSize); }, [quickSize]);
   const certLabel = activeProduct === 'csts' ? 'CSTS' : 'ISTQB';
 
   // 모바일 드로어 포커스 관리(B1) — 열리면 첫 컨트롤로 포커스 이동 + Tab 순환 트랩,
@@ -395,7 +397,10 @@ export const Sidebar = () => {
           <div className="quick-row">
             <select
               id="quickSize"
-              value={quickSize}
+              // 표시 값은 로컬 상태를 따라야 한다. 스토어 값에 묶어 두면 onChange가
+              // 로컬만 바꾸므로 다시 그릴 때 원래 값으로 튕겨, 사용자에게는
+              // "골라도 안 바뀐다"로 보인다(실제로 그 상태였다).
+              value={quickSizeLocal}
               onChange={(e) => setQuickSizeLocal(Number(e.target.value))}
               disabled={examLocked}
               aria-label="퀵 랜덤 문항 수"
@@ -406,8 +411,11 @@ export const Sidebar = () => {
             </select>
             {/* 퀵을 푸는 중에는 시작 버튼을 감춘다 — 남겨 두면 그 자리에서 누르는 순간
                 진행 중이던 답안이 경고 없이 버려지고 새 추첨으로 갈아탄다.
-                채점을 마치면 다시 나타나 다음 회차로 갈 수 있다. */}
-            {!quickUnderway && (
+                채점을 마치면 다시 나타나 다음 회차로 갈 수 있다.
+                예외: 진행 중에 문항 수를 바꾼 경우에는 다시 띄운다. 감춘 채로 두면 값을
+                골라도 아무 일이 없어 "골라도 안 바뀐다"가 된다 — 바꾼 의도는 새로 시작하려는
+                것이므로 그 길을 열어 주되, 라벨로 결과(새 추첨)를 밝힌다. */}
+            {(!quickUnderway || quickSizeLocal !== quickSize) && (
               <button
                 type="button"
                 className="quick-start-btn"
@@ -415,14 +423,16 @@ export const Sidebar = () => {
                 disabled={examLocked}
                 onClick={handleStartQuick}
               >
-                시작
+                {quickUnderway ? '새로 시작' : '시작'}
               </button>
             )}
           </div>
           <p className="action-hint">
             {quickUnderway
-              ? '퀵 진행 중 — 채점하면 다시 시작할 수 있습니다.'
-              : `${certLabel} 전 세트에서 4지선다·진위형만 뽑습니다. 제한시간 없음 · 위 요약에는 넣지 않습니다.`}
+              ? (quickSizeLocal !== quickSize
+                  ? `퀵 진행 중 — '새로 시작'을 누르면 ${quickSizeLocal}문항으로 다시 뽑습니다(현재 답안은 사라집니다).`
+                  : '퀵 진행 중 — 채점하면 다시 시작할 수 있습니다.')
+              : `${certLabel} 전 세트에서 뽑습니다(서답형 포함, 최대 30%). 제한시간 없음 · 회차 기록을 남기지 않습니다.`}
           </p>
         </section>
 

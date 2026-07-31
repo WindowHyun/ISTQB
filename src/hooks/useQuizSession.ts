@@ -15,11 +15,11 @@ import { saveHistoryToDB } from '../utils/storage';
 export function useQuizSession() {
   // 슬라이스 구독(O1) — elapsedSeconds는 구독하지 않고 채점 시점에 getState()로 읽는다
   // (구독하면 이 훅을 쓰는 모든 컴포넌트가 타이머 틱마다 리렌더된다).
-  const { mode, setId, answers, graded, examStarted, addHistory, setReviewIds, setGraded, setResultOpen, setConfirmGradeOpen, markReviewed, unmarkReviewed } =
+  const { mode, setId, answers, graded, examStarted, addHistory, addQuickRound, setReviewIds, setGraded, setResultOpen, setConfirmGradeOpen, markReviewed, unmarkReviewed } =
     useQuizStore(useShallow((s) => ({
       mode: s.mode, setId: s.setId, answers: s.answers, graded: s.graded,
       examStarted: s.examStarted[s.setId],
-      addHistory: s.addHistory, setReviewIds: s.setReviewIds, setGraded: s.setGraded,
+      addHistory: s.addHistory, addQuickRound: s.addQuickRound, setReviewIds: s.setReviewIds, setGraded: s.setGraded,
       markReviewed: s.markReviewed, unmarkReviewed: s.unmarkReviewed,
       setResultOpen: s.setResultOpen, setConfirmGradeOpen: s.setConfirmGradeOpen,
     })));
@@ -131,34 +131,18 @@ export function useQuizSession() {
       // (연습은 채점이 없고 시험 모드 진입 시 setMode가 필터를 해제하므로 랜덤에서만 값이 실린다)
       chapter: useQuizStore.getState().chapterFilter ?? undefined,
     };
-    addHistory(history);
-    // 채점 이력을 IndexedDB에 영속화(새로고침 후 통계 대시보드에서 조회).
-    saveHistoryToDB(history);
     if (mode === 'quick') {
-      // 퀵의 setId는 센티넬이라 `QUICK-quick` 버킷에 넣으면 어느 세트의 오답 모드에서도
-      // 읽히지 않는다 — 틀린 문항이 오답노트에서 통째로 사라진다.
-      // 문항에 실어 둔 출처 세트로 갈라 각 세트의 `-quick` 버킷에 넣는다.
-      // 이번 회차에 나온 세트만 덮어쓴다(다른 세트의 이전 퀵 오답은 그대로 둔다) —
-      // 그 세트를 다시 뽑지 않았는데 지우면 아직 못 고친 오답이 조용히 사라진다.
-      const wrongBySet = new Map<string, string[]>();
-      const wrongNumbersBySet = new Map<string, number[]>();
-      const touchedSets = new Set<string>();
-      for (const q of currentQuestions) {
-        const src = q.sourceSetId;
-        if (!src) continue;
-        touchedSets.add(src);
-      }
-      for (const q of wrongQs) {
-        const src = q.sourceSetId;
-        if (!src) continue;
-        wrongBySet.set(src, [...(wrongBySet.get(src) ?? []), q.id || `legacy-${q.number}`]);
-        wrongNumbersBySet.set(src, [...(wrongNumbersBySet.get(src) ?? []), q.number]);
-      }
-      for (const src of touchedSets) {
-        setReviewIds(gradeKeyFor(src, 'quick'), wrongBySet.get(src) ?? []);
-        unmarkReviewed(src, wrongNumbersBySet.get(src) ?? []);
-      }
+      // 퀵은 회차 기록을 남기지 않는다(요약·타임라인·이력 목록에 나오지 않는다).
+      // 대신 24시간 임시 보관에 넣어 방금 틀린 것을 볼 수 있게 하고, 챕터 통계에는 합산한다.
+      // 세트별 오답 버킷(reviewIds)에는 넣지 않는다 — 세트를 다 풀지도 않았는데 그 세트의
+      // 오답 모드에 섞이면, 세트 단위 학습 흐름이 퀵 결과로 오염된다.
+      addQuickRound(history);
     } else {
+      addHistory(history);
+      // 채점 이력을 IndexedDB에 영속화(새로고침 후 통계 대시보드에서 조회).
+      saveHistoryToDB(history);
+    }
+    if (mode !== 'quick') {
       // 모드별로 저장해 랜덤 채점이 시험 오답 목록을 덮어쓰지 않게 한다(오답 모드는 합집합을 읽음).
       setReviewIds(gradeKey, wrongIds);
       // 다시 틀린 문항은 '복습함'에서 되돌린다 — 아니면 한 번 복습했다는 이유로

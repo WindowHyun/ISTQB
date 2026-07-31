@@ -274,8 +274,12 @@ test.describe("비기능 · 정확도/복원력", () => {
       await page.locator("#quickSize").selectOption("20");
       await page.getByTestId("quick-start-btn").click();
       await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-      // 풀이 자체가 되는지까지 본다 — 지문만 뜨고 보기가 비면 데이터가 반쪽으로 온 것이다.
-      await expect(page.locator("#options .option").first()).toBeVisible({ timeout: 10_000 });
+      // 풀이 자체가 되는지까지 본다 — 지문만 뜨고 답할 자리가 없으면 데이터가 반쪽으로 온 것이다.
+      // 퀵에는 서답형이 최대 30% 섞이므로(B5) 보기 버튼만 기다리면 뽑기에 따라 헛되이 죽는다.
+      await expect(async () => {
+        const answerable = await page.locator("#options .option, .short-answer-input").count();
+        expect(answerable, "지문은 떴는데 답할 자리가 없다").toBeGreaterThan(0);
+      }).toPass({ timeout: 10_000 });
       await expect(page.locator("#progressText")).toContainText("/ 20");
 
       // 오프라인에서 뽑힌 20문항이 실제로 여러 세트에서 왔는지 — 한 세트만 캐시돼도

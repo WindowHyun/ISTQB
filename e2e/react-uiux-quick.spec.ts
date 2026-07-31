@@ -1,6 +1,19 @@
 import { test, expect, Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { openProduct } from "./helpers";
+import { openProduct, gotoStable } from "./helpers";
+
+/** 유형을 가리지 않고 현재 문항에 답한다 — 퀵에는 서답형이 최대 30% 섞인다(B5).
+ *  보기 클릭만 쓰면 뽑기 결과에 따라 셀렉터가 아예 없어 타임아웃으로 죽는다. */
+async function answerCurrent(page: Page) {
+  const short = page.locator(".short-answer-input");
+  const blanks = await short.count();
+  if (blanks) {
+    // 다답형은 모든 칸이 차야 '답함'으로 센다(isAnswered) — 첫 칸만 채우면 진행률이 안 오른다.
+    for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
+    return;
+  }
+  await page.locator("#options .option").first().click();
+}
 
 /**
  * 퀵 랜덤 UI/UX 검사.
@@ -25,6 +38,18 @@ async function startQuick(page: Page, product: "ISTQB" | "CSTS", size = "10") {
   await page.locator("#quickSize").selectOption(size);
   await page.getByTestId("quick-start-btn").click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+}
+
+/** 보기가 있는 문항이 나올 때까지 '다음'으로 이동한다(찾으면 true). */
+async function advanceToOptionQuestion(page: Page, max = 20): Promise<boolean> {
+  for (let i = 0; i < max; i += 1) {
+    if (await page.locator("#options .option").count()) return true;
+    const next = page.locator("#nextBtn");
+    if (!(await next.count()) || (await next.isDisabled())) return false;
+    await next.click();
+    await page.waitForTimeout(80);
+  }
+  return false;
 }
 
 async function axeScan(page: Page, label: string) {
@@ -52,7 +77,7 @@ test("UI: 퀵 화면 axe 스캔 — 라이트·다크·모바일", async ({ page
   await axeScan(page, "퀵 풀이 화면(라이트)");
 
   // 채점 결과 — 이번에 추가한 중립 표면(.result-score.neutral)이 여기서만 나온다.
-  await page.locator("#options .option").first().click();
+  await answerCurrent(page);
   await page.getByTestId("grade-button").click();
   const c = page.getByTestId("confirm-grade");
   if (await c.count()) await c.click();
@@ -109,6 +134,13 @@ test("UX: 키보드만으로 퀵을 시작하고 풀 수 있다", async ({ page 
   note("키보드만으로 퀵 15문항 시작 성공");
 
   // 보기 선택도 키보드로 — 라디오/버튼 어느 쪽이든 포커스 후 Enter/Space가 먹어야 한다.
+  // 퀵에는 서답형이 섞이므로(B5) 보기가 있는 문항까지 이동한 뒤 검사한다.
+  // 그냥 첫 문항을 잡으면 서답형이 뽑힌 회차에서 셀렉터가 없어 헛되이 죽는다.
+  if (!(await advanceToOptionQuestion(page))) {
+    bad("15문항을 다 넘겨도 보기가 있는 문항이 없다 — 퀵이 서답형만 뽑았다");
+    expect(problems, problems.join("\n")).toEqual([]);
+    return;
+  }
   const opt = page.locator("#options .option").first();
   await opt.focus();
   await page.keyboard.press("Enter");
@@ -162,16 +194,8 @@ test("UI: 테마 × 글자 크기 조합에서 퀵 화면이 넘치거나 잘리
     for (const font of ["small", "normal", "large"] as const) {
       for (const width of [390, 1280]) {
         await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
-        // 한 테스트가 12번 연속으로 이동한다. 스위트 전체가 붐빌 때 vite preview가
-        // 간헐적으로 net::ERR_ABORTED로 끊는데, 이 검사의 대상은 레이아웃이지 이동의
-        // 안정성이 아니다 — 그 오류에 한해 한 번만 다시 시도한다(다른 실패는 그대로 터뜨린다).
-        try {
-          await page.goto("/");
-        } catch (e) {
-          if (!String(e).includes("ERR_ABORTED")) throw e;
-          await page.waitForTimeout(1000);
-          await page.goto("/");
-        }
+        // 한 테스트가 12번 연속으로 이동한다 — 간헐적 net::ERR_ABORTED 대응은 공용 헬퍼로.
+        await gotoStable(page);
         await page.evaluate(([t, f]) => {
           localStorage.clear();
           localStorage.setItem("istqb-theme", t as string);
@@ -231,7 +255,7 @@ test("UI: 퀵 결과의 중립 표면이 라이트·다크 모두에서 읽을 �
     await page.locator("#quickSize").selectOption("10");
     await page.getByTestId("quick-start-btn").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-    await page.locator("#options .option").first().click();
+    await answerCurrent(page);
     await page.getByTestId("grade-button").click();
     const c = page.getByTestId("confirm-grade");
     if (await c.count()) await c.click();
@@ -290,10 +314,12 @@ test("UX: 퀵 안내 문구가 잘리지 않고 출제 범위를 알린다", asy
   if (!hint) { bad("퀵 안내 문구가 없다"); }
   else {
     note(`안내: ${hint.text}`);
-    // 출제 범위를 명시하지 않으면 "서답형이 안 나온다"가 결함 신고로 돌아온다.
+    // 출제 범위를 명시하지 않으면 "서답형이 왜 나오냐"가 결함 신고로 돌아온다.
     if (!/전 세트/.test(hint.text)) bad("안내에 '전 세트 출제'가 없다");
-    if (!/진위형|4지선다/.test(hint.text)) bad("안내에 출제 유형 범위가 없다");
+    if (!/서답형/.test(hint.text)) bad("안내에 출제 유형 범위가 없다");
     if (!/제한시간/.test(hint.text)) bad("안내에 제한시간 여부가 없다");
+    // 퀵은 회차 이력을 남기지 않는다 — 이 사실을 안내에서 알 수 있어야 한다.
+    if (!/기록/.test(hint.text)) bad("안내에 회차 기록 여부가 없다");
     if (hint.clipped) bad("안내 문구가 세로로 잘렸다");
   }
   expect(problems, problems.join("\n")).toEqual([]);

@@ -96,6 +96,39 @@ async function inspect(page: Page) {
   });
 }
 
+/**
+ * 비교용 정규화 — 공백을 접고, 원본에만 있는 밑줄 태그를 벗긴다.
+ * parser.tsx가 해석하는 태그는 <u> 하나뿐이고 렌더 결과에는 태그가 남지 않으므로,
+ * 데이터 쪽에서 같은 방식으로 벗겨야 화면 텍스트와 맞는다.
+ */
+const norm = (t: string) => t.replace(/<\/?u\s*>/gi, "").replace(/\s+/g, " ").trim();
+
+/**
+ * 문항 하나에서 화면에 반드시 뜰 만한 텍스트 조각을 뽑는다(세트 전환 대기용).
+ * 지문이 ContentBlock[]일 수도 문자열일 수도 있어 재귀로 훑고, 너무 짧으면
+ * 보기 텍스트로 넘어간다 — 짧은 조각은 다른 세트와도 우연히 일치할 수 있다.
+ */
+function expectedText(q: { stem?: unknown; options?: { text?: string }[] }): string | null {
+  const parts: string[] = [];
+  // 객체의 모든 문자열을 담으면 안 된다 — 블록의 type 값('paragraph','code')까지 섞여
+  // 화면에 없는 문자열로 기다리게 된다. 내용을 담는 키만 골라 훑는다.
+  const CONTENT_KEYS = new Set(["text", "lines", "items", "blocks", "content", "caption"]);
+  const walk = (v: unknown) => {
+    if (typeof v === "string") { parts.push(v); return; }
+    if (Array.isArray(v)) { v.forEach(walk); return; }
+    if (v && typeof v === "object") {
+      for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+        if (CONTENT_KEYS.has(k)) walk(val);
+      }
+    }
+  };
+  walk(typeof q.stem === "string" ? q.stem : { blocks: q.stem });
+  for (const c of [norm(parts.join(" ")), norm(q.options?.[0]?.text ?? "")]) {
+    if (c.length >= 12) return c.slice(0, 24);
+  }
+  return null;
+}
+
 for (const width of [1280, 390]) {
   test(`전수: 12세트 626문항 렌더 검사 (${width}px)`, async ({ page }) => {
     test.setTimeout(1_800_000);
@@ -121,10 +154,26 @@ for (const width of [1280, 390]) {
       }
       await select.selectOption(s.id);
       await page.keyboard.press("Escape");
-      await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 
       const data = await (await page.request.get(`/data/${s.path.replace(/^\.\//, "")}`)).json();
       const total: number = data.questions.length;
+
+      // 세트를 바꾼 직후 곧바로 읽으면 지문·보기가 비어 보인다(전체 스위트 부하에서 실제로
+      // 잡혔다). #questionStem은 이전 세트의 지문이라 toBeVisible이 즉시 통과하고, 세트 제목과
+      // 진행률은 문항 JSON이 오기 전에 먼저 바뀐다 — 둘 다 "교체가 끝났다"는 신호가 못 된다.
+      // 새 세트 1번 문항의 실제 텍스트가 화면에 뜰 때까지 기다린다.
+      const want = expectedText(data.questions[0]);
+      if (want) {
+        await expect
+          .poll(async () => norm(await page.locator("#questionStem, #options").allInnerTexts().then((t) => t.join(" "))),
+                { timeout: 20_000 })
+          .toContain(want);
+      } else {
+        // 지문이 이미지·표뿐이라 대조할 텍스트가 없는 드문 경우 — 보기 수로 갈음한다.
+        await expect
+          .poll(async () => page.locator("#options .option").count(), { timeout: 20_000 })
+          .toBeGreaterThan(0);
+      }
 
       for (let i = 0; i < total; i++) {
         const q = data.questions[i];

@@ -77,3 +77,56 @@ test("시험·랜덤 결과에는 오답노트 버튼이 그대로 있다(퀵만
   await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId("result-summary").getByRole("button", { name: "오답 노트 보기" })).toBeVisible();
 });
+
+test("퀵 문항 수를 고르면 콤보박스가 그 값을 유지한다", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await openProduct(page, "ISTQB");
+  await openBar(page);
+
+  const sel = page.locator("#quickSize");
+  await expect(sel).toHaveValue("10");
+
+  // 고른 값이 화면에 남아야 한다. controlled value가 스토어에 묶여 있으면
+  // 다시 그릴 때 원래 값으로 튕겨, 사용자는 "골라도 안 바뀐다"를 본다.
+  await sel.selectOption("20");
+  await expect(sel, "고른 값이 유지되지 않고 되돌아갔다").toHaveValue("20");
+
+  await sel.selectOption("15");
+  await expect(sel).toHaveValue("15");
+
+  // 고른 값이 실제 출제 수와도 일치해야 한다(표시만 맞고 출제가 다르면 더 나쁘다).
+  await page.getByTestId("quick-start-btn").click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator("#progressText")).toContainText("/ 15");
+});
+
+test("퀵 진행 중 문항 수를 바꾸면 '새로 시작'이 나타나 그 수로 다시 뽑는다", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await openProduct(page, "ISTQB");
+  await openBar(page);
+
+  await page.locator("#quickSize").selectOption("10");
+  await page.getByTestId("quick-start-btn").click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator("#progressText")).toContainText("/ 10");
+
+  // 진행 중이고 값을 안 바꿨으면 시작 버튼은 없다(요청받은 동작).
+  await openBar(page);
+  await expect(page.getByTestId("quick-start-btn")).toHaveCount(0);
+
+  // 값을 바꾸면 다시 나타난다 — 감춘 채로 두면 골라도 아무 일이 없다.
+  await page.locator("#quickSize").selectOption("20");
+  await expect(page.locator("#quickSize")).toHaveValue("20");
+  const btn = page.getByTestId("quick-start-btn");
+  await expect(btn, "값을 바꿨는데 적용할 버튼이 없다").toBeVisible();
+  await expect(btn).toHaveText("새로 시작");
+  await expect(page.locator(".quick-panel .action-hint")).toContainText("20문항");
+
+  await btn.click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator("#progressText"), "새로 시작이 바뀐 문항 수를 쓰지 않았다").toContainText("/ 20");
+});
