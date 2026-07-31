@@ -96,63 +96,6 @@ export function loadSetQuestions(path: string): Promise<Question[]> {
   });
 }
 
-/** 다음 프레임까지 제어를 넘긴다 — 그 사이에 브라우저가 렌더·입력을 처리할 수 있다. */
-function yieldToPaint(): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => setTimeout(resolve, 0));
-    else setTimeout(resolve, 0);
-  });
-}
-
-/**
- * 여러 세트를 한꺼번에 읽되, **파싱만 하나씩 나눠서** 한다(퀵 출제용).
- *
- * 왜 필요한가: 퀵은 제품의 전 세트에서 뽑으므로 시작할 때 세트 JSON을 모두 읽어야 한다.
- * 종전에는 Promise.all + res.json()이라 파싱이 한 덩어리로 몰렸고, Safari/WebKit에서
- * 그 구간 동안 메인 스레드가 1초 넘게 붙들렸다(실측: 퀵 진행 2프레임/400ms, 최대 간격
- * 1154ms). 총 작업량은 같지만 **한 번의 긴 멈춤**이 사용자에게는 "먹통"으로 보인다.
- *
- * 그래서 네트워크는 그대로 병렬로 두고(순차로 받으면 첫 실행이 눈에 띄게 느려진다),
- * JSON.parse만 하나씩 돌리며 사이마다 프레임을 양보한다. 긴 블록 하나가 짧은 블록
- * 여러 개로 쪼개져, 그 사이에 화면이 갱신되고 입력도 받는다.
- *
- * 캐시 계약은 그대로 지킨다 — 파싱 결과를 공용 캐시에 넣어 이후 loadSetQuestions가
- * 같은 세트를 다시 내려받지 않는다. 이미 진행 중인 요청이 있으면 그것을 기다린다.
- */
-export async function loadSetQuestionsStaggered(paths: string[]): Promise<Question[][]> {
-  const keys = paths.map(normalizePath);
-  const pending = keys.map(async (key) => {
-    if (questionArrays[key]) return null;                    // 이미 파싱 완료
-    const url = dataUrl(`data/${key}`);
-    // 진행 중 요청이 있으면 그것에 합류한다(중복 요청 방지).
-    if (Object.prototype.hasOwnProperty.call(jsonPromises, url)) { await loadSetQuestions(key); return null; }
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.text();
-  });
-  const texts = await Promise.all(pending);
-
-  const out: Question[][] = [];
-  for (let i = 0; i < keys.length; i += 1) {
-    const key = keys[i];
-    const text = texts[i];
-    if (text != null) {
-      const data = JSON.parse(text);
-      const questions: Question[] = Array.isArray(data)
-        ? data
-        : (data as { questions?: Question[] })?.questions || [];
-      questionArrays[key] = questions;
-      // 공용 캐시에도 올려 둔다 — 이후 다른 경로가 같은 세트를 다시 받지 않게.
-      jsonPromises[dataUrl(`data/${key}`)] = Promise.resolve(data);
-      console.info(`[data] 로드 완료: ${dataUrl(`data/${key}`)} (분할 파싱) · 문항 ${questions.length}개`);
-      await yieldToPaint();
-    }
-    out.push(questionArrays[key] ?? []);
-  }
-  notifyLoadListeners();
-  return out;
-}
-
 // 이미 로드 완료된 세트면 동기 반환 — 오답노트 재진입 시 로딩 프레임 없이 즉시 렌더.
 export function peekSetQuestions(path: string): Question[] | null {
   return questionArrays[normalizePath(path)] ?? null;

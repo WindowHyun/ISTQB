@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../store/useQuizStore';
-import { loadIndex, loadSetQuestions, loadSetQuestionsStaggered, subscribeLoads } from '../utils/questionLoader';
+import { loadIndex, loadSetQuestions, subscribeLoads } from '../utils/questionLoader';
 import { makeCanonicalIdResolver } from '../utils/chapterStats';
 
 // Fisher–Yates shuffle: 균일 분포를 보장한다. (sort 비교자에 Math.random을 쓰면 편향됨)
@@ -187,9 +187,7 @@ export function useQuestions() {
     const sets = appData.sets.filter((s) => s.certification.toLowerCase() === activeProduct);
     if (!sets.length) return;
 
-    // 파싱을 나눠서 한다 — 전 세트를 한 덩어리로 파싱하면 Safari에서 1초 넘게 멈춘다(#169).
-    loadSetQuestionsStaggered(sets.map((s) => s.path))
-      .then((lists) => lists.map((questions, i) => ({ setId: sets[i].id, questions })))
+    Promise.all(sets.map((s) => loadSetQuestions(s.path).then((questions) => ({ setId: s.id, questions }))))
       .then((perSet) => {
         if (cancelled) return;
         setLoadError(null);
