@@ -6,84 +6,96 @@
       "legacySetId": "A",
       "certification": "ISTQB",
       "title": "ISTQB FL v4.0 샘플문제 A",
-      "path": "./istqb/sample-a.json"
+      "path": "./istqb/sample-a.json",
+      "questionCount": 40
     },
     {
       "id": "ISTQB-FL-V4-B",
       "legacySetId": "B",
       "certification": "ISTQB",
       "title": "ISTQB FL v4.0 샘플문제 B",
-      "path": "./istqb/sample-b.json"
+      "path": "./istqb/sample-b.json",
+      "questionCount": 40
     },
     {
       "id": "ISTQB-FL-V4-C",
       "legacySetId": "C",
       "certification": "ISTQB",
       "title": "ISTQB FL v4.0 샘플문제 C",
-      "path": "./istqb/sample-c.json"
+      "path": "./istqb/sample-c.json",
+      "questionCount": 40
     },
     {
       "id": "ISTQB-FL-V4-D",
       "legacySetId": "D",
       "certification": "ISTQB",
       "title": "ISTQB FL v4.0 샘플문제 D",
-      "path": "./istqb/sample-d.json"
+      "path": "./istqb/sample-d.json",
+      "questionCount": 40
     },
     {
       "id": "ISTQB-FL-V4-EXTRA",
       "legacySetId": "EXTRA",
       "certification": "ISTQB",
       "title": "ISTQB FL v4.0 샘플문제 모음",
-      "path": "./istqb/sample-extra.json"
+      "path": "./istqb/sample-extra.json",
+      "questionCount": 26
     },
     {
       "id": "CSTS-FL-2402",
       "legacySetId": "2402FL",
       "certification": "CSTS",
       "title": "(공개답안) CSTS 2402FL",
-      "path": "./csts/csts-2402-fl.json"
+      "path": "./csts/csts-2402-fl.json",
+      "questionCount": 70
     },
     {
       "id": "CSTS-FL-2403",
       "legacySetId": "2403FL",
       "certification": "CSTS",
       "title": "(공개답안) CSTS 2403FL",
-      "path": "./csts/csts-2403-fl.json"
+      "path": "./csts/csts-2403-fl.json",
+      "questionCount": 70
     },
     {
       "id": "CSTS-FL-2404",
       "legacySetId": "2404FL",
       "certification": "CSTS",
       "title": "(공개답안) CSTS 2404FL",
-      "path": "./csts/csts-2404-fl.json"
+      "path": "./csts/csts-2404-fl.json",
+      "questionCount": 70
     },
     {
       "id": "CSTS-FL-2405",
       "legacySetId": "2405FL",
       "certification": "CSTS",
       "title": "(공개답안) CSTS 2405FL",
-      "path": "./csts/csts-2405-fl.json"
+      "path": "./csts/csts-2405-fl.json",
+      "questionCount": 70
     },
     {
       "id": "CSTS-EL-2018",
       "legacySetId": "2018-SAMPLE",
       "certification": "CSTS",
       "title": "2018년도 CSTS 자격시험 예제(일반등급)",
-      "path": "./csts/csts-2018-general.json"
+      "path": "./csts/csts-2018-general.json",
+      "questionCount": 20
     },
     {
       "id": "CSTS-EL-2019",
       "legacySetId": "2019-SAMPLE",
       "certification": "CSTS",
       "title": "2019년도 CSTS 자격시험 예제(일반등급)",
-      "path": "./csts/csts-2019-general.json"
+      "path": "./csts/csts-2019-general.json",
+      "questionCount": 70
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE",
       "legacySetId": "SW-CSTS",
       "certification": "CSTS",
       "title": "SW 테스트 전문가(CSTS) 자격시험 예제문제_정답포함",
-      "path": "./csts/csts-example-answer-included.json"
+      "path": "./csts/csts-example-answer-included.json",
+      "questionCount": 70
     }
   ],
   "duplicateGroups": [
