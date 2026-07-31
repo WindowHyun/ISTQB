@@ -337,11 +337,19 @@ export const Sidebar = () => {
       <div className="sidebar-controls" data-exam-locked={examLocked ? 'true' : undefined}>
         <section className="panel">
           <label htmlFor="examSelect">문제 세트</label>
+          {/* 퀵도 잠근다. 퀵은 세트 개념이 없는 모드라(전 세트에서 뽑는다) 여기서 세트를
+              고르는 것 자체가 의미가 없는데, 종전에는 열려 있어 바꿀 수 있었다. 바꿔도
+              출제 목록은 퀵 추첨 그대로여서 화면상 아무 일도 안 일어나는 것처럼 보이지만,
+              실제로는 진행이 통째로 사라진다: 답안 키가 `${setId}-${mode}-${qid}`라
+              퀵의 센티넬(QUICK-quick-*)로 저장한 답을 그 세트 기준으로 찾게 돼 도달할 수
+              없게 된다(진행률 2/10 → 0/10, 새로고침해도 복구 안 됨).
+              같은 위험을 자동 선택 effect는 이미 알고 가드하고 있었는데(위 주석 참고)
+              사용자가 직접 바꾸는 이 경로만 비어 있었다. */}
           <select
             id="examSelect"
             value={setId}
             onChange={handleSetChange}
-            disabled={examLocked}
+            disabled={examLocked || quickUnderway}
             data-testid="set-select"
           >
             {sets.map((set) => (
@@ -350,6 +358,13 @@ export const Sidebar = () => {
               </option>
             ))}
           </select>
+          {/* 잠금 사유를 밝힌다 — 이유 없이 비활성만 되면 "왜 안 눌리지"가 된다.
+              시험 모드는 아래 exam-lock-hint가 따로 안내하므로 퀵일 때만 붙인다. */}
+          {quickUnderway && (
+            <p className="action-hint" data-testid="quick-set-lock-hint">
+              퀵은 전 세트에서 뽑아 풀어요 — 채점하면 세트를 다시 고를 수 있습니다.
+            </p>
+          )}
         </section>
 
         <section className="panel">
