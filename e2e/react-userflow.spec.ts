@@ -1,6 +1,18 @@
 import { test, expect, Page } from "@playwright/test";
 import { openProduct } from "./helpers";
 
+/** 유형을 가리지 않고 현재 문항에 답한다 — 퀵에는 서답형이 최대 30% 섞인다(B5).
+ *  보기 클릭만 쓰면 뽑기 결과에 따라 셀렉터가 아예 없어 타임아웃으로 죽는다. */
+async function answerCurrent(page: Page) {
+  const short = page.locator(".short-answer-input");
+  if (await short.count()) {
+    await short.first().fill("테스트");
+    await short.first().blur();
+    return;
+  }
+  await page.locator("#options .option").first().click();
+}
+
 /**
  * 유저 관점 전수 시나리오 — "실제로 이 앱을 쓰는 사람이 겪는 흐름"을 끝까지 밟는다.
  *
@@ -187,7 +199,7 @@ test("제품을 오가도 퀵 상태가 새지 않는다", async ({ page }) => {
   await page.locator("#quickSize").selectOption("10");
   await page.getByTestId("quick-start-btn").click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-  await page.locator("#options .option").first().click();
+  await answerCurrent(page);
 
   // 설정 → 처음 화면으로 → CSTS 진입
   await openProduct(page, "CSTS");

@@ -15,6 +15,25 @@ async function startQuick(page: Page, product: "ISTQB" | "CSTS", size: string) {
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 }
 
+/**
+ * 현재 문항에 답한다 — 유형을 가리지 않는다.
+ *
+ * 사양 변경(B5) 이후 퀵에는 서답형이 최대 30%까지 섞인다. 그래서 "첫 문항에 답한다"를
+ * `#options .option` 클릭으로 쓰면, 뽑기 결과에 따라 3번에 1번꼴로 그 셀렉터가 아예
+ * 존재하지 않아 30초를 기다리다 죽는다(실제로 그렇게 실패했다 — 무작위 추첨이라
+ * '가끔 깨지는 테스트'로 보였을 뿐 원인은 타이밍이 아니라 문항 유형이었다).
+ */
+async function answerCurrent(page: Page) {
+  const short = page.locator(".short-answer-input");
+  if (await short.count()) {
+    await short.first().fill("테스트");
+    // 입력은 blur/변경 시점에 반영되므로 진행률이 오르도록 포커스를 뗀다.
+    await short.first().blur();
+    return;
+  }
+  await page.locator("#options .option").first().click();
+}
+
 function readUi(page: Page, product: "istqb" | "csts") {
   const key = product === "csts" ? "csts-fl-v1-sample-ui-state" : "istqb-fl-v4-sample-ui-state";
   return page.evaluate((k: string) => {
@@ -43,14 +62,14 @@ test.describe("퀵 랜덤", () => {
   test("답을 고르면 진행률이 오른다", async ({ page }) => {
     await startQuick(page, "ISTQB", "10");
     await expect(page.locator("#progressText")).toContainText("0 / 10");
-    await page.locator("#options .option").first().click();
+    await answerCurrent(page);
     await expect(page.locator("#progressText")).toContainText("1 / 10");
   });
 
   test("새로고침해도 같은 문항으로 이어 푼다", async ({ page }) => {
     await startQuick(page, "CSTS", "10");
     const before = (await readUi(page, "csts")).quickDraw.items.map((i: { id: string }) => i.id);
-    await page.locator("#options .option").first().click();
+    await answerCurrent(page);
     await expect(page.locator("#progressText")).toContainText("1 / 10");
 
     await page.reload();
@@ -86,7 +105,7 @@ test.describe("퀵 랜덤", () => {
 
   test("채점 결과에 합격 판정이 없다 — 10문항에 '기준 미달'은 오해를 만든다", async ({ page }) => {
     await startQuick(page, "ISTQB", "10");
-    await page.locator("#options .option").first().click();
+    await answerCurrent(page);
     await page.getByTestId("grade-button").click();
     const confirm = page.getByTestId("confirm-grade");
     if (await confirm.count()) await confirm.click();
@@ -102,8 +121,8 @@ test.describe("퀵 랜덤", () => {
 
   test("퀵 회차는 요약(응시 횟수·최고 정답률)을 부풀리지 않는다", async ({ page }) => {
     await startQuick(page, "ISTQB", "10");
-    // 전 문항 정답을 고를 수 없으므로 첫 보기만 찍고 채점한다 — 요약에 섞이는지만 본다.
-    await page.locator("#options .option").first().click();
+    // 전 문항 정답을 고를 수 없으므로 한 문항만 답하고 채점한다 — 요약에 섞이는지만 본다.
+    await answerCurrent(page);
     await page.getByTestId("grade-button").click();
     const confirm = page.getByTestId("confirm-grade");
     if (await confirm.count()) await confirm.click();

@@ -2,6 +2,18 @@ import { test, expect, Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { openProduct, gotoStable } from "./helpers";
 
+/** 유형을 가리지 않고 현재 문항에 답한다 — 퀵에는 서답형이 최대 30% 섞인다(B5).
+ *  보기 클릭만 쓰면 뽑기 결과에 따라 셀렉터가 아예 없어 타임아웃으로 죽는다. */
+async function answerCurrent(page: Page) {
+  const short = page.locator(".short-answer-input");
+  if (await short.count()) {
+    await short.first().fill("테스트");
+    await short.first().blur();
+    return;
+  }
+  await page.locator("#options .option").first().click();
+}
+
 /**
  * 퀵 랜덤 UI/UX 검사.
  *
@@ -25,6 +37,18 @@ async function startQuick(page: Page, product: "ISTQB" | "CSTS", size = "10") {
   await page.locator("#quickSize").selectOption(size);
   await page.getByTestId("quick-start-btn").click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+}
+
+/** 보기가 있는 문항이 나올 때까지 '다음'으로 이동한다(찾으면 true). */
+async function advanceToOptionQuestion(page: Page, max = 20): Promise<boolean> {
+  for (let i = 0; i < max; i += 1) {
+    if (await page.locator("#options .option").count()) return true;
+    const next = page.locator("#nextBtn");
+    if (!(await next.count()) || (await next.isDisabled())) return false;
+    await next.click();
+    await page.waitForTimeout(80);
+  }
+  return false;
 }
 
 async function axeScan(page: Page, label: string) {
@@ -52,7 +76,7 @@ test("UI: 퀵 화면 axe 스캔 — 라이트·다크·모바일", async ({ page
   await axeScan(page, "퀵 풀이 화면(라이트)");
 
   // 채점 결과 — 이번에 추가한 중립 표면(.result-score.neutral)이 여기서만 나온다.
-  await page.locator("#options .option").first().click();
+  await answerCurrent(page);
   await page.getByTestId("grade-button").click();
   const c = page.getByTestId("confirm-grade");
   if (await c.count()) await c.click();
@@ -109,6 +133,13 @@ test("UX: 키보드만으로 퀵을 시작하고 풀 수 있다", async ({ page 
   note("키보드만으로 퀵 15문항 시작 성공");
 
   // 보기 선택도 키보드로 — 라디오/버튼 어느 쪽이든 포커스 후 Enter/Space가 먹어야 한다.
+  // 퀵에는 서답형이 섞이므로(B5) 보기가 있는 문항까지 이동한 뒤 검사한다.
+  // 그냥 첫 문항을 잡으면 서답형이 뽑힌 회차에서 셀렉터가 없어 헛되이 죽는다.
+  if (!(await advanceToOptionQuestion(page))) {
+    bad("15문항을 다 넘겨도 보기가 있는 문항이 없다 — 퀵이 서답형만 뽑았다");
+    expect(problems, problems.join("\n")).toEqual([]);
+    return;
+  }
   const opt = page.locator("#options .option").first();
   await opt.focus();
   await page.keyboard.press("Enter");
@@ -223,7 +254,7 @@ test("UI: 퀵 결과의 중립 표면이 라이트·다크 모두에서 읽을 �
     await page.locator("#quickSize").selectOption("10");
     await page.getByTestId("quick-start-btn").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-    await page.locator("#options .option").first().click();
+    await answerCurrent(page);
     await page.getByTestId("grade-button").click();
     const c = page.getByTestId("confirm-grade");
     if (await c.count()) await c.click();
