@@ -47,6 +47,8 @@ export interface SetSummary {
   title: string;
   path: string;
   legacySetId?: string;
+  /** 세트의 문항 수(빌드 타임 생성). 없으면 useSetCounts가 세트를 읽어 폴백한다. */
+  questionCount?: number;
 }
 
 export interface AppData {

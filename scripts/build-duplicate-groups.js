@@ -124,17 +124,40 @@ function buildChapters(index, groups) {
   return out;
 }
 
+/**
+ * 세트별 문항 수 — 사이드바 드롭다운의 "70문항" 라벨용.
+ *
+ * 왜 매니페스트에 넣는가: 종전에는 이 숫자 하나를 얻자고 useSetCounts가 제품의 전 세트
+ * JSON을 내려받아 파싱했다(CSTS 7파일 526KB). 자격증을 고르는 순간 벌어지는 일이라,
+ * 세트 하나만 필요한 연습·시험 모드에서도 그 비용을 전부 치른다. 실측(Safari/WebKit)에서
+ * 이 구간 동안 메인 스레드가 붙들려 문항 화면 프레임이 400ms당 2까지 떨어졌다.
+ * 길이는 파생 값이라 빌드 타임에 정확히 계산할 수 있고, --check가 낡음을 막는다.
+ */
+function buildCounts(index) {
+  const out = {};
+  for (const set of index.sets) {
+    const file = path.join(dataRoot, set.path.replace(/^\.\//, ""));
+    out[set.id] = (readJson(file).questions || []).length;
+  }
+  return out;
+}
+
 const chapters = buildChapters(index, groups);
+const counts = buildCounts(index);
+// sets 안에 questionCount로 실어 준다 — 세트 메타는 sets가 단일 원천이라 별도 맵을
+// 두면 조회부가 두 곳을 보게 된다.
+const setsWithCount = index.sets.map((s) => ({ ...s, questionCount: counts[s.id] }));
 const check = process.argv.includes("--check");
 const current = index.duplicateGroups;
 const same = JSON.stringify(current) === JSON.stringify(groups)
-  && JSON.stringify(index.duplicateChapters ?? {}) === JSON.stringify(chapters);
+  && JSON.stringify(index.duplicateChapters ?? {}) === JSON.stringify(chapters)
+  && JSON.stringify(index.sets) === JSON.stringify(setsWithCount);
 
 const questionCount = groups.reduce((n, g) => n + g.length, 0);
 
 if (check) {
   if (same) {
-    console.log(`[dup-groups] 최신 — ${groups.length}그룹 / ${questionCount}문항 · 챕터 통일 ${Object.keys(chapters).length}건`);
+    console.log(`[dup-groups] 최신 — ${groups.length}그룹 / ${questionCount}문항 · 챕터 통일 ${Object.keys(chapters).length}건 · 세트 문항수 ${Object.keys(counts).length}개`);
     process.exit(0);
   }
   console.error(
@@ -151,7 +174,7 @@ if (same) {
 }
 
 // sets 뒤에 오도록 키 순서를 유지해 diff가 읽기 쉽게 한다.
-const next = { ...index, duplicateGroups: groups, duplicateChapters: chapters };
+const next = { ...index, sets: setsWithCount, duplicateGroups: groups, duplicateChapters: chapters };
 fs.writeFileSync(indexPath, `${JSON.stringify(next, null, 2)}\n`);
 console.log(
   `[dup-groups] 생성 완료 — ${groups.length}그룹 / ${questionCount}문항 → ${path.relative(process.cwd(), indexPath)}`,

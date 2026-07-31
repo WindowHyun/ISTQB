@@ -307,6 +307,21 @@ test("WebKit 원인 규명: 렌더 버스트가 어느 범주에서 오는가(�
     console.log(`· ${c.label}: [${v.join(", ")}] · 중앙값 ${median(v)}`);
   }
   console.log(`· 화면 구성: DOM ${shape.dom} · RichText ${shape.rich} · 표 ${shape.tables} · 이미지 ${shape.imgs}`);
+
+  // 원인으로 확정된 지점의 회귀 감시 — 자격증을 고르는 순간 제품의 전 세트 JSON을
+  // 파싱하던 경로(useSetCounts)를 매니페스트의 questionCount로 대체했다. 그 구간이
+  // 실제로 사라졌는지는 '몇 개를 받았는가'로 본다(프레임 수는 러너 상태에 흔들린다).
+  const loads: string[] = [];
+  page.on("console", (m) => { if (m.text().includes("[data] 로드 완료")) loads.push(m.text()); });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await openProduct(page, "CSTS");
+  await page.waitForTimeout(1500);
+  const atEntry = await fps(page);
+  console.log(`· 제품 진입(연습 화면): ${atEntry.frames}프레임/400ms · 최대 간격 ${atEntry.maxGap}ms · 데이터 로드 ${loads.length}건`);
+  // index + 현재 세트 = 2건. 여기가 다시 늘면 전 세트 파싱이 되살아난 것이다.
+  expect(loads.length, `제품 진입에 데이터 ${loads.length}건을 받았다: ${loads.join(" | ")}`)
+    .toBeLessThanOrEqual(2);
   console.log(`· ResizeObserver 관련 콘솔: ${roLoop.length}건 ${roLoop.slice(0, 3).join(" | ")}`);
 
   // 원인 규명 단계라 게이트로 걸지 않는다 — 측정이 성립했는지만 본다.
