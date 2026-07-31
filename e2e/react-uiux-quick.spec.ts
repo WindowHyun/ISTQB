@@ -6,9 +6,10 @@ import { openProduct, gotoStable } from "./helpers";
  *  보기 클릭만 쓰면 뽑기 결과에 따라 셀렉터가 아예 없어 타임아웃으로 죽는다. */
 async function answerCurrent(page: Page) {
   const short = page.locator(".short-answer-input");
-  if (await short.count()) {
-    await short.first().fill("테스트");
-    await short.first().blur();
+  const blanks = await short.count();
+  if (blanks) {
+    // 다답형은 모든 칸이 차야 '답함'으로 센다(isAnswered) — 첫 칸만 채우면 진행률이 안 오른다.
+    for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
     return;
   }
   await page.locator("#options .option").first().click();

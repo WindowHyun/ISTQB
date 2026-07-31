@@ -25,10 +25,11 @@ async function startQuick(page: Page, product: "ISTQB" | "CSTS", size: string) {
  */
 async function answerCurrent(page: Page) {
   const short = page.locator(".short-answer-input");
-  if (await short.count()) {
-    await short.first().fill("테스트");
-    // 입력은 blur/변경 시점에 반영되므로 진행률이 오르도록 포커스를 뗀다.
-    await short.first().blur();
+  const blanks = await short.count();
+  if (blanks) {
+    // 빈칸이 여러 개인 다답형은 '모든 칸'이 차야 답한 것으로 센다(isAnswered).
+    // 첫 칸만 채우면 진행률이 0인 채로 남아, 원인을 모르는 실패가 된다.
+    for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
     return;
   }
   await page.locator("#options .option").first().click();
