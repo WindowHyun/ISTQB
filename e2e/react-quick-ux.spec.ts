@@ -7,6 +7,26 @@ async function openBar(page: Page) {
   if (!(await page.locator("#quickSize").isVisible())) await page.getByTestId("drawer-open").click();
 }
 
+async function startQuick(page: Page, product: "ISTQB" | "CSTS", size: string) {
+  await openProduct(page, product);
+  await openBar(page);
+  await page.locator("#quickSize").selectOption(size);
+  await page.getByTestId("quick-start-btn").click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+}
+
+/** 유형을 가리지 않고 현재 문항에 답한다 — 퀵에는 서답형이 최대 30% 섞인다(B5).
+ *  다답형은 모든 칸이 차야 '답함'으로 센다(isAnswered). */
+async function answerCurrent(page: Page) {
+  const short = page.locator(".short-answer-input");
+  const blanks = await short.count();
+  if (blanks) {
+    for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
+    return;
+  }
+  await page.locator("#options .option").first().click();
+}
+
 test("퀵 패널은 풀이 모드 아래에 있다(세트 계열 컨트롤을 가르지 않는다)", async ({ page }) => {
   await page.goto("/");
   await openProduct(page, "ISTQB");
@@ -129,4 +149,43 @@ test("퀵 진행 중 문항 수를 바꾸면 '새로 시작'이 나타나 그 �
   await btn.click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   await expect(page.locator("#progressText"), "새로 시작이 바뀐 문항 수를 쓰지 않았다").toContainText("/ 20");
+});
+
+/**
+ * 퀵은 세트 개념이 없는 모드다(전 세트에서 뽑는다). 그런데 종전에는 풀이 중에도 세트
+ * 콤보박스가 열려 있어 바꿀 수 있었고, 바꾸면 출제는 그대로인데 진행이 사라졌다:
+ * 답안 키가 `${setId}-${mode}-${qid}`라 퀵의 센티넬(QUICK-quick-*)로 저장한 답을
+ * 그 세트 기준으로 찾게 돼 도달할 수 없게 된다. 새로고침해도 복구되지 않는다.
+ *
+ * 그래서 두 가지를 함께 본다 — 잠기는가, 그리고 채점 후에 풀리는가.
+ * 잠그기만 하고 안 풀면 채점 뒤에도 세트를 못 바꾸는 새 결함이 된다.
+ */
+test("퀵 풀이 중에는 문제 세트를 바꿀 수 없고, 채점 후에는 다시 바꿀 수 있다", async ({ page }) => {
+  test.setTimeout(300_000);
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await startQuick(page, "CSTS", "10");
+
+  // 두 문항에 답해 진행을 만든다.
+  for (let i = 0; i < 2; i += 1) {
+    await answerCurrent(page);
+    const n = page.locator("#nextBtn");
+    if ((await n.count()) && !(await n.isDisabled())) await n.click();
+  }
+  await openBar(page);
+  await expect(page.locator("#progressText")).toContainText("2 / 10");
+
+  // 잠겨 있어야 한다 + 왜 잠겼는지 화면에 나와야 한다.
+  await expect(page.locator("#examSelect"), "퀵 풀이 중인데 세트를 바꿀 수 있다").toBeDisabled();
+  await expect(page.getByTestId("quick-set-lock-hint")).toBeVisible();
+
+  // 채점하면 풀린다 — 잠그기만 하고 안 풀면 그것대로 결함이다.
+  await page.getByTestId("grade-button").click();
+  const c = page.getByTestId("confirm-grade");
+  if (await c.count()) await c.click();
+  await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
+  await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
+  await openBar(page);
+  await expect(page.locator("#examSelect"), "채점했는데도 세트가 잠겨 있다").toBeEnabled();
+  await expect(page.getByTestId("quick-set-lock-hint")).toHaveCount(0);
 });

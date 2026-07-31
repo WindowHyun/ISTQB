@@ -161,7 +161,18 @@ test("전이: 시험 응시 중에는 퀵 진입이 잠기고, 채점 후 풀린
   expect(problems, problems.join("\n")).toEqual([]);
 });
 
-test("전이: 퀵 진행 중 세트 셀렉트를 바꿔도 퀵이 오염되지 않는다", async ({ page }) => {
+/**
+ * 종전 이 검사는 quickDraw.items(추첨 목록)만 비교했다. 그런데 그건 세트를 바꿔도 원래
+ * 바뀌지 않는다 — 퀵은 추첨한 문항을 그대로 들고 있기 때문이다. 즉 "안 바뀌는 것"만 보고
+ * "오염되지 않았다"고 판정했고, 실제 피해는 놓쳤다: 답안 키가 `${setId}-${mode}-${qid}`라
+ * 센티넬(QUICK-quick-*)로 저장한 답을 바뀐 세트 기준으로 찾게 돼 진행률이 0으로 떨어졌다
+ * (실측 2/10 → 0/10, 새로고침해도 복구 안 됨 · #172).
+ *
+ * 이제 컨트롤 자체를 잠가 구조적으로 막는다. 그래서 검사도 바꾼다 —
+ * (1) 퀵 중에는 세트 셀렉트가 잠겨 있는가, (2) 조작을 시도해도 추첨과 **진행률**이
+ * 그대로인가. (2)의 진행률이 종전에 빠져 있던 부분이다.
+ */
+test("전이: 퀵 진행 중에는 세트 셀렉트가 잠겨 추첨도 진행도 오염되지 않는다", async ({ page }) => {
   test.setTimeout(300_000);
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -170,27 +181,34 @@ test("전이: 퀵 진행 중 세트 셀렉트를 바꿔도 퀵이 오염되지 �
   await toQuick(page, "10");
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   await page.locator("#options .option").first().click();
-  const beforeIds = (await page.evaluate(() => {
-    const raw = localStorage.getItem("istqb-fl-v4-sample-ui-state");
-    return raw ? JSON.parse(raw).quickDraw.items.map((i: { id: string }) => i.id) : [];
-  })) as string[];
+  await expect(page.locator("#progressText")).toContainText("1 / 10");
 
-  // 세트 셀렉트는 퀵과 무관한 컨트롤이다 — 조작해도 퀵 추첨이 바뀌면 안 된다.
+  const readDraw = () => page.evaluate(() => {
+    const raw = localStorage.getItem("istqb-fl-v4-sample-ui-state");
+    return raw ? JSON.parse(raw).quickDraw?.items?.map((i: { id: string }) => i.id) ?? [] : [];
+  }) as Promise<string[]>;
+  const beforeIds = await readDraw();
+  const beforeProgress = await page.locator("#progressText").textContent();
+
+  // 잠겨 있어야 한다 — 여기가 이번에 세운 계약이다.
   const select = page.locator("#examSelect");
+  await expect(select, "퀵 진행 중인데 세트 셀렉트가 열려 있다").toBeDisabled();
+
+  // 그래도 조작을 시도해 본다(잠금이 표시만이고 실제로는 먹히는 경우를 잡는다).
+  // 비활성 컨트롤이라 대기가 길어지므로 짧은 타임아웃으로 끊는다.
   const options = await select.locator("option").all();
   if (options.length > 1) {
     const other = await options[1].getAttribute("value");
-    if (other) await select.selectOption(other).catch(() => {});
+    if (other) await select.selectOption(other, { timeout: 1500 }).catch(() => {});
     await page.waitForTimeout(300);
   }
-  const afterIds = (await page.evaluate(() => {
-    const raw = localStorage.getItem("istqb-fl-v4-sample-ui-state");
-    return raw ? JSON.parse(raw).quickDraw?.items?.map((i: { id: string }) => i.id) ?? [] : [];
-  })) as string[];
-  console.log(`· 세트 변경 전후 퀵 추첨: ${beforeIds.length} → ${afterIds.length}`);
-  if (afterIds.length && JSON.stringify(beforeIds) !== JSON.stringify(afterIds)) {
-    bad("퀵 진행 중 세트를 바꿨더니 추첨이 달라짐");
-  }
+
+  const afterIds = await readDraw();
+  const afterProgress = await page.locator("#progressText").textContent();
+  console.log(`· 추첨 ${beforeIds.length} → ${afterIds.length} · 진행 ${beforeProgress} → ${afterProgress}`);
+  if (JSON.stringify(beforeIds) !== JSON.stringify(afterIds)) bad("퀵 추첨이 달라졌다");
+  // 종전 검사에 없던 축 — 답안 키가 갈리면 여기가 0으로 떨어진다.
+  if (beforeProgress !== afterProgress) bad(`진행률이 ${beforeProgress} → ${afterProgress}로 변했다`);
   expect(problems, problems.join("\n")).toEqual([]);
 });
 
