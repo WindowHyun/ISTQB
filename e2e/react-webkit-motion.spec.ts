@@ -214,3 +214,101 @@ test("WebKit 원인 규명: 긴 클릭 루프에서 rAF와 레이아웃이 어�
   expect(worst, "프레임 측정이 아예 실패했다(진단 자체가 깨짐)").toBeGreaterThan(0);
   console.log(`· 참고: 기준선의 절반(${Math.floor(base / 2)}) 기준으로 보면 ${worst < Math.floor(base / 2) ? '미달' : '충족'}`);
 });
+
+/**
+ * 렌더 버스트의 '정체'를 범주로 가른다.
+ *
+ * 여기까지 알아낸 것: WebKit에서 문항을 렌더할 때마다 1초 안팎으로 프레임이 죽고,
+ * 가만히 두면 회복한다. 즉 지속적 기아가 아니라 렌더 직후의 일시 버스트다.
+ * 무엇이 그 시간을 쓰는지는 코드를 읽어서는 단정할 수 없으므로 실측으로 가른다.
+ *
+ * 방법: 같은 페이지에서 '다음 문항'으로 버스트를 매번 새로 만들고, 조건을 하나씩
+ * 얹어 가며 그때의 프레임 수를 잰다. 버스트는 일시적이라 렌더 '직후'에 재야 의미가
+ * 있다(가라앉은 뒤에 재면 어느 조건에서든 20프레임이 나온다).
+ *
+ * 조건 선정 근거(코드에서 좁힌 후보):
+ *  - 애니메이션/트랜지션: reducedMotion을 끈 상태에서 도는 CSS 효과
+ *  - 이미지: 문항 그림의 디코드·페인트(WebKit은 소프트웨어 래스터라 비싸다)
+ *  - 표: markTableOverflow가 ResizeObserver 콜백에서 강제 레이아웃을 읽고
+ *    has-overflow(display:block인 힌트)를 토글해 레이아웃을 다시 바꾼다 — 피드백 구조
+ */
+async function burstFrames(page: import("@playwright/test").Page, rounds = 5): Promise<number[]> {
+  const out: number[] = [];
+  for (let i = 0; i < rounds; i += 1) {
+    const next = page.locator("#nextBtn");
+    if (!(await next.count()) || (await next.isDisabled())) break;
+    // actionability를 우회해 '렌더를 일으키는 것' 자체에 집중한다.
+    await page.evaluate(() => (document.querySelector("#nextBtn") as HTMLElement | null)?.click());
+    out.push(await page.evaluate(async () => {
+      let frames = 0;
+      const t0 = performance.now();
+      await new Promise<void>((done) => {
+        const tick = () => {
+          frames += 1;
+          if (performance.now() - t0 < 400) requestAnimationFrame(tick);
+          else done();
+        };
+        requestAnimationFrame(tick);
+      });
+      return frames;
+    }));
+    await page.waitForTimeout(300);
+  }
+  return out;
+}
+
+test("WebKit 원인 규명: 렌더 버스트가 어느 범주에서 오는가(애니메이션·이미지·표)", async ({ page }) => {
+  test.setTimeout(300_000);
+  const roLoop: string[] = [];
+  page.on("console", (m) => {
+    if (/ResizeObserver/i.test(m.text())) roLoop.push(m.text().slice(0, 120));
+  });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
+  const start = async () => {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await openProduct(page, "ISTQB");
+    const sel = page.locator("#quickSize");
+    if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
+    await sel.selectOption("20");
+    await page.getByTestId("quick-start-btn").click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  };
+  const inject = (css: string) => page.addStyleTag({ content: css });
+  const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] ?? -1;
+
+  const conditions: { label: string; css?: string }[] = [
+    { label: "① 그대로" },
+    { label: "② 애니메이션·트랜지션 끔", css: "*,*::before,*::after{animation:none!important;transition:none!important}" },
+    { label: "③ 이미지 숨김", css: "img{display:none!important}" },
+    { label: "④ 표 숨김", css: ".data-table-scroll{display:none!important}" },
+    { label: "⑤ 셋 다", css: "*,*::before,*::after{animation:none!important;transition:none!important} img{display:none!important} .data-table-scroll{display:none!important}" },
+  ];
+
+  const results: Record<string, number[]> = {};
+  for (const c of conditions) {
+    await start();
+    if (c.css) await inject(c.css);
+    results[c.label] = await burstFrames(page);
+  }
+
+  // 현재 화면의 구성 — 무엇이 얼마나 있는지 함께 남겨야 수치를 해석할 수 있다.
+  const shape = await page.evaluate(() => ({
+    dom: document.querySelectorAll("*").length,
+    rich: document.querySelectorAll(".rich-text-container").length,
+    tables: document.querySelectorAll(".data-table-wrap").length,
+    imgs: document.querySelectorAll("img").length,
+  }));
+
+  console.log("\n=== 렌더 버스트 범주 분해(400ms당 rAF 프레임, 클수록 좋음) ===");
+  for (const c of conditions) {
+    const v = results[c.label] ?? [];
+    console.log(`· ${c.label}: [${v.join(", ")}] · 중앙값 ${median(v)}`);
+  }
+  console.log(`· 화면 구성: DOM ${shape.dom} · RichText ${shape.rich} · 표 ${shape.tables} · 이미지 ${shape.imgs}`);
+  console.log(`· ResizeObserver 관련 콘솔: ${roLoop.length}건 ${roLoop.slice(0, 3).join(" | ")}`);
+
+  // 원인 규명 단계라 게이트로 걸지 않는다 — 측정이 성립했는지만 본다.
+  expect(results["① 그대로"]?.length ?? 0, "버스트를 한 번도 재지 못했다").toBeGreaterThan(0);
+});
