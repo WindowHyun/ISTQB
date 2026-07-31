@@ -322,6 +322,16 @@ test("WebKit 원인 규명: 렌더 버스트가 어느 범주에서 오는가(�
   // index + 현재 세트 = 2건. 여기가 다시 늘면 전 세트 파싱이 되살아난 것이다.
   expect(loads.length, `제품 진입에 데이터 ${loads.length}건을 받았다: ${loads.join(" | ")}`)
     .toBeLessThanOrEqual(2);
+
+  // 퀵 시작(#169) — 전 세트를 읽는 것은 이 모드에 본질적이라 건수는 줄지 않는다.
+  // 대신 파싱을 나눠 한 번의 긴 멈춤을 없앴으므로, 여기서는 '최대 프레임 간격'을 본다.
+  const sel = page.locator("#quickSize");
+  if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
+  await sel.selectOption("20");
+  await page.getByTestId("quick-start-btn").click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  const atQuick = await fps(page);
+  console.log(`· 퀵 시작 직후: ${atQuick.frames}프레임/400ms · 최대 간격 ${atQuick.maxGap}ms · 누적 로드 ${loads.length}건`);
   console.log(`· ResizeObserver 관련 콘솔: ${roLoop.length}건 ${roLoop.slice(0, 3).join(" | ")}`);
 
   // 원인 규명 단계라 게이트로 걸지 않는다 — 측정이 성립했는지만 본다.
