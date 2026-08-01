@@ -469,3 +469,109 @@ test("WebKit 원인 규명: 버스트가 JS인가 레이아웃·페인트인가"
   expect(sFr, "그대로 조건에서 프레임이 전혀 돌지 않았다 — 측정이 성립하지 않는다").toBeGreaterThan(0);
   expect(hFr, "가림 조건에서 프레임이 전혀 돌지 않았다 — 측정이 성립하지 않는다").toBeGreaterThan(0);
 });
+
+/**
+ * 남은 후보를 '추측 대신 계측'으로 좁힌다 — 클릭 이후의 비동기 작업.
+ *
+ * 앞선 세 갈래가 모두 아니었다. 그 결과가 오히려 범위를 크게 줄여 준다.
+ *  · 동기 JS 0~2ms       → React 렌더·이벤트 핸들러는 비용이 아니다
+ *  · #root 가림 무효과   → 보이는 트리의 레이아웃·페인트도 아니다
+ *  · monospace 무효과    → 글꼴 폴백 탐색도 아니다
+ * 세 조건 모두 '커밋 이후에 도는 작업'은 그대로 남겨 뒀다는 공통점이 있다.
+ *
+ * 그래서 이번에는 조건을 끄는 대신(ablation) 시간을 직접 잰다(attribution).
+ * 후보는 렌더 직후 메인 스레드에서 도는 것들이다:
+ *  · localStorage.setItem — 동기 API다. WebKit에서 특히 느리고, 답안·UI 상태 저장이
+ *    500ms 디바운스로 렌더 직후에 떨어진다(버스트 길이 ~1초와 겹친다)
+ *  · IndexedDB — 회차 기록 경로
+ *  · RichText의 useEffect — 커밋 이후 DOM을 직접 만든다(문항당 5개)
+ *
+ * 각 호출을 감싸 누적 시간을 재면 '무엇이 몇 ms를 쓰는지'가 바로 나온다.
+ * 추측이 세 번 빗나간 뒤이므로, 네 번째 가설을 세우기 전에 계측부터 한다.
+ */
+test("WebKit 원인 규명: 렌더 직후 비동기 작업의 시간 귀속", async ({ page }) => {
+  test.setTimeout(300_000);
+
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await openProduct(page, "ISTQB");
+  const sel = page.locator("#quickSize");
+  if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
+  await sel.selectOption("20");
+  await page.getByTestId("quick-start-btn").click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+
+  // 계측기를 심는다 — 원래 동작은 그대로 두고 소요 시간만 누적한다.
+  await page.evaluate(() => {
+    const w = window as unknown as Record<string, unknown>;
+    const stat = { lsMs: 0, lsCalls: 0, lsBytes: 0, idbMs: 0, idbCalls: 0 };
+    w.__burstStat = stat;
+
+    const proto = Object.getPrototypeOf(localStorage) as Storage;
+    const origSet = proto.setItem.bind(localStorage);
+    localStorage.setItem = (k: string, v: string) => {
+      const t = performance.now();
+      origSet(k, v);
+      stat.lsMs += performance.now() - t;
+      stat.lsCalls += 1;
+      stat.lsBytes += (v || "").length;
+    };
+
+    const origOpen = indexedDB.open.bind(indexedDB);
+    (indexedDB as IDBFactory).open = ((...args: Parameters<IDBFactory['open']>) => {
+      const t = performance.now();
+      const req = origOpen(...args);
+      req.addEventListener("success", () => { stat.idbMs += performance.now() - t; stat.idbCalls += 1; });
+      return req;
+    }) as IDBFactory['open'];
+  });
+
+  const rows: Record<string, number>[] = [];
+  for (let i = 0; i < 5; i += 1) {
+    await page.evaluate(() => {
+      const s = (window as unknown as Record<string, Record<string, number>>).__burstStat;
+      s.lsMs = 0; s.lsCalls = 0; s.lsBytes = 0; s.idbMs = 0; s.idbCalls = 0;
+    });
+    rows.push(await page.evaluate(async () => {
+      (document.querySelector("#nextBtn") as HTMLElement | null)?.click();
+      // 디바운스(500ms)가 떨어지고도 남을 만큼 지켜본다 — 저장은 렌더보다 늦게 온다.
+      let frames = 0;
+      const t0 = performance.now();
+      await new Promise<void>((done) => {
+        const tick = () => {
+          frames += 1;
+          if (performance.now() - t0 < 1200) requestAnimationFrame(tick);
+          else done();
+        };
+        requestAnimationFrame(tick);
+      });
+      const s = (window as unknown as Record<string, Record<string, number>>).__burstStat;
+      return {
+        frames,
+        lsMs: Math.round(s.lsMs), lsCalls: s.lsCalls, lsKB: Math.round(s.lsBytes / 1024),
+        idbMs: Math.round(s.idbMs), idbCalls: s.idbCalls,
+      };
+    }));
+    await page.waitForTimeout(500);
+  }
+
+  console.log("\n=== 렌더 직후 1200ms 동안 무엇이 시간을 쓰는가 ===");
+  for (const [i, r] of rows.entries()) {
+    console.log(`· #${i}: ${r.frames}프레임/1200ms · localStorage ${r.lsMs}ms/${r.lsCalls}회/${r.lsKB}KB · IDB ${r.idbMs}ms/${r.idbCalls}회`);
+  }
+  const sum = (k: string) => rows.reduce((n, r) => n + (r[k] ?? 0), 0);
+  console.log(`· 합계: localStorage ${sum("lsMs")}ms/${sum("lsCalls")}회 · IDB ${sum("idbMs")}ms/${sum("idbCalls")}회`);
+  console.log(
+    `· 판정: ${
+      sum("lsMs") >= 1000 ? "localStorage 동기 쓰기가 지배적이다"
+        : sum("idbMs") >= 1000 ? "IndexedDB가 지배적이다"
+          : "저장 경로도 아니다 — 남는 것은 RichText의 커밋 이후 DOM 구성과 WebKit 내부 작업이다"
+    }`,
+  );
+
+  // 계측이 성립했는지 못 박는다 — 후킹이 빗나가 0ms·0회만 찍히면 '저장이 싸다'가 아니라
+  // '재지 못했다'인데, 판정 문구는 둘을 똑같이 읽는다.
+  expect(rows.length, "측정을 한 번도 하지 못했다").toBe(5);
+  expect(sum("lsCalls"), "localStorage 후킹이 한 번도 걸리지 않았다 — 계측이 성립하지 않는다")
+    .toBeGreaterThan(0);
+});
