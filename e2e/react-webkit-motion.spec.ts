@@ -392,13 +392,24 @@ test("WebKit 원인 규명: 버스트가 JS인가 레이아웃·페인트인가"
     return { jsMs, frames };
   }, hide);
 
+  /**
+   * 표본 사이를 충분히 띄운다 — 이게 이 검사의 핵심이다.
+   *
+   * 처음에는 400ms만 띄우고 A/B를 번갈아 쟀는데, 버스트가 가라앉는 데 ~2초가 걸린다
+   * (같은 화면을 2초 두면 22프레임으로 회복하는 것을 이미 실측했다). 그래서 '가림'
+   * 표본 중 첫 번째만 깨끗하고 나머지는 직전 '그대로' 클릭의 버스트를 뒤집어썼다.
+   * 실제로 원자료가 그 모양이었다: 가림 [24, 1, 1, 1] — 첫 표본만 전속력.
+   * 그 상태로 중앙값을 보면 '가려도 소용없다'는 정반대 결론이 나온다.
+   * 조건을 끄기 전에 표본이 서로를 오염시키지 않게 하는 것이 먼저다.
+   */
+  const SETTLE = 2500;
   const shown: { jsMs: number; frames: number }[] = [];
   const hidden: { jsMs: number; frames: number }[] = [];
   for (let i = 0; i < 4; i += 1) {
+    await page.waitForTimeout(SETTLE);
     shown.push(await step(false));
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(SETTLE);
     hidden.push(await step(true));
-    await page.waitForTimeout(400);
   }
 
   /**
@@ -419,11 +430,10 @@ test("WebKit 원인 규명: 버스트가 JS인가 레이아웃·페인트인가"
    * '측정 환경이 느리다'가 참이 되므로, 실기기 확인 전에는 단정하지 않는다.
    */
   await page.addStyleTag({ content: "*{font-family:monospace!important}" });
-  await page.waitForTimeout(600);
   const mono: { jsMs: number; frames: number }[] = [];
   for (let i = 0; i < 4; i += 1) {
+    await page.waitForTimeout(SETTLE);
     mono.push(await step(false));
-    await page.waitForTimeout(400);
   }
 
   const med = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] ?? -1;
@@ -443,10 +453,10 @@ test("WebKit 원인 규명: 버스트가 JS인가 레이아웃·페인트인가"
     `· 판정: ${
       sJs >= 300
         ? "JS가 지배적이다 — 클릭 한 번의 동기 렌더가 이미 길다(React·스토어·영속화를 본다)"
-        : mFr > sFr * 2
-          ? "글꼴 폴백이 지배적이다 — generic 패밀리로 바꾸자 회복했다(실기기 Safari 확인이 먼저다)"
-          : hFr > sFr * 2
-            ? "레이아웃·페인트가 지배적이다 — 가리자 프레임이 회복했다(CSS·DOM을 본다)"
+        : hFr > sFr * 2
+          ? "레이아웃·페인트가 지배적이다 — 렌더 대상을 가리자 프레임이 회복했다(CSS·DOM을 본다)"
+          : mFr > sFr * 2
+            ? "글꼴 폴백이 지배적이다 — generic 패밀리로 바꾸자 회복했다(실기기 Safari 확인이 먼저다)"
             : "셋 다 결정적이지 않다 — 다음 후보는 클릭 이후의 비동기 작업이다"
     }`,
   );
