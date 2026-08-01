@@ -35,6 +35,21 @@ async function answerCurrent(page: Page) {
   await page.locator("#options .option").first().click();
 }
 
+/**
+ * quickDraw는 saveUiState의 500ms 디바운스를 거쳐 저장된다. 시작 직후 바로 읽으면
+ * 아직 없어서 null이 나온다 — 실제로 그렇게 간헐 실패했다(#170). 저장될 때까지 기다린다.
+ */
+async function readQuickDrawIds(page: Page, product: "istqb" | "csts"): Promise<string[]> {
+  let ids: string[] = [];
+  await expect.poll(async () => {
+    const ui = await readUi(page, product);
+    ids = ui?.quickDraw?.items?.map((i: { id: string }) => i.id) ?? [];
+    return ids.length;
+  }, { message: "quickDraw가 저장되지 않았다(saveUiState 500ms 디바운스)", timeout: 10_000 })
+    .toBeGreaterThan(0);
+  return ids;
+}
+
 function readUi(page: Page, product: "istqb" | "csts") {
   const key = product === "csts" ? "csts-fl-v1-sample-ui-state" : "istqb-fl-v4-sample-ui-state";
   return page.evaluate((k: string) => {
@@ -69,7 +84,7 @@ test.describe("퀵 랜덤", () => {
 
   test("새로고침해도 같은 문항으로 이어 푼다", async ({ page }) => {
     await startQuick(page, "CSTS", "10");
-    const before = (await readUi(page, "csts")).quickDraw.items.map((i: { id: string }) => i.id);
+    const before = await readQuickDrawIds(page, "csts");
     await answerCurrent(page);
     await expect(page.locator("#progressText")).toContainText("1 / 10");
 
@@ -80,7 +95,7 @@ test.describe("퀵 랜덤", () => {
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
     // 답안이 유지된다 = 같은 문항을 같은 키로 보고 있다.
     await expect(page.locator("#progressText")).toContainText("1 / 10");
-    const after = (await readUi(page, "csts")).quickDraw.items.map((i: { id: string }) => i.id);
+    const after = await readQuickDrawIds(page, "csts");
     expect(after).toEqual(before);
   });
 

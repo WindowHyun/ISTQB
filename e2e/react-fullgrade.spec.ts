@@ -77,10 +77,13 @@ test("전수 기능: 12세트를 정답으로 완주하면 전부 100%가 나온
   await page.goto("/");
   const idx = await (await page.request.get("/data/index.json")).json();
 
+  let graded = 0;
+  let answered = 0;
   for (const s of idx.sets) {
     const product = s.certification === "ISTQB" ? "ISTQB" : "CSTS";
     const data = await (await page.request.get(`/data/${s.path.replace(/^\.\//, "")}`)).json();
     const qs: Q[] = data.questions;
+    if (!qs?.length) { record(`${s.id}: 문항이 0개 — 이 세트는 검사되지 않았다`); continue; }
 
     await openSet(page, product, s.id);
     await page.locator('.segmented button[data-mode="exam"]').click();
@@ -123,12 +126,19 @@ test("전수 기능: 12세트를 정답으로 완주하면 전부 100%가 나온
     if (!/합격/.test(body)) record(`${s.id}: 결과에 합격 판정 문구가 없다`);
     else if (/미달/.test(body)) record(`${s.id}: 100%인데 '합격 기준 미달'로 표시됨`);
 
+    graded += 1;
+    answered += qs.length;
     console.log(`· ${s.id} (${qs.length}문항) → ${rate} / ${score}`);
     await res.getByRole("button", { name: "닫기", exact: true }).click();
   }
 
-  console.log(`\n=== 전수 기능: 이상 ${problems.length}건 ===`);
+  console.log(`\n=== 전수 기능: ${graded}세트 / ${answered}문항 · 이상 ${problems.length}건 ===`);
   console.log("=== 콘솔 오류 ===\n" + (errors.length ? [...new Set(errors)].join("\n") : "없음"));
+  // 제목이 '12세트'라고 말하는 만큼 실제로 12세트를 채점했는지 먼저 못 박는다.
+  // 이 검사가 없으면 매니페스트가 비거나 잘려도 루프가 0회 돌고 problems가 빈 채로
+  // 초록이 된다 — 이름은 전수인데 아무것도 안 본 상태다. index.json은 빌드 타임에
+  // 생성되는 파생 필드를 싣고 있어(questionCount 등) 잘못 생성될 여지가 실제로 있다.
+  expect(graded, `12세트를 채점하지 못했다 — ${graded}세트만 돌았다`).toBe(12);
   expect(problems).toEqual([]);
   expect(errors).toEqual([]);
 });

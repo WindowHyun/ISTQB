@@ -48,10 +48,25 @@ test("주입: 음수 elapsedSeconds 백업으로 제한시간을 늘릴 수 있�
   expect(secs).toBeLessThanOrEqual(3600);
 });
 
+/**
+ * 서비스워커 등록 실패는 앱 코드의 오류가 아니다.
+ *
+ * WebKit에서 간헐적으로 `.../sw.js due to access control checks.`가 pageerror로 올라온다
+ * (CI에서 1건 관측, 재시도에서 통과). 이 검사가 보려는 것은 '손상된 저장소를 만나도 앱이
+ * 복구해서 뜨는가'이므로, 브라우저가 SW 스크립트를 가져오지 못한 것은 그 질문과 무관하다.
+ * 그렇다고 pageerror를 통째로 무시하면 정작 잡아야 할 앱 오류까지 놓치므로, sw.js를
+ * 지목하는 이 한 종류만 걸러 낸다.
+ * (SW가 없을 때 앱이 제대로 degrade하는지는 별개 질문이다 — react-pwa가 담당한다.)
+ */
+const isServiceWorkerNoise = (msg: string) => /sw\.js.*access control checks/i.test(msg);
+
 test("주입: 손상된 저장소에서도 앱이 뜬다", async ({ page }) => {
   test.setTimeout(120_000);
   const errors: string[] = [];
-  page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
+  page.on("pageerror", (e) => {
+    if (isServiceWorkerNoise(e.message)) return;
+    errors.push("pageerror: " + e.message);
+  });
 
   await page.goto("/");
   await page.evaluate(() => {

@@ -50,7 +50,12 @@ export default defineConfig({
       // 삭제와 localStorage 정리를 함께 한다. Safari는 storage 정책이 가장 유별난
       // 브라우저라 이 경로가 Chromium에서만 검증되면 "Safari에서만 안 지워진다"를 놓친다.
       // (react-quick은 이미 대상인데 그 옆 파일만 빠져 있던 것도 일관성이 없었다.)
-      testMatch: /(react-smoke|react-grade|react-functional|react-qtypes|react-persistence|react-quick-wrongnote|react-quick|react-reset-ghost|react-exam-timer|react-edge-import|react-pwa|react-review-loop|react-modes|react-webkit-motion)\.spec\.ts/,
+      // 범위를 저장소·통계 계층으로 넓힌다(#171). 종전 14파일은 "엔진 계층을 태운다"는
+      // 취지에 비해 정작 그 계층이 빠져 있었다 — 복원·손상 저장소(edge-persist·robustness),
+      // IndexedDB 읽기 경로(stats·phase2)가 전부 Chromium 단독 검증이었다.
+      // 전량 재실행은 하지 않는다(잡 시간 두 배, 대부분 중복). 엔진 차이가 실제로 나는
+      // 것부터 넣는다.
+      testMatch: /(react-smoke|react-grade|react-functional|react-qtypes|react-persistence|react-quick-wrongnote|react-quick|react-reset-ghost|react-exam-timer|react-edge-import|react-edge-persist|react-robustness|react-stats|react-phase2|react-pwa|react-review-loop|react-modes|react-webkit-motion)\.spec\.ts/,
       // reducedMotion: WebKit에서 호버/누름 트랜스폼(.option의 scale, 팔레트의 translateY)이
       // 전환 중인 동안 Playwright의 "stable" 판정을 통과하지 못해, 연속 클릭 루프가
       // 30초 타임아웃으로 죽었다(첫 CI 실행에서 4건). 사람이 누를 때는 문제가 아니라

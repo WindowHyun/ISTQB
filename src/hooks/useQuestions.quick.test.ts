@@ -45,7 +45,12 @@ describe('buildQuickPool', () => {
     ];
     const drawn = drawQuick(buildQuickPool([{ setId: 'S1', questions }], identity), 10);
     expect(drawn).toHaveLength(10);
-    expect(drawn.filter((c) => c.question.type === 'short_answer').length).toBeLessThanOrEqual(3);
+    // 정확히 3이어야 한다(서답형 8·선택형 8에서 10을 뽑으면 상한 floor(10*0.3)=3에 걸린다).
+    // 상한만 보면(<=3) 서답형이 0개일 때도 통과하는데, 그건 '상한이 동작한다'가 아니라
+    // 사양 변경 전의 '서답형을 통째로 뺀다'로 되돌아간 상태다 — 이 검사가 잡아야 할
+    // 회귀가 바로 그것이라 상한으로는 무력하다.
+    expect(drawn.filter((c) => c.question.type === 'short_answer').length,
+      '서답형이 상한(3)만큼 들어가지 않았다 — 0이면 유형이 통째로 빠진 것이다').toBe(3);
   });
 
   // 선택형이 모자라면 문항 수를 줄이는 것보다 서답형으로 채우는 편이 낫다.
@@ -56,6 +61,10 @@ describe('buildQuickPool', () => {
     ];
     const drawn = drawQuick(buildQuickPool([{ setId: 'S1', questions }], identity), 10);
     expect(drawn).toHaveLength(10);
+    // 제목이 말하는 '상한을 넘겼다'를 직접 못 박는다 — 길이만 보면 상한(3)을 지키느라
+    // 문항 수가 줄어드는 반대 동작과 구분되지 않는다(그때도 이 검사는 통과할 수 있다).
+    expect(drawn.filter((c) => c.question.type === 'short_answer').length,
+      '선택형이 1개뿐인데 서답형이 상한을 넘겨 채워지지 않았다').toBe(9);
   });
 
   // 재수록 문항은 세트마다 id가 다르다 — id 비교만으로는 걸러지지 않아,

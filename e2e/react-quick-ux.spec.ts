@@ -167,10 +167,12 @@ test("퀵 풀이 중에는 문제 세트를 바꿀 수 없고, 채점 후에는 
   await startQuick(page, "CSTS", "10");
 
   // 두 문항에 답해 진행을 만든다.
+  // 단계마다 진행률이 실제로 오른 것을 확인하고 넘어간다 — 바로 '다음'을 누르면 새 문항이
+  // 렌더되기 전에 답을 넣어 이전 문항을 다시 답하게 되고, 진행률이 1에서 멈춘다.
   for (let i = 0; i < 2; i += 1) {
     await answerCurrent(page);
-    const n = page.locator("#nextBtn");
-    if ((await n.count()) && !(await n.isDisabled())) await n.click();
+    await expect(page.locator("#progressText")).toContainText(`${i + 1} / 10`);
+    if (i === 0) await page.locator("#nextBtn").click();
   }
   await openBar(page);
   await expect(page.locator("#progressText")).toContainText("2 / 10");

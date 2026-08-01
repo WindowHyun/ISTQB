@@ -322,8 +322,271 @@ test("WebKit 원인 규명: 렌더 버스트가 어느 범주에서 오는가(�
   // index + 현재 세트 = 2건. 여기가 다시 늘면 전 세트 파싱이 되살아난 것이다.
   expect(loads.length, `제품 진입에 데이터 ${loads.length}건을 받았다: ${loads.join(" | ")}`)
     .toBeLessThanOrEqual(2);
+
+  // 퀵 시작(#169) — 전 세트를 읽는 것은 이 모드에 본질적이라 건수는 줄지 않는다.
+  // 대신 파싱을 나눠 한 번의 긴 멈춤을 없앴으므로, 여기서는 '최대 프레임 간격'을 본다.
+  const sel = page.locator("#quickSize");
+  if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
+  await sel.selectOption("20");
+  await page.getByTestId("quick-start-btn").click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  const atQuick = await fps(page);
+  console.log(`· 퀵 시작 직후: ${atQuick.frames}프레임/400ms · 최대 간격 ${atQuick.maxGap}ms · 누적 로드 ${loads.length}건`);
   console.log(`· ResizeObserver 관련 콘솔: ${roLoop.length}건 ${roLoop.slice(0, 3).join(" | ")}`);
 
   // 원인 규명 단계라 게이트로 걸지 않는다 — 측정이 성립했는지만 본다.
   expect(results["① 그대로"]?.length ?? 0, "버스트를 한 번도 재지 못했다").toBeGreaterThan(0);
+});
+
+/**
+ * 버스트가 'JS'인가 '레이아웃·페인트'인가 — 한 비트를 확정한다.
+ *
+ * 범주 분해(애니메이션·이미지·표)는 답을 주지 못했다. 조건을 순서대로 재는 구조라
+ * 측정끼리 서로 오염되고(앞 조건의 잔열이 뒤 조건에 얹힌다), 애초에 후보 목록이
+ * 맞다는 보장도 없었다. 범주를 더 늘리는 대신 상위 갈래를 먼저 가른다 — 어느 쪽이냐에
+ * 따라 고칠 곳이 완전히 다르기 때문이다(전자는 React·스토어·영속화, 후자는 CSS·DOM).
+ *
+ * 두 가지를 잰다.
+ *  (1) jsMs — '다음' 클릭이 동기적으로 돌아오기까지의 시간. React 19에서 클릭은 discrete
+ *      이벤트라 렌더가 이 안에서 flush된다. 이 값이 크면 비용은 JS다.
+ *  (2) frames — 클릭 직후 400ms의 rAF 프레임. 같은 클릭을 #root를 display:none으로
+ *      가린 채로도 재서 짝을 짓는다. 가렸는데 회복하면 비용은 레이아웃·페인트다.
+ *
+ * 순서 오염을 피하려고 A(그대로)/B(가림)를 번갈아 짝으로 잰다 — 한쪽을 몰아서 재면
+ * 앞선 측정의 잔열이 한쪽에만 얹힌다(직전 범주 분해가 그렇게 어긋났다).
+ */
+test("WebKit 원인 규명: 버스트가 JS인가 레이아웃·페인트인가", async ({ page }) => {
+  test.setTimeout(300_000);
+
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await openProduct(page, "ISTQB");
+  const sel = page.locator("#quickSize");
+  if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
+  await sel.selectOption("20");
+  await page.getByTestId("quick-start-btn").click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+
+  // 한 번의 '다음'에 대해 (동기 JS 시간, 직후 프레임 수)를 잰다.
+  // hide=true면 클릭 직전에 #root를 감춰 레이아웃·페인트를 걷어낸 상태로 잰다.
+  const step = (hide: boolean) => page.evaluate(async (h: boolean) => {
+    const root = document.querySelector("#root") as HTMLElement | null;
+    const prev = root?.style.display ?? "";
+    if (h && root) root.style.display = "none";
+    const btn = document.querySelector("#nextBtn") as HTMLElement | null;
+    const t0 = performance.now();
+    btn?.click();
+    const jsMs = Math.round(performance.now() - t0);
+
+    let frames = 0;
+    const t1 = performance.now();
+    await new Promise<void>((done) => {
+      const tick = () => {
+        frames += 1;
+        if (performance.now() - t1 < 400) requestAnimationFrame(tick);
+        else done();
+      };
+      requestAnimationFrame(tick);
+    });
+    if (h && root) root.style.display = prev;
+    return { jsMs, frames };
+  }, hide);
+
+  /**
+   * 표본 사이를 충분히 띄운다 — 이게 이 검사의 핵심이다.
+   *
+   * 처음에는 400ms만 띄우고 A/B를 번갈아 쟀는데, 버스트가 가라앉는 데 ~2초가 걸린다
+   * (같은 화면을 2초 두면 22프레임으로 회복하는 것을 이미 실측했다). 그래서 '가림'
+   * 표본 중 첫 번째만 깨끗하고 나머지는 직전 '그대로' 클릭의 버스트를 뒤집어썼다.
+   * 실제로 원자료가 그 모양이었다: 가림 [24, 1, 1, 1] — 첫 표본만 전속력.
+   * 그 상태로 중앙값을 보면 '가려도 소용없다'는 정반대 결론이 나온다.
+   * 조건을 끄기 전에 표본이 서로를 오염시키지 않게 하는 것이 먼저다.
+   */
+  const SETTLE = 2500;
+  const shown: { jsMs: number; frames: number }[] = [];
+  const hidden: { jsMs: number; frames: number }[] = [];
+  for (let i = 0; i < 4; i += 1) {
+    await page.waitForTimeout(SETTLE);
+    shown.push(await step(false));
+    await page.waitForTimeout(SETTLE);
+    hidden.push(await step(true));
+  }
+
+  /**
+   * 세 번째 갈래 — 글꼴 폴백.
+   *
+   * 앱의 글꼴 스택은 "Pretendard"로 시작하는데 저장소에 폰트 자산도 @font-face도 없다.
+   * 즉 항상 시스템 폴백으로 떨어진다. 리눅스 헤드리스 WebKit에는 한글 글꼴이 어떤
+   * 이름으로 깔려 있을지 모르므로, 새 문항의 글리프마다 fontconfig 폴백 탐색이 돈다.
+   * 이 비용은 '새 텍스트를 그릴 때 튀고, 캐시가 데워지면 사라지는' 성질이라 지금까지
+   * 관측한 버스트의 모양(렌더 직후 1초, 2초 뒤 회복, 애니메이션·이미지·표와 무관)과
+   * 정확히 겹친다.
+   *
+   * 확인법: 폴백 탐색이 필요 없는 generic 패밀리(monospace)를 전역으로 강제하고 같은
+   * 클릭을 다시 잰다. 여기서 프레임이 회복하면 원인은 글꼴 폴백이다.
+   *
+   * 이 갈래가 맞다면 결론이 크게 달라진다 — CI 컨테이너 고유의 사정이지, macOS·iOS
+   * Safari 사용자가 겪는 일이 아닐 수 있다. 그때는 '앱이 Safari에서 느리다'가 아니라
+   * '측정 환경이 느리다'가 참이 되므로, 실기기 확인 전에는 단정하지 않는다.
+   */
+  await page.addStyleTag({ content: "*{font-family:monospace!important}" });
+  const mono: { jsMs: number; frames: number }[] = [];
+  for (let i = 0; i < 4; i += 1) {
+    await page.waitForTimeout(SETTLE);
+    mono.push(await step(false));
+  }
+
+  const med = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] ?? -1;
+  const sJs = med(shown.map((x) => x.jsMs));
+  const hJs = med(hidden.map((x) => x.jsMs));
+  const sFr = med(shown.map((x) => x.frames));
+  const hFr = med(hidden.map((x) => x.frames));
+
+  const mJs = med(mono.map((x) => x.jsMs));
+  const mFr = med(mono.map((x) => x.frames));
+
+  console.log("\n=== 버스트의 정체: JS vs 레이아웃·페인트 vs 글꼴 폴백 ===");
+  console.log(`· 그대로   : 동기 JS ${sJs}ms · ${sFr}프레임/400ms  (원자료 ${JSON.stringify(shown)})`);
+  console.log(`· 가림     : 동기 JS ${hJs}ms · ${hFr}프레임/400ms  (원자료 ${JSON.stringify(hidden)})`);
+  console.log(`· monospace: 동기 JS ${mJs}ms · ${mFr}프레임/400ms  (원자료 ${JSON.stringify(mono)})`);
+  console.log(
+    `· 판정: ${
+      sJs >= 300
+        ? "JS가 지배적이다 — 클릭 한 번의 동기 렌더가 이미 길다(React·스토어·영속화를 본다)"
+        : hFr > sFr * 2
+          ? "레이아웃·페인트가 지배적이다 — 렌더 대상을 가리자 프레임이 회복했다(CSS·DOM을 본다)"
+          : mFr > sFr * 2
+            ? "글꼴 폴백이 지배적이다 — generic 패밀리로 바꾸자 회복했다(실기기 Safari 확인이 먼저다)"
+            : "셋 다 결정적이지 않다 — 다음 후보는 클릭 이후의 비동기 작업이다"
+    }`,
+  );
+
+  // 이 환경이 어떤 글꼴로 한글을 그리는지도 남긴다 — Pretendard가 없다는 전제 자체를
+  // 확인해 둬야 위 판정을 읽을 수 있다.
+  const fontInfo = await page.evaluate(() => {
+    const el = document.querySelector("#questionStem") as HTMLElement | null;
+    return {
+      declared: el ? getComputedStyle(el).fontFamily : "(없음)",
+      hasPretendard: typeof document.fonts?.check === "function"
+        ? document.fonts.check('16px "Pretendard"') : null,
+    };
+  });
+  console.log(`· 글꼴: 선언 ${fontInfo.declared} · Pretendard 사용가능 ${fontInfo.hasPretendard}`);
+
+  // 원인 규명 단계라 수치를 게이트로 걸지 않는다. 다만 측정이 성립했는지는 못 박는다 —
+  // 이게 없으면 클릭이 하나도 먹지 않아 0프레임·0ms가 찍혀도 '측정 완료'로 읽힌다.
+  expect(shown.length, "측정을 한 번도 하지 못했다").toBe(4);
+  expect(sFr, "그대로 조건에서 프레임이 전혀 돌지 않았다 — 측정이 성립하지 않는다").toBeGreaterThan(0);
+  expect(hFr, "가림 조건에서 프레임이 전혀 돌지 않았다 — 측정이 성립하지 않는다").toBeGreaterThan(0);
+});
+
+/**
+ * 남은 후보를 '추측 대신 계측'으로 좁힌다 — 클릭 이후의 비동기 작업.
+ *
+ * 앞선 세 갈래가 모두 아니었다. 그 결과가 오히려 범위를 크게 줄여 준다.
+ *  · 동기 JS 0~2ms       → React 렌더·이벤트 핸들러는 비용이 아니다
+ *  · #root 가림 무효과   → 보이는 트리의 레이아웃·페인트도 아니다
+ *  · monospace 무효과    → 글꼴 폴백 탐색도 아니다
+ * 세 조건 모두 '커밋 이후에 도는 작업'은 그대로 남겨 뒀다는 공통점이 있다.
+ *
+ * 그래서 이번에는 조건을 끄는 대신(ablation) 시간을 직접 잰다(attribution).
+ * 후보는 렌더 직후 메인 스레드에서 도는 것들이다:
+ *  · localStorage.setItem — 동기 API다. WebKit에서 특히 느리고, 답안·UI 상태 저장이
+ *    500ms 디바운스로 렌더 직후에 떨어진다(버스트 길이 ~1초와 겹친다)
+ *  · IndexedDB — 회차 기록 경로
+ *  · RichText의 useEffect — 커밋 이후 DOM을 직접 만든다(문항당 5개)
+ *
+ * 각 호출을 감싸 누적 시간을 재면 '무엇이 몇 ms를 쓰는지'가 바로 나온다.
+ * 추측이 세 번 빗나간 뒤이므로, 네 번째 가설을 세우기 전에 계측부터 한다.
+ */
+test("WebKit 원인 규명: 렌더 직후 비동기 작업의 시간 귀속", async ({ page }) => {
+  test.setTimeout(300_000);
+
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await openProduct(page, "ISTQB");
+  const sel = page.locator("#quickSize");
+  if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
+  await sel.selectOption("20");
+  await page.getByTestId("quick-start-btn").click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+
+  // 계측기를 심는다 — 원래 동작은 그대로 두고 소요 시간만 누적한다.
+  await page.evaluate(() => {
+    const w = window as unknown as Record<string, unknown>;
+    const stat = { lsMs: 0, lsCalls: 0, lsBytes: 0, idbMs: 0, idbCalls: 0 };
+    w.__burstStat = stat;
+
+    // 반드시 프로토타입을 갈아야 한다. Storage는 named property setter를 가진 legacy
+    // platform object라, `localStorage.setItem = fn`은 메서드를 가리는 게 아니라
+    // "setItem"이라는 이름의 '저장 항목'을 만든다 — 호출은 그대로 프로토타입으로 간다.
+    // 첫 시도에서 이것 때문에 후킹이 한 번도 걸리지 않았고, 가드가 그걸 잡아 냈다.
+    const proto = Object.getPrototypeOf(localStorage) as Storage;
+    const origSet = proto.setItem;
+    proto.setItem = function patched(this: Storage, k: string, v: string) {
+      const t = performance.now();
+      origSet.call(this, k, v);
+      stat.lsMs += performance.now() - t;
+      stat.lsCalls += 1;
+      stat.lsBytes += (v || "").length;
+    };
+
+    const idbProto = Object.getPrototypeOf(indexedDB) as IDBFactory;
+    const origOpen = idbProto.open;
+    idbProto.open = function patchedOpen(this: IDBFactory, ...args: Parameters<IDBFactory['open']>) {
+      const t = performance.now();
+      const req = origOpen.apply(this, args);
+      req.addEventListener("success", () => { stat.idbMs += performance.now() - t; stat.idbCalls += 1; });
+      return req;
+    } as IDBFactory['open'];
+  });
+
+  const rows: Record<string, number>[] = [];
+  for (let i = 0; i < 5; i += 1) {
+    await page.evaluate(() => {
+      const s = (window as unknown as Record<string, Record<string, number>>).__burstStat;
+      s.lsMs = 0; s.lsCalls = 0; s.lsBytes = 0; s.idbMs = 0; s.idbCalls = 0;
+    });
+    rows.push(await page.evaluate(async () => {
+      (document.querySelector("#nextBtn") as HTMLElement | null)?.click();
+      // 디바운스(500ms)가 떨어지고도 남을 만큼 지켜본다 — 저장은 렌더보다 늦게 온다.
+      let frames = 0;
+      const t0 = performance.now();
+      await new Promise<void>((done) => {
+        const tick = () => {
+          frames += 1;
+          if (performance.now() - t0 < 1200) requestAnimationFrame(tick);
+          else done();
+        };
+        requestAnimationFrame(tick);
+      });
+      const s = (window as unknown as Record<string, Record<string, number>>).__burstStat;
+      return {
+        frames,
+        lsMs: Math.round(s.lsMs), lsCalls: s.lsCalls, lsKB: Math.round(s.lsBytes / 1024),
+        idbMs: Math.round(s.idbMs), idbCalls: s.idbCalls,
+      };
+    }));
+    await page.waitForTimeout(500);
+  }
+
+  console.log("\n=== 렌더 직후 1200ms 동안 무엇이 시간을 쓰는가 ===");
+  for (const [i, r] of rows.entries()) {
+    console.log(`· #${i}: ${r.frames}프레임/1200ms · localStorage ${r.lsMs}ms/${r.lsCalls}회/${r.lsKB}KB · IDB ${r.idbMs}ms/${r.idbCalls}회`);
+  }
+  const sum = (k: string) => rows.reduce((n, r) => n + (r[k] ?? 0), 0);
+  console.log(`· 합계: localStorage ${sum("lsMs")}ms/${sum("lsCalls")}회 · IDB ${sum("idbMs")}ms/${sum("idbCalls")}회`);
+  console.log(
+    `· 판정: ${
+      sum("lsMs") >= 1000 ? "localStorage 동기 쓰기가 지배적이다"
+        : sum("idbMs") >= 1000 ? "IndexedDB가 지배적이다"
+          : "저장 경로도 아니다 — 남는 것은 RichText의 커밋 이후 DOM 구성과 WebKit 내부 작업이다"
+    }`,
+  );
+
+  // 계측이 성립했는지 못 박는다 — 후킹이 빗나가 0ms·0회만 찍히면 '저장이 싸다'가 아니라
+  // '재지 못했다'인데, 판정 문구는 둘을 똑같이 읽는다.
+  expect(rows.length, "측정을 한 번도 하지 못했다").toBe(5);
+  expect(sum("lsCalls"), "localStorage 후킹이 한 번도 걸리지 않았다 — 계측이 성립하지 않는다")
+    .toBeGreaterThan(0);
 });

@@ -100,7 +100,10 @@ test.describe("엣지-채점", () => {
     await page.locator("#options .option").nth(0).click();
     await page.locator("#options .option").nth(2).click();
     await page.locator("#options .option").nth(4).click(); // 3번째 선택 시도
-    expect(await page.locator("#options .option.selected").count()).toBeLessThanOrEqual(2);
+    // 정확히 2개여야 한다. 상한만 보면(<=2) 클릭이 하나도 안 먹혀 0개일 때도 통과해,
+    // "cap이 동작한다"가 아니라 "아무 일도 안 일어났다"를 합격으로 읽는다.
+    expect(await page.locator("#options .option.selected").count(),
+      "3번 눌렀는데 선택이 2개가 아니다(0이면 클릭 자체가 안 먹은 것)").toBe(2);
   });
 
   test("복수정답 선택을 다시 눌러 해제할 수 있다", async ({ page }) => {
