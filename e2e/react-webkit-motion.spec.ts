@@ -507,23 +507,28 @@ test("WebKit 원인 규명: 렌더 직후 비동기 작업의 시간 귀속", as
     const stat = { lsMs: 0, lsCalls: 0, lsBytes: 0, idbMs: 0, idbCalls: 0 };
     w.__burstStat = stat;
 
+    // 반드시 프로토타입을 갈아야 한다. Storage는 named property setter를 가진 legacy
+    // platform object라, `localStorage.setItem = fn`은 메서드를 가리는 게 아니라
+    // "setItem"이라는 이름의 '저장 항목'을 만든다 — 호출은 그대로 프로토타입으로 간다.
+    // 첫 시도에서 이것 때문에 후킹이 한 번도 걸리지 않았고, 가드가 그걸 잡아 냈다.
     const proto = Object.getPrototypeOf(localStorage) as Storage;
-    const origSet = proto.setItem.bind(localStorage);
-    localStorage.setItem = (k: string, v: string) => {
+    const origSet = proto.setItem;
+    proto.setItem = function patched(this: Storage, k: string, v: string) {
       const t = performance.now();
-      origSet(k, v);
+      origSet.call(this, k, v);
       stat.lsMs += performance.now() - t;
       stat.lsCalls += 1;
       stat.lsBytes += (v || "").length;
     };
 
-    const origOpen = indexedDB.open.bind(indexedDB);
-    (indexedDB as IDBFactory).open = ((...args: Parameters<IDBFactory['open']>) => {
+    const idbProto = Object.getPrototypeOf(indexedDB) as IDBFactory;
+    const origOpen = idbProto.open;
+    idbProto.open = function patchedOpen(this: IDBFactory, ...args: Parameters<IDBFactory['open']>) {
       const t = performance.now();
-      const req = origOpen(...args);
+      const req = origOpen.apply(this, args);
       req.addEventListener("success", () => { stat.idbMs += performance.now() - t; stat.idbCalls += 1; });
       return req;
-    }) as IDBFactory['open'];
+    } as IDBFactory['open'];
   });
 
   const rows: Record<string, number>[] = [];
