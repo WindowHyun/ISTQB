@@ -401,24 +401,67 @@ test("WebKit 원인 규명: 버스트가 JS인가 레이아웃·페인트인가"
     await page.waitForTimeout(400);
   }
 
+  /**
+   * 세 번째 갈래 — 글꼴 폴백.
+   *
+   * 앱의 글꼴 스택은 "Pretendard"로 시작하는데 저장소에 폰트 자산도 @font-face도 없다.
+   * 즉 항상 시스템 폴백으로 떨어진다. 리눅스 헤드리스 WebKit에는 한글 글꼴이 어떤
+   * 이름으로 깔려 있을지 모르므로, 새 문항의 글리프마다 fontconfig 폴백 탐색이 돈다.
+   * 이 비용은 '새 텍스트를 그릴 때 튀고, 캐시가 데워지면 사라지는' 성질이라 지금까지
+   * 관측한 버스트의 모양(렌더 직후 1초, 2초 뒤 회복, 애니메이션·이미지·표와 무관)과
+   * 정확히 겹친다.
+   *
+   * 확인법: 폴백 탐색이 필요 없는 generic 패밀리(monospace)를 전역으로 강제하고 같은
+   * 클릭을 다시 잰다. 여기서 프레임이 회복하면 원인은 글꼴 폴백이다.
+   *
+   * 이 갈래가 맞다면 결론이 크게 달라진다 — CI 컨테이너 고유의 사정이지, macOS·iOS
+   * Safari 사용자가 겪는 일이 아닐 수 있다. 그때는 '앱이 Safari에서 느리다'가 아니라
+   * '측정 환경이 느리다'가 참이 되므로, 실기기 확인 전에는 단정하지 않는다.
+   */
+  await page.addStyleTag({ content: "*{font-family:monospace!important}" });
+  await page.waitForTimeout(600);
+  const mono: { jsMs: number; frames: number }[] = [];
+  for (let i = 0; i < 4; i += 1) {
+    mono.push(await step(false));
+    await page.waitForTimeout(400);
+  }
+
   const med = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] ?? -1;
   const sJs = med(shown.map((x) => x.jsMs));
   const hJs = med(hidden.map((x) => x.jsMs));
   const sFr = med(shown.map((x) => x.frames));
   const hFr = med(hidden.map((x) => x.frames));
 
-  console.log("\n=== 버스트의 정체: JS vs 레이아웃·페인트 ===");
-  console.log(`· 그대로 : 동기 JS ${sJs}ms · ${sFr}프레임/400ms  (원자료 ${JSON.stringify(shown)})`);
-  console.log(`· 가림   : 동기 JS ${hJs}ms · ${hFr}프레임/400ms  (원자료 ${JSON.stringify(hidden)})`);
+  const mJs = med(mono.map((x) => x.jsMs));
+  const mFr = med(mono.map((x) => x.frames));
+
+  console.log("\n=== 버스트의 정체: JS vs 레이아웃·페인트 vs 글꼴 폴백 ===");
+  console.log(`· 그대로   : 동기 JS ${sJs}ms · ${sFr}프레임/400ms  (원자료 ${JSON.stringify(shown)})`);
+  console.log(`· 가림     : 동기 JS ${hJs}ms · ${hFr}프레임/400ms  (원자료 ${JSON.stringify(hidden)})`);
+  console.log(`· monospace: 동기 JS ${mJs}ms · ${mFr}프레임/400ms  (원자료 ${JSON.stringify(mono)})`);
   console.log(
     `· 판정: ${
       sJs >= 300
         ? "JS가 지배적이다 — 클릭 한 번의 동기 렌더가 이미 길다(React·스토어·영속화를 본다)"
-        : hFr > sFr * 2
-          ? "레이아웃·페인트가 지배적이다 — 가리자 프레임이 회복했다(CSS·DOM을 본다)"
-          : "둘 다 결정적이지 않다 — 다음 후보는 클릭 이후의 비동기 작업이다"
+        : mFr > sFr * 2
+          ? "글꼴 폴백이 지배적이다 — generic 패밀리로 바꾸자 회복했다(실기기 Safari 확인이 먼저다)"
+          : hFr > sFr * 2
+            ? "레이아웃·페인트가 지배적이다 — 가리자 프레임이 회복했다(CSS·DOM을 본다)"
+            : "셋 다 결정적이지 않다 — 다음 후보는 클릭 이후의 비동기 작업이다"
     }`,
   );
+
+  // 이 환경이 어떤 글꼴로 한글을 그리는지도 남긴다 — Pretendard가 없다는 전제 자체를
+  // 확인해 둬야 위 판정을 읽을 수 있다.
+  const fontInfo = await page.evaluate(() => {
+    const el = document.querySelector("#questionStem") as HTMLElement | null;
+    return {
+      declared: el ? getComputedStyle(el).fontFamily : "(없음)",
+      hasPretendard: typeof document.fonts?.check === "function"
+        ? document.fonts.check('16px "Pretendard"') : null,
+    };
+  });
+  console.log(`· 글꼴: 선언 ${fontInfo.declared} · Pretendard 사용가능 ${fontInfo.hasPretendard}`);
 
   // 원인 규명 단계라 수치를 게이트로 걸지 않는다. 다만 측정이 성립했는지는 못 박는다 —
   // 이게 없으면 클릭이 하나도 먹지 않아 0프레임·0ms가 찍혀도 '측정 완료'로 읽힌다.
