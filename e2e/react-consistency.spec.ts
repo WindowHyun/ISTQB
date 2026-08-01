@@ -18,10 +18,33 @@ async function openBar(page: Page) {
   if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
 }
 
+/**
+ * 현재 문항에 답한다 — 유형을 가리지 않고, 렌더 경합에도 걸리지 않는다.
+ *
+ * 종전 코드는 `if (await o.count()) await o.click()`이었다. 두 호출은 원자적이지 않아,
+ * 그 사이에 문항이 다시 그려지면 count는 이전 렌더(선택형)를 보고 click은 새 렌더를
+ * 기다리다 죽는다. 실제로 전수 실행에서 이 자리가 300초 타임아웃으로 실패했고, 그때
+ * 화면은 서답형(단답형 정답 입력)이었는데 진행률은 0/15로 첫 문항에 머물러 있었다.
+ * 퀵에는 서답형이 최대 30%까지 섞이므로(B5) 이 경합은 드물게 오는 것이 아니다.
+ *
+ * 그래서 '둘 중 먼저 보이는 쪽'을 기다린 뒤 그 유형에 맞춰 답한다.
+ */
+async function answerCurrent(page: Page): Promise<void> {
+  const opt = page.locator("#options .option").first();
+  const short = page.locator(".short-answer-input");
+  await expect(opt.or(short.first())).toBeVisible({ timeout: 15_000 });
+  const blanks = await short.count();
+  if (blanks) {
+    // 빈칸이 여러 개인 다답형은 '모든 칸'이 차야 답한 것으로 센다(isAnswered).
+    for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
+    return;
+  }
+  await opt.click({ timeout: 15_000 });
+}
+
 async function answerAll(page: Page, max: number) {
   for (let i = 0; i < max; i += 1) {
-    const o = page.locator("#options .option").first();
-    if (await o.count()) await o.click();
+    await answerCurrent(page);
     const n = page.locator("#nextBtn");
     if (!(await n.count()) || (await n.isDisabled())) break;
     await n.click();
@@ -226,10 +249,12 @@ test("정합성: 진행률과 문항 팔레트의 '답함' 개수가 같다", as
   await page.getByTestId("quick-start-btn").click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 
-  // 5문항만 답한다.
+  // 5문항만 답한다. 단계마다 진행률을 확인하고 넘어간다 — 렌더가 자리를 잡기 전에
+  // '다음'을 누르면 이전 문항을 다시 답하게 되고, 그 어긋남이 아래 팔레트 대조를
+  // 조용히 틀리게 만든다(경합이라 재현이 들쭉날쭉해 원인을 찾기 어렵다).
   for (let i = 0; i < 5; i += 1) {
-    const o = page.locator("#options .option").first();
-    if (await o.count()) await o.click();
+    await answerCurrent(page);
+    await expect(page.locator("#progressText")).toContainText(`${i + 1} / 15`);
     const n = page.locator("#nextBtn");
     if (await n.count() && !(await n.isDisabled())) await n.click();
   }
