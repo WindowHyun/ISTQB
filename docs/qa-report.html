@@ -1,0 +1,1243 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="ISTQB 학습 앱 QA 점검 리포트 — 결함·실사용성 19건 As-Is / To-Be">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%94%8D%3C/text%3E%3C/svg%3E">
+<style>*{box-sizing:border-box}html,body{margin:0}</style>
+<title>ISTQB 학습앱 QA 리포트 — As-Is / To-Be</title>
+
+<style>
+  :root {
+    --paper:      #eef1f5;
+    --surface:    #ffffff;
+    --surface-2:  #f7f9fb;
+    --ink:        #121721;
+    --ink-2:      #4c5665;
+    --ink-3:      #737f90;
+    --line:       #d8dee6;
+    --line-soft:  #e6eaf0;
+    --accent:     #3a4f7d;
+
+    --defect:     #b5342a;
+    --gap:        #9c6206;
+    --ux:         #7a4bb0;
+    --ui:         #2a6098;
+    --note:       #4a6b58;
+    --pass:       #2c7350;
+
+    --as-wash:    rgba(181, 52, 42, 0.05);
+    --as-edge:    rgba(181, 52, 42, 0.28);
+    --to-wash:    rgba(44, 115, 80, 0.055);
+    --to-edge:    rgba(44, 115, 80, 0.3);
+
+    --sans: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, -apple-system, sans-serif;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Mono", Menlo, "D2Coding", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:     #0d1017;
+      --surface:   #151a23;
+      --surface-2: #1b212c;
+      --ink:       #e4e8ef;
+      --ink-2:     #a3adbc;
+      --ink-3:     #7b8697;
+      --line:      #29313e;
+      --line-soft: #222a35;
+      --accent:    #93a9d8;
+
+      --defect:    #f0857a;
+      --gap:       #e0ab4e;
+      --ux:        #c39ce8;
+      --ui:        #7ab3e8;
+      --note:      #8fc0a4;
+      --pass:      #6fc294;
+
+      --as-wash:   rgba(240, 133, 122, 0.07);
+      --as-edge:   rgba(240, 133, 122, 0.32);
+      --to-wash:   rgba(111, 194, 148, 0.07);
+      --to-edge:   rgba(111, 194, 148, 0.32);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:     #0d1017;
+    --surface:   #151a23;
+    --surface-2: #1b212c;
+    --ink:       #e4e8ef;
+    --ink-2:     #a3adbc;
+    --ink-3:     #7b8697;
+    --line:      #29313e;
+    --line-soft: #222a35;
+    --accent:    #93a9d8;
+
+    --defect:    #f0857a;
+    --gap:       #e0ab4e;
+    --ux:        #c39ce8;
+    --ui:        #7ab3e8;
+    --note:      #8fc0a4;
+    --pass:      #6fc294;
+
+    --as-wash:   rgba(240, 133, 122, 0.07);
+    --as-edge:   rgba(240, 133, 122, 0.32);
+    --to-wash:   rgba(111, 194, 148, 0.07);
+    --to-edge:   rgba(111, 194, 148, 0.32);
+  }
+
+  :root[data-theme="light"] {
+    --paper:      #eef1f5;
+    --surface:    #ffffff;
+    --surface-2:  #f7f9fb;
+    --ink:        #121721;
+    --ink-2:      #4c5665;
+    --ink-3:      #737f90;
+    --line:       #d8dee6;
+    --line-soft:  #e6eaf0;
+    --accent:     #3a4f7d;
+
+    --defect:     #b5342a;
+    --gap:        #9c6206;
+    --ux:         #7a4bb0;
+    --ui:         #2a6098;
+    --note:       #4a6b58;
+    --pass:       #2c7350;
+
+    --as-wash:    rgba(181, 52, 42, 0.05);
+    --as-edge:    rgba(181, 52, 42, 0.28);
+    --to-wash:    rgba(44, 115, 80, 0.055);
+    --to-edge:    rgba(44, 115, 80, 0.3);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 20px 96px;
+  }
+
+  a { color: var(--accent); }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  code, .mono, .num {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding: 56px 0 22px;
+    margin-bottom: 34px;
+  }
+
+  .kicker {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 14px;
+  }
+
+  h1 {
+    font-size: clamp(1.85rem, 1.3rem + 2.2vw, 2.55rem);
+    line-height: 1.18;
+    letter-spacing: -0.025em;
+    font-weight: 800;
+    margin: 0 0 16px;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    font-size: 1.02rem;
+    color: var(--ink-2);
+    max-width: 62ch;
+    margin: 0 0 26px;
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 26px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+  .meta b {
+    color: var(--ink-2);
+    font-weight: 600;
+  }
+
+  /* ---------- sections ---------- */
+
+  section.block { margin: 0 0 54px; }
+
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 9px;
+    margin-bottom: 22px;
+  }
+  .sec-head h2 {
+    font-size: 1.22rem;
+    font-weight: 750;
+    letter-spacing: -0.015em;
+    margin: 0;
+  }
+  .sec-head .tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-left: auto;
+  }
+
+  .lede {
+    color: var(--ink-2);
+    max-width: 68ch;
+    margin: -6px 0 22px;
+  }
+
+  /* ---------- verification ledger ---------- */
+
+  .scroller { overflow-x: auto; }
+
+  table.ledger {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    min-width: 520px;
+  }
+  table.ledger th,
+  table.ledger td {
+    text-align: left;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: baseline;
+  }
+  table.ledger thead th {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 600;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--line);
+  }
+  table.ledger tbody tr:last-child td { border-bottom: 0; }
+  table.ledger td.cmd { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
+  table.ledger td.res { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  table.ledger td.res b { color: var(--ink); font-weight: 700; }
+  .ok {
+    color: var(--pass);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .footnote {
+    font-size: 13px;
+    color: var(--ink-3);
+    margin: 14px 0 0;
+    padding-left: 14px;
+    border-left: 2px solid var(--line);
+    max-width: 72ch;
+  }
+
+  /* ---------- severity summary ---------- */
+
+  .tally {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+  }
+  .tally-cell {
+    background: var(--surface);
+    padding: 15px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .tally-cell .n {
+    font-family: var(--mono);
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .tally-cell .k {
+    font-size: 12.5px;
+    font-weight: 650;
+  }
+  .tally-cell .d {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    line-height: 1.5;
+  }
+  .t-defect .n, .t-defect .k { color: var(--defect); }
+  .t-gap    .n, .t-gap .k    { color: var(--gap); }
+  .t-ux     .n, .t-ux .k     { color: var(--ux); }
+  .t-ui     .n, .t-ui .k     { color: var(--ui); }
+  .t-note   .n, .t-note .k   { color: var(--note); }
+
+  /* ---------- finding ---------- */
+
+  .finding {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    margin-bottom: 16px;
+  }
+
+  .f-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--line-soft);
+    flex-wrap: wrap;
+  }
+  .f-id {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--surface);
+    background: var(--ink);
+    padding: 3px 8px;
+  }
+  .f-head h3 {
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0;
+    flex: 1 1 auto;
+    min-width: 200px;
+  }
+  .star {
+    color: var(--defect);
+    font-size: 13px;
+  }
+
+  .chip {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    padding: 3px 7px;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+  .c-defect { color: var(--defect); }
+  .c-gap    { color: var(--gap); }
+  .c-ux     { color: var(--ux); }
+  .c-ui     { color: var(--ui); }
+  .c-note   { color: var(--note); }
+
+  .diff {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  @media (max-width: 720px) {
+    .diff { grid-template-columns: minmax(0, 1fr); }
+    .pane-as { border-right: 0 !important; border-bottom: 1px solid var(--line-soft); }
+  }
+
+  .pane {
+    padding: 15px 16px 17px;
+    font-size: 14px;
+    min-width: 0;
+  }
+  .pane-as {
+    background: var(--as-wash);
+    border-right: 1px solid var(--line-soft);
+    border-left: 3px solid var(--as-edge);
+  }
+  .pane-to {
+    background: var(--to-wash);
+    border-left: 3px solid var(--to-edge);
+  }
+  .pane h4 {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin: 0 0 9px;
+    font-weight: 700;
+  }
+  .pane-as h4 { color: var(--defect); }
+  .pane-to h4 { color: var(--pass); }
+  .pane p { margin: 0 0 9px; }
+  .pane p:last-child { margin-bottom: 0; }
+  .pane ol, .pane ul {
+    margin: 0;
+    padding-left: 1.15em;
+  }
+  .pane li { margin-bottom: 6px; }
+  .pane li:last-child { margin-bottom: 0; }
+
+  .repro {
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.85;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 9px 11px;
+    margin: 10px 0 0;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--ink-2);
+  }
+  .repro .hit { color: var(--defect); font-weight: 700; }
+
+  .f-foot {
+    border-top: 1px solid var(--line-soft);
+    padding: 12px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13.5px;
+    color: var(--ink-2);
+    background: var(--surface-2);
+    min-width: 0;
+  }
+  .f-foot > div { min-width: 0; overflow-wrap: anywhere; }
+  .f-foot .lbl {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 700;
+    margin-right: 8px;
+  }
+  .f-foot code {
+    font-size: 12px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 1px 5px;
+    color: var(--ink-2);
+    white-space: nowrap;
+  }
+  .srcs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+  /* ---------- priority table ---------- */
+
+  table.prio {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    min-width: 560px;
+  }
+  table.prio th, table.prio td {
+    text-align: left;
+    padding: 10px 13px;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: baseline;
+  }
+  table.prio thead th {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 600;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--line);
+  }
+  table.prio tbody tr:last-child td { border-bottom: 0; }
+  table.prio td.rank {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    width: 1%;
+    white-space: nowrap;
+  }
+  table.prio td.ids {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    white-space: nowrap;
+    width: 1%;
+  }
+  .rank-hot { color: var(--defect); }
+
+  /* ---------- closing ---------- */
+
+  .kinds {
+    display: grid;
+    gap: 12px;
+    max-width: 76ch;
+  }
+  .kind {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    align-items: baseline;
+  }
+  .kind .k-name {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    padding: 3px 7px;
+    border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+  .kind p { margin: 0; color: var(--ink-2); font-size: 14px; }
+
+  .endnote {
+    margin-top: 44px;
+    padding-top: 18px;
+    border-top: 2px solid var(--ink);
+    color: var(--ink-2);
+    font-size: 14px;
+    max-width: 72ch;
+  }
+</style>
+
+<style>
+  /* ---- 단독 HTML 파일 전용: 테마 토글 + 인쇄 ---- */
+  .theme-toggle {
+    position: fixed; top: 14px; right: 14px; z-index: 50;
+    font-family: var(--mono); font-size: 11px; letter-spacing: .08em;
+    text-transform: uppercase; font-weight: 700;
+    color: var(--ink-2); background: var(--surface);
+    border: 1px solid var(--line); padding: 7px 11px; cursor: pointer;
+  }
+  .theme-toggle:hover { color: var(--ink); border-color: var(--ink-3); }
+
+  @media print {
+    :root { --paper:#fff; --surface:#fff; --surface-2:#fff; }
+    body { background:#fff; font-size: 10.5pt; }
+    .theme-toggle { display: none; }
+    .wrap { max-width: none; padding: 0 0 12mm; }
+    .finding, section.block, .tally, table.ledger, table.prio { break-inside: avoid; }
+    .masthead { padding-top: 0; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+<button type="button" class="theme-toggle" aria-label="테마 전환">☾ Dark</button>
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="kicker">품질 점검 리포트 · WindowHyun / ISTQB</p>
+    <h1>학습 앱 결함·실사용성 점검<br>As-Is → To-Be 정리</h1>
+    <p class="standfirst">
+      기존 자동화 하네스는 전부 통과했습니다. 아래 19건은 하네스가 잡지 못한 것으로,
+      실제 브라우저에서 직접 조작해 재현한 사항만 담았습니다. 코드는 수정하지 않았습니다.
+    </p>
+    <div class="meta">
+      <span><b>대상</b> WindowHyun/ISTQB</span>
+      <span><b>브랜치</b> claude/testing-issue-analysis-x0531h</span>
+      <span><b>일자</b> 2026-07-26</span>
+      <span><b>발견</b> 19건</span>
+    </div>
+  </header>
+
+  <section class="block">
+    <div class="sec-head">
+      <h2>검증 실행 결과</h2>
+      <span class="tag">전 항목 통과</span>
+    </div>
+    <div class="scroller">
+      <table class="ledger">
+        <thead>
+          <tr><th>명령</th><th>결과</th><th>상태</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="cmd">npm test</td><td class="res"><b>205</b> passed · 21 files</td><td class="ok">PASS</td></tr>
+          <tr><td class="cmd">npm run verify</td><td class="res">12파일 <b>626</b>문항 · 오류 0 · 경고 0</td><td class="ok">PASS</td></tr>
+          <tr><td class="cmd">npm run build</td><td class="res">성공 · gzip <b>92</b>KB</td><td class="ok">PASS</td></tr>
+          <tr><td class="cmd">npm run test:e2e</td><td class="res"><b>328</b> passed · 4.6m</td><td class="ok">PASS</td></tr>
+          <tr><td class="cmd">npm run test:nf</td><td class="res"><b>12</b> passed</td><td class="ok">PASS</td></tr>
+          <tr><td class="cmd">npm run test:apk</td><td class="res"><b>18</b> passed</td><td class="ok">PASS</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="footnote">
+      환경 메모 — <code>@playwright/test</code> 1.61이 요구하는 브라우저 빌드(1228)가 없어(1194만 존재)
+      처음에는 모든 E2E가 launch 단계에서 실패했습니다. <code>/opt/pw-browsers</code> 심볼릭 링크로 우회했고 저장소 파일은 건드리지 않았습니다.
+    </p>
+  </section>
+
+  <section class="block">
+    <div class="sec-head">
+      <h2>발견 분포</h2>
+      <span class="tag">19건</span>
+    </div>
+    <div class="tally">
+      <div class="tally-cell t-defect">
+        <span class="n">3</span><span class="k">결함</span>
+        <span class="d">사용자가 모르는 사이 데이터를 잃거나 규칙이 무력화됨</span>
+      </div>
+      <div class="tally-cell t-gap">
+        <span class="n">3</span><span class="k">설계 공백</span>
+        <span class="d">코드는 의도대로 동작하나 학습 루프가 닫히지 않음</span>
+      </div>
+      <div class="tally-cell t-ux">
+        <span class="n">3</span><span class="k">UX 결함</span>
+        <span class="d">확인 없는 삭제·유령 회차·정답 무료 공개</span>
+      </div>
+      <div class="tally-cell t-ui">
+        <span class="n">4</span><span class="k">UI 일관성</span>
+        <span class="d">날짜·시각·번호 체계·중복 표시</span>
+      </div>
+      <div class="tally-cell t-note">
+        <span class="n">6</span><span class="k">개선·참고</span>
+        <span class="d">트레이드오프, 접근성, 안내 수준</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ A ============ -->
+  <section class="block">
+    <div class="sec-head">
+      <h2>A · 데이터 유실 · 정합성</h2>
+      <span class="tag">결함 3건</span>
+    </div>
+    <p class="lede">세 건 모두 사용자에게 아무런 신호가 가지 않습니다. 잃은 것을 잃은 줄 모르는 유형이라 우선순위가 가장 높습니다.</p>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">A1</span>
+        <h3>제품 불일치 백업 가져오기 <span class="star">★</span></h3>
+        <span class="chip c-defect">결함</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <p>CSTS 화면에서 ISTQB 백업을 넣으면 CSTS 답안이 통째로 교체되고, CSTS 저장소에 ISTQB 키가 기록됩니다. 모드는 <code>exam</code>으로 바뀌고 <code>reviewIds</code>에 ISTQB 문항 id가 유입됩니다. 가져온 이력은 <code>certification</code> 필터에 걸려 통계에서 보이지도 않습니다.</p>
+          <p><strong>그런데 토스트는 “백업 파일을 복원했습니다.”</strong> — 기존 데이터는 날아가고, 가져온 데이터는 보이지 않는데, 성공했다고 알립니다.</p>
+          <pre class="repro">가져오기 전  csts 답안 3건
+가져오기 후  csts 답안 40건
+             <span class="hit">ISTQB-FL-V4-A-exam-…</span> ← CSTS 저장소
+통계 화면    "아직 채점한 기록이 없습니다"</pre>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <ol>
+            <li>파일의 <code>product</code>와 현재 제품이 다르면 <strong>가져오기 전에 확인</strong> — “이 백업은 ISTQB 기록입니다. ISTQB로 전환해 가져올까요?”</li>
+            <li>또는 파일의 <code>product</code> 키에 기록하고 해당 제품으로 자동 전환</li>
+            <li>최소한 성공 토스트 대신 “제품이 달라 가져오지 않았습니다”로 거부</li>
+          </ol>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div><span class="lbl">원인</span>백업 파일에 <code>"product":"istqb"</code>가 들어 있는데 읽지 않고, 무조건 <code>getActiveProduct()</code> 키에 기록합니다.</div>
+        <div class="srcs"><span class="lbl">근거</span><code>src/utils/storage.ts:611</code><code>실측 재현</code></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">A2</span>
+        <h3>멀티탭 답안 유실</h3>
+        <span class="chip c-defect">결함</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <p>같은 브라우저에서 탭 두 개를 쓰면 나중에 저장한 탭의 답안이 사라집니다. 두 탭 모두 유실 사실을 알지 못합니다.</p>
+          <pre class="repro">탭1  1·2·3번 풀기   → [001,002,003]
+탭2  20번 풀기      → [001,002,003,020]
+탭1  4번 풀기       → [001,002,003,<span class="hit">004</span>]
+                       ↑ 020 소실</pre>
+          <p>PWA 특성상 홈 화면 아이콘과 브라우저 탭을 동시에 쓰는 상황은 흔합니다.</p>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <ol>
+            <li><code>window.addEventListener('storage', …)</code>로 다른 탭의 쓰기를 감지해 상태 재수화</li>
+            <li>저장 시 키 단위 병합, 또는 <code>updatedAt</code> 기반 충돌 감지</li>
+            <li>최소 방어로 “다른 탭에서 이 앱이 열려 있습니다” 안내 후 한쪽을 읽기 전용 처리</li>
+          </ol>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div><span class="lbl">원인</span><code>saveAnswers</code>가 자기 메모리의 answers 전체를 통째로 덮어쓰고, <code>storage</code> 이벤트 구독이 없습니다.</div>
+        <div class="srcs"><span class="lbl">근거</span><code>src/utils/storage.ts:505</code><code>src/utils/storage.ts:684</code><code>실측 재현</code></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">A3</span>
+        <h3>시험 제한시간이 앱 종료 중 정지</h3>
+        <span class="chip c-defect">결함</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <p>탭 전환 시간은 제한시간에 포함되지만, 탭이나 앱을 <strong>닫으면</strong> 벽시계가 반영되지 않습니다. 닫았다 열기를 반복하면 60/90분 제한이 사실상 무제한이 됩니다.</p>
+          <pre class="repro">탭 닫기 직전        남은 59:55
+15초 경과 후 재개   남은 <span class="hit">59:54</span>   (1초만 감소)</pre>
+          <p>APK에서 하드웨어 뒤로가기로 종료한 뒤 재실행해도 같은 상태입니다.</p>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <p>경과 시간 누계 대신 <strong>시험 시작 시각을 절대값으로 저장</strong>하고, 남은 시간을 <code>limit − (Date.now() − startedAt)</code>으로 계산합니다.</p>
+          <p>복원 시점에 이미 초과했다면 즉시 자동 제출 — 이미 구현된 자동 제출 경로를 그대로 재사용할 수 있습니다.</p>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div><span class="lbl">원인</span>경과 시간을 <code>visibilitychange</code>(탭 전환)로만 보정합니다. 언로드되면 숫자만 저장되고, 앱이 꺼져 있던 시간은 계산 대상이 아닙니다.</div>
+        <div class="srcs"><span class="lbl">근거</span><code>QuestionWorkspace.tsx:81-108</code><code>backGuard.ts:123</code><code>실측 재현</code></div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ B ============ -->
+  <section class="block">
+    <div class="sec-head">
+      <h2>B · 학습 루프 · 실사용성</h2>
+      <span class="tag">설계 공백 3 · UX 결함 3</span>
+    </div>
+    <p class="lede">앱이 내세우는 “오답 발견 → 보완 → 재측정” 흐름에서 마지막 단계가 비어 있거나, 측정값을 신뢰하기 어렵게 만드는 항목들입니다.</p>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">B1</span>
+        <h3>오답 재풀이가 어디에도 반영되지 않음 <span class="star">★</span></h3>
+        <span class="chip c-gap">설계 공백</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <pre class="repro">시험 40문항 채점        → 오답 30개
+'오답 다시 풀기'
+  30문항 전부 정답 처리
+'오답 다시 풀기' 재진입  → <span class="hit">여전히 30문항</span>
+오답노트 '✓ 극복' 표식   → <span class="hit">미노출</span></pre>
+          <p>학습자가 오답을 완전히 정복해도 앱은 그 사실을 기록하지 않습니다. 다음에도 같은 30문항이 그대로 나옵니다.</p>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <ol>
+            <li>오답 모드에 “복습 완료” 액션을 두어 맞힌 문항을 <code>reviewIds</code>에서 제거</li>
+            <li>또는 재풀이 성공을 별도로 기록해 ‘극복’ 판정 근거에 포함</li>
+            <li>목록에서 지우지 않되 “복습함” 상태로 흐리게 처리 — 오답노트의 극복 UX와 같은 패턴</li>
+          </ol>
+          <p>어떤 방식이든 <strong>루프의 마지막 단계가 존재</strong>해야 합니다.</p>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div><span class="lbl">원인</span>오답 모드에 채점 버튼 자체가 없고(<code>canGrade</code>는 exam·random 한정), <code>reviewIds</code>는 시험·랜덤 채점 때만 갱신되며, ‘극복’ 판정은 시험 모드 2회 연속 정답만 인정합니다.</div>
+        <div class="srcs"><span class="lbl">근거</span><code>useQuizSession.ts:69</code><code>attemptStats.ts:161</code><code>30문항 전수 재풀이 실측</code></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">B2</span>
+        <h3>미니 시험 문항 수가 안내와 다름</h3>
+        <span class="chip c-gap">설계 공백</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <p>통계 안내문은 “그 챕터에서 <strong>10문항</strong>을 뽑아 채점해 정답률을 다시 잽니다”라고 하는데, 실제 진입하면 배너에 “테스트 도구 미니 시험 — <strong>2문항</strong>”이 뜹니다.</p>
+          <p>2문항 결과가 챕터 통계에 그대로 반영돼 정답률이 0% / 50% / 100%로 널뜁니다. 재측정 도구로서 신뢰할 수 없습니다.</p>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <ol>
+            <li>안내 문구를 실제 산출값으로 — “최대 10문항”, 진입 후 “N문항”</li>
+            <li>챕터 문항이 임계값(예: 5) 미만이면 버튼을 비활성화하거나 <strong>여러 세트에서 합쳐 추첨</strong></li>
+            <li>표본이 작은 회차는 챕터 통계 반영 시 가중치를 낮추거나 “표본 부족” 표기</li>
+          </ol>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div><span class="lbl">원인</span>추첨 크기는 <code>Math.min(10, pool.length)</code>인데 안내 문구는 10을 고정 표기합니다.</div>
+        <div class="srcs"><span class="lbl">근거</span><code>useQuestions.ts:126</code><code>StatsDashboard.tsx:112</code></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">B3</span>
+        <h3>약점 챕터 정렬이 표본 수를 무시</h3>
+        <span class="chip c-gap">설계 공백</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <p>정렬 기준이 정답률 오름차순뿐이라 <strong>표본이 가장 작은 챕터가 늘 1위 약점</strong>이 됩니다.</p>
+          <pre class="repro">ISTQB 1회  <span class="hit">테스트 도구       0%  (0/2)</span>  ← 1위
+           테스트 기법      36%  (4/11)
+CSTS  1회  <span class="hit">테스트 프로세스…  0%  (0/5)</span>  ← 1위
+           테스트 기법      10%  (2/20)</pre>
+          <p>표본 20개짜리 실제 약점이 표본 2~5개 아래로 밀립니다.</p>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <ol>
+            <li>최소 표본(예: 5문항) 미만은 별도 섹션으로 분리 — “표본 부족 · 더 풀어보세요”</li>
+            <li>또는 Wilson 하한 등 신뢰구간 기반 정렬로 소표본의 과대 랭킹 억제</li>
+            <li>최소한 표본 수를 행에서 강조해 사용자가 스스로 판단할 수 있게</li>
+          </ol>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div><span class="lbl">원인</span>정렬이 <code>rate</code> 오름차순 단일 기준이며 표본 크기 보정·최소 표본 조건이 없습니다.</div>
+        <div class="srcs"><span class="lbl">근거</span><code>StatsDashboard.tsx:63</code><code>ISTQB·CSTS 양쪽 실측</code></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">B4</span>
+        <h3>파괴적 액션의 확인 기준이 불일치</h3>
+        <span class="chip c-ux">UX 결함</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <p>같은 “랜덤 진행 삭제”인데 경로마다 규칙이 다릅니다.</p>
+          <pre class="repro">랜덤 중 세트 변경    → 확인 모달 ✓
+랜덤 중 새 문제 뽑기 → <span class="hit">확인 없이 즉시 삭제</span>
+                       진행 2/40 → 0/40</pre>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <p>진행(답한 문항)이 있고 아직 채점 전이면 <strong>세트 변경과 동일한 확인 모달을 재사용</strong>합니다. 진행이 없으면 지금처럼 즉시 실행 — 두 경로가 완전히 같은 규칙을 따르게 합니다.</p>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div><span class="lbl">원인</span>세트 변경은 <code>pendingSetChange</code> 확인 흐름을 타지만, 재추첨 버튼은 <code>clearAnswers</code> → <code>redrawRandom</code>을 바로 호출합니다.</div>
+        <div class="srcs"><span class="lbl">근거</span><code>Sidebar.tsx:96</code><code>Sidebar.tsx:227-240</code></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">B5</span>
+        <h3>0문항 채점이 정식 회차로 적립</h3>
+        <span class="chip c-ux">UX 결함</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <p>‘시험 시작’ 직후 곧바로 ‘채점하기’를 누르면 <strong>0/40 회차가 통계·타임라인·오답노트에 영구 기록</strong>됩니다.</p>
+          <p>오답 40개가 노트에 쌓여 이후 ‘오답 다시 풀기’가 전 문항이 되고, 평균 정답률도 0%가 섞여 왜곡됩니다.</p>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <ol>
+            <li>응답이 0건이면 채점 대신 “응시를 포기할까요?” 흐름으로 유도 — 이미 있는 <code>quitExam</code> 경로는 회차를 남기지 않습니다</li>
+            <li>또는 확인 모달 문구를 “모든 문항이 미응답입니다. 0점 회차로 기록됩니다”로 명확화하고 기본 버튼을 ‘계속 풀기’로</li>
+          </ol>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div><span class="lbl">원인</span><code>examUnderway</code>가 <code>examStarted</code>만 확인하고 응답 수를 보지 않습니다. 시작 게이트 통과 자체를 응시로 간주합니다.</div>
+        <div class="srcs"><span class="lbl">근거</span><code>useQuizSession.ts:63-69</code></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">B6</span>
+        <h3>빈 입력으로 정답 공개 가능</h3>
+        <span class="chip c-ux">UX 결함</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <p>서답형에서 입력칸을 비운 채 ‘정답 확인’만 눌러도 정답이 전부 노출됩니다.</p>
+          <pre class="repro">CSTS 62번 · 입력 없음 · '정답 확인' 클릭
+<span class="hit">❌ 오답입니다 · 정답 단위 테스트, 단위 테스팅,
+   Unit Test, Unit Testing, 컴포넌트 테스트, …</span></pre>
+          <p>동의어가 8개까지 한 줄로 이어져 가독성도 떨어집니다.</p>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <ol>
+            <li>입력이 비면 버튼을 <code>disabled</code> 처리하거나 “먼저 답을 입력해 주세요” 안내</li>
+            <li>정답 표시는 대표답 1~2개만 굵게, 나머지 표기는 “다른 표기도 정답”으로 접어두기</li>
+          </ol>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div><span class="lbl">원인</span>‘정답 확인’ 버튼이 입력 여부와 무관하게 <code>setShowFeedback(true)</code>만 실행합니다.</div>
+        <div class="srcs"><span class="lbl">근거</span><code>QuestionCard.tsx:219-227</code></div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ C ============ -->
+  <section class="block">
+    <div class="sec-head">
+      <h2>C · UI 일관성</h2>
+      <span class="tag">4건 + 참고 2건</span>
+    </div>
+    <p class="lede">동작에는 문제가 없고 표시 규칙이 화면마다 갈리는 항목입니다. 개별 비용이 낮아 묶어서 처리하기 좋습니다.</p>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">C1</span>
+        <h3>통계 날짜만 영문 로케일</h3>
+        <span class="chip c-ui">UI</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <pre class="repro">학습 통계 회차 목록   <span class="hit">7/26/2026</span>
+오답 노트             2026. 7. 26.</pre>
+          <p>한국어 앱 안에서 두 형식이 공존합니다.</p>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <p>날짜 포맷 함수를 <code>utils/time.ts</code> 등에 <strong>단일 원천으로 추출</strong>하고 두 화면이 공유합니다. <code>formatClock</code>이 이미 그 역할을 하고 있으므로 같은 패턴을 따르면 됩니다.</p>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div><span class="lbl">원인</span><code>toLocaleDateString()</code>에 로케일을 지정하지 않아 브라우저 기본(en-US)이 적용됩니다. 오답노트만 <code>'ko-KR'</code>을 명시했습니다.</div>
+        <div class="srcs"><span class="lbl">근거</span><code>StatsDashboard.tsx:230</code><code>AppModals.tsx:533</code></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">C2</span>
+        <h3>회차 목록에 시각이 없음</h3>
+        <span class="chip c-ui">UI</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <p>하루에 3회 응시하면 세 줄 모두 <code>7/26/2026</code>입니다. 방금 친 회차가 어느 것인지 구분할 수 없습니다.</p>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <p>오늘 회차는 <code>14:32</code>, 이전 회차는 <code>7/26</code>처럼 상대 표기. 또는 <code>7/26 14:32</code> 고정 표기. <code>createdAt</code>에 이미 ms 단위 시각이 들어 있습니다.</p>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div><span class="lbl">원인</span>날짜만 렌더하고 시각 정보를 버립니다.</div>
+        <div class="srcs"><span class="lbl">근거</span><code>StatsDashboard.tsx:230</code></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">C3</span>
+        <h3>팔레트 번호 ≠ 문항 번호</h3>
+        <span class="chip c-ui">UI</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <pre class="repro">미니 시험 화면
+  헤더    <span class="hit">문제 39</span>
+  팔레트  [1] [2]        ← 39가 없음</pre>
+          <p>랜덤 40문항·오답 모드에서도 같습니다. 연습·시험에서만 두 값이 우연히 일치해 발견이 늦습니다.</p>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <ol>
+            <li>팔레트를 원본 문항 번호로 통일하거나</li>
+            <li>헤더를 <code>3 / 40 (원문 39번)</code>처럼 병기</li>
+          </ol>
+          <p>어느 쪽이든 <strong>한 화면에서 두 번호 체계가 섞이지 않게</strong> 하는 것이 핵심입니다.</p>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div><span class="lbl">원인</span>팔레트는 순번 <code>i + 1</code>을, 워크스페이스 헤더는 원본 문항 번호 <code>question.number</code>를 렌더합니다.</div>
+        <div class="srcs"><span class="lbl">근거</span><code>QuestionPalette.tsx:45</code><code>QuestionWorkspace.tsx:246</code></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">C4</span>
+        <h3>모바일에서 세트명 중복</h3>
+        <span class="chip c-ui">UI</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <pre class="repro">360px 화면
+  상단바  ISTQB FL v4.0 샘플문제 A
+  카드    <span class="hit">ISTQB FL v4.0 샘플문제 A</span>
+          문제 1</pre>
+          <p>세로 공간이 귀한 폭에서 첫 화면의 약 15%를 중복 정보가 차지합니다.</p>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <p>≤880px에서 워크스페이스 헤더의 <code>#setMeta</code>를 CSS로 숨기고 <code>문제 N</code>만 남깁니다. 상단바가 이미 세트명·모드·진행·시간을 상시 노출하므로 정보 손실이 없습니다.</p>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div><span class="lbl">원인</span>두 컴포넌트가 각각 <code>setTitle</code>을 렌더합니다. 데스크톱에서는 상단바가 숨겨져 중복이 드러나지 않습니다.</div>
+        <div class="srcs"><span class="lbl">근거</span><code>MobileTopBar.tsx:26</code><code>QuestionWorkspace.tsx:245</code></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">C5</span>
+        <h3>다크 모드에서 문제 이미지가 흰 블록</h3>
+        <span class="chip c-note">참고</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <p>다크 모드에서 CSTS 9번 같은 큰 다이어그램이 흰 배경 그대로 렌더돼 눈부심이 있습니다.</p>
+          <p>다만 CSS 주석에 “흰 PNG가 떠 보이지 않도록 일관 처리”라는 근거가 명시돼 있습니다 — <strong>버그가 아니라 의도된 트레이드오프</strong>입니다.</p>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <p>선택 사항입니다. 이미지 컨테이너 밝기를 약간 낮추거나(<code>filter: brightness(.9)</code>) 여백을 두어 대비를 완화할 수 있습니다. 현 동작 유지도 합리적이므로 우선순위는 낮습니다.</p>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div class="srcs"><span class="lbl">근거</span><code>globals.css:1005-1009</code></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">C6</span>
+        <h3>드로어 포커스가 ‘닫기’에 착지</h3>
+        <span class="chip c-note">접근성</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <p>모바일 드로어를 열면 포커스가 <code>✕</code>(메뉴 닫기) 버튼으로 갑니다. 스크린리더 사용자는 메뉴를 열자마자 “닫기”를 듣습니다.</p>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <p>첫 포커스를 <code>aside</code> 컨테이너나 첫 <strong>기능</strong> 컨트롤(문제 세트 select)로 지정합니다. 닫기 버튼은 Tab 순환 안에 남겨두면 충분합니다.</p>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div><span class="lbl">원인</span><code>focusables()[0]</code>이 DOM 순서상 <code>.drawer-close</code>입니다.</div>
+        <div class="srcs"><span class="lbl">근거</span><code>Sidebar.tsx:51</code><code>Sidebar.tsx:188</code></div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ D ============ -->
+  <section class="block">
+    <div class="sec-head">
+      <h2>D · 엣지케이스</h2>
+      <span class="tag">참고 4건</span>
+    </div>
+    <p class="lede">
+      정상 확인된 항목 — 320~1280px 전 폭에서 가로 오버플로 0건, 32px 미만 터치 타깃 0건, 콘솔 에러 0건.
+      하단 고정 액션바가 마지막 보기를 가리지 않고, 네트워크 실패 시 에러 UI와 ‘다시 시도’가 정상 복구되며,
+      제한시간 자동 제출·이미지 라이트박스·키보드 이동·CSTS 가중 채점 모두 문서화된 정책대로 동작합니다.
+    </p>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">D1</span>
+        <h3>백업 가져오기 실패 사유 미전달</h3>
+        <span class="chip c-note">개선</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <pre class="repro">JSON 파싱 실패        → "파일 복원에 실패했습니다."
+미래 스키마 v99 거부   → "파일 복원에 실패했습니다."</pre>
+          <p>상세는 콘솔에만 남아 사용자는 무엇을 고쳐야 할지 알 수 없습니다.</p>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <p>실패 사유를 결과 객체(<code>{ok, reason}</code>)로 반환해 토스트에 반영합니다 — “파일 형식이 올바르지 않습니다” / “이 백업은 최신 버전 앱에서 만들어졌습니다” / “다른 자격증 백업입니다”(A1과 연계).</p>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div><span class="lbl">원인</span><code>importUserData</code>가 <code>Promise&lt;boolean&gt;</code>만 반환해 실패 이유가 호출부에 전달되지 않습니다.</div>
+        <div class="srcs"><span class="lbl">근거</span><code>AppModals.tsx:273-278</code><code>storage.ts:598-610</code></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">D2</span>
+        <h3>가져오기 시맨틱이 섞임</h3>
+        <span class="chip c-note">개선</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <pre class="repro">응시 이력   put   → <span style="color:var(--pass)">병합</span>
+답안·UI 상태      → <span class="hit">통째로 덮어쓰기</span></pre>
+          <p>저장소 특성에 따라 정책이 갈려 사용자가 결과를 예측할 수 없습니다.</p>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <p>가져오기 시 <strong>“병합 / 덮어쓰기” 선택 UI</strong>를 제공하거나, 최소한 확인 모달에 현재 정책을 명시합니다 — “기존 답안은 백업본으로 교체되고, 응시 이력은 합쳐집니다”.</p>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div class="srcs"><span class="lbl">근거</span><code>storage.ts:628</code><code>storage.ts:655</code></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">D3</span>
+        <h3>뒤로가기로 응시 중 이탈</h3>
+        <span class="chip c-note">개선</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <p>웹에서 오버레이가 없을 때 뒤로가기 한 번이면 <strong>시험 응시 중에도 확인 없이</strong> 앱을 벗어납니다. APK에서는 <code>App.exitApp()</code>으로 종료됩니다.</p>
+          <p>설계상 의도된 동작이지만, A3(시계 정지)와 결합하면 제한시간 우회 경로가 됩니다.</p>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <p>시험 응시 중(<code>examLocked</code>)일 때만 한 단계 가드를 추가해 “응시 중입니다. 나가시겠어요?”를 노출합니다. A3와 함께 다루는 것이 효율적입니다.</p>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div><span class="lbl">원인</span><code>backGuard</code>는 오버레이 가드만 관리하고, 가드가 없으면 기본 동작(이동·종료)에 위임합니다.</div>
+        <div class="srcs"><span class="lbl">근거</span><code>backGuard.ts:72</code><code>backGuard.ts:119-124</code></div>
+      </div>
+    </article>
+
+    <article class="finding">
+      <div class="f-head">
+        <span class="f-id">D4</span>
+        <h3>채점 순간 타이머 표시 점프</h3>
+        <span class="chip c-note">참고</span>
+      </div>
+      <div class="diff">
+        <div class="pane pane-as">
+          <h4>As-Is</h4>
+          <pre class="repro">자동 제출 직전   00:01
+자동 제출 직후   <span class="hit">1:00:00</span></pre>
+          <p>채점 전은 <strong>남은 시간</strong>(카운트다운), 채점 후는 <strong>경과 시간</strong>으로 의미가 바뀌며 라벨도 함께 변경됩니다 — <strong>정상 동작</strong>입니다.</p>
+        </div>
+        <div class="pane pane-to">
+          <h4>To-Be</h4>
+          <p>선택 사항입니다. 채점 후 값을 <code>소요 1:00:00</code>처럼 라벨과 값을 붙여 표기하면 점프가 “의미 전환”으로 읽힙니다. 기능 문제는 아닙니다.</p>
+        </div>
+      </div>
+      <div class="f-foot">
+        <div class="srcs"><span class="lbl">근거</span><code>Sidebar.tsx:309</code><code>TimerClock.tsx</code></div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ 우선순위 ============ -->
+  <section class="block">
+    <div class="sec-head">
+      <h2>처리 우선순위</h2>
+      <span class="tag">권고</span>
+    </div>
+    <div class="scroller">
+      <table class="prio">
+        <thead>
+          <tr><th>순위</th><th>항목</th><th>사유</th><th>성격</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="rank rank-hot">1</td><td class="ids">A1</td><td>무통지 데이터 파괴 + 거짓 성공 메시지</td><td><span class="chip c-defect">결함</span></td></tr>
+          <tr><td class="rank rank-hot">2</td><td class="ids">A2</td><td>멀티탭 답안 유실 — 재현 조건이 일상적</td><td><span class="chip c-defect">결함</span></td></tr>
+          <tr><td class="rank rank-hot">3</td><td class="ids">B1</td><td>핵심 학습 루프의 마지막 단계 부재</td><td><span class="chip c-gap">설계 공백</span></td></tr>
+          <tr><td class="rank rank-hot">4</td><td class="ids">A3</td><td>시험 모드의 제한시간이 무력화됨</td><td><span class="chip c-defect">결함</span></td></tr>
+          <tr><td class="rank">5</td><td class="ids">B2 · B3</td><td>측정값을 신뢰할 수 없게 만듦</td><td><span class="chip c-gap">설계 공백</span></td></tr>
+          <tr><td class="rank">6</td><td class="ids">B4 · B5 · B6</td><td>확인 없는 삭제 · 유령 회차 · 정답 무료 공개</td><td><span class="chip c-ux">UX 결함</span></td></tr>
+          <tr><td class="rank">7</td><td class="ids">C1 – C4</td><td>표시 일관성 — 묶어서 처리 가능</td><td><span class="chip c-ui">UI</span></td></tr>
+          <tr><td class="rank">8</td><td class="ids">C5 · C6 · D1 – D4</td><td>트레이드오프 · 접근성 · 안내 수준</td><td><span class="chip c-note">개선</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="sec-head">
+      <h2>성격 구분</h2>
+      <span class="tag">읽는 법</span>
+    </div>
+    <div class="kinds">
+      <div class="kind">
+        <span class="k-name c-defect">결함</span>
+        <p>사용자가 인지하지 못한 채 데이터를 잃거나 규칙이 무력화됩니다. 논의 없이 바로 수정 대상입니다.</p>
+      </div>
+      <div class="kind">
+        <span class="k-name c-gap">설계 공백</span>
+        <p>코드는 의도대로 동작하지만 학습 루프가 닫히지 않거나 측정값이 신뢰를 잃습니다. 기능 설계 논의가 먼저 필요합니다.</p>
+      </div>
+      <div class="kind">
+        <span class="k-name c-ux">UX 결함</span>
+        <p>동작은 하지만 사용자가 예상하지 못한 손실이나 이득을 봅니다. 가드 한 줄로 대부분 해결됩니다.</p>
+      </div>
+      <div class="kind">
+        <span class="k-name c-ui">UI</span>
+        <p>기능에 문제가 없고 표시 규칙만 화면마다 갈립니다. 개별 비용이 낮아 한 번에 묶어 처리하는 편이 좋습니다.</p>
+      </div>
+      <div class="kind">
+        <span class="k-name c-note">개선 · 참고</span>
+        <p>의도된 트레이드오프이거나 안내 수준의 문제입니다. 여유가 있을 때 다루면 됩니다.</p>
+      </div>
+    </div>
+
+    <p class="endnote">
+      A1과 A2는 각각 <code>e2e/react-edge-import.spec.ts</code>, <code>e2e/react-edge-persist.spec.ts</code>에
+      재현 케이스를 추가하면 같은 유형의 재발을 하네스가 잡게 됩니다.
+      원하는 항목을 고르면 수정 패치와 회귀 스펙을 함께 만들어 드리겠습니다.
+    </p>
+  </section>
+
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btn = document.querySelector('.theme-toggle');
+    var KEY = 'qa-report-theme';
+    var saved = null;
+    try { saved = localStorage.getItem(KEY); } catch (e) { /* file:// 제한 무시 */ }
+    if (saved) root.setAttribute('data-theme', saved);
+
+    function current() {
+      return root.getAttribute('data-theme')
+        || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    }
+    function paint() { btn.textContent = current() === 'dark' ? '\u2600 Light' : '\u263e Dark'; }
+
+    btn.addEventListener('click', function () {
+      var next = current() === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem(KEY, next); } catch (e) { /* 무시 */ }
+      paint();
+    });
+    paint();
+  })();
+</script>
+</body>
+</html>
