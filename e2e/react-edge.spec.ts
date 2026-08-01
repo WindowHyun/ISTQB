@@ -68,7 +68,9 @@ test.describe("엣지 케이스", () => {
     const opts = page.locator("#options .option");
     const n = await opts.count();
     for (let i = 0; i < n; i++) await opts.nth(i).click();
-    // 동시에 selected 인 보기는 정답 개수(2)를 넘지 않는다
-    expect(await page.locator("#options .option.selected").count()).toBeLessThanOrEqual(2);
+    // 정확히 2개여야 한다. 상한만 보면(<=2) 클릭이 하나도 먹지 않아 0개일 때도 통과해,
+    // "상한이 동작한다"가 아니라 "아무 일도 안 일어났다"를 합격으로 읽는다.
+    expect(await page.locator("#options .option.selected").count(),
+      "보기를 모두 눌렀는데 선택이 2개가 아니다(0이면 클릭 자체가 안 먹은 것)").toBe(2);
   });
 });

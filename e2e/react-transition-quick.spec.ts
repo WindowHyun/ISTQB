@@ -222,12 +222,21 @@ test("전이: 퀵 진행 중에는 세트 셀렉트가 잠겨 추첨도 진행�
 const ALL_MODES = ["practice", "exam", "random", "review", "quick"] as const;
 type AnyMode = typeof ALL_MODES[number];
 
+/**
+ * 모드 진입 시도. 실패를 삼키는 이유는 "전이가 거절될 수 있다"가 사양이기 때문이다
+ * (응시 중 잠금, 오답 없음). 다만 거절과 '컨트롤이 아예 없다'는 다르다 — 후자는 제품이
+ * 아니라 검사가 깨진 것이므로 여기서 소리를 낸다. 세그먼트 버튼 4개는 어떤 상태에서도
+ * 항상 렌더되므로(비활성일 수는 있어도) 부재는 곧 셀렉터 부패다.
+ * 퀵 시작 버튼만은 예외로 사라진다: 퀵 진행 중 같은 문항 수면 감춰 둔다(Sidebar 주석).
+ */
 async function goAny(page: Page, m: AnyMode) {
   if (m === "quick") {
     await page.locator("#quickSize").selectOption("10").catch(() => {});
     await page.getByTestId("quick-start-btn").click({ timeout: 5000 }).catch(() => {});
   } else {
-    await page.locator(`.segmented button[data-mode="${m}"]`).click({ timeout: 5000 }).catch(() => {});
+    const btn = page.locator(`.segmented button[data-mode="${m}"]`);
+    if (!(await btn.count())) bad(`${m}: 세그먼트 버튼이 DOM에 없다 — 셀렉터가 썩었다`);
+    await btn.click({ timeout: 5000 }).catch(() => {});
     for (const id of ["confirm-exit-exam-modal", "pending-set-change-modal"]) {
       const md = page.getByTestId(id);
       if (await md.count()) await md.locator("button").last().click({ timeout: 2000 }).catch(() => {});
@@ -242,6 +251,8 @@ test("전이 전수: 5모드 25개 순서쌍을 모두 밟아도 앱이 살아 �
   page.on("pageerror", (e) => errs.push(String(e).slice(0, 160)));
 
   let walked = 0;
+  let landed = 0;
+  const refused: string[] = [];
   for (const from of ALL_MODES) {
     for (const to of ALL_MODES) {
       await page.goto("/");
@@ -264,6 +275,13 @@ test("전이 전수: 5모드 25개 순서쌍을 모두 밟아도 앱이 살아 �
       await goAny(page, to);
       walked += 1;
 
+      // 전이가 실제로 일어났는지 센다. 이 확인이 없으면 진입 경로가 무동작이어도
+      // "앱이 살아 있다"는 그대로 참이라 25칸 전부가 조용히 초록으로 남는다
+      // (react-quick에서 같은 결함을 겪었다: 없는 셀렉터로 20문항을 한 번도 밟지 않았다).
+      // 칸별로 to와 일치할 것을 요구하지는 않는다 — 거절이 사양인 칸이 있다.
+      if ((await storeState(page, to)).mode === to) landed += 1;
+      else refused.push(`${from}→${to}`);
+
       // 어느 칸에서도 앱이 죽거나 화면이 비면 안 된다.
       const alive = await page.evaluate(() => ({
         shell: !!document.querySelector(".app-shell"),
@@ -278,7 +296,16 @@ test("전이 전수: 5모드 25개 순서쌍을 모두 밟아도 앱이 살아 �
       if (alive.overflow) bad(`${from}→${to}: 문서 가로 넘침`);
     }
   }
-  console.log(`· 5모드 전이 전수 ${walked}칸 (5×5) 검사 완료`);
+  console.log(`· 5모드 전이 전수 ${walked}칸 (5×5) · 실제 전이 ${landed}칸`);
+  if (refused.length) console.log(`  · 전이하지 않은 칸: ${refused.join(", ")}`);
   if (errs.length) bad(`JS 오류: ${JSON.stringify(errs.slice(0, 5))}`);
+  // 순회 자체가 끝까지 돌았는가. 중간에서 새면 아래 검사들이 덜 밟은 상태로 통과한다.
+  expect(walked, "순회가 25칸을 다 밟지 못했다").toBe(25);
+  // 그리고 그 칸들이 실제로 모드를 옮겼는가. 실측이 25/25이므로 하한(>=20 따위)이 아니라
+  // 25를 그대로 요구한다 — 여유를 둔 하한은 "몇 칸이 조용히 무동작이어도 통과"라서
+  // 지금 없애려는 결함을 그대로 다시 만든다. 거절이 사양인 칸이 생기면 그때
+  // 그 칸을 이름으로 예외 처리하고 숫자를 낮춘다(무엇이 왜 빠지는지 코드에 남게).
+  expect(landed, `25칸 중 ${landed}칸만 전이했다 — 진입 경로가 죽었을 수 있다(${refused.join(", ")})`)
+    .toBe(25);
   expect(problems, problems.join("\n")).toEqual([]);
 });

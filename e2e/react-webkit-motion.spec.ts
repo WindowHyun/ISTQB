@@ -337,3 +337,92 @@ test("WebKit 원인 규명: 렌더 버스트가 어느 범주에서 오는가(�
   // 원인 규명 단계라 게이트로 걸지 않는다 — 측정이 성립했는지만 본다.
   expect(results["① 그대로"]?.length ?? 0, "버스트를 한 번도 재지 못했다").toBeGreaterThan(0);
 });
+
+/**
+ * 버스트가 'JS'인가 '레이아웃·페인트'인가 — 한 비트를 확정한다.
+ *
+ * 범주 분해(애니메이션·이미지·표)는 답을 주지 못했다. 조건을 순서대로 재는 구조라
+ * 측정끼리 서로 오염되고(앞 조건의 잔열이 뒤 조건에 얹힌다), 애초에 후보 목록이
+ * 맞다는 보장도 없었다. 범주를 더 늘리는 대신 상위 갈래를 먼저 가른다 — 어느 쪽이냐에
+ * 따라 고칠 곳이 완전히 다르기 때문이다(전자는 React·스토어·영속화, 후자는 CSS·DOM).
+ *
+ * 두 가지를 잰다.
+ *  (1) jsMs — '다음' 클릭이 동기적으로 돌아오기까지의 시간. React 19에서 클릭은 discrete
+ *      이벤트라 렌더가 이 안에서 flush된다. 이 값이 크면 비용은 JS다.
+ *  (2) frames — 클릭 직후 400ms의 rAF 프레임. 같은 클릭을 #root를 display:none으로
+ *      가린 채로도 재서 짝을 짓는다. 가렸는데 회복하면 비용은 레이아웃·페인트다.
+ *
+ * 순서 오염을 피하려고 A(그대로)/B(가림)를 번갈아 짝으로 잰다 — 한쪽을 몰아서 재면
+ * 앞선 측정의 잔열이 한쪽에만 얹힌다(직전 범주 분해가 그렇게 어긋났다).
+ */
+test("WebKit 원인 규명: 버스트가 JS인가 레이아웃·페인트인가", async ({ page }) => {
+  test.setTimeout(300_000);
+
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await openProduct(page, "ISTQB");
+  const sel = page.locator("#quickSize");
+  if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
+  await sel.selectOption("20");
+  await page.getByTestId("quick-start-btn").click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+
+  // 한 번의 '다음'에 대해 (동기 JS 시간, 직후 프레임 수)를 잰다.
+  // hide=true면 클릭 직전에 #root를 감춰 레이아웃·페인트를 걷어낸 상태로 잰다.
+  const step = (hide: boolean) => page.evaluate(async (h: boolean) => {
+    const root = document.querySelector("#root") as HTMLElement | null;
+    const prev = root?.style.display ?? "";
+    if (h && root) root.style.display = "none";
+    const btn = document.querySelector("#nextBtn") as HTMLElement | null;
+    const t0 = performance.now();
+    btn?.click();
+    const jsMs = Math.round(performance.now() - t0);
+
+    let frames = 0;
+    const t1 = performance.now();
+    await new Promise<void>((done) => {
+      const tick = () => {
+        frames += 1;
+        if (performance.now() - t1 < 400) requestAnimationFrame(tick);
+        else done();
+      };
+      requestAnimationFrame(tick);
+    });
+    if (h && root) root.style.display = prev;
+    return { jsMs, frames };
+  }, hide);
+
+  const shown: { jsMs: number; frames: number }[] = [];
+  const hidden: { jsMs: number; frames: number }[] = [];
+  for (let i = 0; i < 4; i += 1) {
+    shown.push(await step(false));
+    await page.waitForTimeout(400);
+    hidden.push(await step(true));
+    await page.waitForTimeout(400);
+  }
+
+  const med = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] ?? -1;
+  const sJs = med(shown.map((x) => x.jsMs));
+  const hJs = med(hidden.map((x) => x.jsMs));
+  const sFr = med(shown.map((x) => x.frames));
+  const hFr = med(hidden.map((x) => x.frames));
+
+  console.log("\n=== 버스트의 정체: JS vs 레이아웃·페인트 ===");
+  console.log(`· 그대로 : 동기 JS ${sJs}ms · ${sFr}프레임/400ms  (원자료 ${JSON.stringify(shown)})`);
+  console.log(`· 가림   : 동기 JS ${hJs}ms · ${hFr}프레임/400ms  (원자료 ${JSON.stringify(hidden)})`);
+  console.log(
+    `· 판정: ${
+      sJs >= 300
+        ? "JS가 지배적이다 — 클릭 한 번의 동기 렌더가 이미 길다(React·스토어·영속화를 본다)"
+        : hFr > sFr * 2
+          ? "레이아웃·페인트가 지배적이다 — 가리자 프레임이 회복했다(CSS·DOM을 본다)"
+          : "둘 다 결정적이지 않다 — 다음 후보는 클릭 이후의 비동기 작업이다"
+    }`,
+  );
+
+  // 원인 규명 단계라 수치를 게이트로 걸지 않는다. 다만 측정이 성립했는지는 못 박는다 —
+  // 이게 없으면 클릭이 하나도 먹지 않아 0프레임·0ms가 찍혀도 '측정 완료'로 읽힌다.
+  expect(shown.length, "측정을 한 번도 하지 못했다").toBe(4);
+  expect(sFr, "그대로 조건에서 프레임이 전혀 돌지 않았다 — 측정이 성립하지 않는다").toBeGreaterThan(0);
+  expect(hFr, "가림 조건에서 프레임이 전혀 돌지 않았다 — 측정이 성립하지 않는다").toBeGreaterThan(0);
+});

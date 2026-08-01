@@ -190,6 +190,11 @@ test("UI: 모바일에서 퀵 컨트롤이 터치 타깃 최소 크기를 만족
 test("UI: 테마 × 글자 크기 조합에서 퀵 화면이 넘치거나 잘리지 않는다", async ({ page }) => {
   test.setTimeout(400_000);
 
+  // 실제로 몇 조합에서 '넘침을 볼 수 있는 화면'까지 갔는지 센다. 퀵 패널이 없으면
+  // continue로 빠지는데, 그 경로만 12번 타도 problems가 비어 있는 한 통과해 버린다
+  // (bad를 부르므로 지금은 걸리지만, 검사 대상 화면에 닿았는지 자체를 세어 두면
+  // 셀렉터·레이아웃이 바뀌어 조용히 건너뛰는 경우까지 잡는다).
+  let inspected = 0;
   for (const theme of ["light", "dark"] as const) {
     for (const font of ["small", "normal", "large"] as const) {
       for (const width of [390, 1280]) {
@@ -222,10 +227,12 @@ test("UI: 테마 × 글자 크기 조합에서 퀵 화면이 넘치거나 잘리
           s: document.documentElement.scrollWidth, c: document.documentElement.clientWidth,
         }));
         if (doc.s > doc.c + 1) bad(`${label}: 문서 가로 넘침 ${doc.s}>${doc.c}`);
+        inspected += 1;
       }
     }
   }
-  note("테마 2 × 글자크기 3 × 폭 2 = 12조합 검사 완료");
+  note(`테마 2 × 글자크기 3 × 폭 2 = 12조합 중 ${inspected}조합 검사`);
+  expect(inspected, "12조합을 다 보지 못했다 — 검사가 무력하다").toBe(12);
   expect(problems, problems.join("\n")).toEqual([]);
 });
 
