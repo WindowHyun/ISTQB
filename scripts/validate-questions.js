@@ -183,6 +183,24 @@ function validateQuestion(q, filePath, allIds, allNumbers) {
   validateBlocks(q.stem, 'stem');
   validateBlocks(q.explanation, 'explanation');
 
+  // 해설이 산문인데 code 블록으로 굳은 경우 — PDF 추출 시 코드 판별 규칙이 한국어 산문에
+  // 오탐한 결과다. 테스팅 교재라 동등 분할의 집합 표기({0, 1, 2})·세미콜론·의사코드
+  // 키워드(IF/THEN/END)가 산문에 흔히 섞여 있어 특히 잘 걸린다. 화면에서는 어두운
+  // 고정폭 코드 블록으로 그려져 다른 해설과 눈에 띄게 달라 보인다(실제 11건 발생).
+  //
+  // 판정: '한 줄짜리 code 블록에 한국어가 15자 이상'. 진짜 코드는 여러 줄이고 한국어가
+  // 거의 없으므로, 지문의 정상적인 의사코드 블록(현재 21건)은 여기 걸리지 않는다.
+  for (const block of Array.isArray(q.explanation) ? q.explanation : []) {
+    if (block.type !== 'code') continue;
+    const lines = Array.isArray(block.lines) ? block.lines : [];
+    if (lines.length !== 1) continue;
+    const ko = (lines[0].match(/[가-힣]/g) || []).length;
+    if (ko >= 15) {
+      log('ERROR', filePath, qId,
+        `explanation의 code 블록이 한국어 산문이다(한글 ${ko}자) — type을 paragraph로 바꿔야 화면에서 코드 블록으로 그려지지 않는다: "${lines[0].slice(0, 40)}…"`);
+    }
+  }
+
   const checkNewlines = (blocks, fieldName) => {
     if (!Array.isArray(blocks)) {
       if (typeof blocks === 'string' && blocks.includes('\\n')) {
