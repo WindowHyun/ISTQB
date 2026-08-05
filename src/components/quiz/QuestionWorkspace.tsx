@@ -22,7 +22,7 @@ export const QuestionWorkspace = () => {
     navCollapsed, setNavCollapsed, setPaletteOpen, setResultOpen,
     resumeNotice, setResumeNotice, chapterFilter, setChapterFilter,
     setExamStarted, setDrawerOpen, activeProduct, setExamStartedAt, examStartedAtForSet,
-    setConfirmExitExam,
+    setConfirmExitExam, setPendingRestart,
   } = useQuizStore(useShallow((s) => ({
     index: s.index, setId: s.setId, mode: s.mode, setIndex: s.setIndex,
     tickTimer: s.tickTimer, startTimer: s.startTimer, beginSession: s.beginSession,
@@ -32,6 +32,7 @@ export const QuestionWorkspace = () => {
     chapterFilter: s.chapterFilter, setChapterFilter: s.setChapterFilter,
     setExamStarted: s.setExamStarted, setExamStartedAt: s.setExamStartedAt,
     setConfirmExitExam: s.setConfirmExitExam,
+    setPendingRestart: s.setPendingRestart,
     examStartedAtForSet: s.examStartedAt[s.setId],
     setDrawerOpen: s.setDrawerOpen, activeProduct: s.activeProduct,
   })));
@@ -319,7 +320,8 @@ export const QuestionWorkspace = () => {
               type="button"
               className="resume-restart"
               data-testid="resume-restart"
-              onClick={() => { setIndex(0); setResumeNotice(false); }}
+              // 확인을 받고 지운다 — 답안 소실은 되돌릴 수 없다(세트 변경·새 문제 뽑기와 동일 규칙).
+              onClick={() => setPendingRestart(true)}
             >
               처음부터
             </button>

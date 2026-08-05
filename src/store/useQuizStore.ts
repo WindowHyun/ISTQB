@@ -114,6 +114,11 @@ export interface QuizState {
   // 랜덤 '새 문제 뽑기' 확인 — 세트 변경과 같은 손실(현재 추첨·답안 폐기)인데
   // 종전에는 이 경로만 확인 없이 즉시 실행돼 규칙이 갈렸다.
   pendingRedraw: boolean;
+  // 이어풀기 배너의 '처음부터' 확인 — 종전에는 인덱스만 0으로 되돌리고 답안은 그대로
+  // 뒀다. 버튼 이름('처음부터', 짝은 '계속하기')이 약속한 것은 초기화인데 실제로는
+  // 첫 문항으로 이동만 해서, 사용자는 "초기화가 안 된다"로 겪었다. 이제 실제로 지우되
+  // 답안 소실은 되돌릴 수 없으므로 세트 변경·새 문제 뽑기와 같은 확인 단계를 둔다.
+  pendingRestart: boolean;
   // 시험 응시 중 이탈 확인 — 제한시간이 벽시계로 흐르므로 나가 있는 동안에도 시간이
   // 줄어든다. 실수로 뒤로가기 한 번에 시험 시간을 잃지 않게 한 단계를 둔다.
   confirmExitExam: boolean;
@@ -180,6 +185,7 @@ export interface QuizState {
   setGradedResume: (info: QuizState['gradedResume']) => void;
   setPendingSetChange: (setId: string | null) => void;
   setPendingRedraw: (open: boolean) => void;
+  setPendingRestart: (open: boolean) => void;
   setConfirmExitExam: (open: boolean) => void;
   /** 오답 재풀이로 맞힌 문항 번호를 기록한다(재풀이 대상에서 제외). */
   markReviewed: (setId: string, numbers: number[]) => void;
@@ -247,6 +253,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   gradedResume: null,
   pendingSetChange: null,
   pendingRedraw: false,
+  pendingRestart: false,
   confirmExitExam: false,
   reviewedOk: {},
   randomNonce: 0,
@@ -379,6 +386,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   setGradedResume: (gradedResume) => set({ gradedResume }),
   setPendingSetChange: (pendingSetChange) => set({ pendingSetChange }),
   setPendingRedraw: (pendingRedraw) => set({ pendingRedraw }),
+  setPendingRestart: (pendingRestart) => set({ pendingRestart }),
   setConfirmExitExam: (confirmExitExam) => set({ confirmExitExam }),
   markReviewed: (setId, numbers) => set((state) => {
     const merged = new Set([...(state.reviewedOk[setId] ?? []), ...numbers]);
@@ -442,7 +450,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     drawerOpen: false, settingsOpen: false, statsOpen: false,
     wrongNoteOpen: false, resultOpen: false, paletteOpen: false, confirmGradeOpen: false,
     resumeNotice: false, resumePrompt: false, quitExamOpen: false, gradedResume: null,
-    pendingSetChange: null, pendingRedraw: false, confirmExitExam: false,
+    pendingSetChange: null, pendingRedraw: false, pendingRestart: false, confirmExitExam: false,
     // 제품 게이트로 돌아가면 시험 시작 상태도 리셋(다음 진입 시 시작 게이트 재노출).
     examStarted: {}, chapterFilter: null,
   }),

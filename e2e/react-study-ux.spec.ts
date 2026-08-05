@@ -4,8 +4,21 @@ import { enterExam, gotoQuestion, modeBtn, openProduct, openSet, submitGrade } f
 // 학습 UX 개선: 이어풀기 배너(A) · 제출 전 검토(E) · 오답 해설(F) · 피드백 aria-live(I).
 
 test.describe("학습 UX — 이어풀기 배너(A)", () => {
-  test("중간 위치에서 복원되면 배너가 뜨고 '처음부터'로 1번으로 이동한다", async ({ page }) => {
+  /**
+   * '처음부터'는 이름 그대로 답안까지 초기화해야 한다.
+   *
+   * 종전 검사는 "문제 1로 이동했는가"만 봤고, 구현도 setIndex(0)뿐이라 서로 아귀가
+   * 맞았다 — 그래서 초록이었다. 하지만 버튼 이름('처음부터', 짝은 '계속하기')이 약속한
+   * 것은 초기화이고, 실제로는 이전 답 선택이 그대로 남아 사용자가 "초기화가 안 된다"로
+   * 겪었다. 검사가 이름이 아니라 구현을 따라간 탓에 결함이 통과했다.
+   *
+   * 이제 진행률로 확인한다 — 위치만 되돌리는 구현으로 되돌아가면 진행률이 남아 실패한다.
+   */
+  test("'처음부터'는 확인을 거쳐 답안까지 초기화한다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    // 답을 남긴 채 5번으로 이동한다 — 초기화 대상이 있어야 검사가 성립한다.
+    await page.locator("#options .option").first().click();
+    await expect(page.locator("#progressText")).toContainText("1 /");
     await gotoQuestion(page, 5); // 5번(index 4)으로 이동
     await page.waitForTimeout(800); // 디바운스 저장 플러시
     await page.reload();
@@ -15,10 +28,25 @@ test.describe("학습 UX — 이어풀기 배너(A)", () => {
     const banner = page.getByTestId("resume-banner");
     await expect(banner).toBeVisible();
     await expect(page.locator("#questionTitle")).toContainText("문제 5");
+    await expect(page.locator("#progressText")).toContainText("1 /"); // 답안이 복원됐다
 
+    // 답안 소실은 되돌릴 수 없으므로 확인 단계를 거친다.
     await page.getByTestId("resume-restart").click();
+    await expect(page.getByTestId("pending-restart-modal")).toBeVisible();
+
+    // 취소하면 아무것도 사라지지 않는다.
+    await page.getByTestId("pending-restart-cancel").click();
+    await expect(page.getByTestId("pending-restart-modal")).toHaveCount(0);
+    await expect(page.locator("#questionTitle")).toContainText("문제 5");
+    await expect(page.locator("#progressText")).toContainText("1 /");
+
+    // 확인하면 위치와 답안이 함께 초기화된다.
+    await page.getByTestId("resume-restart").click();
+    await page.getByTestId("pending-restart-confirm").click();
     await expect(page.locator("#questionTitle")).toContainText("문제 1");
     await expect(banner).toHaveCount(0);
+    await expect(page.locator("#progressText"), "답안이 지워지지 않았다").toContainText("0 /");
+    await expect(page.locator("#options .option.selected")).toHaveCount(0);
   });
 
   test("'계속하기'를 누르면 배너만 닫히고 위치는 유지된다", async ({ page }) => {
