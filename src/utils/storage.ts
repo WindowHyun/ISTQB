@@ -480,6 +480,9 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
     });
     // 복원 직후의 답안이 '이 탭이 아는 전부'다 — 이후 삭제 판정의 기준선.
     resetWriteBaseline(sanitizedAnswers);
+    // UI 상태도 같은 시점에 기준선을 잡는다. 이게 없으면 복원 직후 첫 저장에서
+    // 디스크의 모든 누적 키가 '다른 탭이 넣은 것'으로 보여 무한정 되살아난다.
+    resetUiWriteBaseline(useQuizStore.getState());
     // 성공 경로 진단 로그(화면 콘솔 ?debug용) — "복원은 됐는데 데이터가 이상하다"류
     // 문의에서 무엇이 몇 건 복원됐는지를 실기기에서 바로 확인할 수 있게 한다.
     console.info(
@@ -586,14 +589,27 @@ export const saveUiState = debounce((state: Partial<QuizState>) => {
       // 내보내기(exportUserData)에는 넣지 않는다: 복원 시점엔 이미 만료됐을 값이다.
       quickRounds: state.quickRounds,
     };
-    localStorage.setItem(uiStorageKey(), JSON.stringify(safeState));
-    
+    // 다른 탭이 넣은 누적 기록(퀵 회차·복습 진척·시험 기준점·오답 대상)을 덮어쓰지 않는다.
+    // 커서형 필드는 safeState 그대로다 — 위 MERGEABLE_UI_KEYS 주석 참고.
+    const { merged, adopted } = mergeUiWithStored(safeState);
+    localStorage.setItem(uiStorageKey(), JSON.stringify(merged));
+    resetUiWriteBaseline(merged); // 다음 저장의 삭제 판정 기준
+    // 주워 온 것이 실제로 있을 때만 메모리에 반영한다(답안 경로와 동일 규칙).
+    if (adopted) {
+      useQuizStore.setState({
+        reviewIds: merged.reviewIds ?? {},
+        reviewedOk: merged.reviewedOk ?? {},
+        examStartedAt: merged.examStartedAt ?? {},
+        quickRounds: merged.quickRounds ?? [],
+      });
+    }
+
     // Also build legacy snapshot
     const snapshotRaw = localStorage.getItem(persistenceKey());
     const snapshot = snapshotRaw ? JSON.parse(snapshotRaw) : { answers: state.answers };
-    
+
     snapshot.updatedAt = Date.now();
-    snapshot.uiState = safeState;
+    snapshot.uiState = merged;
     localStorage.setItem(persistenceKey(), JSON.stringify(snapshot));
   } catch (e) {
     persistWriteFailed = true; // import 부분 성공 판정용(아래 importUserData 참고)
@@ -629,6 +645,122 @@ let lastWrittenKey = '';
 function resetWriteBaseline(answers: Record<string, string[]>) {
   lastWrittenKey = storageKey();
   lastWritten = { ...answers };
+}
+
+// ── 누적형 UI 상태의 탭 간 병합 ────────────────────────────────────────────────
+// 답안에는 위 기준선 병합이 있었지만 나머지 UI 상태에는 없어서, saveUiState가 자기
+// 메모리를 통째로 덮어썼다. 먼저 열어 둔 탭이 문항을 한 번 넘기기만 해도, 그 사이
+// 다른 탭이 쌓은 퀵 회차·복습 진척·시험 기준점이 소리 없이 사라졌다(실측 확인).
+//
+// 합칠 것과 합치지 말 것을 구분한다:
+// - 누적형(아래 MERGEABLE_UI_KEYS): 키마다 주인이 다른 기록이다. 회차 id·세트 id·채점
+//   키 단위로 다른 탭이 넣은 것을 보존해야 한다.
+// - 커서형(mode·setId·index·elapsedSeconds·navCollapsed·chapterFilter·randomDraw·
+//   quickDraw): "지금 이 탭이 보고 있는 위치"다. 두 탭이 서로 다른 문항을 보고 있을 때
+//   합쳐진 커서는 어느 쪽에도 맞지 않으므로 마지막 쓰기가 이긴다(종전 동작 유지).
+const MERGEABLE_UI_KEYS = ['reviewIds', 'reviewedOk', 'examStartedAt'] as const;
+
+/** 키 단위 3방 병합 — mergeWithStored(답안)와 같은 규칙을 임의 값 타입으로 일반화한다. */
+function mergeKeyed<T>(
+  mine: Record<string, T>,
+  stored: Record<string, T>,
+  baseline: Record<string, T>,
+): Record<string, T> {
+  const merged: Record<string, T> = { ...mine };
+  for (const k of Object.keys(stored)) {
+    if (k in mine) continue;     // 내 값이 이긴다(나중 쓰기 우선)
+    if (k in baseline) continue; // 내가 지운 것 — 부활 금지
+    merged[k] = stored[k];       // 다른 탭이 넣은 것 — 보존
+  }
+  return merged;
+}
+
+/** 퀵 회차는 배열이지만 id가 곧 키다 — 병합을 위해 레코드로 바꿨다가 되돌린다. */
+function roundsById(rounds: ExamHistory[] | undefined): Record<string, ExamHistory> {
+  const out: Record<string, ExamHistory> = {};
+  for (const r of rounds ?? []) out[r.id] = r;
+  return out;
+}
+
+interface UiBaseline {
+  reviewIds: Record<string, string[]>;
+  reviewedOk: Record<string, number[]>;
+  examStartedAt: Record<string, number>;
+  quickRounds: Record<string, ExamHistory>;
+}
+const emptyUiBaseline = (): UiBaseline =>
+  ({ reviewIds: {}, reviewedOk: {}, examStartedAt: {}, quickRounds: {} });
+
+let lastWrittenUi: UiBaseline = emptyUiBaseline();
+let lastWrittenUiKey = '';
+
+function uiBaselineOf(state: Partial<QuizState>): UiBaseline {
+  return {
+    reviewIds: { ...(state.reviewIds ?? {}) },
+    reviewedOk: { ...(state.reviewedOk ?? {}) },
+    examStartedAt: { ...(state.examStartedAt ?? {}) },
+    quickRounds: roundsById(state.quickRounds),
+  };
+}
+
+/** 복원 직후의 기준선 설정 — 이 시점의 UI 상태가 '내가 아는 전부'다. */
+function resetUiWriteBaseline(state: Partial<QuizState>) {
+  lastWrittenUiKey = uiStorageKey();
+  lastWrittenUi = uiBaselineOf(state);
+}
+
+/** 디스크에 저장된 UI 상태를 정제해 읽는다(손상 값은 sanitizeUiState가 걸러낸다). */
+function readStoredUi(): Partial<QuizState> {
+  try {
+    const raw = localStorage.getItem(uiStorageKey());
+    return raw ? sanitizeUiState(JSON.parse(raw)) : {};
+  } catch {
+    return {}; // 저장값이 손상됐으면 내 것으로 간다(답안 경로와 동일 정책)
+  }
+}
+
+/**
+ * 저장할 UI 상태에서 누적형 필드만 디스크와 합친다. 커서형 필드는 인자 그대로 둔다.
+ * 반환값의 두 번째 원소는 "다른 탭이 넣은 것을 실제로 주워 왔는가" — 주워 왔을 때만
+ * 메모리에 반영해, 참조만 바뀌어 구독 → 재저장이 도는 피드백 루프를 막는다.
+ */
+function mergeUiWithStored<T extends Partial<QuizState>>(mine: T): { merged: T; adopted: boolean } {
+  if (uiStorageKey() !== lastWrittenUiKey) resetUiWriteBaseline(mine); // 제품 전환 — 기준선 재설정
+  const stored = readStoredUi();
+  const merged = { ...mine };
+  let adopted = false;
+
+  for (const key of MERGEABLE_UI_KEYS) {
+    const mineVal = (mine[key] ?? {}) as Record<string, unknown>;
+    const storedVal = (stored[key] ?? {}) as Record<string, unknown>;
+    const next = mergeKeyed(mineVal, storedVal, lastWrittenUi[key] as Record<string, unknown>);
+    if (Object.keys(next).length !== Object.keys(mineVal).length) {
+      (merged as Partial<QuizState>)[key] = next as never;
+      adopted = true;
+    }
+  }
+
+  // 퀵 회차(배열) — id를 키로 같은 규칙을 적용한다.
+  const mineRounds = roundsById(mine.quickRounds);
+  const nextRounds = mergeKeyed(mineRounds, roundsById(stored.quickRounds), lastWrittenUi.quickRounds);
+  if (Object.keys(nextRounds).length !== Object.keys(mineRounds).length) {
+    // 만료 판정은 읽는 쪽(freshQuickRounds)이 하므로 여기서는 순서만 맞춘다.
+    (merged as Partial<QuizState>).quickRounds = Object.values(nextRounds).sort(
+      (a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0),
+    );
+    adopted = true;
+  }
+  return { merged, adopted };
+}
+
+/**
+ * 가져오기 전용 — 지금 디스크에 있는 UI 상태를 통째로 기준선으로 삼는다.
+ * 그러면 백업에 없는 키가 "내가 지운 것"으로 판정돼 병합이 되살리지 않는다.
+ * 가져오기의 계약은 "이력은 합쳐지고 UI 상태·답안은 교체"이므로 병합이 끼면 안 된다.
+ */
+function adoptStoredUiAsBaseline() {
+  lastWrittenUiKey = uiStorageKey();
+  lastWrittenUi = uiBaselineOf(readStoredUi());
 }
 
 // 다른 탭이 넣은 답안은 살리고, 내가 지운 답안은 되살리지 않는다.
@@ -692,6 +824,11 @@ export const saveAnswers = debounce((answers: Record<string, string[]>) => {
 // 서비스 워커가 prompt 방식이라 사용자가 업데이트를 미룰 수 있어 구버전이 한동안 살아 있다.
 // 버전을 올리면 구버전이 "앱을 업데이트한 뒤 가져오세요"로 거부한다 — 가져오지 못하는 쪽이
 // 조용히 잃는 쪽보다 낫다. 구버전 백업(v1·버전 없음)을 신버전이 읽는 것은 그대로 된다.
+//
+// state에 examStartedAt·reviewedOk를 추가하면서 버전을 올리지 않은 이유: 구버전의
+// saveUiState도 이미 두 필드를 safeState에 담아 저장한다(allowlist에 원래 있다).
+// 즉 구버전이 이 백업을 가져와도 필드가 파괴되지 않는다 — 위 v2 사례(chapterQuestions가
+// 구버전 allowlist에 없어 조용히 사라지던 것)와 상황이 다르다.
 const BACKUP_SCHEMA_VERSION = 2;
 
 export async function exportUserData() {
@@ -710,6 +847,13 @@ export async function exportUserData() {
       randomDraw: state.randomDraw,
       quickDraw: state.quickDraw,
       chapterFilter: state.chapterFilter,
+      // 시험 제한시간의 벽시계 기준점. 빠뜨리면 응시 중에 만든 백업을 복원했을 때
+      // QuestionWorkspace의 syncExamElapsed가 기준점을 못 찾아 아무 일도 하지 않고,
+      // 앱을 껐다 켠 시간이 시험 시간에서 빠진다 — 제한시간을 사실상 무제한으로 만든다.
+      examStartedAt: state.examStartedAt,
+      // 오답 재풀이로 맞혀 '복습함'이 된 문항. 빠뜨리면 백업 복원과 함께 복습 진척이
+      // 통째로 되돌아가, 이미 극복한 문항이 다시 재풀이 목록에 올라온다.
+      reviewedOk: state.reviewedOk,
     },
     answers: state.answers,
     histories: state.histories,
@@ -840,6 +984,10 @@ export async function importUserData(file: File): Promise<ImportResult> {
         // activeProduct를 함께 넣어 saveUiState의 early-return을 피하고, 즉시 flush로 디바운스 우회(#59).
         persistWriteFailed = false;
         if (data.state) {
+          // 가져오기는 '교체'다 — 병합이 끼면 백업에 없는 키가 현재 값으로 되살아나
+          // "가져왔는데 예전 기록이 섞여 있다"가 된다. 디스크 현황을 기준선으로 삼아
+          // 백업에 없는 키를 '지운 것'으로 판정시킨다(mergeUiWithStored 규칙 그대로).
+          adoptStoredUiAsBaseline();
           saveUiState({ ...data.state, activeProduct: product });
           saveUiState.flush();
         }
@@ -882,17 +1030,48 @@ if (typeof window !== 'undefined') {
   window.addEventListener('storage', (e) => {
     const store = useQuizStore.getState();
     if (!store.activeProduct) return;
-    // 이 제품의 답안 키만 반응한다(다른 제품·다른 앱 키는 무시).
-    if (e.key !== storageKey() || e.newValue == null) return;
-    try {
-      const incoming = sanitizeAnswers(JSON.parse(e.newValue));
-      // 참조가 같으면 리렌더가 없으므로 내용 비교로 불필요한 갱신을 막는다.
-      if (JSON.stringify(incoming) === JSON.stringify(store.answers)) return;
-      useQuizStore.setState({ answers: incoming });
-      resetWriteBaseline(incoming); // 채택한 값이 새 기준선(그 뒤 지우면 삭제로 인식)
-      console.info('[data] 다른 탭의 답안 변경을 반영했습니다.');
-    } catch {
-      /* 손상된 값은 무시 — 다음 정상 쓰기에서 맞춰진다 */
+    if (e.newValue == null) return;
+
+    // 이 제품의 답안 키.
+    if (e.key === storageKey()) {
+      try {
+        const incoming = sanitizeAnswers(JSON.parse(e.newValue));
+        // 참조가 같으면 리렌더가 없으므로 내용 비교로 불필요한 갱신을 막는다.
+        if (JSON.stringify(incoming) === JSON.stringify(store.answers)) return;
+        useQuizStore.setState({ answers: incoming });
+        resetWriteBaseline(incoming); // 채택한 값이 새 기준선(그 뒤 지우면 삭제로 인식)
+        console.info('[data] 다른 탭의 답안 변경을 반영했습니다.');
+      } catch {
+        /* 손상된 값은 무시 — 다음 정상 쓰기에서 맞춰진다 */
+      }
+      return;
+    }
+
+    // 이 제품의 UI 상태 키 — 누적형 필드만 받아 온다. 커서형(mode·setId·index 등)은
+    // 받지 않는다: 다른 탭이 문항을 넘겼다고 이 탭의 화면이 따라 움직이면 풀던 자리를
+    // 빼앗긴다. 쓰기 쪽 병합만으로도 유실은 막히지만, 받아 두면 화면(퀵 오답·복습 진척)이
+    // 새로고침 없이 최신이 된다.
+    if (e.key === uiStorageKey()) {
+      try {
+        const incoming = sanitizeUiState(JSON.parse(e.newValue));
+        const next = {
+          reviewIds: incoming.reviewIds ?? store.reviewIds,
+          reviewedOk: incoming.reviewedOk ?? store.reviewedOk,
+          examStartedAt: incoming.examStartedAt ?? store.examStartedAt,
+          quickRounds: incoming.quickRounds ?? store.quickRounds,
+        };
+        const same =
+          JSON.stringify(next.reviewIds) === JSON.stringify(store.reviewIds) &&
+          JSON.stringify(next.reviewedOk) === JSON.stringify(store.reviewedOk) &&
+          JSON.stringify(next.examStartedAt) === JSON.stringify(store.examStartedAt) &&
+          JSON.stringify(next.quickRounds) === JSON.stringify(store.quickRounds);
+        if (same) return; // 내용이 같으면 setState하지 않는다(구독 → 재저장 루프 방지)
+        useQuizStore.setState(next);
+        resetUiWriteBaseline({ ...store, ...next });
+        console.info('[data] 다른 탭의 학습 상태 변경을 반영했습니다.');
+      } catch {
+        /* 손상된 값은 무시 */
+      }
     }
   });
 }
