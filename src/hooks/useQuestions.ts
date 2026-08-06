@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../store/useQuizStore';
 import { loadIndex, loadSetQuestions, subscribeLoads } from '../utils/questionLoader';
 import { makeCanonicalIdResolver } from '../utils/chapterStats';
+import { gradeKeyFor } from '../utils/answerKey';
 
 // Fisher–Yates shuffle: 균일 분포를 보장한다. (sort 비교자에 Math.random을 쓰면 편향됨)
 // 경계가 한 칸만 어긋나도(`* i` 또는 `i >= 0`) 조용히 편향된다 — 눈으로는 여전히
@@ -162,8 +163,8 @@ export function reviewTargetIds(
   setId: string,
 ): Set<string> {
   return new Set([
-    ...(reviewIds[`${setId}-exam`] || []),
-    ...(reviewIds[`${setId}-random`] || []),
+    ...(reviewIds[gradeKeyFor(setId, 'exam')] || []),
+    ...(reviewIds[gradeKeyFor(setId, 'random')] || []),
     // 구버전 데이터 호환 — 모드가 붙기 전의 단독 키.
     ...(reviewIds[setId] || []),
   ]);
@@ -215,9 +216,29 @@ export function useQuestions() {
     const sets = appData.sets.filter((s) => s.certification.toLowerCase() === activeProduct);
     if (!sets.length) return;
 
-    Promise.all(sets.map((s) => loadSetQuestions(s.path).then((questions) => ({ setId: s.id, questions }))))
-      .then((perSet) => {
+    // allSettled — 세트 하나가 실패해도 나머지로 출제한다. Promise.all이면 12세트 중
+    // 1개만 404·타임아웃이어도 퀵 전체가 에러 화면이 됐다. 다른 모드는 세트 하나만
+    // 열므로 이 취약성이 없다 — 퀵만 전 세트를 동시에 여는 유일한 경로다.
+    // 오프라인(서비스워커 캐시 부분 적중)에서 특히 실재하는 조건이다.
+    Promise.allSettled(
+      sets.map((s) => loadSetQuestions(s.path).then((questions) => ({ setId: s.id, questions }))),
+    )
+      .then((results) => {
         if (cancelled) return;
+        const perSet = results
+          .filter((r): r is PromiseFulfilledResult<{ setId: string; questions: Question[] }> =>
+            r.status === 'fulfilled')
+          .map((r) => r.value);
+        const failed = results.length - perSet.length;
+        if (failed) {
+          console.warn(`[data] 퀵: 세트 ${failed}/${results.length}개를 불러오지 못해 나머지로 출제합니다.`);
+        }
+        // 전부 실패했을 때만 에러로 전환한다(아래 catch와 같은 처리).
+        if (!perSet.length) {
+          setLoadError('문제 세트를 불러오지 못했습니다. 네트워크 상태를 확인해 주세요.');
+          setCurrentQuestions([]);
+          return;
+        }
         setLoadError(null);
         const canonicalIdOf = makeCanonicalIdResolver(appData.duplicateGroups);
         const pool = buildQuickPool(perSet, canonicalIdOf);

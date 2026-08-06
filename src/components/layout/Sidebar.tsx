@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useQuizStore, QUICK_SIZES, QUICK_SET_ID } from '../../store/useQuizStore';
+import { useQuizStore, QUICK_SIZES } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
+import { reviewTargetIds } from '../../hooks/useQuestions';
+import { answerKeyPrefix, gradeKeyFor } from '../../utils/answerKey';
 import { useSetCounts } from '../../hooks/useSetCounts';
 import { TimerClock } from '../common/TimerClock';
 import { BRAND_LOGO_SRC } from '../../utils/brandLogo';
@@ -118,8 +120,8 @@ export const Sidebar = () => {
   // 채점 후에는 결과를 이미 봤으므로 세트 변경을 막을 이유가 없다.
   const hasRandomProgress = () => {
     const s = useQuizStore.getState();
-    if (s.graded[`${setId}-random`]) return false;
-    return Object.keys(s.answers).some((k) => k.startsWith(`${setId}-random-`));
+    if (s.graded[gradeKeyFor(setId, 'random')]) return false;
+    return Object.keys(s.answers).some((k) => k.startsWith(answerKeyPrefix(setId, 'random')));
   };
 
   const handleModeChange = (newMode: typeof mode) => {
@@ -127,7 +129,7 @@ export const Sidebar = () => {
       // 같은 모드 재클릭: 응시 중(잠금)에는 무시해 setIndex/타이머 초기화로 잠금이
       // 무력화되지 않게 한다. 단, "채점 완료" 상태의 시험/랜덤 재클릭은 원클릭
       // 재응시(초기화)로 동작한다 — 모드 왕복 없이 다시 풀 수 있는 진입로(A5).
-      const gradedNow = useQuizStore.getState().graded[`${setId}-${mode}`];
+      const gradedNow = useQuizStore.getState().graded[gradeKeyFor(setId, mode)];
       if ((mode === 'exam' || mode === 'random') && gradedNow) {
         // exam이면 examStarted도 해제돼 시작 게이트가 다시 뜬다.
         // 랜덤은 같은 추첨을 다시 푼다 — 새 추첨은 '새 문제 뽑기' 버튼(명시 액션)으로.
@@ -142,7 +144,7 @@ export const Sidebar = () => {
     if (newMode === 'random') {
       clearAnswers(setId, 'random');
       setRandomDraw(null);
-    } else if (newMode === 'exam' && useQuizStore.getState().graded[`${setId}-exam`]) {
+    } else if (newMode === 'exam' && useQuizStore.getState().graded[gradeKeyFor(setId, 'exam')]) {
       // 이미 채점한 시험으로 다시 들어오면 새로 풀 수 있게 초기화한다(#1).
       clearAnswers(setId, 'exam');
     }
@@ -171,41 +173,14 @@ export const Sidebar = () => {
       return;
     }
     const { reviewIds } = useQuizStore.getState();
-    // 퀵은 setId가 센티넬(QUICK)이라 아래 조회가 항상 '오답 없음'이 된다 — 퀵 오답은
-    // 문항의 출처 세트별 버킷에 담기기 때문이다. 그대로 두면 방금 10문항을 틀린 사용자가
-    // "현재 문제 세트에는 오답이 없습니다"라는 사실과 다른 안내를 받는다.
-    // 오답이 가장 많은 출처 세트로 옮겨 거기서부터 푼다(동수면 setId 순 — 결정적).
-    if (setId === QUICK_SET_ID) {
-      const target = Object.entries(reviewIds)
-        .filter(([key, ids]) => key.endsWith('-quick') && ids.length > 0)
-        .map(([key, ids]) => ({ sid: key.slice(0, -'-quick'.length), count: ids.length }))
-        // 다른 제품의 세트가 섞이지 않게 현재 제품의 세트만 후보로 둔다.
-        .filter(({ sid }) => sets.some((s) => s.id === sid))
-        .sort((a, b) => b.count - a.count || a.sid.localeCompare(b.sid))[0];
-      if (!target) {
-        showToast('퀵에서 틀린 문항이 없습니다.', 'info');
-        return;
-      }
-      const title = sets.find((s) => s.id === target.sid)?.title ?? target.sid;
-      setSetId(target.sid);
-      clearAnswers(target.sid, 'review');
-      setMode('review');
-      beginSession();
-      closeDrawer();
-      // 퀵은 여러 세트에서 뽑으므로 한 번에 다 풀 수 없다 — 어디로 갔는지, 나머지는
-      // 어디서 보는지 알려 주지 않으면 오답이 사라진 것처럼 보인다.
-      showToast(`${title}의 오답부터 풉니다. 다른 세트 오답은 오답 노트에서 볼 수 있어요.`, 'info');
-      return;
-    }
     // 현재 세트에 오답이 없으면 빈 오답 모드로 이동하지 않고 안내만 한다(모드 유지).
-    // 오답 대상은 useQuestions의 review 모드와 동일한 합집합 기준으로 판정한다.
-    // useQuestions의 review 합집합과 같은 키 목록이어야 한다 — 여기서 -quick이 빠지면
-    // 퀵 오답만 있는 세트에서 "오답이 없습니다"라고 막아 놓고, 정작 오답노트에는 문항이 있다.
-    const hasWrong = [`${setId}-exam`, `${setId}-random`, `${setId}-quick`, setId].some(
-      (key) => (reviewIds[key] || []).length > 0,
-    );
+    // 판정은 useQuestions의 reviewTargetIds가 단일 원천이다 — 종전에는 여기서 키 목록을
+    // 따로 조립했고, 그 목록에 아무도 쓰지 않는 `${setId}-quick`이 들어 있었다.
+    const hasWrong = reviewTargetIds(reviewIds, setId).size > 0;
     if (!hasWrong) {
-      showToast('현재 문제 세트에는 오답이 없습니다. 시험·랜덤·퀵 모드에서 채점하면 기록됩니다.', 'info');
+      // 퀵을 빼고 안내한다 — 퀵 오답은 세트 버킷에 담기지 않는 사양이라, 넣어 두면
+      // "퀵으로 채점했는데 왜 없냐"는 잘못된 기대를 이 문구가 직접 만들어 낸다.
+      showToast('현재 문제 세트에는 오답이 없습니다. 시험·랜덤 모드에서 채점하면 기록됩니다.', 'info');
       return;
     }
     // 오답 다시 풀기: 이전 재풀이 답안을 비우고 오답(review) 모드로 전환해 틀린 문항만 새로 푼다.
@@ -471,11 +446,26 @@ export const Sidebar = () => {
         <section className="action-section">
           <h3>오답 관리</h3>
           <div className="actions">
-            <button type="button" onClick={handleRetryWrong}>오답 다시 풀기</button>
+            {/* 퀵에서는 이 버튼을 내린다. 퀵 오답은 세트 오답 버킷에 담기지 않는 사양이라
+                (useQuizSession의 채점 분기 · reviewTargetIds 참고) 여기서 다시 풀 대상이
+                구조적으로 존재하지 않는다. 종전에는 버튼이 그대로 있으면서 아무도 쓰지
+                않는 `-quick` 키를 뒤졌고, 그래서 방금 10문항을 틀린 사용자에게도 늘
+                "퀵에서 틀린 문항이 없습니다"라고 답했다 — 화면(오답 노트)에는 그 오답이
+                보이는데 말이다. 눌러도 될 수 없는 버튼을 두는 대신 갈 곳을 알려 준다
+                (세트 셀렉트를 퀵 중에 잠근 것과 같은 이유). */}
+            {mode !== 'quick' && (
+              <button type="button" onClick={handleRetryWrong}>오답 다시 풀기</button>
+            )}
             <button type="button" className="subtle" onClick={() => { setWrongNoteOpen(true); closeDrawer(); }}>
               오답 노트
             </button>
           </div>
+          {mode === 'quick' && (
+            <p className="action-hint" data-testid="quick-review-hint">
+              퀵 오답은 <strong>오답 노트</strong>에서 24시간 동안 볼 수 있어요.
+              다시 재려면 <strong>학습 통계</strong>의 챕터 미니 시험을 쓰세요.
+            </p>
+          )}
         </section>
 
         <section className="settings-section">

@@ -218,6 +218,11 @@ export const sessionScopeDefaults = () => ({
   randomDraw: null as { setId: string; chapter: string | null; ids: string[] } | null,
   // 퀵도 제품 스코프다 — 제품을 바꾸면 이전 제품 문항으로 이어풀기가 되지 않게 비운다.
   quickDraw: null as { certification: string; items: { id: string; setId: string }[] } | null,
+  // 퀵 회차도 제품 스코프다. 여기 없으면 hydrate가 이전 제품 값을 덮지 못해(복원 값이
+  // 비어 있으면 sanitizeUiState가 필드를 아예 넣지 않는다) ISTQB 회차가 CSTS 메모리에
+  // 살아남고, 이어지는 saveUiState가 그것을 CSTS 저장소 키에 기록한다 — 제품 간 오염이다.
+  // 화면의 productQuickRounds 필터는 certification 없는 회차를 통과시켜 방어가 완전하지 않다.
+  quickRounds: [] as ExamHistory[],
   // 사용자가 고른 퀵 문항 수. 추첨 시점에만 쓰이므로 세션 스코프로 충분하다.
   quickSize: QUICK_SIZES[0] as number,
   quickNonce: 0,
@@ -417,7 +422,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     } else if (
       // 바꾼 세트가 시험 모드에 이전 답안을 갖고 있으면 "이어풀기/새로 풀기" 선택 모달을 띄운다.
       prev.mode === 'exam' &&
-      Object.keys(prev.answers).some((k) => k.startsWith(`${newSetId}-exam-`))
+      Object.keys(prev.answers).some((k) => k.startsWith(answerKeyPrefix(newSetId, 'exam')))
     ) {
       set({ resumePrompt: true });
     }

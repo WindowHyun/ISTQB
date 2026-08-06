@@ -518,7 +518,7 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
       } else {
         // 저장된 추첨이 없으면(구버전/최초 진입) 기존 정책대로 새로 추첨한다.
         const hadRandomProgress = Object.keys(sanitizedAnswers).some((k) =>
-          k.startsWith(`${sid}-random-`),
+          k.startsWith(answerKeyPrefix(sid, 'random')),
         );
         store.clearAnswers(sid, 'random');
         store.setRandomDraw(null);
@@ -544,7 +544,7 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
           ? findGradedExamMatch(histories, sid, sanitizedAnswers)
           : null;
       if (gradedMatch) {
-        useQuizStore.getState().setGraded(`${sid}-exam`, true);
+        useQuizStore.getState().setGraded(gradeKeyFor(sid, 'exam'), true);
         useQuizStore.getState().setGradedResume({
           correct: gradedMatch.correct ?? null,
           total: gradedMatch.total ?? null,
@@ -799,14 +799,16 @@ export const saveAnswers = debounce((answers: Record<string, string[]>) => {
     // 다른 탭이 넣은 문항을 이 탭의 진행 표시에도 반영한다(내용이 실제로 늘었을 때만).
     if (changed) useQuizStore.setState({ answers: next });
 
-    // update snapshot
+    // 스냅샷 갱신 — 없으면 만든다. 종전에는 "이미 있을 때만" 갱신해서,
+    // saveUiState가 아직 한 번도 돌지 않은 상태(답만 고르고 화면을 떠난 첫 세션)에서는
+    // 답안이 스냅샷에 실리지 않았다. 복원은 스냅샷을 우선해 읽으므로(restorePersistentSnapshot),
+    // 그 뒤 saveUiState가 답안 없는 스냅샷을 만들면 복원이 빈 답안을 집어 든다.
+    // saveUiState는 이미 같은 규칙으로 없으면 만든다 — 두 쓰기 경로를 맞춘다.
     const snapshotRaw = localStorage.getItem(persistenceKey());
-    if (snapshotRaw) {
-      const snapshot = JSON.parse(snapshotRaw);
-      snapshot.answers = next;
-      snapshot.updatedAt = Date.now();
-      localStorage.setItem(persistenceKey(), JSON.stringify(snapshot));
-    }
+    const snapshot = snapshotRaw ? JSON.parse(snapshotRaw) : {};
+    snapshot.answers = next;
+    snapshot.updatedAt = Date.now();
+    localStorage.setItem(persistenceKey(), JSON.stringify(snapshot));
   } catch (e) {
     persistWriteFailed = true; // import 부분 성공 판정용
     console.error("saveAnswers error", e);
@@ -1093,6 +1095,12 @@ useQuizStore.subscribe((state, prevState) => {
     // 시험 시작 시각이 잡히는 순간 즉시 저장한다 — 이걸 놓치면 앱을 껐다 켰을 때
     // 기준점이 없어 제한시간이 처음부터 다시 흐른다.
     state.examStartedAt !== prevState.examStartedAt ||
+    // 퀵 회차(24시간 임시 보관). saveUiState의 allowlist에는 원래 있었지만 이 목록에서
+    // 빠져 있어, 저장을 촉발하는 코드가 아무 데도 없었다 — 채점(addQuickRound) 직후
+    // 실행되는 것은 setGraded·setResultOpen뿐이고 둘 다 여기서 감시하지 않는다.
+    // 그 결과 퀵을 채점하고 새로고침하면 회차와 오답노트의 퀵 오답이 통째로 사라졌다
+    // (다른 감시 필드를 건드리면 그때 함께 저장돼 재현이 간헐적이었다).
+    state.quickRounds !== prevState.quickRounds ||
     state.reviewedOk !== prevState.reviewedOk
   ) {
     saveUiState(state);
