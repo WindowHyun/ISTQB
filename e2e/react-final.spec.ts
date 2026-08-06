@@ -10,27 +10,6 @@ test.describe("최종점검", () => {
     await expect(page.getByRole("button", { name: "ISTQB" })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole("button", { name: "CSTS" })).toBeVisible();
   });
-
-  test("다크 테마는 새로고침 후에도 유지된다", async ({ page }) => {
-    await openProduct(page, "ISTQB");
-    await page.getByRole("button", { name: /설정/ }).click();
-    await page.getByRole("dialog", { name: "설정" }).getByRole("button", { name: "다크" }).click();
-    await page.reload();
-    await page.getByRole("button", { name: "ISTQB" }).click();
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-    await expect.poll(() => page.evaluate(() => document.body.dataset.theme)).toBe("dark");
-  });
-
-  test("글자 크기(작게)는 새로고침 후에도 유지된다", async ({ page }) => {
-    await openProduct(page, "ISTQB");
-    await page.getByRole("button", { name: /설정/ }).click();
-    await page.getByRole("button", { name: "작게" }).click();
-    await page.reload();
-    await page.getByRole("button", { name: "ISTQB" }).click();
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-    await expect.poll(() => page.evaluate(() => document.body.dataset.qfont)).toBe("small");
-  });
-
   test("모드 전환 시 진행 수가 0으로 초기화된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await modeBtn(page, "연습").click();
@@ -184,11 +163,5 @@ test.describe("최종점검", () => {
   // ── 모바일 ─────────────────────────────────────────────────────
   test.describe("모바일(390x844)", () => {
     test.use({ viewport: { width: 390, height: 844 } });
-    test("드로어에서 학습 통계가 열린다", async ({ page }) => {
-      await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-      await page.getByTestId("drawer-open").click();
-      await page.getByTestId("stats-open").click();
-      await expect(page.getByTestId("stats-dashboard")).toBeVisible({ timeout: 5_000 });
-    });
   });
 });

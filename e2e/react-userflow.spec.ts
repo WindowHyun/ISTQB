@@ -125,9 +125,21 @@ for (const product of ["ISTQB", "CSTS"] as const) {
     await page.keyboard.press("Escape");
 
     // 6) 오답 재풀이 — 시험·랜덤에서 틀린 문항이 모인다.
+    //
+    // 이 단계는 종전에 아무것도 검증하지 못했다. 5)까지 마치면 앱은 아직 '퀵' 모드인데,
+    // 퀵에서는 이 버튼이 세트 오답 버킷(퀵은 담기지 않는 곳)을 뒤지고 토스트만 띄운 뒤
+    // 모드를 바꾸지 않고 돌아갔다. 그런데 단언이 "#questionStem이 보인다"뿐이라, 퀵 문항이
+    // 그대로 떠 있는 것만으로 통과했다 — 재풀이에 진입하지 못해도 초록불이었다.
+    // 이제 (a) 세트 모드로 돌아온 뒤 눌러 흐름의 전제를 맞추고,
+    //     (b) 실제로 '오답' 모드에 들어갔는지를 단언한다.
+    await pickMode(page, "random"); // 퀵을 빠져나와 세트 스코프로 복귀
     await openSidebar(page);
     await page.getByRole("button", { name: "오답 다시 풀기" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    await expect(
+      page.getByRole("button", { name: "오답", exact: true }),
+      "‘오답 다시 풀기’를 눌렀는데 오답 모드로 전환되지 않았다",
+    ).toHaveAttribute("aria-pressed", "true");
 
     // 7) 통계 — 퀵은 회차 목록 어디에도 남지 않는다(챕터 집계에만 조용히 기여).
     await openSidebar(page);

@@ -7,14 +7,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
  *
  * 퀵 회차는 이력(IndexedDB)이 아니라 UI 상태 키(localStorage)에 산다 — 회차 기록을
  * 남기지 않는 모드라 영구 저장소에 넣으면 사양과 모순되기 때문이다. 그래서 저장이
- * 걸리는 지점이 다른 필드와 다르고, 실제로 두 군데가 비어 있었다:
+ * 걸리는 지점이 다른 필드와 다르고, 두 군데가 비어 있었다:
  *
- *  A) 스토어 구독의 감시 목록에 quickRounds가 없어, 채점(addQuickRound)이 저장을
- *     촉발하지 않았다. saveUiState의 allowlist에는 원래 있었으므로 "다른 이유로
- *     저장이 한 번 돌면" 함께 실렸다 — 그래서 재현이 간헐적이었고, 채점 직후
- *     새로고침한 사용자만 회차와 퀵 오답을 잃었다.
+ *  A) 스토어 구독의 감시 목록에 quickRounds가 없어, quickRounds가 바뀌어도 저장이
+ *     걸리지 않았다. 다만 이것이 유실로 이어지지는 않았다 — 채점은 setGraded도 함께
+ *     호출하고, QuestionWorkspace의 타이머 effect가 isGraded를 의존성에 두고 있어
+ *     그 순간 cleanup의 flushPersist()가 동기로 저장했다(브라우저 실측 확인).
+ *     즉 결함이 아니라 '무관한 컴포넌트의 effect 정리 타이밍에 기댄 영속성'이다.
+ *     아래 검사는 그 우연한 경로가 없는 순수 상태 계층에서 계약을 못 박는다 —
+ *     effect 의존성이 손질되는 순간 조용히 깨질 자리이기 때문이다.
  *  B) sessionScopeDefaults에 quickRounds가 없어, 제품을 바꿔도 이전 제품 회차가
- *     메모리에 남고 다음 저장이 그것을 새 제품 키에 기록했다.
+ *     메모리에 남고 다음 저장이 그것을 새 제품 키에 기록했다(실제 오염 — C).
  *
  * 둘 다 화면에서는 잘 보이지 않는다(제품 필터가 표시만 가려 준다). 여기서 고정한다.
  *
@@ -68,7 +71,8 @@ describe('퀵 회차 영속 — 채점이 저장을 촉발한다(A)', () => {
     const saved = JSON.parse(localStorage.getItem(ISTQB_UI) || '{}');
     expect(
       saved.quickRounds?.length,
-      '퀵 채점이 저장을 촉발하지 못했다 — 새로고침하면 회차와 퀵 오답이 사라진다',
+      '퀵 회차 변경이 저장을 촉발하지 못했다 — 지금은 워크스페이스 effect cleanup이 '
+      + '대신 저장해 주지만, 그 의존성이 바뀌면 저장 경로가 사라진다',
     ).toBe(1);
     expect(saved.quickRounds[0].id).toBe('r1');
     // 오답노트가 출처 세트를 잃지 않는지도 함께 본다(wrongItems[].setId 보존).

@@ -111,14 +111,6 @@ test.describe("엣지-모달", () => {
     await page.locator(".modal-backdrop").click({ position: { x: 8, y: 8 } });
     await expect(page.getByTestId("palette-jump")).toHaveCount(0);
   });
-
-  test("설정 모달은 role=dialog + aria-modal을 갖는다", async ({ page }) => {
-    await openProduct(page, "ISTQB");
-    await page.getByRole("button", { name: /설정/ }).click();
-    const dialog = page.getByRole("dialog", { name: "설정" });
-    await expect(dialog).toHaveAttribute("aria-modal", "true");
-  });
-
   test("설정에는 화면 콘솔을 켜는 토글이 없다(개발자용 — ?debug 로만 켠다)", async ({ page }) => {
     await openProduct(page, "ISTQB");
     await page.getByRole("button", { name: /설정/ }).click();

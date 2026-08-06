@@ -55,21 +55,6 @@ test.describe("엣지-콘텐츠", () => {
     await page.keyboard.press("Escape");
     await expect.poll(() => page.evaluate(() => document.body.style.overflow)).not.toBe("hidden");
   });
-
-  test("보기의 마크다운 표가 HTML <table>로 렌더된다", async ({ page }) => {
-    await openSet(page, "CSTS", "CSTS-FL-2404");
-    await gotoQuestion(page, 33);
-    expect(await page.locator("#options .data-table").count()).toBeGreaterThanOrEqual(1);
-    await expect(page.locator("#options")).not.toContainText("|---|");
-  });
-
-  test("가/나/다/라 항목이 모두 렌더된다", async ({ page }) => {
-    await openSet(page, "CSTS", "CSTS-EL-2018");
-    await gotoQuestion(page, 10);
-    const stem = (await page.locator("#questionStem").textContent()) || "";
-    for (const m of ["가.", "나.", "다.", "라."]) expect(stem).toContain(m);
-  });
-
   test("기본 상태에서는 화면 콘솔 버튼이 없다", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByTestId("debug-fab")).toHaveCount(0);

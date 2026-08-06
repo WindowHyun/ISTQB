@@ -1095,11 +1095,16 @@ useQuizStore.subscribe((state, prevState) => {
     // 시험 시작 시각이 잡히는 순간 즉시 저장한다 — 이걸 놓치면 앱을 껐다 켰을 때
     // 기준점이 없어 제한시간이 처음부터 다시 흐른다.
     state.examStartedAt !== prevState.examStartedAt ||
-    // 퀵 회차(24시간 임시 보관). saveUiState의 allowlist에는 원래 있었지만 이 목록에서
-    // 빠져 있어, 저장을 촉발하는 코드가 아무 데도 없었다 — 채점(addQuickRound) 직후
-    // 실행되는 것은 setGraded·setResultOpen뿐이고 둘 다 여기서 감시하지 않는다.
-    // 그 결과 퀵을 채점하고 새로고침하면 회차와 오답노트의 퀵 오답이 통째로 사라졌다
-    // (다른 감시 필드를 건드리면 그때 함께 저장돼 재현이 간헐적이었다).
+    // 퀵 회차(24시간 임시 보관). saveUiState의 allowlist에는 원래 있었지만 이 목록에는
+    // 없어서, quickRounds가 바뀌어도 저장이 걸리지 않았다.
+    //
+    // 지금 이것이 유실로 이어지지는 않는다 — 채점은 setGraded도 함께 호출하고,
+    // QuestionWorkspace의 타이머 effect가 isGraded를 의존성에 두고 있어 그 순간 cleanup의
+    // flushPersist()가 동기로 저장한다(실측: 이 줄을 빼도 채점 직후 즉시 저장됨).
+    // 즉 퀵 회차의 영속성이 '무관한 컴포넌트의 effect 정리 타이밍'에 의존하고 있다.
+    // 그 의존성 배열은 바로 위 주석에서 이미 "매 렌더 재시작을 피하려" 손질된 적이 있고,
+    // isGraded가 빠지는 순간 퀵 회차는 저장 경로를 잃는다 — 그때 이를 잡아 줄 검사도 없다.
+    // 다른 누적형 필드(reviewedOk·examStartedAt·reviewIds)와 같은 규칙으로 맞춰 둔다.
     state.quickRounds !== prevState.quickRounds ||
     state.reviewedOk !== prevState.reviewedOk
   ) {

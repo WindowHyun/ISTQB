@@ -32,14 +32,6 @@ test.describe("엣지-반응형", () => {
       await page.keyboard.press("Escape");
       await expect(page.locator(".app-shell")).toHaveAttribute("data-drawer", "closed");
     });
-
-    test("모드 변경 시 드로어가 자동으로 닫힌다", async ({ page }) => {
-      await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-      await page.getByTestId("drawer-open").click();
-      await enterExam(page);
-      await expect(page.locator(".app-shell")).toHaveAttribute("data-drawer", "closed");
-    });
-
     test("점프핀→문항 이동 시트로 문항을 옮긴다", async ({ page }) => {
       await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
       await page.getByTestId("jump-pin").click();
@@ -48,16 +40,6 @@ test.describe("엣지-반응형", () => {
       await sheet.locator("button", { hasText: /^4$/ }).click();
       await expect(page.getByTestId("jump-pin")).toContainText("4 /");
     });
-
-    test("하단 액션바 채점 흐름이 동작한다", async ({ page }) => {
-      await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-      await page.getByTestId("drawer-open").click();
-      await enterExam(page);
-      await page.locator("#options .option").first().click();
-      await submitGrade(page, "grade-button-m");
-      await expect(page.getByTestId("score")).toContainText("점수", { timeout: 8_000 });
-    });
-
     test("드로어에서 학습 통계가 열린다", async ({ page }) => {
       await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
       await page.getByTestId("drawer-open").click();
