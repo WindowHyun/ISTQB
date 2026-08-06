@@ -141,6 +141,34 @@ export interface QuickCandidate {
   id: string;
 }
 
+/**
+ * 오답 모드가 다시 낼 문항 id — 이 세트의 시험·랜덤 오답 합집합(+구버전 단독 키).
+ *
+ * 퀵은 여기 들어오지 않는다. 종전에는 이 계산이 effect 안에 묻혀 있었고 `${setId}-quick`
+ * 키까지 읽었는데, 그 키를 쓰는 코드는 어디에도 없었다 — 읽기는 늘 빈 배열을 받았고
+ * 주석만 "퀵도 담긴다"고 설명했다. 사양(퀵은 세트 버킷에 넣지 않는다)은
+ * useQuizSession의 채점에 있으므로, 읽는 쪽을 밖으로 꺼내 그 사양을 검사로 고정한다.
+ *
+ * 퀵을 섞지 않는 이유:
+ *  1) 퀵은 '회차 기록을 남기지 않는' 모드다(24시간 임시). 오답만 세트 버킷으로 영구히
+ *     새면 그 사양이 반쪽이 된다.
+ *  2) 오답 모드는 "그 세트를 풀어서 틀린 것"을 다시 푸는 곳이다. 세트를 한 번도 풀지
+ *     않았는데 퀵에서 뽑힌 두어 문항만 뜨면, 사용자는 그것을 그 세트의 오답 전부로 읽는다.
+ *  3) 퀵의 재측정 경로는 따로 있다 — 퀵 회차는 챕터 통계에 합산되므로 약점이 챕터
+ *     정답률로 드러나고, 챕터 미니 시험으로 다시 잰다.
+ */
+export function reviewTargetIds(
+  reviewIds: Record<string, string[]>,
+  setId: string,
+): Set<string> {
+  return new Set([
+    ...(reviewIds[`${setId}-exam`] || []),
+    ...(reviewIds[`${setId}-random`] || []),
+    // 구버전 데이터 호환 — 모드가 붙기 전의 단독 키.
+    ...(reviewIds[setId] || []),
+  ]);
+}
+
 export function useQuestions() {
   const [appData, setAppData] = useState<AppData | null>(null);
   const [currentQuestions, setCurrentQuestions] = useState<Question[]>([]);
@@ -269,15 +297,8 @@ export function useQuestions() {
         useQuizStore.getState().setRandomDraw({ setId, chapter, ids: drawn.map(idOf) });
         setCurrentQuestions(drawn);
       } else if (mode === 'review') {
-        // 시험·랜덤·퀵 각각의 오답 합집합(+구버전 setId 단독 키 호환)을 복습 대상으로 한다.
-        // 퀵은 전 세트에서 뽑으므로 채점 시 출처 세트별로 갈라 담긴다 — 여기서 읽지 않으면
-        // 퀵에서 틀린 문항이 오답노트에 영영 나타나지 않는다.
-        const ids = new Set([
-          ...(reviewIds[`${setId}-exam`] || []),
-          ...(reviewIds[`${setId}-random`] || []),
-          ...(reviewIds[`${setId}-quick`] || []),
-          ...(reviewIds[setId] || []),
-        ]);
+        // 복습 대상 산정은 reviewTargetIds가 단일 원천이다(퀵 제외 사양은 그쪽 주석 참고).
+        const ids = reviewTargetIds(reviewIds, setId);
         // 이미 다시 풀어 맞힌 문항은 뺀다 — 아무리 맞혀도 목록이 줄지 않으면
         // "오답 발견 → 보완 → 재측정" 루프의 마지막 단계가 없는 것과 같다.
         const done = new Set(useQuizStore.getState().reviewedOk[setId] ?? []);
