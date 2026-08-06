@@ -1,4 +1,12 @@
-# E2E 테스트 시나리오 (437개 — 기능 404 · 비기능 13 · APK/WebView 20)
+# E2E 테스트 시나리오
+
+Playwright 프로젝트는 **5개**다 — `react`(기능·Chromium) · `nonfunctional`(성능·오프라인·내구성) ·
+`apk` + `apk-nf`(Pixel 7 + WebView UA + 안전영역 모사) · `webkit`(Desktop Safari 엔진 계층).
+다섯 모두 CI 게이트다(`ci.yml`의 `e2e`·`nonfunctional`·`apk`·`webkit` 잡).
+
+> 총 테스트 **개수는 여기 적지 않는다.** 종전 제목에 박아 둔 "437개"는 한 달 만에 어긋났고
+> (실측 442, 게다가 webkit 프로젝트는 총계에 아예 빠져 있었다), 아무도 그 숫자로 판단하지
+> 않으면서 갱신 부채만 남겼다. 정확한 수치는 스위트 실행 결과와 CI 로그가 정본이다.
 
 > 대상: React 앱(`index.vite.html` → Vercel `dist` 배포본). Playwright로 자동화.
 > 실행: 기능 `npm run test:e2e`(`react` 프로젝트) · 비기능 `npm run test:nf` · APK/WebView `npm run test:apk`.
@@ -74,7 +82,7 @@ NF1~NF12 성능(로드·렌더·이동·채점)·부하(고속 입력·모드 �
 
 ## Safari/WebKit 63 — `npm run test:webkit`
 
-Desktop Safari 프로파일로 **엔진 계층을 지나는 핵심 경로만** 다시 태운다(IndexedDB 트랜잭션·Blob 다운로드·서비스워커·Date 파싱·localStorage 정책). 전 스펙 재실행은 e2e 잡을 두 배로 만들면서 대부분 중복이라 하지 않는다 — 대상은 react 스펙 56개 중 **14개 파일**이다.
+Desktop Safari 프로파일로 **엔진 계층을 지나는 핵심 경로만** 다시 태운다(IndexedDB 트랜잭션·Blob 다운로드·서비스워커·Date 파싱·localStorage 정책). 전 스펙 재실행은 e2e 잡을 두 배로 만들면서 대부분 중복이라 하지 않는다 — 대상은 `playwright.config.ts`의 `webkit` 프로젝트 `testMatch`가 고르는 파일들이다(현재 18개). 목록을 여기 베껴 두면 갈리므로, 정본은 설정 파일이다.
 
 퀵 재설계로 저장소 계층에 새 코드가 얹히면서 `react-quick-wrongnote`(퀵 오답의 localStorage 24시간 TTL)와 `react-reset-ghost`(이력 비우기의 IndexedDB 삭제 + localStorage 정리)를 대상에 추가했다. Safari는 storage 정책이 가장 유별난 브라우저라, 이 경로가 Chromium에서만 검증되면 "Safari에서만 안 지워진다"를 놓친다.
 
@@ -217,7 +225,7 @@ Pixel 7 디바이스 프로파일 + WebView UA + `MainActivity`의 안전영역 
   figure=ISTQB-A Q23, 보기 표=CSTS-2404 Q33, 가나다라=CSTS-2018 Q10.
 - 진입 시 항상 제품 선택 게이트가 뜨므로(설계상) 새로고침 복원은 "재선택 후 복원"으로 검증.
 - 저장 불가 환경(엣지-영속성): `addInitScript`로 `localStorage.setItem`이 예외를 던지도록 모사해 제품 선택·문항 진입·테마/글자 크기 설정이 크래시 없이 동작하는지 검증(`safeStorage` 래퍼 회귀).
-- 로컬 검증(main `83a34fa`, 2026-07-30): 4개 프로젝트 **437/437 통과**(기능 404 · 비기능 13 · APK 12 · APK 비기능 8). CI는 자체 브라우저로 동일 실행하며 `e2e`·`nonfunctional`·`apk` 세 잡으로 나뉜다.
+- CI는 자체 브라우저로 동일하게 실행하며 `e2e`·`nonfunctional`·`apk`·`webkit` **네 잡**으로 나뉜다(종전 이 줄은 세 잡이라고 적어 webkit 게이트의 존재를 감췄다). 특정 커밋의 통과 수치는 그 시점 CI 로그를 본다 — 여기 적으면 즉시 낡는다.
 - 테스트 효력 확인: 새로 추가한 검사는 대상 결함을 일부러 되돌려 **실패하는 것을 본 뒤** 원복하는 절차를 거친다 (예: 퀵 오답의 출처 세트 표기 검사는 정제에서 `wrongItems[].setId`를 빼면 여러 세트가 한 이름으로 뭉쳐 실패한다).
 
 ---
