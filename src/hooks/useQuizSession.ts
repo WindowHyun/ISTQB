@@ -136,6 +136,8 @@ export function useQuizSession() {
       // 대신 24시간 임시 보관에 넣어 방금 틀린 것을 볼 수 있게 하고, 챕터 통계에는 합산한다.
       // 세트별 오답 버킷(reviewIds)에는 넣지 않는다 — 세트를 다 풀지도 않았는데 그 세트의
       // 오답 모드에 섞이면, 세트 단위 학습 흐름이 퀵 결과로 오염된다.
+      // 이 결정이 사양의 단일 원천이다. 읽는 쪽(useQuestions의 review 분기)도 퀵 키를
+      // 보지 않는다 — 종전에는 읽기만 남아 있어 "담긴다"는 주석과 실제가 어긋났다.
       addQuickRound(history);
     } else {
       addHistory(history);
