@@ -24,8 +24,22 @@ function rng(seed: number) {
 
 interface Violation { step: number; action: string; msg: string }
 
+// page.evaluate는 timeout 옵션이 없다 — 메인 스레드가 막히면 무기한 기다린다.
+// 몽키에게 이것은 치명적이다: 앱이 멈추는 것 자체가 잡아야 할 결함인데, 그 순간
+// 검사도 함께 멈춰 예산을 다 태우고 아무 기록 없이 죽는다(CI #272가 그랬다).
+// 응답이 없으면 기다리지 말고 **위반으로 보고한다.**
+async function raceDeadline<T>(p: Promise<T>, ms: number, onTimeout: T): Promise<T> {
+  let timer: NodeJS.Timeout;
+  const bell = new Promise<T>((res) => { timer = setTimeout(() => res(onTimeout), ms); });
+  return Promise.race([p, bell]).finally(() => clearTimeout(timer));
+}
+
 // 매 조작 뒤 브라우저에서 한 번에 검사한다(왕복 비용 절감).
 async function checkInvariants(page: Page) {
+  return raceDeadline(rawInvariants(page), 15_000, ["앱이 15초간 응답하지 않음(메인 스레드 블록 의심)"]);
+}
+
+async function rawInvariants(page: Page) {
   return page.evaluate(() => {
     const bad: string[] = [];
     const de = document.documentElement;
@@ -119,6 +133,12 @@ for (const seed of [42, 1337, 20260730]) {
     page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
     page.on("console", (m) => { if (m.type() === "error") errors.push("console.error: " + m.text()); });
 
+    // 조작마다 상한을 둔다. Playwright의 actionTimeout 기본값은 0(무제한)이라, 아래
+    // fill·selectOption·innerText·count는 요소가 계속 조작 불가 상태면 **영원히 기다린다.**
+    // `.catch(() => {})`는 거절을 삼킬 뿐 대기를 끊지 못한다 — 종전에는 click에만
+    // { timeout: 1500 }이 있었고 나머지는 전부 무제한이었다.
+    page.setDefaultTimeout(10_000);
+
     const rand = rng(seed);
     const violations: Violation[] = [];
     const trail: string[] = [];
@@ -128,6 +148,13 @@ for (const seed of [42, 1337, 20260730]) {
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 
     for (let step = 1; step <= 120; step++) {
+      // 진행 흔적을 주기적으로 흘린다. 종전에는 조작 이력을 루프가 **끝난 뒤에만** 찍어서,
+      // 예산을 태우고 죽으면 무엇을 눌러 그렇게 됐는지 기록이 하나도 안 남았다
+      // (CI #272에서 이 시드가 900초를 태웠는데 로그로는 원인 추적이 불가능했다).
+      // 루프 첫머리에 두는 이유: 아래에는 continue로 빠지는 경로(skip·no-target)가 있어,
+      // 뒤쪽에 두면 하필 그 경로에서 멈췄을 때 또 기록이 남지 않는다.
+      if (step % 20 === 1 && step > 1) note(`  시드 ${seed} step ${step}: …${trail.slice(-6).join(" → ")}`);
+
       // 가끔 화면 폭을 바꾼다 — 반응형 전환 도중의 상태 오염을 노린다.
       if (rand() < 0.04) {
         const w = [390, 768, 1280][Math.floor(rand() * 3)];
