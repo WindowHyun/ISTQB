@@ -4,7 +4,7 @@ import { useQuizStore } from '../store/useQuizStore';
 import { useQuestions, Question } from './useQuestions';
 import { isQuestionCorrect, isAnswered } from '../utils/answer';
 import { answerKeyFor, gradeKeyFor } from '../utils/answerKey';
-import { buildChapterStats } from '../utils/chapterStats';
+import { buildRoundHistory, makeRoundId } from '../utils/roundHistory';
 import { computeCstsWeightedScore } from '../utils/scoring';
 import { isGradedMode } from '../utils/modeLabel';
 import { saveHistoryToDB } from '../utils/storage';
@@ -84,53 +84,36 @@ export function useQuizSession() {
     // 판정 규칙이 갈라져 화면 표시와 기록이 어긋날 수 있다.
     const wrongQs = wrongQuestions.map(({ q }) => q);
     const wrongIds = wrongQs.map((q) => q.id || `legacy-${q.number}`);
-    // 오답 노트(세트 전체 회차 리스트)용 상세를 채점 시점에 함께 저장한다(4A).
-    const wrongItems = wrongQs.map((q) => ({
-      number: q.number,
-      myAnswer: answers[answerKeyOf(q)] || [],
-      correctAnswer: q.answer,
-      // 퀵은 회차의 setId가 센티넬(QUICK)이라 이게 없으면 오답노트가 출처를 알 수 없다 —
-      // 서로 다른 세트의 문항이 '퀵 랜덤' 한 덩어리로 묶이고, 번호가 겹치면 조용히 유실된다.
-      ...(q.sourceSetId ? { setId: q.sourceSetId } : {}),
-    }));
     // 퀵은 세트 하나에 매이지 않아 index.json에서 제목을 찾을 수 없다 — 그대로 두면
     // 통계 목록에 센티넬 'QUICK'이 그대로 노출된다.
     const setTitle = mode === 'quick'
       ? '퀵 랜덤'
       : appData?.sets.find((s) => s.id === setId)?.title;
-    const chapterOutcome = buildChapterStats(currentQuestions, answers, answerKeyOf);
-    const gradedAnswers: Record<string, string[]> = {};
-    currentQuestions.forEach((q) => {
-      const k = answerKeyOf(q);
-      if (answers[k]) gradedAnswers[k] = answers[k];
-    });
-    const history = {
-      // 시각+난수 — 같은 ms 재채점·백업 병합에서도 기존 회차를 덮어쓰지 않는 유일 키.
-      // (통계의 시각 표시는 createdAt을 쓰므로 id가 숫자일 필요는 없다)
-      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    // 회차 레코드 조립은 utils/roundHistory가 단일 원천이다 — 훅 안에 두면 유닛이 닿지
+    // 못해(이 훅은 커버리지 0%였다) 필드 누락이 새로고침 뒤에야 조용히 드러났다.
+    // 시각·난수는 인자로 넘겨 그쪽을 결정적으로 유지한다.
+    const snapshot = useQuizStore.getState();
+    const history = buildRoundHistory({
       setId,
       mode,
+      questions: currentQuestions,
+      answers,
+      answerKeyOf,
+      wrongQuestions: wrongQs,
       // 소속 제품을 기록에 남긴다 — 세트가 훗날 index.json에서 빠져도 제품 스코프
       // 통계/삭제에서 이력이 고아가 되지 않는다.
-      certification: useQuizStore.getState().activeProduct ?? undefined,
-      answers: gradedAnswers,
-      correct: total - wrongIds.length,
-      total,
-      // 매초 리렌더를 피하려고 구독 대신 채점 시점에 스냅샷으로 읽는다(O1).
-      elapsedSeconds: Math.round(useQuizStore.getState().elapsedSeconds),
-      createdAt: Date.now(),
+      certification: snapshot.activeProduct ?? undefined,
       setTitle,
-      wrongItems,
-      // 챕터별 정답 집계(약점 분석용) — 채점 시점의 문항·답안으로 확정 저장.
-      chapterStats: chapterOutcome.stats,
-      // 문항 id까지 남긴다 — 재풀이해도 챕터 분모가 부풀지 않게 합산에서 최신 결과만 고른다.
-      chapterQuestions: chapterOutcome.questions,
-      // CSTS 합격 판정 가중 점수 스냅샷(직전 회차 대비 비교에서 재사용) — ISTQB는 저장하지 않는다.
-      cstsWeighted: useQuizStore.getState().activeProduct === 'csts' ? cstsWeighted : undefined,
+      // 매초 리렌더를 피하려고 구독 대신 채점 시점에 스냅샷으로 읽는다(O1).
+      elapsedSeconds: snapshot.elapsedSeconds,
       // 챕터 미니 시험(랜덤+필터) 표식 — 타임라인·회차 비교에서 세트 전체 회차와 분리된다.
       // (연습은 채점이 없고 시험 모드 진입 시 setMode가 필터를 해제하므로 랜덤에서만 값이 실린다)
-      chapter: useQuizStore.getState().chapterFilter ?? undefined,
-    };
+      chapter: snapshot.chapterFilter ?? undefined,
+      // CSTS 합격 판정 가중 점수 스냅샷 — ISTQB는 저장하지 않는다(단순 정답률이라 불필요).
+      cstsWeighted: snapshot.activeProduct === 'csts' ? cstsWeighted : undefined,
+      now: Date.now(),
+      id: makeRoundId(),
+    });
     if (mode === 'quick') {
       // 퀵은 회차 기록을 남기지 않는다(요약·타임라인·이력 목록에 나오지 않는다).
       // 대신 24시간 임시 보관에 넣어 방금 틀린 것을 볼 수 있게 하고, 챕터 통계에는 합산한다.
@@ -149,7 +132,7 @@ export function useQuizSession() {
       setReviewIds(gradeKey, wrongIds);
       // 다시 틀린 문항은 '복습함'에서 되돌린다 — 아니면 한 번 복습했다는 이유로
       // 이후 계속 오답인데도 재풀이 목록에 영영 나타나지 않는다.
-      unmarkReviewed(setId, wrongItems.map((w) => w.number));
+      unmarkReviewed(setId, wrongQs.map((q) => q.number));
     }
     setGraded(gradeKey, true);
   };

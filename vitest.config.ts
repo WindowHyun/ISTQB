@@ -22,19 +22,23 @@ export default defineConfig({
       // hooks는 다르다 — 순수 로직을 품고 있어 밖으로 꺼내면 유닛으로 잡을 수 있다
       // (reviewTargetIds가 그 예다: effect 안에 묻혀 있던 계산을 꺼내 검사로 고정했다).
       include: ["src/store/**", "src/utils/**", "src/hooks/**"],
-      // 임계값은 "지금보다 나빠지지 않는다"는 바닥이다. hooks를 포함한 실측
-      // (stmt 72.5 · branch 67.1 · func 67.1 · line 74.7)보다 약 2%p 낮게 잡는다.
+      // 임계값은 "지금보다 나빠지지 않는다"는 바닥이다(실측보다 약 2%p 낮게).
       //
-      // 이 숫자가 종전(79/70/77/81)보다 낮아진 것은 테스트가 줄어서가 아니라
-      // **재는 범위가 넓어졌기 때문이다.** hooks 자체는 stmt 13.4%다(useQuizSession·
-      // useSetCounts·useTheme·useBackDismiss는 0%). 이 값을 올리는 방법은 렌더러를
-      // 들이는 것이 아니라, 훅 안의 순수 로직을 모듈로 꺼내 유닛으로 덮는 것이다.
-      // 로직을 꺼낼 때마다 여기 임계값도 함께 올린다.
+      // 종전(79/70/77/81)보다 낮아 보이는 것은 테스트가 줄어서가 아니라 **재는 범위가
+      // 넓어졌기 때문이다.** hooks를 포함하면서 분모가 늘었다.
+      //
+      // 이 값을 올리는 방법은 렌더러를 들이는 것이 아니라, 훅 안의 순수 로직을 모듈로
+      // 꺼내 유닛으로 덮는 것이다 — reviewTargetIds(useQuestions), roundHistory
+      // (useQuizSession의 회차 조립)가 그 사례다. 꺼낼 때마다 여기 임계값도 함께 올린다.
+      // hooks 디렉터리 자체의 %는 크게 오르지 않는다(남는 건 React 글루다) — 오르는 건
+      // 전체 수치이고, 그게 이 래칫이 재려는 값이다.
+      //
+      // 래칫 기록: 2026-08-07 실측 75.28 / 71.06 / 70.42 / 77.30 (직전 72.5 / 67.0 / 67.1 / 74.7)
       thresholds: {
-        statements: 70,
-        branches: 65,
-        functions: 65,
-        lines: 72,
+        statements: 73,
+        branches: 69,
+        functions: 68,
+        lines: 75,
       },
     },
   },
