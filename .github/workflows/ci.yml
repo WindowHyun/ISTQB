@@ -242,10 +242,17 @@ jobs:
           chmod +x android/gradlew
           cd android && ./gradlew assembleDebug --no-daemon
 
+  # timeout 30분인 이유: 정상 실행은 ~11분이지만 CI는 `retries: 1`이라 무언가 흔들리면
+  # 재시도가 붙는다. 무거운 스펙(react-monkey·react-fullsweep·react-pairwise·
+  # react-transition-quick)은 test.setTimeout이 300초라, 그중 하나만 재시도해도 5분이
+  # 더 붙는다. 20분은 그 여유를 못 버텨 main에서도 #256·#257·#266이 정확히 20분에서
+  # 잘렸다(정상 12분 / 실패 20:20). 재시도 한 번을 감당할 여유를 준다.
+  # 근본 비용이던 react-webkit-motion의 Chromium 중복 실행은 playwright.config.ts의
+  # testIgnore로 걷어냈다 — 여유는 그 위에 얹는 이중 방어다.
   e2e:
     name: E2E smoke (Playwright)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v6

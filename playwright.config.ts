@@ -18,6 +18,16 @@ export default defineConfig({
       // 기능 E2E(react-*.spec.ts). 비기능 스펙은 별도 프로젝트로 분리해 제외된다.
       name: "react",
       testMatch: /react-.*\.spec\.ts/,
+      // react-webkit-motion은 이름이 `react-`로 시작해 위 정규식에 걸리지만, 내용은
+      // **WebKit 전용 원인 규명**이다(테스트 이름부터 "WebKit 원인 규명: …"). Chromium에서
+      // 돌리면 결론이 무의미할 뿐 아니라 비싸다 — 6건이 프레임 계측으로 테스트당
+      // 180~300초 예산을 쓴다(로컬 4코어 76초, 2코어 CI 러너에서는 수 분).
+      //
+      // 실제로 이것이 e2e 잡을 20분 타임아웃으로 밀어 넣고 있었다. main에서도 #256·#257·
+      // #266이 전부 정확히 20분 19~20초에 cancelled/failure로 끝났다(정상 실행은 ~12분).
+      // 취소된 잡의 마지막 로그가 이 스펙의 계측 출력이었다.
+      // webkit 프로젝트의 testMatch에는 그대로 실려 있으므로 검증 범위는 줄지 않는다.
+      testIgnore: /react-webkit-motion\.spec\.ts/,
       use: { ...devices["Desktop Chrome"], baseURL: REACT_URL },
     },
     {
