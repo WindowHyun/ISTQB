@@ -27,7 +27,7 @@
 - React 앱(운영 배포)·렌더링·풀이 동작 변경은 `npm test`(유닛)와 `npm run test:e2e`(React 기능 E2E, 시나리오 목록은 `docs/e2e-test-scenarios.md`)로 회귀를 검증합니다.
 - 모바일 레이아웃·안전영역·터치 타깃에 영향이 있으면 `npm run test:apk`(APK/WebView)도 실행합니다 — 데스크톱 E2E는 뷰포트를 줄여도 WebView UA·안전영역 변수를 재현하지 못합니다.
 - 성능·오프라인·저장 내구성에 영향이 있으면 `npm run test:nf`(비기능)를 실행합니다.
-- IndexedDB·Blob 다운로드·서비스워커·Date 파싱 등 **엔진 계층**을 건드렸으면 `npm run test:webkit`(Safari/WebKit)을 실행합니다 — Chromium 단독 검증으로는 이 계층의 결함이 배포까지 살아남습니다(CI 게이트에도 있습니다).
+- IndexedDB·Blob 다운로드·서비스워커·Date 파싱 등 **엔진 계층**이나 렌더링을 크게 건드렸으면, 배포 전 **실기기 Safari(아이폰·맥)로 30초 직접 확인**합니다. 자동 Safari 게이트는 투자 대비 효과가 낮아 제거했습니다(잡아낸 것이 제품 결함이 아니라 테스트 하네스 이슈뿐이었고, 러너 시간은 11~24분이었습니다). 알려진 Safari 렌더 비용은 `docs/harness/ui-render-harness.md`를 참고하세요.
 
 > **Playwright 스위트는 한 번에 하나씩 실행합니다.** `webServer`가 설정 전체에 하나뿐이라
 > 포트(4173)와 `dist/`를 모든 프로젝트가 공유합니다 — 두 개를 별개 프로세스로 동시에 띄우면

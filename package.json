@@ -25,7 +25,6 @@
     "test:e2e": "playwright test --project=react",
     "test:nf": "playwright test --project=nonfunctional",
     "test:apk": "playwright test --project=apk --project=apk-nf",
-    "test:webkit": "playwright test --project=webkit",
     "test:e2e:all": "playwright test --project=react --project=nonfunctional --project=apk --project=apk-nf",
     "typecheck": "tsc --noEmit",
     "typecheck:test": "tsc --noEmit -p tsconfig.test.json",

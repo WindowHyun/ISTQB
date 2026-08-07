@@ -42,7 +42,6 @@ env:
 | `build` | Build (tsc + vite) | `npm run build` → **`npm run size`**(번들 예산: JS 330KB·CSS 45KB) | `dist/`(7일) |
 | `e2e` | E2E smoke (Playwright) | `npm run test:e2e`(`--project=react`, 기능 404 — 시드 랜덤 스모크·몽키·axe 포함) | 실패 시 `playwright-report/`(7일) |
 | `apk` | APK/WebView (Playwright) | `npm run test:apk`(`--project=apk --project=apk-nf`, 20건) | 실패 시 `playwright-report-apk/`(7일) |
-| `webkit` | Safari/WebKit (Playwright) | `npm run test:webkit`(`--project=webkit`, 56건) | 실패 시 `playwright-report-webkit/`(7일) |
 | `nonfunctional` | Non-functional (Playwright) | `npm run test:nf`(`--project=nonfunctional`, 성능·부하·메모리·타이머·오프라인·데이터 내구성·장기 스케일 12) | 실패 시 `playwright-report-nf/`(7일) |
 
 ### 보안 게이트 (3, 체크리스트 #4)
@@ -164,4 +163,4 @@ CI=1 npm run test:e2e
 
 ## 요약
 
-**push/PR → 14 job 병렬 → 모두 통과해야 머지.** 기능·품질 11개(lint·verify-data·pdf-data·unit·mutation·build·android-build·e2e·nonfunctional·apk·webkit) + 보안 3개(audit·secrets·codeql). `lint` job은 ESLint에 더해 앱 타입 검사(`tsc --noEmit`)와 **테스트·e2e 타입 검사**(`tsc --noEmit -p tsconfig.test.json`)를 함께 돌린다 — 앱 `tsconfig`가 `*.test.ts`를 exclude하고 `e2e`를 포함하지 않아, 이 명령이 없으면 테스트 83파일이 타입 검사를 받지 못한다. e2e는 `npm ci`(브라우저 skip) → 브라우저 캐시/설치 → `playwright test --project=react`가 `build+preview`로 `dist`를 4173에 서빙하고 → `react-*.spec.ts` 404개를 Chromium으로 병렬 실행(CI 재시도 1, 실측 약 10~11분/한도 20분) → 실패 시 HTML 리포트 아티팩트를 남긴다. nonfunctional은 같은 서버로 `--project=nonfunctional` 13건을, apk는 `--project=apk --project=apk-nf` 20건을 실행한다. 보안 job은 배포 번들의 취약 의존성(audit)·유출 시크릿(gitleaks)·정적 분석 경보(CodeQL)를 각각 차단한다.
+**push/PR → 14 job 병렬 → 모두 통과해야 머지.** 기능·품질 11개(lint·verify-data·pdf-data·unit·mutation·mutation-storage·build·android-build·e2e·nonfunctional·apk) + 보안 3개(audit·secrets·codeql). `lint` job은 ESLint에 더해 앱 타입 검사(`tsc --noEmit`)와 **테스트·e2e 타입 검사**(`tsc --noEmit -p tsconfig.test.json`)를 함께 돌린다 — 앱 `tsconfig`가 `*.test.ts`를 exclude하고 `e2e`를 포함하지 않아, 이 명령이 없으면 테스트 83파일이 타입 검사를 받지 못한다. e2e는 `npm ci`(브라우저 skip) → 브라우저 캐시/설치 → `playwright test --project=react`가 `build+preview`로 `dist`를 4173에 서빙하고 → `react-*.spec.ts`를 Chromium으로 병렬 실행(CI 재시도 1, 실측 약 10~11분/한도 30분) → 실패 시 HTML 리포트 아티팩트를 남긴다. nonfunctional은 같은 서버로 `--project=nonfunctional` 13건을, apk는 `--project=apk --project=apk-nf` 20건을 실행한다. 보안 job은 배포 번들의 취약 의존성(audit)·유출 시크릿(gitleaks)·정적 분석 경보(CodeQL)를 각각 차단한다.

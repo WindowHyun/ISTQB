@@ -42,7 +42,6 @@ E2E는 시간이 걸리므로 **CI 결과로 갈음**합니다. 로컬에서 굳
 ```bash
 npm run test:e2e    # 기능 (Chromium)
 npm run test:apk    # Pixel 7 + WebView UA
-npm run test:webkit # Safari
 npm run test:nf     # 비기능
 ```
 
@@ -216,7 +215,7 @@ App Distribution에는 "내리기"가 없습니다. **직전 정상 버전을 �
 | 이슈 | 내용 | 배포 영향 |
 | --- | --- | --- |
 | [#169](https://github.com/WindowHyun/ISTQB/issues/169) | Safari 문항 렌더마다 ~1초 블록 (레이아웃·페인트) | **판단 보류** — 아래 참고 |
-| [#171](https://github.com/WindowHyun/ISTQB/issues/171) | Safari 검증 범위 | 해소됨(14 → 18파일, WebKit 102 통과) |
+| [#171](https://github.com/WindowHyun/ISTQB/issues/171) | Safari 검증 범위 | **자동 게이트 제거** — 투자 대비 효과 판단(2026-08-07). 배포 전 실기기 Safari 수동 확인으로 대체 |
 | [#170](https://github.com/WindowHyun/ISTQB/issues/170) | 퀵 저장 디바운스 flaky | 해소됨(`expect.poll`) |
 | [#173](https://github.com/WindowHyun/ISTQB/issues/173) | 분할 파싱 시도 기록 | 되돌림 — 재시도 전 필독 |
 
@@ -229,7 +228,9 @@ App Distribution에는 "내리기"가 없습니다. **직전 정상 버전을 �
 - 문항마다 눈에 띄게 버벅이면 → 실제 결함. 배포는 가능하나 우선순위를 올려야 합니다
 - 매끄러우면 → CI 환경 아티팩트. 앱을 고칠 것이 아니라 계측을 고쳐야 합니다
 
-어느 쪽이든 **기능 결함은 아닙니다**(WebKit 102개 전부 통과). 사용자가 못 쓰는 상태는 아닙니다.
+어느 쪽이든 **기능 결함은 아니었습니다**(제거 시점까지 WebKit 스위트 전부 통과). 사용자가 못 쓰는 상태는 아닙니다.
+
+> 자동 Safari 게이트는 제거했습니다. 렌더링을 크게 건드린 릴리스에서는 이 항목이 **수동 점검**입니다.
 
 ---
 

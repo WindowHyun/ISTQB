@@ -358,44 +358,6 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  # 사용자가 Safari로도 앱을 쓴다. Chromium 단독 검증으로는 Safari 고유의 결함
-  # (IndexedDB 트랜잭션, Blob·File 다운로드, 서비스워커, Date 파싱)이 배포까지 살아남는다.
-  # 전 스펙을 다시 돌리지 않고 그 계층을 지나는 핵심 경로만 태운다 — 전량 재실행은
-  # 시간을 두 배로 쓰면서 대부분 중복을 확인한다.
-  webkit:
-    name: Safari/WebKit (Playwright)
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Setup Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: npm
-      - name: Install dependencies
-        run: npm ci
-      - name: Cache Playwright browsers
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-webkit-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            playwright-webkit-${{ runner.os }}-
-      - name: Install Playwright (webkit + system deps)
-        run: npx playwright install --with-deps webkit
-      - name: Run Safari/WebKit suite
-        run: npm run test:webkit
-      - name: Upload Playwright report
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: playwright-report-webkit
-          path: playwright-report/
-          retention-days: 7
-          if-no-files-found: ignore
-
   # ── 보안(체크리스트 #4) ──────────────────────────────────────────
   audit:
     name: Dependency audit (npm)

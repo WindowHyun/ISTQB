@@ -42,8 +42,9 @@ npm run test:e2e                               # React 기능 E2E
 npm run test:mutation   # Stryker, CI break 85
 ```
 
-저장·복원·오프라인에 영향이 있으면 `npm run test:nf`, 모바일 레이아웃이면 `npm run test:apk`,
-IndexedDB·Blob·서비스워커 계층을 건드렸으면 `npm run test:webkit`을 추가로 실행합니다.
+저장·복원·오프라인에 영향이 있으면 `npm run test:nf`, 모바일 레이아웃이면 `npm run test:apk`를
+추가로 실행합니다. IndexedDB·Blob·서비스워커 계층을 건드렸다면 자동 Safari 게이트가 없으므로
+(투자 대비 효과로 제거) 배포 전 실기기 Safari로 직접 확인합니다.
 
 > `npm run verify`만 실행하고 끝내지 않는다. 그것은 문제 데이터 검증 스크립트라
 > 앱 동작을 한 줄도 실행하지 않는다 — 종전 이 문서의 필수 점검이 `verify` 하나뿐이었고,

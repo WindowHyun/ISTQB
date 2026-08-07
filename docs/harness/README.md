@@ -39,7 +39,6 @@ npm run test:e2e                                              # React 기능 E2E
 ```bash
 npm run test:nf                # 비기능 — 성능·오프라인·타이머·저장 내구성
 npm run test:apk               # APK/WebView — 안전영역·터치 타깃(데스크톱 E2E가 대체 못 함)
-npm run test:webkit            # Safari/WebKit — IndexedDB·Blob·서비스워커·Date 파싱 계층
 npm run test:mutation          # Stryker 코어 — 채점·통계 순수 로직(break 85, ~70초)
 npm run test:mutation:storage  # Stryker 영속화·상태 계층(break 50, ~11분)
 ```
@@ -83,7 +82,7 @@ no-coverage 222건은 유닛이 아예 지나가지 않는 코드라, 강화가 
 
 ### ⚠️ Playwright 스위트를 동시에 띄우지 않는다
 
-`test:e2e`·`test:nf`·`test:apk`·`test:webkit`은 **한 번에 하나씩** 실행한다.
+`test:e2e`·`test:nf`·`test:apk`는 **한 번에 하나씩** 실행한다.
 `playwright.config.ts`의 `webServer`는 설정 전체에 하나뿐이라 포트(4173)와 산출물(`dist/`)을
 모든 프로젝트가 공유한다. 별개 프로세스로 두 개를 띄우면 둘 다 "서버가 없다"고 판단해 각자
 `npm run build`를 돌리고, 같은 `dist/`에 동시에 쓴다 — 먼저 돌던 쪽이 테스트하던 산출물이
