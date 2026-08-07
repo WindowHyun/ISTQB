@@ -125,7 +125,8 @@ async function enter(page: Page, c: Combo) {
 
 test.describe("페어와이즈 조합", () => {
   test(`전 ${STRENGTH}요인 조합을 덮는 ${COMBOS.length}개 케이스에서 진입·조작·채점이 깨지지 않는다`, async ({ page }) => {
-    test.setTimeout(900_000);
+    // 예산 5분(실측 1.1분 단독). 잡 타임아웃보다 작게 두는 이유는 react-fullsweep 주석 참고.
+    test.setTimeout(300_000);
     const problems: string[] = [];
     // 덮지 못한 조합이 하나라도 있으면 "t-way 전수"라는 이름이 거짓이 된다.
     const missed = uncoveredTuples(STRENGTH, COMBOS);

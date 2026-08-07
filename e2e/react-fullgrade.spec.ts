@@ -69,7 +69,9 @@ async function answerCorrectly(page: Page, q: Q) {
 }
 
 test("전수 기능: 12세트를 정답으로 완주하면 전부 100%가 나온다", async ({ page }) => {
-  test.setTimeout(1_800_000);
+  // 예산 5분. 실측 1.2분(단독) — 종전 30분은 25배였다.
+  // 예산을 잡 타임아웃(30분)보다 작게 유지하는 이유는 react-fullsweep 주석 참고.
+  test.setTimeout(300_000);
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
   page.on("console", (m) => { if (m.type() === "error") errors.push("console.error: " + m.text()); });

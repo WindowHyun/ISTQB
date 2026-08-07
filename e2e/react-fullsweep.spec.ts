@@ -131,7 +131,12 @@ function expectedText(q: { stem?: unknown; options?: { text?: string }[] }): str
 
 for (const width of [1280, 390]) {
   test(`전수: 12세트 626문항 렌더 검사 (${width}px)`, async ({ page }) => {
-    test.setTimeout(1_800_000);
+    // 예산 5분. 실측은 폭당 43초(단독)이고 전체 스위트와 워커를 나눠 써도 그 언저리다.
+    // 종전 30분은 실측의 42배였는데, 그 크기가 곧 결함이었다 — 이 검사가 멈추면 30분을
+    // 조용히 태우고, e2e 잡의 벽시계(30분)가 먼저 끝나 **리포트가 한 줄도 안 남는다**.
+    // 실제로 #256·#257·#266이 그렇게 잘렸고 원인을 못 봤다. 예산이 잡보다 작아야
+    // 테스트가 자기 예산에서 죽으면서 trace와 error-context를 남긴다.
+    test.setTimeout(300_000);
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
     page.on("console", (m) => { if (m.type() === "error") errors.push("console.error: " + m.text()); });

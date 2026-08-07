@@ -246,7 +246,8 @@ async function goAny(page: Page, m: AnyMode) {
 }
 
 test("전이 전수: 5모드 25개 순서쌍을 모두 밟아도 앱이 살아 있다", async ({ page }) => {
-  test.setTimeout(900_000);
+  // 예산 5분(실측 46초 단독). 잡 타임아웃보다 작게 두는 이유는 react-fullsweep 주석 참고.
+  test.setTimeout(300_000);
   const errs: string[] = [];
   page.on("pageerror", (e) => errs.push(String(e).slice(0, 160)));
 
