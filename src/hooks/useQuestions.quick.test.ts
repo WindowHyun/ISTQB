@@ -1,8 +1,34 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { buildQuickPool, drawQuick, type Question } from './useQuestions';
 import { makeCanonicalIdResolver } from '../utils/chapterStats';
+
+/**
+ * drawQuick은 shuffleQuestions(= Math.random)를 거친다. 시드를 고정하지 않으면 아래
+ * '상한만큼 들어간다' 검사가 추첨 순서에 따라 흔들린다.
+ *
+ * 실측: 서답형 8·선택형 8에서 10개를 뽑으면 서답형이 3개 나올 확률 99.65%,
+ *       2개 나올 확률 0.35%다(20만 회 측정). 선택형이 8개뿐이라 10개를 채우려면
+ *       서답형이 최소 2개 필요한데, 상한(3)에 걸리는 세 번째 서답형을 만나기 전에
+ *       picked가 10에 도달하면 2개로 끝나기 때문이다.
+ *
+ * 285회에 1회꼴이라 `npm test`로는 거의 보이지 않았지만, 뮤테이션 테스트는 뮤턴트마다
+ * 스위트를 돌리므로 반드시 걸린다 — 실제로 Stryker 초기 실행이 이걸로 멈췄다.
+ * 시드를 고정해 결정적으로 만든다(useQuestions.draw.test.ts와 같은 절차).
+ */
+function seeded(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+afterEach(() => vi.restoreAllMocks());
 
 const q = (id: string, over: Partial<Question> = {}): Question => ({
   id,
@@ -39,6 +65,7 @@ describe('buildQuickPool', () => {
   });
 
   it('추첨은 서답형을 상한(30%)까지만 넣고 나머지는 선택형으로 채운다', () => {
+    vi.spyOn(Math, 'random').mockImplementation(seeded(7)); // 순서 의존 제거(위 seeded 주석)
     const questions = [
       ...Array.from({ length: 8 }, (_, i) => q(`S-${i}`, { type: 'short_answer' })),
       ...Array.from({ length: 8 }, (_, i) => q(`M-${i}`)),

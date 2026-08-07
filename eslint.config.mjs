@@ -13,7 +13,7 @@ export default tseslint.config(
       'public/**',
       'android/**',
       'coverage/**',
-      '.stryker-tmp/**',
+      '.stryker-tmp*/**', // 설정별 tempDirName(.stryker-tmp, .stryker-tmp-storage …)을 모두 덮는다
       'docs/**',
       'script.js',
       'service-worker.js',
