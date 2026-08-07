@@ -1,5 +1,8 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["src", "e2e"],
+  // middleware.ts는 운영 사이트 전체의 인증 관문인데, 앱 tsconfig의 include가 "src"뿐이라
+  // 타입 검사를 한 번도 받지 않고 있었다(Vercel이 별도로 번들하므로 빌드에서도 안 걸린다).
+  // 여기 넣어 최소한 `npm run typecheck:test`가 지나가게 한다.
+  "include": ["src", "e2e", "middleware.ts", "middleware.test.ts"],
   "exclude": []
 }

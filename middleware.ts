@@ -22,6 +22,37 @@ export const config = {
   matcher: '/((?!_vercel).*)',
 };
 
+// 자격 증명을 UTF-8로 인코딩한 뒤 base64로 만든다.
+//
+// btoa는 Latin-1(0~255)만 받는다. 그래서 `btoa('사용자:비밀')`은 값을 반환하는 대신
+// InvalidCharacterError를 **던진다.** 종전 코드는 btoa에 원본 문자열을 그대로 넘겨서,
+// SITE_PASS에 한글·이모지처럼 Latin-1 밖 문자가 하나라도 들어가면 미들웨어가 예외로
+// 죽고 모든 요청이 500이 됐다 — 첫 화면조차 안 뜨고, 원인은 응답에 드러나지 않는다.
+// fail-closed로 설계한 관문이 fail-broken이 되는 셈이다.
+//
+// 아래 방식은 RFC 7617과도 맞다: 우리는 401에 charset="UTF-8"을 광고하고 있으므로
+// 클라이언트는 UTF-8 바이트를 base64로 보낸다. 즉 비교 대상도 같은 규칙으로 만들어야 한다.
+function base64Utf8(s: string): string {
+  const bytes = new TextEncoder().encode(s);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+// 길이가 같으면 전체를 훑어 비교한다(===는 첫 불일치 바이트에서 즉시 끝난다).
+// 네트워크 지터가 이 차이보다 훨씬 크므로 실제 공격 가능성은 낮지만, 비용이 몇 줄이라
+// 표준 관행을 따른다. 길이 차이는 여전히 드러나며 그것은 감수한다.
+function safeEqual(a: string, b: string): boolean {
+  const ea = new TextEncoder().encode(a);
+  const eb = new TextEncoder().encode(b);
+  if (ea.length !== eb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ea.length; i++) diff |= ea[i] ^ eb[i];
+  return diff === 0;
+}
+
+export const __test = { base64Utf8, safeEqual };
+
 export default function middleware(request: Request): Response | undefined {
   const user = process.env.SITE_USER;
   const pass = process.env.SITE_PASS;
@@ -33,8 +64,8 @@ export default function middleware(request: Request): Response | undefined {
     );
   }
 
-  const expected = 'Basic ' + btoa(`${user}:${pass}`);
-  if (request.headers.get('authorization') === expected) {
+  const expected = 'Basic ' + base64Utf8(`${user}:${pass}`);
+  if (safeEqual(request.headers.get('authorization') ?? '', expected)) {
     return undefined; // 통과 — 정적 자산 서빙 계속.
   }
 

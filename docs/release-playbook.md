@@ -109,6 +109,16 @@ Vercel 대시보드 → **Settings → Environment Variables**:
 
 > **fail-closed**: 환경변수가 없으면 사이트가 열리는 대신 **503으로 차단**됩니다. 보호가 조용히 풀리는 것을 막기 위한 의도된 동작이므로, 배포 후 503이 뜨면 먼저 이 변수를 확인합니다.
 
+비밀번호에 **한글·이모지 등 비ASCII 문자를 써도 됩니다.** 종전에는 `btoa`가 Latin-1만 받아
+그런 값에서 미들웨어가 예외로 죽고 **모든 요청이 500**이 됐습니다(첫 화면조차 안 뜨고 원인은
+응답에 안 드러남 — fail-closed가 아니라 fail-broken). 지금은 UTF-8로 인코딩해 비교하며,
+401에 광고하는 `charset="UTF-8"`과도 일치합니다.
+
+> `middleware.ts`는 Vercel이 별도로 번들하므로 **앱 빌드(`npm run build`)에서 안 걸립니다.**
+> 종전에는 앱 `tsconfig`의 `include`가 `src`뿐이라 타입 검사도 유닛도 없었습니다 — 운영 접근을
+> 결정하는 파일이 어떤 게이트에도 안 걸려 있었습니다. 지금은 `npm run typecheck:test`가 타입을
+> 보고 `middleware.test.ts`(14건)가 통과·차단·503·비ASCII 경로를 고정합니다.
+
 ### 캐시 헤더
 
 `vercel.json`이 `sw.js` · `service-worker.js` · `registerSW.js`에 `Cache-Control: no-cache`를 겁니다. **이 설정을 지우면 사용자가 새 버전을 영영 못 받을 수 있습니다** — 서비스워커 자신이 캐시되면 갱신 경로가 막히기 때문입니다.
