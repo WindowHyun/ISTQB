@@ -43,6 +43,27 @@ npm run test:webkit    # Safari/WebKit — IndexedDB·Blob·서비스워커·Dat
 npm run test:mutation  # Stryker — 테스트의 결함 검출력(살충제 패러독스 대응)
 ```
 
+### ⚠️ Playwright 스위트를 동시에 띄우지 않는다
+
+`test:e2e`·`test:nf`·`test:apk`·`test:webkit`은 **한 번에 하나씩** 실행한다.
+`playwright.config.ts`의 `webServer`는 설정 전체에 하나뿐이라 포트(4173)와 산출물(`dist/`)을
+모든 프로젝트가 공유한다. 별개 프로세스로 두 개를 띄우면 둘 다 "서버가 없다"고 판단해 각자
+`npm run build`를 돌리고, 같은 `dist/`에 동시에 쓴다 — 먼저 돌던 쪽이 테스트하던 산출물이
+밑에서 갈리면서 문항이 뜨지 않고 locator가 타임아웃한다.
+
+증상이 **테스트 자체의 플래키처럼 보인다.** 실패 지점이 매번 달라지고 단독 실행하면 통과하기
+때문이다(실측: apk + nonfunctional 동시 별도 실행 → 각각 2건씩 실패, 단독 실행은 20/20·13/13 통과).
+원인을 테스트에서 찾기 전에 **다른 스위트를 같이 돌리고 있지 않은지부터 본다.**
+
+여러 스위트를 한꺼번에 돌려야 하면 한 번의 호출에 `--project`를 여러 개 준다 — 서버와 빌드가
+하나로 공유되어 안전하다(같은 두 스위트가 이 방식에서는 33/33 통과했다).
+
+```bash
+npm run test:e2e:all   # react + nonfunctional + apk + apk-nf 를 한 번에(직렬 안전)
+```
+
+CI는 잡마다 러너가 분리되므로 이 문제가 없다 — 로컬 전용 주의사항이다.
+
 Android 패키징 변경이 있을 때는 `npm run build` → `npm run cap:sync` 순서를 지킵니다
 (`webDir: dist`라 빌드 산출물이 선행되어야 합니다).
 

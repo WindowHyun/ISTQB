@@ -93,6 +93,16 @@ export default defineConfig({
       },
     },
   ],
+  // ⚠️ 로컬에서 `npm run test:e2e`·`test:nf`·`test:apk`를 **동시에 띄우지 말 것.**
+  // 아래 webServer는 프로젝트별이 아니라 설정 전체에 하나이고, 포트(4173)와 산출물(dist/)을
+  // 모든 프로젝트가 공유한다. 별개 프로세스로 두 번 실행하면 둘 다 서버가 없다고 보고
+  // 각자 `npm run build`를 돌려 같은 dist/에 동시에 쓴다 — 먼저 시작한 쪽이 테스트 중인
+  // 산출물이 밑에서 갈리면서 문항이 안 뜨고 locator가 타임아웃한다.
+  // 실측: apk와 nonfunctional을 동시에 별도 실행 → 각각 2건씩 실패(총 4건).
+  //       같은 두 스위트를 한 번의 호출로 실행 → 33/33 통과.
+  // 여러 스위트를 한꺼번에 돌리려면 `npm run test:e2e:all`처럼 **한 번의 호출에
+  // --project를 여러 개** 준다(서버·빌드가 하나로 공유된다). CI는 잡마다 러너가 분리돼
+  // 이 문제가 없다.
   webServer: [
     {
       // React: 빌드(prebuild에서 자산 동기화 1회) 후 dist/를 preview로 서빙.
