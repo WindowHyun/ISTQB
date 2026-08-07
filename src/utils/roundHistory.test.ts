@@ -43,7 +43,9 @@ describe('buildWrongItems — 오답노트 항목', () => {
   it('내 답과 정답을 함께 남긴다', () => {
     const wrong = q({ number: 3, answer: ['b'] });
     const items = buildWrongItems([wrong], { [keyOf(wrong)]: ['a'] }, keyOf);
-    expect(items).toEqual([{ number: 3, myAnswer: ['a'], correctAnswer: ['b'] }]);
+    // qid: 오답 모드 출제 대상(reviewIds)과 같은 식별자 — 회차를 지운 뒤 남은 회차로
+    // 그 대상을 재계산하는 데 쓴다(번호는 세트마다 겹쳐서 못 쓴다).
+    expect(items).toEqual([{ number: 3, myAnswer: ['a'], correctAnswer: ['b'], qid: 'Q3' }]);
   });
 
   it('미응답이면 내 답은 빈 배열이다(undefined가 새어 나가지 않는다)', () => {
@@ -126,7 +128,7 @@ describe('buildRoundHistory — 회차 레코드', () => {
 
   it('오답노트 상세를 담는다', () => {
     expect(buildRoundHistory(base).wrongItems).toEqual([
-      { number: 2, myAnswer: ['b'], correctAnswer: ['a'] },
+      { number: 2, myAnswer: ['b'], correctAnswer: ['a'], qid: 'Q2' },
     ]);
   });
 

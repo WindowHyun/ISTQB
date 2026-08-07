@@ -48,7 +48,10 @@ export interface ExamHistory {
   setTitle?: string;
   // setId: 그 문항이 실제로 실려 있는 세트. 퀵처럼 회차의 setId가 센티넬이라 출처를
   // 알 수 없는 경우에만 채운다(일반 회차는 회차의 setId가 곧 출처라 비어 있다).
-  wrongItems?: { number: number; myAnswer: string[]; correctAnswer: string[]; setId?: string }[];
+  // qid: 문항의 이력 식별자(chapterStats.questionKey). reviewIds가 쓰는 것과 같은 값이라,
+  // 회차를 지운 뒤 남은 회차로 오답 대상을 **재계산**할 수 있다. 없으면 재계산이 불가능해
+  // 지운 회차의 오답이 오답 모드에 계속 출제된다. 과거 기록엔 없다(그때는 키를 비운다).
+  wrongItems?: { number: number; myAnswer: string[]; correctAnswer: string[]; setId?: string; qid?: string }[];
   // 챕터별 정답 집계(Phase 3 약점 분석). 채점 시점에 기록 — 과거 기록엔 없을 수 있다.
   chapterStats?: Record<string, { c: number; t: number }>;
   // 챕터별 정답/오답 문항 id. 개수만으로는 재풀이 여부를 알 수 없어 분모가 계속 부풀었다 —

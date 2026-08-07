@@ -1,6 +1,6 @@
 import type { Question } from '../hooks/useQuestions';
 import type { ExamHistory, QuizMode } from '../store/useQuizStore';
-import { buildChapterStats } from './chapterStats';
+import { buildChapterStats, questionKey } from './chapterStats';
 
 /**
  * 채점 회차 레코드 조립 — 순수 계층.
@@ -57,6 +57,9 @@ export function buildWrongItems(
     number: q.number,
     myAnswer: answers[answerKeyOf(q)] || [],
     correctAnswer: q.answer,
+    // 오답 모드 출제 대상(reviewIds)과 같은 식별자를 함께 남긴다 — 회차를 지웠을 때
+    // 남은 회차로 그 대상을 재계산하려면 번호만으로는 부족하다(번호는 세트마다 겹친다).
+    qid: questionKey(q),
     // 출처 세트는 퀵에서만 채워진다(일반 회차는 회차의 setId가 곧 출처).
     // 빠지면 서로 다른 세트의 오답이 한 덩어리로 묶이고 번호가 겹치면 서로를 덮어쓴다.
     ...(q.sourceSetId ? { setId: q.sourceSetId } : {}),

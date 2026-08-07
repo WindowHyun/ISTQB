@@ -106,4 +106,112 @@ describe('storage IndexedDB', () => {
     expect(putSpy).toHaveBeenCalled();
     expect(errSpy).toHaveBeenCalled();
   });
+  // 회차 1건 삭제가 파생 상태(reviewIds)를 남기던 결함.
+  //
+  // 오답노트는 histories[].wrongItems에서 만들고, 오답 '모드'가 출제하는 대상은
+  // reviewIds에서 만든다 — 소스가 다르다. 그런데 채점은 setReviewIds(gradeKey, wrongIds)로
+  // **덮어쓰므로** reviewIds에는 그 세트/모드의 최신 회차 오답만 들어 있다.
+  // 따라서 최신 회차를 지우면 오답노트에서는 사라지는데 오답 모드에는 그대로 출제된다 —
+  // 코드베이스가 다른 두 삭제 경로(handleClearHistories·handleResetMode)에서는 이미
+  // "오답 노트에는 없는데 오답 풀이엔 나오는 불일치"라고 이름 붙여 막아 둔 결함이,
+  // 회차 단건 삭제 경로에만 남아 있었다.
+  it('최신 회차를 지우면 그 오답이 오답 모드에 남지 않는다', async () => {
+    const s = await freshStorage();
+    const { useQuizStore } = await import('../store/useQuizStore');
+    const r = (id: string, wrong: string[]): ExamHistory => ({
+      id, setId: 'S1', mode: 'exam', answers: {}, correct: 0, total: 2,
+      wrongItems: wrong.map((q) => ({ number: Number(q), myAnswer: [], correctAnswer: [], qid: q })),
+    });
+    await s.saveHistoryToDB(r('old', ['1']));
+    await s.saveHistoryToDB(r('new', ['2']));
+    useQuizStore.setState({
+      histories: { old: r('old', ['1']), new: r('new', ['2']) },
+      // 채점이 덮어써서 최신 회차('new')의 오답만 남아 있는 상태.
+      reviewIds: { 'S1-exam': ['2'] },
+    });
+
+    await s.removeHistoriesEverywhere(['new']);
+
+    // 'new'가 사라졌으니 그 오답 '2'가 오답 모드에 계속 나오면 안 된다.
+    // 대신 남은 최신 회차('old')의 오답 '1'이 대상이 되어야 한다.
+    expect(useQuizStore.getState().reviewIds['S1-exam']).toEqual(['1']);
+  });
+
+  it('마지막 회차까지 지우면 그 세트/모드의 오답 대상이 사라진다', async () => {
+    const s = await freshStorage();
+    const { useQuizStore } = await import('../store/useQuizStore');
+    const only: ExamHistory = {
+      id: 'solo', setId: 'S2', mode: 'exam', answers: {}, correct: 0, total: 1,
+      wrongItems: [{ number: 7, myAnswer: [], correctAnswer: [], qid: '7' }],
+    };
+    await s.saveHistoryToDB(only);
+    useQuizStore.setState({ histories: { solo: only }, reviewIds: { 'S2-exam': ['7'] } });
+
+    await s.removeHistoriesEverywhere(['solo']);
+
+    expect(useQuizStore.getState().reviewIds['S2-exam'] ?? []).toEqual([]);
+  });
+
+  it('오래된 회차를 지우는 것은 오답 대상을 건드리지 않는다(최신 회차가 기준)', async () => {
+    const s = await freshStorage();
+    const { useQuizStore } = await import('../store/useQuizStore');
+    const mk = (id: string, wrong: number[]): ExamHistory => ({
+      id, setId: 'S3', mode: 'exam', answers: {}, correct: 0, total: 2,
+      wrongItems: wrong.map((n) => ({ number: n, myAnswer: [], correctAnswer: [], qid: String(n) })),
+    });
+    await s.saveHistoryToDB(mk('a', [1]));
+    await s.saveHistoryToDB(mk('b', [2]));
+    useQuizStore.setState({
+      histories: { a: mk('a', [1]), b: mk('b', [2]) },
+      reviewIds: { 'S3-exam': ['2'] },
+    });
+
+    await s.removeHistoriesEverywhere(['a']);
+
+    expect(useQuizStore.getState().reviewIds['S3-exam']).toEqual(['2']);
+  });
+  // qid가 없는 과거 기록은 번호밖에 없어 재구성이 불가능하다. 지운 회차의 오답을 계속
+  // 내보내는 것보다 비우는 편이 낫다 — 다시 채점하면 채워진다.
+  it('과거 기록(qid 없음)만 남으면 오답 대상을 비운다 — 유령 출제보다 빈 쪽', async () => {
+    const s = await freshStorage();
+    const { useQuizStore } = await import('../store/useQuizStore');
+    const legacy: ExamHistory = {
+      id: 'legacy', setId: 'S4', mode: 'exam', answers: {}, correct: 0, total: 1,
+      wrongItems: [{ number: 3, myAnswer: [], correctAnswer: [] }], // qid 없음
+    };
+    const fresh: ExamHistory = {
+      id: 'fresh', setId: 'S4', mode: 'exam', answers: {}, correct: 0, total: 1,
+      createdAt: 2, wrongItems: [{ number: 9, myAnswer: [], correctAnswer: [], qid: 'Q9' }],
+    };
+    await s.saveHistoryToDB(legacy);
+    await s.saveHistoryToDB(fresh);
+    useQuizStore.setState({
+      histories: { legacy, fresh }, reviewIds: { 'S4-exam': ['Q9'] },
+    });
+
+    await s.removeHistoriesEverywhere(['fresh']);
+
+    expect(useQuizStore.getState().reviewIds['S4-exam']).toEqual([]);
+  });
+
+  // 다른 세트/모드는 건드리지 않아야 한다 — 넓게 지우면 멀쩡한 재풀이 목록이 사라진다.
+  it('삭제한 회차와 무관한 세트/모드의 오답 대상은 그대로 둔다', async () => {
+    const s = await freshStorage();
+    const { useQuizStore } = await import('../store/useQuizStore');
+    const target: ExamHistory = {
+      id: 't', setId: 'S5', mode: 'exam', answers: {}, correct: 0, total: 1,
+      createdAt: 1, wrongItems: [{ number: 1, myAnswer: [], correctAnswer: [], qid: 'Q1' }],
+    };
+    await s.saveHistoryToDB(target);
+    useQuizStore.setState({
+      histories: { t: target },
+      reviewIds: { 'S5-exam': ['Q1'], 'S5-random': ['Q2'], 'OTHER-exam': ['Q3'] },
+    });
+
+    await s.removeHistoriesEverywhere(['t']);
+
+    expect(useQuizStore.getState().reviewIds['S5-exam']).toEqual([]);
+    expect(useQuizStore.getState().reviewIds['S5-random']).toEqual(['Q2']);
+    expect(useQuizStore.getState().reviewIds['OTHER-exam']).toEqual(['Q3']);
+  });
 });

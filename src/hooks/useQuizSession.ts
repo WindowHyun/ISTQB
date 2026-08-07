@@ -5,6 +5,7 @@ import { useQuestions, Question } from './useQuestions';
 import { isQuestionCorrect, isAnswered } from '../utils/answer';
 import { answerKeyFor, gradeKeyFor } from '../utils/answerKey';
 import { buildRoundHistory, makeRoundId } from '../utils/roundHistory';
+import { questionKey } from '../utils/chapterStats';
 import { computeCstsWeightedScore } from '../utils/scoring';
 import { isGradedMode } from '../utils/modeLabel';
 import { saveHistoryToDB } from '../utils/storage';
@@ -83,7 +84,7 @@ export function useQuizSession() {
     // 오답 목록은 위 메모(wrongQuestions)와 같은 판정을 재사용한다 — 따로 계산하면
     // 판정 규칙이 갈라져 화면 표시와 기록이 어긋날 수 있다.
     const wrongQs = wrongQuestions.map(({ q }) => q);
-    const wrongIds = wrongQs.map((q) => q.id || `legacy-${q.number}`);
+    const wrongIds = wrongQs.map(questionKey);
     // 퀵은 세트 하나에 매이지 않아 index.json에서 제목을 찾을 수 없다 — 그대로 두면
     // 통계 목록에 센티넬 'QUICK'이 그대로 노출된다.
     const setTitle = mode === 'quick'

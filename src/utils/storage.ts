@@ -139,8 +139,51 @@ async function deleteHistoriesFromDB(ids: string[]): Promise<boolean> {
 // 반환값으로 성공 여부를 알려 호출부가 완료 안내를 조건부로 띄우게 한다.
 export async function removeHistoriesEverywhere(ids: string[]): Promise<boolean> {
   const ok = await deleteHistoriesFromDB(ids);
-  if (ok) useQuizStore.getState().removeHistories(ids);
+  if (!ok) return ok;
+
+  // 지워질 회차가 어느 (세트, 모드)에 속했는지 삭제 **전에** 기억해 둔다.
+  const before = useQuizStore.getState().histories;
+  const touched = new Set(
+    ids.map((id) => before[id]).filter(Boolean).map((h) => gradeKeyFor(h.setId, h.mode)),
+  );
+
+  useQuizStore.getState().removeHistories(ids);
+  if (touched.size) recomputeReviewTargets(touched);
   return ok;
+}
+
+/**
+ * 회차를 지운 뒤 오답 모드 출제 대상(reviewIds)을 남은 회차로 다시 만든다.
+ *
+ * 오답 '노트'는 histories[].wrongItems에서 만들고 오답 '모드'가 출제하는 대상은
+ * reviewIds에서 만든다 — 소스가 다르다. 게다가 채점은 setReviewIds(gradeKey, wrongIds)로
+ * **덮어쓰므로** reviewIds에는 그 세트/모드의 최신 회차 오답만 들어 있다.
+ * 그래서 최신 회차를 지우면 노트에서는 사라지는데 오답 모드에는 그대로 출제됐다 —
+ * 코드베이스가 다른 두 삭제 경로에서는 이미 "오답 노트에는 없는데 오답 풀이엔 나오는
+ * 불일치"라고 이름 붙여 막아 둔 결함이 회차 단건 삭제에만 남아 있었다.
+ *
+ * 남은 회차 중 가장 최근 것으로 되돌린다(채점이 최신 회차로 덮어쓰는 것과 같은 규칙).
+ * qid가 없는 과거 기록은 번호밖에 없어 재구성이 불가능하므로 키를 비운다 — 지운 회차의
+ * 오답을 계속 내보내는 것보다 비어 있는 편이 낫고, 다시 채점하면 채워진다.
+ */
+function recomputeReviewTargets(gradeKeys: Set<string>): void {
+  const state = useQuizStore.getState();
+  const remaining = Object.values(state.histories);
+
+  for (const key of gradeKeys) {
+    const rounds = remaining.filter((h) => gradeKeyFor(h.setId, h.mode) === key);
+    if (!rounds.length) {
+      state.setReviewIds(key, []);
+      continue;
+    }
+    // createdAt이 없는 과거 기록은 가장 오래된 것으로 본다(0) — 최신 판정에서 밀린다.
+    const latest = rounds.reduce((a, b) => ((b.createdAt ?? 0) >= (a.createdAt ?? 0) ? b : a));
+    const qids = (latest.wrongItems ?? [])
+      .map((w) => w.qid)
+      .filter((q): q is string => typeof q === 'string');
+    // 오답이 있는데 qid가 하나도 없으면 과거 기록이다 — 재구성 불가라 비운다.
+    state.setReviewIds(key, qids);
+  }
 }
 
 type UnknownRecord = Record<string, unknown>;

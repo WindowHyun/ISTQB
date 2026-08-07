@@ -21,8 +21,14 @@ export interface ChapterOutcome {
   questions: ChapterQuestions;
 }
 
-/** 문항의 이력 식별자 — 세트가 달라도 같은 문항이면 같은 키여야 한다. */
-function questionKey(q: Question): string {
+/**
+ * 문항의 이력 식별자 — 세트가 달라도 같은 문항이면 같은 키여야 한다.
+ *
+ * reviewIds(오답 모드 출제 대상)·chapterQuestions·wrongItems.qid가 모두 이 값을 쓴다.
+ * 같은 식이 useQuizSession·useQuestions에도 흩어져 있었는데, 하나만 달라져도
+ * "오답 모드에 안 뜨는 오답" 같은 조용한 불일치가 되므로 여기를 단일 원천으로 둔다.
+ */
+export function questionKey(q: Question): string {
   return q.id || `legacy-${q.number}`;
 }
 
