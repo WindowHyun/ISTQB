@@ -1,7 +1,6 @@
 {
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
   "_comment": "영속화·상태 계층 전용 뮤테이션 설정 — stryker.config.json(코어)과 분리해 둔다. 왜 나눴는지는 아래 _comment_split 참고.",
-
   "_comment_split": [
     "한 설정에 다 넣으면 둘 중 하나를 잃는다. 8개 파일을 한꺼번에 돌린 실측이 65.16%인데,",
     "코어 6개는 92%대이고 storage.ts가 50.91%라 평균이 그쪽으로 끌려간다. break를 65 근처로",
@@ -10,7 +9,6 @@
     "그래서 게이트를 둘로 나눈다: 코어는 높은 기준을 그대로 지키고, 여기는 '지금보다",
     "나빠지지 않는다'는 바닥을 두고 위로 끌어올린다."
   ],
-
   "_comment_why": [
     "이 두 파일은 코드 리뷰에서 반복해 결함이 나온 곳인데 그동안 뮤테이션 측정 밖에 있었다.",
     "한 번의 리뷰에서 찾은 6건 중 storage.ts에 2건(퀵 회차 저장 트리거 누락, 스냅샷 미생성),",
@@ -18,26 +16,38 @@
     "뮤테이션은 50.91%·64.26%다 — '실행은 되지만 결과를 확인하지 않는' 검사가 많다는 뜻이고,",
     "실제로 그 틈에서 결함이 나왔다."
   ],
-
   "testRunner": "vitest",
-  "vitest": { "configFile": "vitest.stryker.config.ts" },
+  "vitest": {
+    "configFile": "vitest.stryker.config.ts"
+  },
   "coverageAnalysis": "perTest",
-
-  "mutate": ["src/utils/storage.ts", "src/store/useQuizStore.ts"],
-
-  "reporters": ["clear-text", "progress", "html"],
-  "htmlReporter": { "fileName": "reports/mutation-storage/index.html" },
-
-  "_comment_break": [
-    "실측 53.82%(killed 718 / survived 394 / no-coverage 222, 2026-08-07).",
-    "break 50은 '더 나빠지지 않는다'는 바닥이다 — 목표가 아니라 래칫의 첫 칸이다.",
-    "storage.ts의 검사를 보강할 때마다 이 값을 함께 올린다. 올리지 않으면 래칫이 아니라",
-    "그냥 낮은 기준이 된다.",
-    "no-coverage 222건은 유닛이 아예 지나가지 않는 코드다 — 그쪽은 검사를 '더 강하게'가",
-    "아니라 '처음' 써야 하는 부분이다."
+  "mutate": [
+    "src/utils/storage.ts",
+    "src/store/useQuizStore.ts"
   ],
-  "thresholds": { "high": 80, "low": 55, "break": 50 },
-
+  "reporters": [
+    "clear-text",
+    "progress",
+    "html"
+  ],
+  "htmlReporter": {
+    "fileName": "reports/mutation-storage/index.html"
+  },
+  "_comment_break": [
+    "래칫 기록 — 검사를 보강할 때마다 실측을 다시 재고 break를 함께 올린다.",
+    "  2026-08-07 최초: 53.82% (killed 718 / survived 394 / no-coverage 222) → break 50",
+    "  2026-08-07 갱신: 62.07% (killed 828 / survived 390 / no-coverage 116) → break 58",
+    "    storage.restore.test.ts 20건(복원 분기·findGradedRoundMatch)을 추가한 결과다.",
+    "    no-coverage가 222 → 116으로 절반이 됐다 — 유닛이 아예 지나가지 않던 코드에",
+    "    처음 검사가 닿았다는 뜻이고, 점수 상승분의 대부분이 여기서 나왔다.",
+    "break 58은 '더 나빠지지 않는다'는 바닥이지 목표가 아니다. 올리지 않으면 래칫이 아니라",
+    "그냥 낮은 기준이 된다. 남은 no-coverage 116건이 다음 차례다."
+  ],
+  "thresholds": {
+    "high": 80,
+    "low": 65,
+    "break": 58
+  },
   "tempDirName": ".stryker-tmp-storage",
   "cleanTempDir": true
 }
