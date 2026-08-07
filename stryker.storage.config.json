@@ -35,18 +35,25 @@
   },
   "_comment_break": [
     "래칫 기록 — 검사를 보강할 때마다 실측을 다시 재고 break를 함께 올린다.",
-    "  2026-08-07 최초: 53.82% (killed 718 / survived 394 / no-coverage 222) → break 50",
-    "  2026-08-07 갱신: 62.07% (killed 828 / survived 390 / no-coverage 116) → break 58",
-    "    storage.restore.test.ts 20건(복원 분기·findGradedRoundMatch)을 추가한 결과다.",
-    "    no-coverage가 222 → 116으로 절반이 됐다 — 유닛이 아예 지나가지 않던 코드에",
-    "    처음 검사가 닿았다는 뜻이고, 점수 상승분의 대부분이 여기서 나왔다.",
-    "break 58은 '더 나빠지지 않는다'는 바닥이지 목표가 아니다. 올리지 않으면 래칫이 아니라",
-    "그냥 낮은 기준이 된다. 남은 no-coverage 116건이 다음 차례다."
+    "  2026-08-07 (1) 53.82%  killed 718 / survived 394 / no-coverage 222  → break 50",
+    "  2026-08-07 (2) 62.07%  killed 828 / survived 390 / no-coverage 116  → break 58",
+    "      storage.restore.test.ts 20건(복원 분기·findGradedRoundMatch)",
+    "  2026-08-07 (3) 69.86%  killed 934 / survived 343 / no-coverage  60  → break 65",
+    "      useQuizStore.actions.test.ts 32건 + storage.edge.test.ts 21건(오류·엣지 경로)",
+    "      useQuizStore.ts는 67.01 → 87.29%로 뛰고 no-coverage가 0이 됐다.",
+    "      storage.ts는 60.69 → 65.01%. 남은 60건은 전부 storage.ts 쪽이다.",
+    "",
+    "세 라운드 모두 같은 패턴이었다: no-coverage(유닛이 아예 안 지나가는 코드)를 줄인 것이",
+    "점수 상승의 주된 원인이고, survived는 상대적으로 천천히 줄었다. 즉 '검사를 더 강하게'",
+    "보다 '처음 닿게 하는' 쪽이 훨씬 값이 싸다 — 222 → 116 → 60.",
+    "",
+    "break 65는 '더 나빠지지 않는다'는 바닥이지 목표가 아니다. 남은 no-coverage 60건과",
+    "survived 343건이 다음 차례이며, 이제부터는 survived 쪽이 주된 과제가 된다."
   ],
   "thresholds": {
-    "high": 80,
-    "low": 65,
-    "break": 58
+    "high": 85,
+    "low": 70,
+    "break": 65
   },
   "tempDirName": ".stryker-tmp-storage",
   "cleanTempDir": true

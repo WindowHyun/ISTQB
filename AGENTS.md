@@ -41,7 +41,7 @@
 > 정확한 수치는 각 스위트 실행 결과와 CI 로그가 정본입니다. 다만 **데이터 계약 수치**(12세트
 > 626문항 등)는 계약 테스트가 강제하므로 문서에 남깁니다.
 - 채점·통계·저장 키 등 핵심 순수 로직을 고쳤다면 `npm run test:mutation`(Stryker 코어, CI break 85)으로 테스트의 결함 검출력을 확인합니다.
-- `src/utils/storage.ts`·`src/store/useQuizStore.ts`(영속화·상태 계층)를 고쳤다면 `npm run test:mutation:storage`(CI break 50, ~11분)를 실행합니다. 게이트가 둘로 나뉜 이유와 래칫 규칙은 `docs/harness/README.md`를 참고하세요 — **검사를 보강하면 break도 함께 올립니다.**
+- `src/utils/storage.ts`·`src/store/useQuizStore.ts`(영속화·상태 계층)를 고쳤다면 `npm run test:mutation:storage`(CI break 65, ~12분)를 실행합니다. 게이트가 둘로 나뉜 이유와 래칫 규칙은 `docs/harness/README.md`를 참고하세요 — **검사를 보강하면 break도 함께 올립니다.**
 - 테스트·e2e 파일을 추가·수정했다면 `npm run typecheck:test`를 실행합니다 — 앱 `tsconfig`는 테스트를 exclude하므로 이 명령이 아니면 타입 검사를 받지 않습니다.
 - 추가한 테스트가 헛돌지 않는지 확인합니다: 대상 결함을 일부러 되돌려 **실패하는 것을 보고** 원복합니다.
 - 요청된 변경에서 기존 하네스가 잡지 못하는 결함 유형이 드러나면, 작업 완료로 보기 전에 하네스를 보강하거나 보강안을 제시합니다.
