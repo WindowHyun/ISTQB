@@ -32,6 +32,7 @@
     "lint": "eslint .",
     "fix:questions": "node scripts/fix-questions.js",
     "test:mutation": "stryker run",
+    "test:mutation:storage": "stryker run stryker.storage.config.json",
     "data:dupes": "node scripts/build-duplicate-groups.js"
   },
   "dependencies": {

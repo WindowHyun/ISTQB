@@ -37,11 +37,31 @@ npm run test:e2e                                              # React 기능 E2E
 영향 범위에 따라 추가로 실행합니다. 넷 다 CI 게이트이므로 여기서 빠뜨리면 PR에서 잡힙니다.
 
 ```bash
-npm run test:nf        # 비기능 — 성능·오프라인·타이머·저장 내구성
-npm run test:apk       # APK/WebView — 안전영역·터치 타깃(데스크톱 E2E가 대체 못 함)
-npm run test:webkit    # Safari/WebKit — IndexedDB·Blob·서비스워커·Date 파싱 계층
-npm run test:mutation  # Stryker — 테스트의 결함 검출력(살충제 패러독스 대응)
+npm run test:nf                # 비기능 — 성능·오프라인·타이머·저장 내구성
+npm run test:apk               # APK/WebView — 안전영역·터치 타깃(데스크톱 E2E가 대체 못 함)
+npm run test:webkit            # Safari/WebKit — IndexedDB·Blob·서비스워커·Date 파싱 계층
+npm run test:mutation          # Stryker 코어 — 채점·통계 순수 로직(break 85, ~70초)
+npm run test:mutation:storage  # Stryker 영속화·상태 계층(break 50, ~11분)
 ```
+
+### 뮤테이션 게이트가 둘인 이유
+
+`stryker.config.json`(코어 6파일)과 `stryker.storage.config.json`(`storage.ts`·`useQuizStore.ts`)로
+나뉜다. 합치면 둘 중 하나를 잃기 때문이다 — 8파일을 한꺼번에 잰 실측이 65.16%인데,
+코어는 92%대이고 `storage.ts`가 50.91%라 평균이 그쪽으로 끌려간다. break를 65로 낮추면
+`answer.ts`가 89%에서 70%로 무너져도 통과하고, 85를 유지하면 CI가 즉시 빨간불이 되어
+아무도 손대지 못한다.
+
+| 설정 | 대상 | 실측 | break | 성격 |
+| --- | --- | --- | --- | --- |
+| `stryker.config.json` | 채점·통계 순수 로직 6파일 | 92.01% | 85 | 지켜야 할 높은 기준 |
+| `stryker.storage.config.json` | `storage.ts`·`useQuizStore.ts` | 53.82% | 50 | **래칫의 첫 칸** |
+
+두 번째는 목표가 아니라 바닥이다. `storage.ts`는 커버리지 81%인데 뮤테이션 50.91%다 —
+"실행은 되지만 결과를 확인하지 않는" 검사가 많다는 뜻이고, 실제로 그 틈에서 결함이 나왔다
+(한 번의 리뷰에서 찾은 6건 중 3건이 이 두 파일에 있었다).
+**검사를 보강할 때마다 break를 함께 올린다.** 올리지 않으면 래칫이 아니라 그냥 낮은 기준이다.
+no-coverage 222건은 유닛이 아예 지나가지 않는 코드라, 강화가 아니라 '처음' 쓰는 대상이다.
 
 ### E2E 단언 규약 — 지문 가시성을 상태 단언으로 쓰지 않는다
 

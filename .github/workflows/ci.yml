@@ -132,6 +132,36 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  # 영속화·상태 계층 전용 뮤테이션(stryker.storage.config.json) — 코어와 분리한 이유는
+  # 그 설정 파일의 _comment_split 참고. 요지: 한 설정에 합치면 코어의 높은 기준(break 85)이
+  # 평균에 끌려 내려가 answer.ts가 무너져도 통과하게 된다.
+  # 실행이 ~11분이라 코어 뮤테이션(~70초)과 한 잡에 묶지 않는다. 다른 잡과 병렬이라
+  # 전체 CI 소요(최장 잡 = e2e ~13분)는 늘어나지 않는다.
+  mutation-storage:
+    name: Mutation tests — 영속화·상태 계층
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run mutation tests (storage · store)
+        run: npm run test:mutation:storage
+      - name: Upload mutation report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: mutation-report-storage
+          path: reports/mutation-storage/
+          retention-days: 7
+          if-no-files-found: ignore
+
   build:
     name: Build (tsc + vite)
     runs-on: ubuntu-latest
