@@ -5,6 +5,34 @@ import { Page, expect } from "@playwright/test";
 export const modeBtn = (page: Page, label: string) =>
   page.locator(".segmented button", { hasText: new RegExp(`^${label}$`) }).first();
 
+/**
+ * ── 단언 규약 ──────────────────────────────────────────────────────────────
+ *
+ * **`#questionStem`이 보이는 것을 상태 단언으로 쓰지 않는다.**
+ *
+ * 지문은 연습·시험·랜덤·오답·퀵 어느 모드에서나 보인다. 그래서 "무언가를 눌렀고
+ * 지문이 보인다"는 거의 항상 참이고, 아무것도 증명하지 못한다.
+ *
+ * 실제로 그렇게 통과한 검사가 있었다. react-userflow의 오답 재풀이 단계는 퀵 모드에서
+ * '오답 다시 풀기'를 누른 뒤 지문 가시성만 단언했는데, 당시 그 버튼은 아무 일도 하지
+ * 않고 토스트만 띄웠다 — 모드가 바뀌지 않아 퀵 문항이 그대로 떠 있었고, 검사는 초록불이었다.
+ * 재풀이에 진입하지 못하는 결함을 13분짜리 스위트가 통과시켰다.
+ *
+ * 규칙:
+ *  - 지문 가시성은 **로딩 완료를 기다리는 용도**로만 쓴다(진입 헬퍼 안에서).
+ *  - 상태가 바뀌었다는 주장은 **그 상태를 직접 읽는 단언**으로 한다
+ *    (모드 → `expectMode`, 세트 → 셀렉트 값, 채점 → 결과 모달·점수).
+ *  - "무엇을 확인하려는가"를 한 문장으로 못 쓰겠으면 그 단언은 빼는 게 낫다.
+ */
+
+/** 현재 풀이 모드가 기대와 같은지 — 지문 가시성 대신 aria-pressed를 직접 읽는다. */
+export async function expectMode(page: Page, label: "연습" | "시험" | "랜덤" | "오답") {
+  await expect(
+    modeBtn(page, label),
+    `모드가 '${label}'로 전환되지 않았다 — 지문이 보인다는 것만으로는 전환을 증명하지 못한다`,
+  ).toHaveAttribute("aria-pressed", "true");
+}
+
 export async function openProduct(page: Page, name: "ISTQB" | "CSTS") {
   await page.goto("/");
   await page.getByRole("button", { name }).click();

@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { openProduct } from "./helpers";
+import { expectMode, openProduct } from "./helpers";
 
 /** 유형을 가리지 않고 현재 문항에 답한다 — 퀵에는 서답형이 최대 30% 섞인다(B5).
  *  보기 클릭만 쓰면 뽑기 결과에 따라 셀렉터가 아예 없어 타임아웃으로 죽는다. */
@@ -136,10 +136,7 @@ for (const product of ["ISTQB", "CSTS"] as const) {
     await openSidebar(page);
     await page.getByRole("button", { name: "오답 다시 풀기" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-    await expect(
-      page.getByRole("button", { name: "오답", exact: true }),
-      "‘오답 다시 풀기’를 눌렀는데 오답 모드로 전환되지 않았다",
-    ).toHaveAttribute("aria-pressed", "true");
+    await expectMode(page, "오답"); // 규약: 상태 주장은 상태를 직접 읽는다(helpers.ts 단언 규약)
 
     // 7) 통계 — 퀵은 회차 목록 어디에도 남지 않는다(챕터 집계에만 조용히 기여).
     await openSidebar(page);

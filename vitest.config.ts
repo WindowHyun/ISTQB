@@ -8,18 +8,33 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],
-      // 유닛이 실제로 다루는 로직 계층(store·utils)만 대상.
-      // 컴포넌트/훅/앱 셸은 E2E(255)가 담당하므로 `all`은 켜지 않는다
-      // (켜면 미임포트 파일까지 0%로 집계돼 임계값이 무의미해진다).
-      include: ["src/store/**", "src/utils/**"],
-      // 현재값(stmt 81.0·branch 72.8·func 79.9·line 83.2)보다 약 2%p 낮게 잡는다.
-      // 그동안 임계값이 실측보다 13%p 낮아 사실상 아무 회귀도 막지 못했다 —
-      // 테스트를 보강할 때 여기도 함께 올린다(설정 취지대로).
+      // 측정 대상: store · utils · **hooks**.
+      //
+      // hooks를 넣는 이유: 종전에는 store+utils만 재서 소스의 46%만 지표가 있었고,
+      // 나머지 53%(hooks·components·app)는 숫자조차 없었다. 그 사각지대에서 결함이
+      // 반복해서 나왔다 — 실제로 한 번의 코드 리뷰에서 찾은 6건 중 4건이 여기 살았고,
+      // 그중 둘(퀵의 죽은 오답 키 읽기, 전멸형 Promise.all)이 hooks/였다.
+      // 커버리지가 낮은 것과 커버리지를 모르는 것은 다르다. 낮은 채로 두더라도
+      // **보이게** 두어야 나빠지는 것을 알 수 있다.
+      //
+      // components/app은 아직 넣지 않는다. 3,499줄이 사실상 0%라 넣으면 전체 수치가
+      // 반토막 나면서 임계값이 무의미해지고, 그것들은 뷰 계층이라 E2E가 맞는 도구다.
+      // hooks는 다르다 — 순수 로직을 품고 있어 밖으로 꺼내면 유닛으로 잡을 수 있다
+      // (reviewTargetIds가 그 예다: effect 안에 묻혀 있던 계산을 꺼내 검사로 고정했다).
+      include: ["src/store/**", "src/utils/**", "src/hooks/**"],
+      // 임계값은 "지금보다 나빠지지 않는다"는 바닥이다. hooks를 포함한 실측
+      // (stmt 72.5 · branch 67.1 · func 67.1 · line 74.7)보다 약 2%p 낮게 잡는다.
+      //
+      // 이 숫자가 종전(79/70/77/81)보다 낮아진 것은 테스트가 줄어서가 아니라
+      // **재는 범위가 넓어졌기 때문이다.** hooks 자체는 stmt 13.4%다(useQuizSession·
+      // useSetCounts·useTheme·useBackDismiss는 0%). 이 값을 올리는 방법은 렌더러를
+      // 들이는 것이 아니라, 훅 안의 순수 로직을 모듈로 꺼내 유닛으로 덮는 것이다.
+      // 로직을 꺼낼 때마다 여기 임계값도 함께 올린다.
       thresholds: {
-        statements: 79,
-        branches: 70,
-        functions: 77,
-        lines: 81,
+        statements: 70,
+        branches: 65,
+        functions: 65,
+        lines: 72,
       },
     },
   },
