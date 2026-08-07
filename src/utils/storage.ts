@@ -429,25 +429,32 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
     let answers = {};
     const histories = await loadHistoriesFromDB();
     
-    // Legacy snapshot logic — localStorage 파싱은 독립적으로 감싼다. 한 조각이 손상돼
-    // JSON.parse가 throw해도, 이미 읽어온 정상 이력(histories)까지 폐기되지 않게 한다.
-    try {
-      const snapshotRaw = localStorage.getItem(persistenceKey());
-      if (snapshotRaw) {
-        const snapshot = JSON.parse(snapshotRaw);
-        uiState = snapshot.uiState || {};
-        answers = snapshot.answers || {};
-      } else {
-        const uiStateRaw = localStorage.getItem(uiStorageKey());
-        if (uiStateRaw) uiState = JSON.parse(uiStateRaw);
-
-        const answersRaw = localStorage.getItem(storageKey());
-        if (answersRaw) answers = JSON.parse(answersRaw);
+    // localStorage 파싱은 조각마다 따로 감싼다. 한 조각이 손상돼 JSON.parse가 throw해도
+    // (1) 이미 읽어온 정상 이력(histories)과 (2) 멀쩡히 파싱된 다른 조각까지 폐기하지 않는다.
+    //
+    // 종전에는 주석만 "독립적으로 감싼다"였고 실제로는 uiState와 answers가 한 try를
+    // 공유했다. 그래서 답안 키만 깨져도 정상 파싱된 모드·세트·위치가 함께 버려져,
+    // 사용자는 답안뿐 아니라 풀던 자리까지 잃고 기본 화면으로 떨어졌다.
+    // 답안은 그 키가 깨진 이상 어차피 못 살리지만, 위치는 살릴 수 있었다.
+    const parseOr = <T,>(raw: string | null, label: string, fallback: T): T => {
+      if (!raw) return fallback;
+      try {
+        return JSON.parse(raw) as T;
+      } catch (e) {
+        console.error(`${label} 파싱 실패 — 이 조각만 건너뛴다:`, e);
+        return fallback;
       }
-    } catch (e) {
-      console.error("스냅샷 파싱 실패 — UI/답안은 건너뛰고 이력만 복원합니다:", e);
-      uiState = {};
-      answers = {};
+    };
+
+    const snapshotRaw = localStorage.getItem(persistenceKey());
+    if (snapshotRaw) {
+      // 스냅샷은 UI 상태와 답안이 한 JSON에 들어 있어 쪼갤 수 없다 — 깨지면 둘 다 간다.
+      const snapshot = parseOr<{ uiState?: unknown; answers?: unknown }>(snapshotRaw, '스냅샷', {});
+      uiState = snapshot.uiState || {};
+      answers = snapshot.answers || {};
+    } else {
+      uiState = parseOr(localStorage.getItem(uiStorageKey()), 'UI 상태', {});
+      answers = parseOr(localStorage.getItem(storageKey()), '답안', {});
     }
     
     const restoredUi = sanitizeUiState(uiState);
