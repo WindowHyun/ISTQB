@@ -12,7 +12,8 @@ import { Modal } from '../common/Modal';
 import { ConfirmButtons } from '../common/ConfirmButtons';
 import { UserGuide } from '../common/UserGuide';
 import { StatsDashboard } from '../stats/StatsDashboard';
-import { latestAttemptComparison, overcomeNumbers } from '../../utils/attemptStats';
+import { latestAttemptComparison } from '../../utils/attemptStats';
+import { buildWrongNoteBySet, WrongNoteSetView } from '../../utils/wrongNote';
 import { ResultSummary } from '../quiz/ResultSummary';
 import { QuestionPalette } from '../quiz/QuestionPalette';
 import { Question } from '../../hooks/useQuestions';
@@ -56,19 +57,6 @@ const THEMES: { value: ThemePref; label: string }[] = [
 ];
 
 type FontSize = 'small' | 'normal' | 'large';
-
-// 오답노트 합산 뷰 전용 타입 — 여러 회차의 오답 합집합이라 특정 회차(ExamHistory)가
-// 아니다. 렌더에 필요한 필드만 담아 도메인 객체를 가짜 id로 위조하지 않는다.
-interface WrongNoteSetView {
-  setId: string;
-  setTitle?: string;
-  attemptCount: number; // 합산에 관여한 회차 수
-  latestCreatedAt?: number; // 최근 회차 시각(정렬·표기)
-  wrongItems: NonNullable<ExamHistory['wrongItems']>;
-  // '극복'(최근 시험 2회 연속 정답) 판정된 문항 번호 — 누적 노트에서 상태를 구분해
-  // 한 번 틀린 문항이 영구히 '복습 대상'처럼 보이는 문제를 푼다(목록에는 남긴다).
-  overcome: Set<number>;
-}
 
 // 앱 루트에 렌더되는 모든 오버레이(설정·통계·오답노트·결과·문항이동).
 // 드로어(transform)의 자식이 아니어서 position:fixed 오버레이가 정상 동작한다.
@@ -236,52 +224,16 @@ export const AppModals = () => {
       a.setTitle.localeCompare(b.setTitle, 'ko') || a.item.number - b.item.number);
   }, [productQuickRounds, appData]);
 
-  const wrongNoteBySet: WrongNoteSetView[] = React.useMemo(() => {
-    // 회차가 아니라 '문항의 출처 세트'로 묶는다. 퀵 회차는 setId가 센티넬(QUICK)이고
-    // 문항이 여러 세트에서 왔으므로, 회차 단위로 묶으면 서로 다른 세트의 오답이 '퀵 랜덤'
-    // 한 덩어리가 된다 — 지문을 불러올 경로가 없어 번호만 뜨고, 번호가 겹치면 유실된다.
-    // wrongItems.setId가 있으면 그것을, 없으면(일반 회차) 회차의 setId를 출처로 본다.
-    const bySet = new Map<string, ExamHistory[]>();
-    for (const h of Object.values(productHistories)) {
-      if ((h.wrongItems?.length ?? 0) === 0) continue;
-      for (const sid of new Set((h.wrongItems ?? []).map((it) => it.setId ?? h.setId))) {
-        const list = bySet.get(sid) ?? [];
-        list.push(h);
-        bySet.set(sid, list);
-      }
-    }
-    const merged: WrongNoteSetView[] = [];
-    for (const [sid, hs] of bySet) {
-      hs.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)); // 최신 우선
-      const items = new Map<number, NonNullable<ExamHistory['wrongItems']>[number]>();
-      for (const h of hs) {
-        // 이 회차의 오답 중 지금 보고 있는 세트에서 온 것만 취한다.
-        for (const it of (h.wrongItems ?? []).filter((x) => (x.setId ?? h.setId) === sid)) {
-          if (!items.has(it.number)) items.set(it.number, it); // 최신 회차 기록이 대표
-        }
-      }
-      const wrongList = Array.from(items.values()).sort((a, b) => a.number - b.number);
-      merged.push({
-        setId: sid,
-        // 제목은 index.json을 먼저 본다 — 퀵 회차의 setTitle('퀵 랜덤')을 그대로 쓰면
-        // 출처 세트로 갈라 놓고도 그룹 이름이 전부 '퀵 랜덤'이 된다.
-        // 세트가 index.json에서 빠진 경우를 위해 회차에 저장된 제목을 폴백으로 둔다.
-        setTitle: appData?.sets.find((s) => s.id === sid)?.title
-          ?? hs.find((h) => h.setId === sid)?.setTitle,
-        attemptCount: hs.length,
-        latestCreatedAt: hs[0].createdAt,
-        wrongItems: wrongList,
-        // 극복 판정은 오답이 있는 회차만이 아니라 전 이력(만점 회차 포함) 기준이어야 한다 —
-        // bySet은 wrongItems>0 회차만 모으므로 productHistories 전체를 넘긴다.
-        overcome: overcomeNumbers(
-          Object.values(productHistories),
-          sid,
-          wrongList.map((it) => it.number),
-        ),
-      });
-    }
-    return merged.sort((a, b) => (b.latestCreatedAt || 0) - (a.latestCreatedAt || 0));
-  }, [productHistories, appData]);
+  // 세트별 오답 합집합 — 순수 로직은 utils/wrongNote로 꺼냈다(유닛으로 고정 가능).
+  // useMemo: AppModals는 answers를 구독(useQuizSession)해 답안 클릭마다 리렌더되므로,
+  // 메모 없이는 오답노트가 닫혀 있어도 매 클릭 전체 이력 정렬·병합을 재계산한다.
+  const wrongNoteBySet: WrongNoteSetView[] = React.useMemo(
+    () => buildWrongNoteBySet(
+      Object.values(productHistories),
+      (sid) => appData?.sets.find((s) => s.id === sid)?.title,
+    ),
+    [productHistories, appData],
+  );
   const selectedWrong = wrongNoteSetId
     ? wrongNoteBySet.find((h) => h.setId === wrongNoteSetId) ?? null
     : null;

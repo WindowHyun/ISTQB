@@ -220,6 +220,40 @@ test.describe("엣지-모달", () => {
     await page.keyboard.press("ArrowRight");
     await expect(title).not.toHaveText(before);
   });
+
+  // 겹친 모달에서 Esc는 맨 위 하나만 닫아야 한다.
+  //
+  // 모든 모달이 document에 캡처 리스너를 달고 Escape에서 stopPropagation을 부르는데,
+  // 그것은 '같은 노드의 다른 리스너'를 막지 못한다(그건 stopImmediatePropagation).
+  // 그래서 설정 → '기록 가져오기' 확인처럼 겹친 상태에서 Esc 한 번에 두 핸들러가 모두
+  // 돌아 설정까지 함께 닫혔다. 하드웨어 뒤로가기는 BACK_PRIORITY로 한 단계씩 닫는데
+  // Esc만 그 기구가 없어 두 경로의 동작이 갈렸다.
+  test("모달이 겹치면 Esc는 맨 위 하나만 닫는다", async ({ page }) => {
+    await openProduct(page, "ISTQB");
+    await page.getByRole("button", { name: /설정/ }).click();
+    const settings = page.getByRole("dialog", { name: "설정" });
+    await expect(settings).toBeVisible();
+
+    // 설정 위에 가져오기 확인 모달을 띄운다(설정은 닫히지 않고 아래에 남는다).
+    await page.locator('input[type="file"][accept=".json"]').setInputFiles({
+      name: "backup.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify({ state: {}, answers: {}, histories: {} }), "utf-8"),
+    });
+    const importConfirm = page.getByTestId("import-confirm-modal");
+    await expect(importConfirm).toBeVisible();
+    await expect(settings, "확인 모달이 뜨면 설정은 아래에 그대로 있어야 한다").toBeVisible();
+
+    await page.keyboard.press("Escape");
+
+    // 위쪽(가져오기 확인)만 닫히고 설정은 남는다.
+    await expect(importConfirm).toHaveCount(0);
+    await expect(settings, "Esc 한 번에 아래 설정 모달까지 닫혔다").toBeVisible();
+
+    // 한 번 더 누르면 그제서야 설정이 닫힌다.
+    await page.keyboard.press("Escape");
+    await expect(settings).toHaveCount(0);
+  });
 });
 
 // 오답 노트 목록 레이아웃 — 서답형처럼 정답이 길면 한국어가 글자 단위로 끊겨

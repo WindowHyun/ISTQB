@@ -33,16 +33,22 @@ function getActiveProduct() {
   return useQuizStore.getState().activeProduct || 'istqb';
 }
 
-function uiStorageKey() {
-  return getActiveProduct() === "csts" ? "csts-fl-v1-sample-ui-state" : "istqb-fl-v4-sample-ui-state";
+// 키는 기본적으로 '지금의' 제품을 따르지만, **await를 건너는 코드는 반드시 인자로
+// 제품을 넘겨야 한다.** 기본값(store 조회)에 기대면 await 사이에 다른 복원이 제품을
+// 바꿨을 때 남의 저장소를 읽는다 — 실측된 결함이다(storage.gaterace.test.ts):
+// 게이트를 연타하면 늦게 재개한 복원이 상대 제품의 답안을 자기 스코프로 들여왔다.
+type Product = 'istqb' | 'csts';
+
+function uiStorageKey(product: Product = getActiveProduct()) {
+  return product === "csts" ? "csts-fl-v1-sample-ui-state" : "istqb-fl-v4-sample-ui-state";
 }
 
-function storageKey() {
-  return getActiveProduct() === "csts" ? "csts-fl-v1-sample-answers" : "istqb-fl-v4-sample-answers";
+function storageKey(product: Product = getActiveProduct()) {
+  return product === "csts" ? "csts-fl-v1-sample-answers" : "istqb-fl-v4-sample-answers";
 }
 
-function persistenceKey() {
-  return getActiveProduct() === "csts" ? "csts-fl-v1-sample-history-snapshot" : "istqb-fl-v4-sample-history-snapshot";
+function persistenceKey(product: Product = getActiveProduct()) {
+  return product === "csts" ? "csts-fl-v1-sample-history-snapshot" : "istqb-fl-v4-sample-history-snapshot";
 }
 
 // localStorage 쓰기 실패 추적 — saveUiState/saveAnswers는 일상 경로에선 조용히 실패해도
@@ -489,15 +495,18 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
       }
     };
 
-    const snapshotRaw = localStorage.getItem(persistenceKey());
+    // 키는 store가 아니라 **인자로 받은 제품**으로 만든다. 위 await 사이에 다른 복원이
+    // store의 activeProduct를 바꿨을 수 있고, 그때 store를 읽으면 남의 답안을 이 제품
+    // 스코프로 들여온다(게이트 연타 시 실측됨 — storage.gaterace.test.ts).
+    const snapshotRaw = localStorage.getItem(persistenceKey(activeProduct));
     if (snapshotRaw) {
       // 스냅샷은 UI 상태와 답안이 한 JSON에 들어 있어 쪼갤 수 없다 — 깨지면 둘 다 간다.
       const snapshot = parseOr<{ uiState?: unknown; answers?: unknown }>(snapshotRaw, '스냅샷', {});
       uiState = snapshot.uiState || {};
       answers = snapshot.answers || {};
     } else {
-      uiState = parseOr(localStorage.getItem(uiStorageKey()), 'UI 상태', {});
-      answers = parseOr(localStorage.getItem(storageKey()), '답안', {});
+      uiState = parseOr(localStorage.getItem(uiStorageKey(activeProduct)), 'UI 상태', {});
+      answers = parseOr(localStorage.getItem(storageKey(activeProduct)), '답안', {});
     }
     
     const restoredUi = sanitizeUiState(uiState);

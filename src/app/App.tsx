@@ -75,17 +75,31 @@ export const App = () => {
     return () => mq.removeEventListener('change', onChange);
   }, [drawerOpen, setDrawerOpen]);
 
+  // 복원이 끝날 때까지 게이트가 그대로 보인다(mode는 아래 await 뒤에야 바뀐다).
+  // 그래서 "반응이 없네" 하고 다른 제품을 누르면 복원이 겹친다 — 저장 계층에서 키 오염은
+  // 막았지만(storage.gaterace.test.ts), 겹치면 늦게 끝난 쪽이 최종 제품이 되어
+  // **누른 것과 다른 자격증으로 들어간다.** 진행 중임을 보여 주고 재진입을 막는다.
+  const [selecting, setSelecting] = useState<'istqb' | 'csts' | null>(null);
+
   const handleProductSelect = async (product: 'istqb' | 'csts') => {
-    // 제품을 바꾸기 전에 이전 제품의 대기 중 저장을 지금 flush한다(#P1-1 방어).
-    // 디바운스 저장은 실행 시점의 activeProduct로 키를 정하므로, 남은 저장이 새 제품 키에
-    // 잘못 기록되는 경합 창을 없앤다. 최초 진입(activeProduct=null) 시에는 내부에서 no-op.
-    flushPersist();
-    safeSetItem("istqb-fl-v4-sample-last-product", product);
-    setActiveProduct(product);
-    await restorePersistentSnapshot(product);
-    // 저장된 모드(시험 등)를 그대로 이어간다. 게이트 모드('home')/무효면 연습으로 폴백(#1).
-    const restoredMode = useQuizStore.getState().mode;
-    setMode(restoredMode && restoredMode !== 'home' ? restoredMode : 'practice');
+    if (selecting) return; // 재진입 차단 — 첫 클릭이 이긴다.
+    setSelecting(product);
+    // finally로 푸는 이유: 성공하면 mode가 바뀌어 게이트가 사라지므로 해제가 무의미하지만,
+    // 앞단(flushPersist 등)이 던지면 게이트가 영구히 잠긴 채 남는다.
+    try {
+      // 제품을 바꾸기 전에 이전 제품의 대기 중 저장을 지금 flush한다(#P1-1 방어).
+      // 디바운스 저장은 실행 시점의 activeProduct로 키를 정하므로, 남은 저장이 새 제품 키에
+      // 잘못 기록되는 경합 창을 없앤다. 최초 진입(activeProduct=null) 시에는 내부에서 no-op.
+      flushPersist();
+      safeSetItem("istqb-fl-v4-sample-last-product", product);
+      setActiveProduct(product);
+      await restorePersistentSnapshot(product);
+      // 저장된 모드(시험 등)를 그대로 이어간다. 게이트 모드('home')/무효면 연습으로 폴백(#1).
+      const restoredMode = useQuizStore.getState().mode;
+      setMode(restoredMode && restoredMode !== 'home' ? restoredMode : 'practice');
+    } finally {
+      setSelecting(null);
+    }
   };
 
   if (!isRestored) {
@@ -99,8 +113,26 @@ export const App = () => {
           <p className="product-eyebrow">Practice App</p>
           <h1 id="productGateTitle">학습할 자격증을 선택하세요</h1>
           <div className="product-actions">
-            <button className="product-button primary" onClick={() => handleProductSelect('istqb')}>ISTQB</button>
-            <button className="product-button" onClick={() => handleProductSelect('csts')}>CSTS</button>
+            {/* 복원 중에는 둘 다 잠근다 — 아무 반응이 없으면 사용자는 다시 누르고,
+                그 연타가 복원 겹침을 만든다(핸들러 가드와 이중 방어). */}
+            <button
+              className="product-button primary"
+              disabled={selecting !== null}
+              aria-busy={selecting === 'istqb'}
+              data-testid="gate-istqb"
+              onClick={() => handleProductSelect('istqb')}
+            >
+              {selecting === 'istqb' ? '불러오는 중…' : 'ISTQB'}
+            </button>
+            <button
+              className="product-button"
+              disabled={selecting !== null}
+              aria-busy={selecting === 'csts'}
+              data-testid="gate-csts"
+              onClick={() => handleProductSelect('csts')}
+            >
+              {selecting === 'csts' ? '불러오는 중…' : 'CSTS'}
+            </button>
           </div>
           {/* 첫 방문자용 사용설명서·제보 채널 — 제품 선택 전에도 접근할 수 있게 게이트 하단에 둔다. */}
           <div className="gate-links">
