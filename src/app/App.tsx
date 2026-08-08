@@ -108,6 +108,9 @@ export const App = () => {
 
   if (mode === 'home' || !activeProduct) {
     return (
+      // 게이트도 경계 안에 둔다 — 종전에는 워크스페이스만 감싸서, 제품 선택 화면에서
+      // 렌더 예외가 나면 폴백 없이 백지가 됐다(재시도 버튼조차 없다).
+      <ErrorBoundary>
       <section className="product-gate" aria-labelledby="productGateTitle">
         <div className="product-gate-inner">
           <p className="product-eyebrow">Practice App</p>
@@ -158,6 +161,7 @@ export const App = () => {
         </div>
         {guideOpen && <UserGuide onClose={() => setGuideOpen(false)} />}
       </section>
+      </ErrorBoundary>
     );
   }
 

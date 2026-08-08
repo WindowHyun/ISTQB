@@ -98,6 +98,18 @@ export const QuestionWorkspace = () => {
       tickTimer();
       checkExamDeadline();
     };
+    // 항상 이전 인터벌을 지우고 새로 건다.
+    //
+    // 아래 else 분기는 "hidden 이벤트를 먼저 받았다"고 가정했는데, **배경 탭에서
+    // 마운트되면 첫 visibilitychange가 hidden=false다.** 그러면 아래 130행에서 건
+    // 인터벌이 살아 있는 채로 하나가 더 생기고, cleanup은 마지막 것만 지워 앞의 것이
+    // 언마운트 뒤에도 남는다(그 인터벌은 죽은 클로저로 checkExamDeadline을 계속 부른다).
+    // 시간이 부풀지는 않는다 — tickTimer가 lastTick 기준 벽시계 델타를 더하므로
+    // 인터벌이 둘이어도 합계는 같다. 즉 생명주기 누수이지 계산 오류는 아니다.
+    const restartTicking = () => {
+      clearInterval(interval);
+      interval = setInterval(tick, 1000);
+    };
     const handleVisibilityChange = () => {
       if (document.hidden) {
         tickTimer();
@@ -123,12 +135,12 @@ export const QuestionWorkspace = () => {
         }
         startTimer();
         checkExamDeadline(); // 비운 사이에 제한시간이 끝났으면 즉시 제출한다
-        interval = setInterval(tick, 1000);
+        restartTicking();
       }
     };
     // 복원 직후 즉시 1회 — 앱이 꺼져 있던 사이 제한시간이 끝났다면 바로 제출한다.
     checkExamDeadline();
-    interval = setInterval(tick, 1000);
+    restartTicking();
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       clearInterval(interval);
@@ -338,10 +350,15 @@ export const QuestionWorkspace = () => {
       )}
 
       <article className="question-card">
-        {/* mode+문항을 key로 묶어 카드를 remount → showFeedback 등 로컬 상태가
-            문항 이동·모드 전환 간 누수되지 않게 한다(#79). */}
+        {/* 세트+mode+문항을 key로 묶어 카드를 remount → showFeedback 등 로컬 상태가
+            문항 이동·모드 전환 간 누수되지 않게 한다(#79).
+            setId를 넣는 이유: id가 없는 데이터가 들어오면 폴백이 문항 '번호'인데 번호는
+            세트마다 겹친다. 같은 모드로 세트만 바꾸면 key가 같아져 remount가 일어나지
+            않고, 연습 모드에서 이전 문항의 정답·해설이 그대로 노출된다.
+            (현재 12세트 626문항은 전부 세트 접두 id를 가져 중복이 0건이지만, key가
+            데이터 품질에 기대고 있을 이유가 없다.) */}
         <QuestionCard
-          key={`${mode}-${currentQuestion.id || currentQuestion.number}`}
+          key={`${setId}-${mode}-${currentQuestion.id || currentQuestion.number}`}
           question={currentQuestion}
         />
       </article>

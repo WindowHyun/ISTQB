@@ -125,6 +125,12 @@ export const Sidebar = () => {
   };
 
   const handleModeChange = (newMode: typeof mode) => {
+    // 응시 중 잠금 — 세그먼트 버튼에 disabled가 걸려 있어 지금은 여기 도달할 경로가
+    // 없지만, 옆의 handleStartQuick·handleRetryWrong과 같은 규칙을 둔다. 그쪽 주석대로
+    // "disabled 하나에만 기대면 잠금을 우회할 수 있다" — 버튼이 세그먼트 밖으로 나가거나
+    // 프로그램적으로 불리는 순간 조용히 뚫린다. 'exam' 재클릭은 아래에서 따로 다룬다.
+    if (examLocked && newMode !== 'exam') return;
+
     if (newMode === mode) {
       // 같은 모드 재클릭: 응시 중(잠금)에는 무시해 setIndex/타이머 초기화로 잠금이
       // 무력화되지 않게 한다. 단, "채점 완료" 상태의 시험/랜덤 재클릭은 원클릭
