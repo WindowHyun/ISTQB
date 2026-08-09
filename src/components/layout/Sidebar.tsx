@@ -9,7 +9,7 @@ import { TimerClock } from '../common/TimerClock';
 import { BRAND_LOGO_SRC } from '../../utils/brandLogo';
 import { showToast } from '../../utils/toast';
 import { FEEDBACK_SHEET_URL } from '../../utils/links';
-import { isGradedMode } from '../../utils/modeLabel';
+import { isGradedMode, MODE_CAPTION } from '../../utils/modeLabel';
 
 
 const MODE_LABELS: { mode: 'practice' | 'exam' | 'random' | 'review'; label: string }[] = [
@@ -366,6 +366,9 @@ export const Sidebar = () => {
               </button>
             ))}
           </div>
+          {MODE_CAPTION[mode] && (
+            <p className="mode-caption" data-testid="mode-caption">{MODE_CAPTION[mode]}</p>
+          )}
           {examLocked && (
             <>
               <p className="exam-lock-hint" data-testid="exam-lock-hint">🔒 시험 응시 중 — 채점 후 세트·모드를 변경할 수 있습니다.</p>

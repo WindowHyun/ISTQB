@@ -903,6 +903,14 @@ export const AppModals = () => {
             </section>
 
             <section className="settings-group">
+              <h4>콘텐츠 안내</h4>
+              <p className="settings-hint">
+                ISTQB FL v4.0 5세트·186문항 / CSTS 7세트·440문항, 총 626문항 수록.
+                {' '}문제 콘텐츠 © ISTQB® / 한국정보통신기술협회(TTA) — 개인 학습 목적, 재배포·상업적 이용 불가.
+              </p>
+            </section>
+
+            <section className="settings-group">
               <h4>초기화</h4>
               <div className="settings-actions" data-testid="confirm-reset-mode">
                 <ConfirmButtons

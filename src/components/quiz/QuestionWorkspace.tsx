@@ -288,7 +288,12 @@ export const QuestionWorkspace = () => {
       <header className="topbar">
         <div>
           <p id="setMeta">{setTitle}</p>
-          <h2 id="questionTitle">문제 {currentQuestion.number}{isMulti ? ' · 복수정답' : ''}</h2>
+          <div className="question-title-row">
+            <h2 id="questionTitle">문제 {currentQuestion.number}{isMulti ? ' · 복수정답' : ''}</h2>
+            {currentQuestion.chapter && (
+              <span className="question-chapter-badge">{currentQuestion.chapter}</span>
+            )}
+          </div>
         </div>
         <div className="topbar-actions">
           <button id="prevBtn" type="button" aria-label="이전 문제" disabled={safeIndex === 0} onClick={goPrev}>‹</button>

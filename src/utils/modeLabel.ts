@@ -18,3 +18,12 @@ export const MODE_LABEL: Record<string, string> = {
   review: '오답',
   quick: '퀵',
 };
+
+// 사이드바 모드 세그먼트 아래에 상시 노출하는 한 줄 설명 — 잠금 힌트(examLocked)와
+// 별개로, 지금 고른 모드가 무엇을 하는지 그 자리에서 안내한다.
+export const MODE_CAPTION: Record<string, string> = {
+  practice: '즉시 정답·해설이 보여요. 기록되지 않습니다.',
+  exam: '채점 후 정답이 공개돼요. 응시 중에는 세트·모드 변경이 잠깁니다.',
+  random: '세트 안에서 무작위로 뽑아 풉니다. 채점하면 통계에 반영돼요.',
+  review: '틀린 문항만 모아 즉시 피드백으로 다시 풉니다.',
+};

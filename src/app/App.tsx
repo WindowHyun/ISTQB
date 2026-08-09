@@ -112,9 +112,11 @@ export const App = () => {
       // 렌더 예외가 나면 폴백 없이 백지가 됐다(재시도 버튼조차 없다).
       <ErrorBoundary>
       <section className="product-gate" aria-labelledby="productGateTitle">
+        <div className="product-gate-stack">
         <div className="product-gate-inner">
           <p className="product-eyebrow">Practice App</p>
           <h1 id="productGateTitle">학습할 자격증을 선택하세요</h1>
+          <p className="product-gate-sub">12세트 · 626문항 전체 무료 · 회원가입 없이 바로 풀이</p>
           <div className="product-actions">
             {/* 복원 중에는 둘 다 잠근다 — 아무 반응이 없으면 사용자는 다시 누르고,
                 그 연타가 복원 겹침을 만든다(핸들러 가드와 이중 방어). */}
@@ -125,7 +127,12 @@ export const App = () => {
               data-testid="gate-istqb"
               onClick={() => handleProductSelect('istqb')}
             >
-              {selecting === 'istqb' ? '불러오는 중…' : 'ISTQB'}
+              {selecting === 'istqb' ? '불러오는 중…' : (
+                <span className="product-button-label">
+                  <span className="product-button-name">ISTQB</span>
+                  <span className="product-button-meta">5세트 · 186문항</span>
+                </span>
+              )}
             </button>
             <button
               className="product-button"
@@ -134,7 +141,12 @@ export const App = () => {
               data-testid="gate-csts"
               onClick={() => handleProductSelect('csts')}
             >
-              {selecting === 'csts' ? '불러오는 중…' : 'CSTS'}
+              {selecting === 'csts' ? '불러오는 중…' : (
+                <span className="product-button-label">
+                  <span className="product-button-name">CSTS</span>
+                  <span className="product-button-meta">7세트 · 440문항</span>
+                </span>
+              )}
             </button>
           </div>
           {/* 첫 방문자용 사용설명서·제보 채널 — 제품 선택 전에도 접근할 수 있게 게이트 하단에 둔다. */}
@@ -158,6 +170,64 @@ export const App = () => {
               📝 이슈·보완점 제보
             </a>
           </div>
+        </div>
+
+        <section className="gate-info-card" aria-label="제공 콘텐츠">
+          <h2>제공 콘텐츠</h2>
+          <ul className="gate-content-list">
+            <li><span className="gci-bullet" aria-hidden="true">·</span><span><strong>기출·예제 626문항</strong> — ISTQB FL v4.0 샘플문제 5세트, CSTS 기출·예제 7세트 전체 수록</span></li>
+            <li><span className="gci-bullet" aria-hidden="true">·</span><span><strong>연습·시험·랜덤·오답·퀵 5가지 모드</strong> — 즉시 채점 연습부터 제한시간이 있는 실전 CBT형 시험까지</span></li>
+            <li><span className="gci-bullet" aria-hidden="true">·</span><span><strong>챕터별 약점 분석</strong> — ISTQB 6챕터·CSTS 6도메인 단위 정답률과 회차별 성장 추이</span></li>
+            <li><span className="gci-bullet" aria-hidden="true">·</span><span><strong>오답노트 자동 누적</strong> — 세트별 전 회차 오답 합집합, 퀵 모드 오답은 24시간 임시 목록</span></li>
+            <li><span className="gci-bullet" aria-hidden="true">·</span><span><strong>오프라인 PWA</strong> — 설치 후 인터넷 없이 전 세트 풀이, 진행 상태 자동 저장</span></li>
+          </ul>
+        </section>
+
+        <section className="gate-info-card" aria-label="다루는 주요 챕터">
+          <h2>다루는 주요 챕터</h2>
+          <div className="gate-chapter-grid">
+            <div>
+              <p className="gate-chapter-cert">ISTQB Foundation Level v4.0</p>
+              <p className="gate-chapter-list">테스트 기초, SDLC 전반의 테스트, 정적 테스트, 테스트 분석 및 설계, 테스트 활동 관리, 테스트 도구</p>
+            </div>
+            <div>
+              <p className="gate-chapter-cert">CSTS Foundation/일반등급</p>
+              <p className="gate-chapter-list">소프트웨어 테스트 기초, 개발과 테스트, 정적 테스트, 테스트 기법, 테스트 관리, 프로세스와 도구</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="gate-info-card" aria-label="세트별 문항 구성">
+          <h2>세트별 문항 구성</h2>
+          <ul className="gate-set-list">
+            <li><span className="gs-title">ISTQB FL v4.0 샘플문제 A~E</span><span className="gs-count">5세트 · 186문항</span></li>
+            <li><span className="gs-title">CSTS 기출·예제 세트 1~7</span><span className="gs-count">7세트 · 440문항</span></li>
+          </ul>
+        </section>
+
+        <section className="gate-info-card gate-info-card-muted" aria-label="자격증 안내">
+          <h2>자격증 안내</h2>
+          <p className="gate-cert-note">
+            ISTQB(International Software Testing Qualifications Board) Foundation Level은 국제 표준 소프트웨어 테스트 자격이며,
+            CSTS(SW 테스트 전문가)는 한국정보통신기술협회(TTA)가 시행하는 국내 자격입니다.
+            ISTQB는 정답률 65% 이상, CSTS는 검정방법별 배점 합산 75점 이상(100점 만점)이면 합격입니다.
+          </p>
+        </section>
+
+        <footer className="gate-footer">
+          <span>문제 콘텐츠 © ISTQB® / 한국정보통신기술협회(TTA) — 개인 학습 목적, 재배포·상업적 이용 불가</span>
+          <span aria-hidden="true">·</span>
+          <button type="button" className="gate-footer-link" onClick={() => setGuideOpen(true)}>사용법</button>
+          <span aria-hidden="true">·</span>
+          <a
+            className="gate-footer-link"
+            href={FEEDBACK_SHEET_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            이슈 제보
+          </a>
+        </footer>
         </div>
         {guideOpen && <UserGuide onClose={() => setGuideOpen(false)} />}
       </section>

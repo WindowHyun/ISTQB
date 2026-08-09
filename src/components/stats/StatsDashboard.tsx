@@ -76,6 +76,10 @@ interface StatsDashboardProps {
 
 export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGroups, duplicateChapters, onClose, onClear, onPracticeChapter, onMiniTestChapter, practiceLocked, certification, onDeleteRound }: StatsDashboardProps) => {
   const weakThreshold = WEAK_THRESHOLD_BY_CERT[certification ?? 'istqb'] ?? 65;
+  // 합격 기준 배너 — 요약 카드 위에서 지금 보고 있는 정답률이 합격권인지 바로 대조할 수 있게 한다.
+  const passCriterionLabel = certification === 'csts'
+    ? 'CSTS 합격 기준: 검정방법별 배점 합산 75점 이상(100점 만점)'
+    : 'ISTQB 합격 기준: 정답률 65% 이상';
   // 빈 상태 판정에만 쓰는 개수. 실전·미니를 모두 세어, 미니만 푼 사용자에게
   // "기록 없음"이 뜨지 않게 한다(미니 섹션에는 내용이 있으므로 모순이 된다).
   // 퀵도 함께 센다 — 회차 목록에는 남지 않지만 챕터 분석에는 기여하므로, 퀵만 푼
@@ -174,6 +178,9 @@ export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGro
           <p>아직 채점한 기록이 없습니다. 시험·랜덤 모드에서 채점하면 여기에 누적됩니다.</p>
         ) : (
           <>
+            <div className="stats-pass-banner" data-testid="stats-pass-banner">
+              🎯 {passCriterionLabel}
+            </div>
             {summary && (
               <>
                 <div className="stats-summary" aria-label="요약">

@@ -6,6 +6,19 @@ import { Modal } from './Modal';
 export const UserGuide = ({ onClose }: { onClose: () => void }) => (
   <Modal title="사이트 사용법" onClose={onClose}>
     <div className="modal-body guide-body" data-testid="user-guide">
+      {/* 모드 5가지 요약을 최상단에 배치 — 아래 상세 설명(📝)을 다 읽지 않아도 차이를
+          한눈에 비교할 수 있게 한다(#gate-optimize E). */}
+      <section className="guide-section guide-overview">
+        <h4>📋 한눈에 보기 — 풀이 모드 5가지</h4>
+        <div className="guide-overview-list">
+          <div className="guide-overview-row"><strong>연습</strong><span>즉시 정답·해설 · 기록 안 됨</span></div>
+          <div className="guide-overview-row"><strong>시험</strong><span>채점 후 공개 · 응시 중 잠금</span></div>
+          <div className="guide-overview-row"><strong>랜덤</strong><span>세트 내 무작위 출제</span></div>
+          <div className="guide-overview-row"><strong>오답</strong><span>틀린 문항만 즉시 피드백으로 재풀이</span></div>
+          <div className="guide-overview-row"><strong>퀵</strong><span>전 세트 10·15·20문항, 제한시간·기록 없음</span></div>
+        </div>
+      </section>
+
       <section className="guide-section">
         <h4>🚀 시작하기</h4>
         <ol>
