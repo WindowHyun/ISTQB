@@ -27,7 +27,7 @@ on:
 | Setup Node | `actions/setup-node@v6` (node **24**, `cache: npm`) | CI와 동일 24 |
 | Install deps | `npm ci` | 의존성 |
 | **Build web** | `npm run build` | React → `dist` |
-| Setup JDK 17 | `actions/setup-java@v5` (temurin 17) | Gradle 빌드용 |
+| Setup JDK 21 | `actions/setup-java@v5` (temurin 21) | Gradle 빌드용 |
 | Setup Android SDK | `android-actions/setup-android@v3` | Android SDK |
 | **Capacitor sync** | `npx cap sync android` | **`dist`를 `android/app/src/main/assets/public`로 복사**(webDir=dist) |
 | **Build debug APK** | `cd android && ./gradlew assembleDebug --no-daemon` | debug APK 생성 |

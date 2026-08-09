@@ -29,11 +29,11 @@ Playwright 프로젝트는 **4개**다 — `react`(기능·Chromium) · `nonfunc
 | `react-study-ux` | 27 | 이어풀기 배너·제출 전 검토·오답노트 재설계·재응시·결과 nowrap·aria-live |
 | `react-edge-modes` | 23 | 엣지: 모드 격리·리셋·잠금·시험 전환 가드 |
 | `react-edge-modal` | 20 | 엣지: 모달 Esc/백드롭·통계·토글·오답노트 문항 보기 |
-| `react-edge-content` | 19 | 엣지: 라이트박스·표·콘솔·토스트·콘텐츠 표시 회귀 |
+| `react-edge-content` | 17 | 엣지: 라이트박스·표·콘솔·토스트·콘텐츠 표시 회귀 |
 | `react-edge-grade` | 18 | 엣지: 미응답 확인·컷스코어·복수정답·진위형·단답형 |
-| `react-final` | 18 | 최종점검 회귀 |
-| `react-edge-persist` | 16 | 엣지: 복원·가져오기·테마/콘솔 지속·저장 불가 환경 |
-| `react-edge-responsive` | 15 | 엣지: 드로어·점프핀·하단바·320px·768px |
+| `react-final` | 15 | 최종점검 회귀 |
+| `react-edge-persist` | 13 | 엣지: 복원·가져오기·테마/콘솔 지속·저장 불가 환경 |
+| `react-edge-responsive` | 13 | 엣지: 드로어·점프핀·하단바·320px·768px |
 | `react-transition` | 15 | 상태 전이(S0~S4 × 39전이) |
 | `react-edge-figtable` | 14 | 엣지: 특정 표/그림 문항 |
 | `react-edge-nav` | 14 | 엣지: 경계 네비게이션 |
@@ -41,8 +41,8 @@ Playwright 프로젝트는 **4개**다 — `react`(기능·Chromium) · `nonfunc
 | `react-stats` | 11 | 학습 통계 대시보드 |
 | `react-a11y` | 10 | 접근성(ARIA·키보드) |
 | `react-qtypes` | 10 | 문항 유형(진위형·단답형·복수정답) |
-| `react-quick` | 10 | **퀵 랜덤** 출제·채점·이어풀기·잠금 |
-| `react-quick-ux` | 5 | **퀵 조작** — 패널 위치·시작 버튼 표시 규칙·문항 수 콤보 유지 |
+| `react-quick` | 7 | **퀵 랜덤** 출제·채점·이어풀기·잠금 |
+| `react-quick-ux` | 6 | **퀵 조작** — 패널 위치·시작 버튼 표시 규칙·문항 수 콤보 유지 |
 | `react-quick-wrongnote` | 3 | **퀵 오답 사양** — 임시 목록 분리·회차 무기록·이력 비우기 연동 |
 | `react-edge-import` | 9 | 엣지: 대용량/비정상 import 견고성 |
 | `react-content` | 8 | 콘텐츠 렌더링·라이트박스 |
@@ -67,12 +67,14 @@ Playwright 프로젝트는 **4개**다 — `react`(기능·Chromium) · `nonfunc
 | `react-a11y-axe` | 3 | **axe-core WCAG 2.1 AA** — 주요 화면·다크/모바일·**코드 블록 문항** |
 | `react-debug` | 3 | 화면 콘솔(`?debug`) |
 | `react-monkey` | 3 | **몽키** — 시드 3개 × 무작위 120회 조작 후 불변식 |
+| `react-quick-resilience` | 3 | 퀵 회차의 저장 왕복(채점 직후 새로고침에도 임시 회차가 남는가) |
 | `react-phase2` | 3 | 회차 비교·타임라인·델타(데이터 오라클) |
 | `react-exam-timer` | 2 | 시험 제한시간 |
 | `react-feedback-link` | 2 | 제보 링크 |
 | `react-fullsweep` | 2 | **전 문항 626 렌더 스윕**(2폭) |
 | `react-guide` | 2 | 사이트 사용법 |
 | `react-pwa` | 2 | PWA 업데이트 배너 |
+| `react-reset-ghost` | 2 | **초기화 유령 가드** — 이력 비우기·회차 단건 삭제 후 오답 모드에 삭제분이 남지 않는가 |
 | `react-weakness` | 2 | 챕터 약점·오답 합산 |
 | `react-feedback` | 1 | 즉시 피드백 |
 | `react-fullgrade` | 1 | **12세트 전수 채점**(100%) |
