@@ -196,8 +196,16 @@ export const Sidebar = () => {
     closeDrawer();
   };
 
-  const productSubtitle = activeProduct === 'istqb' ? 'ISTQB FL v4.0' : 'CSTS';
-  const productBadge = (activeProduct || '').toUpperCase();
+  // 브랜드 부제 — 자격증과 이 제품이 담은 범위(세트·문항 수)를 한 줄로 보여준다.
+  // 문항 합계는 모든 세트의 수를 알 때만 붙인다: 일부만 세어진 상태에서 더하면
+  // 실제보다 작은 총계가 잠깐 보이는데, 그건 "몇 문항짜리 앱인가"를 잘못 알리는 것이다.
+  const productScope = (() => {
+    if (!sets.length) return '';
+    const counted = sets.filter((s) => typeof setCounts[s.id] === 'number');
+    if (counted.length !== sets.length) return `${sets.length}세트`;
+    const totalQuestions = counted.reduce((sum, s) => sum + setCounts[s.id], 0);
+    return `${sets.length}세트 ${totalQuestions}문항`;
+  })();
   const showGradeSection = isGradedMode(mode);
   // 퀵을 푸는 중(채점 전) — 시작 버튼을 감출지 판단한다.
   const quickUnderway = mode === 'quick' && !isGraded;
@@ -228,8 +236,7 @@ export const Sidebar = () => {
         <img src={BRAND_LOGO_SRC} alt="" />
         <div className="brand-text">
           <p id="productSubtitle">
-            <span className="product-badge">{productBadge}</span>
-            {productSubtitle}
+            {certLabel}{productScope ? ` · ${productScope}` : ''}
           </p>
           <h1 id="productTitle">{currentSet?.title || '문제 풀이'}</h1>
         </div>
@@ -317,7 +324,9 @@ export const Sidebar = () => {
 
       <div className="sidebar-controls" data-exam-locked={examLocked ? 'true' : undefined}>
         <section className="panel">
-          <label htmlFor="examSelect">문제 세트</label>
+          {/* 라벨은 화면에서 감추고 보조기기에는 남긴다 — 셀렉트가 세트 제목을 그대로
+              보여 주므로 위에 회색 대문자 라벨을 겹쳐 두면 같은 말을 두 번 하는 셈이다. */}
+          <label className="sr-only" htmlFor="examSelect">문제 세트</label>
           {/* 퀵도 잠근다. 퀵은 세트 개념이 없는 모드라(전 세트에서 뽑는다) 여기서 세트를
               고르는 것 자체가 의미가 없는데, 종전에는 열려 있어 바꿀 수 있었다. 바꿔도
               출제 목록은 퀵 추첨 그대로여서 화면상 아무 일도 안 일어나는 것처럼 보이지만,
@@ -349,7 +358,8 @@ export const Sidebar = () => {
         </section>
 
         <section className="panel">
-          <label>풀이 모드</label>
+          {/* 시각 라벨 없음 — 세그먼트 자체가 role=group + aria-label로 이름을 갖고 있고,
+              바로 아래 모드 캡션이 지금 고른 모드를 글로 설명한다. */}
           <div className="segmented" role="group" aria-label="풀이 모드">
             {MODE_LABELS.map(({ mode: m, label }) => (
               <button
@@ -392,8 +402,10 @@ export const Sidebar = () => {
             읽히는데, 그 사이에 끼어 있으면 두 컨트롤을 갈라놓는다. 성격이 다른 별도 진입로이므로
             세트 계열 컨트롤 뒤로 뺀다. */}
         <section className="panel quick-panel">
-          <label htmlFor="quickSize">⚡ 퀵 랜덤</label>
           <div className="quick-row">
+            {/* 라벨을 줄 안으로 들여 문항 수·시작과 한 줄에 놓는다(위에 라벨 줄을 따로
+                두면 컨트롤 두 개짜리 진입로가 세 줄을 쓴다). htmlFor는 그대로 유지. */}
+            <label className="quick-label" htmlFor="quickSize">⚡ 퀵</label>
             <select
               id="quickSize"
               // 표시 값은 로컬 상태를 따라야 한다. 스토어 값에 묶어 두면 onChange가
@@ -435,17 +447,15 @@ export const Sidebar = () => {
           </p>
         </section>
 
+        {/* 진행·시간은 값 두 개뿐이라 박스 카드를 두르면 사이드바에 상자가 하나 더 늘어난다.
+            구분선 위 한 줄 + 얇은 막대로 같은 정보를 절반 높이에 담는다. */}
         <section className="stats">
-          <div>
-            <span>진행</span>
+          <div className="stats-line">
             {/* 라이브 영역을 진행률에만 둔다 — 타이머를 포함하면 스크린리더가 매초 시간을 낭독한다. */}
-            <strong id="progressText" aria-live="polite">{answered} / {total}</strong>
-          </div>
-          <div>
+            <span>진행 <strong id="progressText" aria-live="polite">{answered} / {total}</strong></span>
             {/* 시험 응시 중에는 카운트다운이므로 '남은 시간' — 채점 후에는 경과(소요) 시간으로
                 돌아가므로 라벨도 함께 되돌린다(TimerClock의 표시 규칙과 일치). */}
-            <span>{mode === 'exam' && !isGraded ? '남은 시간' : '시간'}</span>
-            <strong id="timerText"><TimerClock /></strong>
+            <span>{mode === 'exam' && !isGraded ? '남은 시간' : '시간'} <strong id="timerText"><TimerClock /></strong></span>
           </div>
           <div className="progress-track" aria-hidden="true">
             <div id="progressFill" className="progress-fill" style={{ width: `${progressPercent}%` }} />
@@ -453,7 +463,8 @@ export const Sidebar = () => {
         </section>
 
         <section className="action-section">
-          <h3>오답 관리</h3>
+          {/* 버튼 두 개가 이미 '오답'을 말하고 있어 머리글은 화면에서 감춘다(보조기기엔 남김). */}
+          <h3 className="sr-only">오답 관리</h3>
           <div className="actions">
             {/* 퀵에서는 이 버튼을 내린다. 퀵 오답은 세트 오답 버킷에 담기지 않는 사양이라
                 (useQuizSession의 채점 분기 · reviewTargetIds 참고) 여기서 다시 풀 대상이
@@ -477,16 +488,22 @@ export const Sidebar = () => {
           )}
         </section>
 
+        {/* 세 진입로를 한 줄에 나란히 둔다 — 세로로 쌓으면 사이드바 아래 세 줄을 쓰는데,
+            셋 다 풀이 중에 가끔 들르는 보조 경로라 그만한 자리를 받을 이유가 없다.
+            화면에는 짧은 말만 두고 전체 이름은 aria-label로 남긴다(이모지도 함께 감춘다). */}
         <section className="settings-section">
           <button
             type="button"
             className="settings-open-btn"
             aria-haspopup="dialog"
+            aria-label="학습 통계"
             data-testid="stats-open"
             onClick={() => { setStatsOpen(true); closeDrawer(); }}
           >
-            📊 학습 통계
+            📊 통계
           </button>
+          {/* 여기만 aria-label이 없다 — 보이는 말이 이미 전체 이름이라 덧붙일 게 없고,
+              label을 달면 접근성 이름에서 "⚙"가 빠져 기존 이름(“⚙ 설정”)이 바뀐다. */}
           <button
             type="button"
             className="settings-open-btn"
@@ -502,10 +519,11 @@ export const Sidebar = () => {
             href={FEEDBACK_SHEET_URL}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label="이슈·보완점 제보"
             data-testid="feedback-link"
             onClick={closeDrawer}
           >
-            📝 이슈·보완점 제보
+            📝 제보
           </a>
         </section>
       </div>

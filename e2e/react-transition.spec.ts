@@ -14,7 +14,8 @@ test.describe("전이 — S0 게이트 진입/이탈", () => {
     await page.goto("/");
     await page.getByRole("button", { name: "CSTS" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-    await expect(page.locator(".product-badge")).toHaveText("CSTS");
+    // 자격증 표시는 브랜드 부제가 담는다(종전 .product-badge 칩 → "CSTS · 7세트 440문항").
+    await expect(page.locator("#productSubtitle")).toContainText("CSTS");
   });
 
   test("T39: '처음 화면으로' → S0 → 같은 제품 재선택 시 채점 상태 보존(중복 회차 방지)", async ({ page }) => {
