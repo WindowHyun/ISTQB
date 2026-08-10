@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { expectMode, openProduct } from "./helpers";
+import { expectMode, openProduct, solveQuickOne } from "./helpers";
 
 /** 유형을 가리지 않고 현재 문항에 답한다 — 퀵은 유형을 가리지 않아 서답형도 그대로 나온다.
  *  보기 클릭만 쓰면 뽑기 결과에 따라 셀렉터가 아예 없어 타임아웃으로 죽는다. */
@@ -100,11 +100,9 @@ for (const product of ["ISTQB", "CSTS"] as const) {
     await page.getByTestId("quick-start-btn").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId("quick-scoreboard")).toBeVisible();
-    for (let i = 0; i < 3; i += 1) {
-      await answerCurrent(page);
-      await expect(page.locator("#feedback")).toBeVisible();
-      await page.getByTestId("quick-next-btn").click();
-    }
+    // 퀵은 유형을 가리지 않아 서답형·복수정답이 그대로 나온다 — 보기 하나만 눌러서는
+    // 확정되지 않는 문항이 있으므로 공용 헬퍼로 유형별 절차를 밟는다.
+    for (let i = 0; i < 3; i += 1) await solveQuickOne(page);
     await expect(page.getByTestId("qs-solved")).toHaveText("3");
     await expect(page.getByTestId("grade-button")).toHaveCount(0);
 

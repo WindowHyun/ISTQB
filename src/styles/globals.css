@@ -1081,6 +1081,10 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 .structured-list { display: flex; flex-direction: column; gap: 6px; padding-left: 4px; }
 .structured-line { display: flex; gap: 8px; align-items: baseline; }
 .structured-marker { flex: none; font-weight: 700; color: var(--primary); min-width: 1.4em; }
+/* 다크에서 --primary(#3b82f6)는 카드 배경 위 4.2:1로 AA 미달이다. 마커는 지문 본문의
+   일부(번호·글머리)라 못 읽으면 항목 구분이 사라진다 — 글자용 밝은 파랑으로 올린다.
+   퀵이 전 세트를 섞어 내면서 구조화 목록이 있는 문항이 자주 뜨게 돼 드러났다(axe serious). */
+body[data-theme="dark"] .structured-marker { color: var(--primary-700); }
 /* 하위 번호("1.1"·"2.3.1") 들여쓰기 — 요구사항 트리 등 계층 표기. */
 .text-line.indent-1, .structured-line.indent-1 { padding-left: 1.6em; }
 .text-line.indent-2, .structured-line.indent-2 { padding-left: 3.2em; }

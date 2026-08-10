@@ -153,15 +153,19 @@ test.describe("페어와이즈 조합", () => {
         }
         if (!hasStem) continue;
 
-        // 답을 하나 고르면 진행률이 오르는가(답안 키가 어긋나면 여기서 드러난다).
-        const before = await page.locator("#progressText").textContent();
+        // 답을 하나 고르면 진행 표시가 오르는가(답안 키가 어긋나면 여기서 드러난다).
+        // 퀵은 진행률(N/총계) 대신 점수판을 쓴다 — 무한이라 분모가 없다.
+        const counter = c.mode === "quick"
+          ? page.getByTestId("qs-solved")
+          : page.locator("#progressText");
+        const before = await counter.textContent();
         const opt = page.locator("#options .option").first();
         if (await opt.count()) {
           await opt.click();
           await page.waitForTimeout(150);
-          const after = await page.locator("#progressText").textContent();
-          if (before === after && /^0 \//.test(before ?? "")) {
-            problems.push(`${label}: 답을 골라도 진행률이 그대로 (${before})`);
+          const after = await counter.textContent();
+          if (before === after && /^0/.test(before ?? "")) {
+            problems.push(`${label}: 답을 골라도 진행이 그대로 (${before})`);
           }
         }
 
