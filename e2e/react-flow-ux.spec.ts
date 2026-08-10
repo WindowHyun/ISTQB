@@ -71,70 +71,10 @@ test.describe("채점 완료 회차 새로고침 가드(S4)", () => {
 });
 
 test.describe("챕터 미니 시험(S3)", () => {
-  test("통계 → 미니 시험: 챕터 10문항 추첨·채점 시 '미니' 회차로 기록, 세트 타임라인엔 미포함", async ({ page }) => {
-    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await completeAttempt(page); // 챕터 통계 생성
 
-    await page.getByTestId("stats-open").click();
-    await page.getByTestId("chapter-minitest-btn").first().click();
-
-    // 미니 시험 배너 + 문항 수 ≤10.
-    const banner = page.getByTestId("chapter-filter-banner");
-    await expect(banner).toBeVisible();
-    await expect(banner).toContainText("미니 시험");
-    const totalText = await page.locator("#progressText").textContent();
-    const total = Number(totalText?.split("/")[1]?.trim());
-    expect(total).toBeGreaterThan(0);
-    expect(total).toBeLessThanOrEqual(10);
-
-    // 채점 → 결과 모달의 회차 라벨이 '미니'로 구분된다.
-    await page.locator("#options .option").first().click();
-    await submitGrade(page);
-    await expect(page.getByTestId("result-compare")).toContainText("미니");
-    await closeResult(page);
-
-    // 세트 타임라인 회차 칩은 여전히 1개(미니 회차는 세트 회차가 아님).
-    await page.getByTestId("stats-open").click();
-    await expect(page.getByTestId("set-timeline-item").first().locator(".stl-rounds li")).toHaveCount(1);
-  });
-
-  test("미니 시험 진행 중 새로고침 → 같은 챕터·문항으로 이어푼다(일반 랜덤으로 바뀌지 않음)", async ({ page }) => {
-    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await completeAttempt(page); // 챕터 통계 생성
-    await page.getByTestId("stats-open").click();
-    await page.getByTestId("chapter-minitest-btn").first().click();
-
-    const banner = page.getByTestId("chapter-filter-banner");
-    await expect(banner).toBeVisible();
-    const chapterBefore = (await banner.locator("strong").textContent()) || "";
-    const totalBefore = (await page.locator("#progressText").textContent())?.split("/")[1]?.trim();
-    await page.locator("#options .option").first().click(); // 1문항 응답(미채점)
-    await page.waitForTimeout(900); // debounce 저장 대기(추첨·답안)
-
-    await page.reload();
-    await page.getByRole("button", { name: "ISTQB" }).click();
-    await page.waitForSelector("#options .option");
-    // 챕터 스코프가 유지되어 미니 시험 그대로 복원된다(문항 수·챕터·진행).
-    await expect(page.getByTestId("chapter-filter-banner")).toBeVisible();
-    await expect(page.getByTestId("chapter-filter-banner").locator("strong")).toHaveText(chapterBefore);
-    await expect(page.locator("#progressText")).toHaveText(`1 / ${totalBefore}`);
-  });
 });
 
 test.describe("랜덤 UX(S1·S5)", () => {
-  test("'새 문제 뽑기'로 답안 초기화 + 재추첨(S5)", async ({ page }) => {
-    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await page.locator('.segmented button[data-mode="practice"]').click();
-    await page.waitForSelector("#options .option");
-    await page.locator("#options .option").first().click();
-    await expect(page.locator("#progressText")).toHaveText("1 / 40");
-
-    await page.getByTestId("random-redraw").click();
-    // 진행이 있으면 세트 변경과 같은 규칙으로 확인을 거친다(B4).
-    await page.getByTestId("pending-redraw-confirm").click();
-    await expect(page.locator("#progressText")).toHaveText("0 / 40");
-  });
-
   test("랜덤 진행 중 새로고침 → 같은 추첨으로 진행이 유지된다(S1)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await page.locator('.segmented button[data-mode="practice"]').click();

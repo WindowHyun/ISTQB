@@ -5,8 +5,7 @@ import { buildQuickPool, shuffleQuestions, type Question } from './useQuestions'
 import { makeCanonicalIdResolver } from '../utils/chapterStats';
 
 /**
- * drawQuick은 shuffleQuestions(= Math.random)를 거친다. 시드를 고정하지 않으면 아래
- * '상한만큼 들어간다' 검사가 추첨 순서에 따라 흔들린다.
+ * shuffleQuestions는 Math.random을 쓴다. 시드를 고정하지 않으면 순서에 기대는 검사가 흔들린다.
  *
  * 실측: 서답형 8·선택형 8에서 10개를 뽑으면 서답형이 3개 나올 확률 99.65%,
  *       2개 나올 확률 0.35%다(20만 회 측정). 선택형이 8개뿐이라 10개를 채우려면
@@ -54,7 +53,7 @@ describe('buildQuickPool', () => {
     expect(pool.map((c) => [c.id, c.setId])).toEqual([['A-1', 'S1'], ['A-2', 'S1'], ['B-1', 'S2']]);
   });
 
-  // 사양 변경: 서답형도 퀵에 나온다. 거르는 지점이 풀에서 추첨(drawQuick)으로 옮겨 갔다 —
+  // 서답형도 퀵에 그대로 나온다. 무한 모드가 되면서 유형 상한 자체가 없어졌다 —
   // 입력에 시간이 걸리는 것은 여전하므로 한 회차를 점령하지 않게 상한만 둔다.
   it('유형을 가리지 않는다 — 서답형도 풀에 넣는다', () => {
     const pool = buildQuickPool(

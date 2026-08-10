@@ -10,7 +10,7 @@ import { openProduct, gotoStable } from "./helpers";
  *
  * 요인:
  *   product   ISTQB / CSTS
- *   mode      practice / exam / random / review / quick
+ *   mode      practice / exam / review / quick
  *   size      10 / 15 / 20        (퀵에서만 의미, 그 외엔 무시)
  *   width     desktop(1280) / mobile(390)
  *   graded    채점함 / 안 함
@@ -18,7 +18,7 @@ import { openProduct, gotoStable } from "./helpers";
 
 const FACTORS = {
   product: ["ISTQB", "CSTS"],
-  mode: ["practice", "exam", "random", "review", "quick"],
+  mode: ["practice", "exam", "review", "quick"],
   size: ["10", "15", "20"],
   width: ["desktop", "mobile"],
   graded: ["yes", "no"],
@@ -174,15 +174,8 @@ test.describe("페어와이즈 조합", () => {
             if (await cm.count()) await cm.click();
             const res = page.getByTestId("result-summary");
             if (!(await res.count())) problems.push(`${label}: 채점했는데 결과가 뜨지 않음`);
-            else {
-              // 퀵은 합격 판정을 붙이지 않는다.
-              const text = await res.innerText();
-              if (c.mode === "quick" && /합격 기준/.test(text)) {
-                problems.push(`${label}: 퀵인데 합격 판정이 표시됨`);
-              }
-              if (c.mode !== "quick" && !/합격 기준/.test(text)) {
-                problems.push(`${label}: 실전 회차인데 합격 기준이 없음`);
-              }
+            else if (!/합격 기준/.test(await res.innerText())) {
+              problems.push(`${label}: 실전 회차인데 합격 기준이 없음`);
             }
           }
         }

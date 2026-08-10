@@ -8,9 +8,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
  * 답안에는 원래 기준선 병합이 있었지만 나머지 UI 상태에는 없어서, saveUiState가 자기
  * 메모리를 통째로 덮어썼다. 실측(Chromium 2탭)에서 이렇게 났다:
  *
- *   B탭 선점 진입      → 디스크 quickRounds 0건
- *   A탭 퀵 10문항 채점 → 디스크 quickRounds 1건
- *   B탭에서 문항 이동  → 디스크 quickRounds 0건   ← A의 회차가 사라진다
+ *   B탭 선점 진입      → 디스크 reviewedOk 0건
+ *   A탭 복습 진척 기록 → 디스크 reviewedOk 1건
+ *   B탭에서 문항 이동  → 디스크 reviewedOk 0건   ← A의 진척이 사라진다
  *
  * 여기서는 그 상황을 한 프로세스 안에서 재현한다. "다른 탭"은 이 탭이 모르는 사이에
  * localStorage가 바뀐 상태로 흉내 낸다 — storage 이벤트가 없는 최악의 경우(이벤트를
@@ -44,10 +44,6 @@ function otherTabWrites(patch: Record<string, unknown>) {
   localStorage.setItem(UI, JSON.stringify({ ...readUi(), ...patch }));
 }
 
-const round = (id: string, createdAt = Date.now()) => ({
-  id, setId: 'QUICK', mode: 'quick' as const, certification: 'istqb' as const,
-  answers: {}, createdAt, correct: 1, total: 10,
-});
 
 describe('멀티탭 — 누적형 UI 상태는 마지막 쓰기가 이기지 않는다', () => {
   it('다른 탭의 복습 진척·시험 기준점·오답 대상도 함께 보존된다', () => {

@@ -9,13 +9,12 @@ export const UserGuide = ({ onClose }: { onClose: () => void }) => (
       {/* 모드 5가지 요약을 최상단에 배치 — 아래 상세 설명(📝)을 다 읽지 않아도 차이를
           한눈에 비교할 수 있게 한다(#gate-optimize E). */}
       <section className="guide-section guide-overview">
-        <h4>📋 한눈에 보기 — 풀이 모드 5가지</h4>
+        <h4>📋 한눈에 보기 — 풀이 모드 4가지</h4>
         <div className="guide-overview-list">
           <div className="guide-overview-row"><strong>연습</strong><span>즉시 정답·해설 · 기록 안 됨</span></div>
           <div className="guide-overview-row"><strong>시험</strong><span>채점 후 공개 · 응시 중 잠금</span></div>
-          <div className="guide-overview-row"><strong>랜덤</strong><span>세트 내 무작위 출제</span></div>
           <div className="guide-overview-row"><strong>오답</strong><span>틀린 문항만 즉시 피드백으로 재풀이</span></div>
-          <div className="guide-overview-row"><strong>퀵</strong><span>전 세트 10·15·20문항, 제한시간·기록 없음</span></div>
+          <div className="guide-overview-row"><strong>퀵</strong><span>전 세트를 섞어 한 문항씩 무한 · 기록 없음</span></div>
         </div>
       </section>
 
@@ -29,13 +28,12 @@ export const UserGuide = ({ onClose }: { onClose: () => void }) => (
       </section>
 
       <section className="guide-section">
-        <h4>📝 풀이 모드 5가지</h4>
+        <h4>📝 풀이 모드 4가지</h4>
         <ul>
           <li><strong>연습</strong> — 답을 고르면 <em>즉시</em> 정답·해설이 보입니다. 부담 없이 개념을 익히는 모드로, <strong>통계에는 기록되지 않습니다</strong>.</li>
           <li><strong>시험</strong> — "시험 시작"을 눌러야 응시가 시작되고 타이머가 0부터 갑니다. 응시 중에는 세트·모드 변경이 잠기며(🔒), <strong>채점하기</strong>를 눌러야 정답이 공개됩니다. 중단하려면 <strong>응시 포기</strong>(기록 없음)를 누르세요.</li>
-          <li><strong>랜덤</strong> — 세트에서 최대 40문항을 무작위로 뽑아 모의고사처럼 풉니다. <strong>🔀 새 문제 뽑기</strong>로 언제든 새 조합을 받을 수 있어요. 실수로 <strong>새로고침해도 풀던 문항·답안이 그대로 유지</strong>됩니다(새 조합은 ‘새 문제 뽑기’로).</li>
-          <li><strong>오답</strong> — 시험·랜덤에서 틀린 문항만 다시 풉니다(즉시 피드백). 퀵 오답은 회차 기록이 아니라 오답 노트의 임시 목록으로만 봅니다.</li>
-          <li><strong>⚡ 퀵 랜덤</strong> — 세트를 고르지 않고 <strong>해당 자격증의 전 세트</strong>에서 10·15·20문항을 뽑아 짧게 풉니다. 제한시간이 없고, 같은 문제가 여러 세트에 실려 있어도 한 세션에 두 번 나오지 않습니다. 서답형도 섞여 나오되 <strong>한 회차의 30%를 넘지 않습니다</strong>. 짧은 표본이라 <strong>합격 판정을 내리지 않고</strong> 맞힌 개수만 보여주며, <strong>회차 기록을 아예 남기지 않습니다</strong> — 응시 이력·요약·타임라인 어디에도 뜨지 않아요(챕터별 정답률에는 반영돼 약점 분석이 정확해집니다). 틀린 문항은 오답 노트 맨 위 <strong>퀵 전용 임시 목록</strong>에 실리고 <strong>24시간 뒤 자동으로 사라집니다</strong>.</li>
+          <li><strong>오답</strong> — 시험에서 틀린 문항만 다시 풉니다(즉시 피드백). 퀵에서 틀린 문항은 기록되지 않으므로 여기 오지 않습니다.</li>
+          <li><strong>⚡ 퀵</strong> — 세트를 고르지 않고 <strong>해당 자격증의 전 세트를 통째로 섞어</strong> 한 문항씩 냅니다. 풀면 <em>바로</em> 정답·해설이 열리고 <strong>다음 문제</strong>로 넘어갑니다. <strong>끝이 정해져 있지 않아</strong> 그만두고 싶을 때까지 이어서 풀 수 있고, 같은 문제가 여러 세트에 실려 있어도 한 바퀴에 두 번 나오지 않습니다. 화면 위에 <strong>진행·정답·오답·연속 정답</strong>이 계속 보입니다. 제한시간이 없고 <strong>아무 기록도 남지 않습니다</strong> — 응시 이력·요약·타임라인·오답 노트·챕터별 정답률 어디에도 반영되지 않아요.</li>
         </ul>
       </section>
 

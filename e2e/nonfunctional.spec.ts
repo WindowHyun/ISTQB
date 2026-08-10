@@ -274,15 +274,15 @@ test.describe("비기능 · 정확도/복원력", () => {
       await page.getByTestId("quick-start-btn").click();
       await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
       // 풀이 자체가 되는지까지 본다 — 지문만 뜨고 답할 자리가 없으면 데이터가 반쪽으로 온 것이다.
-      // 퀵에는 서답형이 최대 30% 섞이므로(B5) 보기 버튼만 기다리면 뽑기에 따라 헛되이 죽는다.
+      // 퀵은 유형을 가리지 않고 서답형도 그대로 내므로 보기 버튼만 기다리면 뽑기에 따라 헛되이 죽는다.
       await expect(async () => {
         const answerable = await page.locator("#options .option, .short-answer-input").count();
         expect(answerable, "지문은 떴는데 답할 자리가 없다").toBeGreaterThan(0);
       }).toPass({ timeout: 10_000 });
-      await expect(page.locator("#progressText")).toContainText("/ 20");
+      await expect(page.getByTestId("quick-scoreboard")).toBeVisible();
 
-      // 오프라인에서 뽑힌 20문항이 실제로 여러 세트에서 왔는지 — 한 세트만 캐시돼도
-      // 문항 수는 20으로 채워질 수 있어(같은 세트에서 20개) 개수만으로는 못 잡는다.
+      // 오프라인에서 만들어진 출제 순서가 실제로 여러 세트에서 왔는지 — 한 세트만 캐시돼도
+      // 목록은 채워지므로(같은 세트 문항으로) 개수만으로는 못 잡는다.
       // UI 상태 키는 제품별로 갈리므로 이름을 박지 않고 *-ui-state를 훑는다.
       // 저장은 debounce(500ms)라 poll로 기다린다.
       const sourceSetCount = async () => page.evaluate(() => {

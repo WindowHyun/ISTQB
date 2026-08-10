@@ -98,7 +98,6 @@ const CLICKABLE = [
   "[data-testid='palette-toggle']",
   "[data-testid='grade-button']",
   "[data-testid='exam-start-btn']",
-  "[data-testid='random-redraw']",
   "[data-testid='stats-open']",
   "[data-testid='result-open']",
   ".modal-header button",
@@ -107,7 +106,6 @@ const CLICKABLE = [
   "[data-testid='wrong-note-item-btn']",
   "[data-testid='wrong-note-back']",
   "[data-testid='chapter-practice-btn']",
-  "[data-testid='chapter-minitest-btn']",
   "[data-testid='chapter-filter-clear']",
   "[data-testid='round-delete-btn']",
   ".settings-open-btn:not(.feedback-link)",
@@ -170,13 +168,16 @@ for (const seed of [42, 1337, 20260730]) {
           trail.push(`type:${junk.slice(0, 8)}`);
         }
       }
-      // 가끔 퀵 문항 수를 바꾼다 — CLICKABLE은 button만 훑어서 select가 통째로 빠져 있었다.
+      // 가끔 세트를 바꾼다 — CLICKABLE은 button만 훑어서 select가 통째로 빠져 있었다.
       if (rand() < 0.05) {
-        const sel = page.getByTestId("quick-start-btn");
-        if (await sel.count() && await sel.isVisible().catch(() => false)) {
-          const size = ["10", "15", "20"][Math.floor(rand() * 3)];
-          await sel.selectOption(size).catch(() => {});
-          trail.push(`quickSize:${size}`);
+        const sel = page.getByTestId("set-select");
+        if (await sel.count() && await sel.isEnabled().catch(() => false)) {
+          const opts = await sel.locator("option").count();
+          if (opts > 1) {
+            const i = Math.floor(rand() * opts);
+            await sel.selectOption({ index: i }).catch(() => {});
+            trail.push(`setIndex:${i}`);
+          }
         }
       }
       // 가끔 Esc를 누른다.

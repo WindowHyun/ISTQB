@@ -16,7 +16,7 @@ test.describe("사이트 사용법(사용설명서)", () => {
     await expect(guide).toContainText("시험 시작");
     await expect(guide).toContainText("새 문제 뽑기");
     await expect(guide).toContainText("미니 시험");
-    await expect(guide).toContainText("퀵 랜덤");
+    await expect(guide).toContainText("퀵");
     // 퀵의 두 가지 약속(기록 없음 · 오답 24시간)은 화면 어디에도 안내가 없으면
     // 사용자가 "왜 통계에 안 잡히지"를 결함으로 신고하게 된다.
     await expect(guide).toContainText("회차 기록을 아예 남기지 않습니다");
@@ -35,7 +35,7 @@ test.describe("사이트 사용법(사용설명서)", () => {
     await page.getByTestId("guide-open-settings").click();
     const guide = page.getByTestId("user-guide");
     await expect(guide).toBeVisible();
-    await expect(guide).toContainText("풀이 모드 5가지");
+    await expect(guide).toContainText("풀이 모드 4가지");
     // 설정 모달은 닫힌 상태여야 한다(모달 겹침 방지).
     await expect(page.getByRole("heading", { name: "설정" })).toHaveCount(0);
   });

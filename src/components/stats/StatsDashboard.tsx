@@ -171,7 +171,7 @@ export const StatsDashboard = ({ histories, sets, duplicateGroups, duplicateChap
     <Modal title="학습 통계" onClose={onClose} headerExtra={headerExtra}>
       <div className="modal-body" data-testid="stats-dashboard">
         {roundCount === 0 ? (
-          <p>아직 채점한 기록이 없습니다. 시험·랜덤 모드에서 채점하면 여기에 누적됩니다.</p>
+          <p>아직 채점한 기록이 없습니다. 시험 모드에서 채점하면 여기에 누적됩니다.</p>
         ) : (
           <>
             <div className="stats-pass-banner" data-testid="stats-pass-banner">
@@ -302,7 +302,6 @@ export const StatsDashboard = ({ histories, sets, duplicateGroups, duplicateChap
                 {/* 성장폭 설명도 종전엔 title(툴팁)뿐이라 모바일에서 볼 수 없었다. */}
                 <p className="stats-hint">
                   모드마다 <strong>첫 회차 → 최신 회차</strong> 변화를 배지로 보여줍니다.
-                  시험과 랜덤은 문항 수가 달라 서로 비교하지 않습니다.
                 </p>
                 {timelines.map((tl) => (
                   <div key={tl.setId} className="set-timeline" data-testid="set-timeline-item">
@@ -367,7 +366,7 @@ export const StatsDashboard = ({ histories, sets, duplicateGroups, duplicateChap
                 <ul className="mini-rounds">
                   {miniRounds.map((m) => (
                     <li key={m.id} className={m.rate < weakThreshold ? 'weak' : ''} data-testid="mini-round-item">
-                      <span className="mr-chapter">{m.chapter ?? '퀵 랜덤'}</span>
+                      <span className="mr-chapter">{m.chapter ?? '퀵(지난 기록)'}</span>
                       <span className="mr-rate">{m.rate}% <small>({m.correct}/{m.total})</small></span>
                       {m.elapsedSeconds != null && (
                         <span className="mr-time">소요 {formatClock(m.elapsedSeconds)}</span>
@@ -377,7 +376,7 @@ export const StatsDashboard = ({ histories, sets, duplicateGroups, duplicateChap
                         type="button"
                         className="stl-round-del"
                         data-testid="round-delete-btn"
-                        aria-label={`${m.chapter ?? '퀵 랜덤'} ${m.kind === 'quick' ? '기록' : '미니 시험 기록'} 삭제`}
+                        aria-label={`${m.chapter ?? '퀵'} 지난 기록 삭제`}
                         title="이 회차 기록만 삭제"
                         onClick={() => onDeleteRound(m.id)}
                       >

@@ -87,7 +87,10 @@ test.describe("퀵 — 점수판", () => {
     for (let i = 0; i < 2; i += 1) await solveQuickOne(page);
     const before = await page.getByTestId("qs-solved").innerText();
 
+    // 새로고침하면 앱은 항상 제품 게이트로 돌아간다(resetToGate) — 실사용자와 동일하게
+    // 제품을 다시 고르면 저장된 출제 순서·커서·답안이 복원돼야 한다.
     await page.reload();
+    await page.getByRole("button", { name: "ISTQB" }).first().click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId("qs-solved")).toHaveText(before);
   });

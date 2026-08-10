@@ -2,7 +2,7 @@ import { test, expect, Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { openProduct, gotoStable } from "./helpers";
 
-/** 유형을 가리지 않고 현재 문항에 답한다 — 퀵에는 서답형이 최대 30% 섞인다(B5).
+/** 유형을 가리지 않고 현재 문항에 답한다 — 퀵은 유형을 가리지 않아 서답형도 그대로 나온다.
  *  보기 클릭만 쓰면 뽑기 결과에 따라 셀렉터가 아예 없어 타임아웃으로 죽는다. */
 async function answerCurrent(page: Page) {
   const short = page.locator(".short-answer-input");
@@ -75,14 +75,10 @@ test("UI: 퀵 화면 axe 스캔 — 라이트·다크·모바일", async ({ page
   await startQuick(page, "ISTQB");
   await axeScan(page, "퀵 풀이 화면(라이트)");
 
-  // 채점 결과 — 이번에 추가한 중립 표면(.result-score.neutral)이 여기서만 나온다.
+  // 정답 공개 상태 — 피드백·점수판이 함께 떠 있는 화면이 퀵의 실질적인 '결과' 화면이다.
   await answerCurrent(page);
-  await page.getByTestId("grade-button").click();
-  const c = page.getByTestId("confirm-grade");
-  if (await c.count()) await c.click();
-  await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
-  await axeScan(page, "퀵 결과 모달(라이트)");
-  await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
+  await expect(page.locator("#feedback")).toBeVisible({ timeout: 20_000 });
+  await axeScan(page, "퀵 정답 공개(라이트)");
 
   // 다크
   await page.evaluate(() => localStorage.setItem("istqb-theme", "dark"));
@@ -128,7 +124,7 @@ test("UX: 키보드만으로 퀵을 시작하고 풀 수 있다", async ({ page 
   await page.getByTestId("quick-start-btn").focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-  await expect(page.locator("#progressText")).toContainText("/ 15");
+  await expect(page.getByTestId("quick-scoreboard")).toBeVisible();
   note("키보드만으로 퀵 15문항 시작 성공");
 
   // 보기 선택도 키보드로 — 라디오/버튼 어느 쪽이든 포커스 후 Enter/Space가 먹어야 한다.
@@ -143,11 +139,11 @@ test("UX: 키보드만으로 퀵을 시작하고 풀 수 있다", async ({ page 
   await opt.focus();
   await page.keyboard.press("Enter");
   await page.waitForTimeout(200);
-  let progressed = /^1 \//.test((await page.locator("#progressText").textContent()) ?? "");
+  let progressed = ((await page.getByTestId("qs-solved").textContent()) ?? "") === "1";
   if (!progressed) {
     await page.keyboard.press(" ");
     await page.waitForTimeout(200);
-    progressed = /^1 \//.test((await page.locator("#progressText").textContent()) ?? "");
+    progressed = ((await page.getByTestId("qs-solved").textContent()) ?? "") === "1";
   }
   if (!progressed) bad("보기를 키보드(Enter/Space)로 선택할 수 없다");
 
@@ -235,67 +231,6 @@ test("UI: 테마 × 글자 크기 조합에서 퀵 화면이 넘치거나 잘리
 });
 
 // ─────────────────────────────────────────────────────────────
-test("UI: 퀵 결과의 중립 표면이 라이트·다크 모두에서 읽을 수 있는 대비를 갖는다", async ({ page }) => {
-  test.setTimeout(300_000);
-
-  // 상대 휘도 → 대비비. axe가 놓치는 조합(동적 클래스)을 직접 잰다.
-  const contrast = (fg: string, bg: string) => {
-    const lum = (c: string) => {
-      const m = c.match(/rgba?\(([^)]+)\)/);
-      if (!m) return 0;
-      const [r, g, b] = m[1].split(",").slice(0, 3).map((v) => {
-        const s = Number(v.trim()) / 255;
-        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-      });
-      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    };
-    const a = lum(fg); const b = lum(bg);
-    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-  };
-
-  for (const theme of ["light", "dark"] as const) {
-    await page.goto("/");
-    await page.evaluate((t) => { localStorage.clear(); localStorage.setItem("istqb-theme", t as string); }, theme);
-    await openProduct(page, "ISTQB");
-    await page.getByTestId("quick-start-btn").click();
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-    await answerCurrent(page);
-    await page.getByTestId("grade-button").click();
-    const c = page.getByTestId("confirm-grade");
-    if (await c.count()) await c.click();
-    await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
-
-    const colors = await page.evaluate(() => {
-      const box = document.querySelector(".result-score") as HTMLElement | null;
-      const strong = box?.querySelector("strong") as HTMLElement | null;
-      const badge = box?.querySelector(".result-badge") as HTMLElement | null;
-      if (!box || !strong || !badge) return null;
-      const cs = getComputedStyle(box);
-      return {
-        cls: box.className,
-        bg: cs.backgroundColor,
-        strongFg: getComputedStyle(strong).color,
-        strongSize: parseFloat(getComputedStyle(strong).fontSize),
-        badgeFg: getComputedStyle(badge).color,
-        badgeSize: parseFloat(getComputedStyle(badge).fontSize),
-      };
-    });
-    if (!colors) { bad(`${theme}: 결과 점수 블록을 찾지 못함`); continue; }
-    if (!colors.cls.includes("neutral")) bad(`${theme}: 퀵 결과인데 중립 클래스가 아니다 (${colors.cls})`);
-
-    // 큰 글자(≥24px 굵게)는 3:1, 본문 크기는 4.5:1이 AA 기준이다.
-    const bigRatio = contrast(colors.strongFg, colors.bg);
-    const badgeRatio = contrast(colors.badgeFg, colors.bg);
-    note(`${theme}: 점수 ${colors.strongSize}px 대비 ${bigRatio.toFixed(2)}:1 · 배지 ${colors.badgeSize}px 대비 ${badgeRatio.toFixed(2)}:1`);
-    const bigNeed = colors.strongSize >= 24 ? 3 : 4.5;
-    if (bigRatio < bigNeed) bad(`${theme}: 퀵 결과 점수 대비 ${bigRatio.toFixed(2)}:1 < ${bigNeed}:1`);
-    if (badgeRatio < 4.5) bad(`${theme}: 퀵 결과 배지 대비 ${badgeRatio.toFixed(2)}:1 < 4.5:1`);
-
-    await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
-  }
-  expect(problems, problems.join("\n")).toEqual([]);
-});
-
 // ─────────────────────────────────────────────────────────────
 test("UX: 퀵 안내 문구가 잘리지 않고 출제 범위를 알린다", async ({ page }) => {
   test.setTimeout(300_000);
@@ -318,12 +253,11 @@ test("UX: 퀵 안내 문구가 잘리지 않고 출제 범위를 알린다", asy
   if (!hint) { bad("퀵 안내 문구가 없다"); }
   else {
     note(`안내: ${hint.text}`);
-    // 출제 범위를 명시하지 않으면 "서답형이 왜 나오냐"가 결함 신고로 돌아온다.
+    // 출제 범위를 명시하지 않으면 "다른 세트 문제가 왜 나오냐"가 결함 신고로 돌아온다.
     if (!/전 세트/.test(hint.text)) bad("안내에 '전 세트 출제'가 없다");
-    if (!/서답형/.test(hint.text)) bad("안내에 출제 유형 범위가 없다");
-    if (!/제한시간/.test(hint.text)) bad("안내에 제한시간 여부가 없다");
-    // 퀵은 회차 이력을 남기지 않는다 — 이 사실을 안내에서 알 수 있어야 한다.
-    if (!/기록/.test(hint.text)) bad("안내에 회차 기록 여부가 없다");
+    // 한 문항씩 즉시 확인하는 모드라는 것과, 아무것도 남지 않는다는 것 둘 다 밝혀야 한다.
+    if (!/한 문항씩/.test(hint.text)) bad("안내에 출제 단위가 없다");
+    if (!/기록/.test(hint.text)) bad("안내에 기록 여부가 없다");
     if (hint.clipped) bad("안내 문구가 세로로 잘렸다");
   }
   expect(problems, problems.join("\n")).toEqual([]);

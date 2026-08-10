@@ -37,11 +37,11 @@ Playwright 프로젝트는 **4개**다 — `react`(기능·Chromium) · `nonfunc
 | `react-transition` | 15 | 상태 전이(S0~S4 × 39전이) |
 | `react-edge-figtable` | 14 | 엣지: 특정 표/그림 문항 |
 | `react-edge-nav` | 14 | 엣지: 경계 네비게이션 |
-| `react-flow-ux` | 13 | 응시 포기·채점완료 가드·미니 시험·새 문제 뽑기·극복 배지 |
+| `react-flow-ux` | 8 | 응시 포기·채점완료 가드·극복 배지 |
 | `react-stats` | 11 | 학습 통계 대시보드 |
 | `react-a11y` | 10 | 접근성(ARIA·키보드) |
 | `react-qtypes` | 10 | 문항 유형(진위형·단답형·복수정답) |
-| `react-quick` | 7 | **퀵 랜덤** 출제·채점·이어풀기·잠금 |
+| `react-quick` | 21 | **퀵**(무한) 즉시 피드백·다음 문제·점수판·무기록·세트 잠금 |
 | `react-quick-ux` | 6 | **퀵 조작** — 패널 위치·시작 버튼 표시 규칙·문항 수 콤보 유지 |
 | `react-quick-wrongnote` | 3 | **퀵 오답 사양** — 임시 목록 분리·회차 무기록·이력 비우기 연동 |
 | `react-edge-import` | 9 | 엣지: 대용량/비정상 import 견고성 |
@@ -251,7 +251,6 @@ Pixel 7 디바이스 프로파일 + WebView UA + `MainActivity`의 안전영역 
 | S2-1 | 응시 포기: 응시 중 '응시 포기'→확인→답안 삭제·게이트 복귀·회차 기록 없음 | react-flow-ux |
 | S2-2 | 응시 중 '처음 화면으로'는 확인 모달 경유(무단 우회 차단) | react-flow-ux |
 | S4-1 | 채점 후 새로고침 → '채점 완료된 회차' 가드(지난 결과 보기/새 회차 시작) — 중복 회차 차단 | react-flow-ux · react-study-ux · react-transition |
-| S3-1 | 챕터 미니 시험: 10문항 추첨·'미니' 회차 라벨·세트 타임라인 미포함 | react-flow-ux |
 | S5-1 | 랜덤 '새 문제 뽑기' — 답안 초기화+재추첨 | react-flow-ux |
 | S1-1 | 랜덤 새로고침 재추첨 정책 토스트 안내 | react-flow-ux |
 | S6-1 | 오답 '극복' 배지(최근 시험 2회 연속 정답) + 범례 | react-flow-ux |

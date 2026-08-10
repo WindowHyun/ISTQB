@@ -44,14 +44,6 @@ test.describe("엣지-모드", () => {
     await expect(page.getByTestId("grade-button")).toBeVisible();
   });
 
-  test("랜덤 모드는 40문항 이하로 로드된다", async ({ page }) => {
-    await openSet(page, "CSTS", "CSTS-FL-2402");
-    await modeBtn(page, "연습").click();
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
-    const n = await page.locator("#questionNav button").count();
-    expect(n).toBeGreaterThan(0);
-    expect(n).toBeLessThanOrEqual(40);
-  });
 
   test("채점 전 오답 모드는 빈 안내를 보이되 크래시하지 않는다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
@@ -113,14 +105,6 @@ test.describe("엣지-모드", () => {
     await expect(page.locator('.segmented button[data-mode="review"]')).toHaveAttribute("aria-pressed", "true");
   });
 
-  test("랜덤 모드는 채점이 가능하다", async ({ page }) => {
-    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "연습").click();
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
-    await page.locator("#options .option").first().click();
-    await submitGrade(page);
-    await expect(page.getByTestId("score")).toContainText("점수", { timeout: 8_000 });
-  });
 
   test("모드 버튼 aria-pressed가 현재 모드만 true", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");

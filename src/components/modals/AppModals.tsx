@@ -877,7 +877,7 @@ export const AppModals = () => {
 
       {resultOpen && (
         <ResultSummary
-          setTitle={mode === 'quick' ? '퀵 랜덤' : (currentSet?.title || '')}
+          setTitle={currentSet?.title || ''}
           certification={activeProduct}
           correct={correctCount}
           total={total}
