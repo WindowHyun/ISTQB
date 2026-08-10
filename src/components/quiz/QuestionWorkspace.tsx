@@ -11,6 +11,7 @@ import {
 import { formatClock } from '../../utils/time';
 import { useBackDismiss } from '../../hooks/useBackDismiss';
 import { BACK_PRIORITY } from '../../utils/backGuard';
+import { computeQuickStats, isQuickCommitted } from '../../utils/quickStats';
 import { QuestionCard } from './QuestionCard';
 import { QuestionPalette } from './QuestionPalette';
 import { ErrorState } from '../common/ErrorState';
@@ -18,13 +19,14 @@ import { ErrorState } from '../common/ErrorState';
 export const QuestionWorkspace = () => {
   // 슬라이스 구독(O1) — elapsedSeconds를 구독하지 않으므로 타이머 틱에 리렌더되지 않는다.
   const {
-    index, setId, mode, setIndex, tickTimer, startTimer, beginSession,
+    index, setId, mode, setIndex, advanceQuick, startQuick, answers, tickTimer, startTimer, beginSession,
     navCollapsed, setNavCollapsed, setPaletteOpen, setResultOpen,
     resumeNotice, setResumeNotice, chapterFilter, setChapterFilter,
     setExamStarted, setDrawerOpen, activeProduct, setExamStartedAt, examStartedAtForSet,
     setConfirmExitExam, setPendingRestart,
   } = useQuizStore(useShallow((s) => ({
     index: s.index, setId: s.setId, mode: s.mode, setIndex: s.setIndex,
+    advanceQuick: s.advanceQuick, startQuick: s.startQuick, answers: s.answers,
     tickTimer: s.tickTimer, startTimer: s.startTimer, beginSession: s.beginSession,
     navCollapsed: s.navCollapsed, setNavCollapsed: s.setNavCollapsed,
     setPaletteOpen: s.setPaletteOpen, setResultOpen: s.setResultOpen,
@@ -37,7 +39,7 @@ export const QuestionWorkspace = () => {
     setDrawerOpen: s.setDrawerOpen, activeProduct: s.activeProduct,
   })));
   const {
-    appData, currentQuestions, answered, isGraded, canGrade, requestGrade, gradeAndShow,
+    appData, currentQuestions, answered, answerKeyOf, isGraded, canGrade, requestGrade, gradeAndShow,
     showExamGate, examLocked, // 시험 단계 파생은 useQuizSession이 단일 원천(잠금과 동일 규칙 집합)
     loadError, retryLoad,
   } = useQuizSession();
@@ -240,6 +242,36 @@ export const QuestionWorkspace = () => {
 
   const total = currentQuestions.length;
   const setTitle = appData?.sets.find((s) => s.id === setId)?.title || '';
+  const isQuick = mode === 'quick';
+  // 퀵 집계 — 커서까지의 답안에서 파생한다(별도 카운터 없음, quickStats 주석 참고).
+  const quick = isQuick
+    ? computeQuickStats(currentQuestions, answers, answerKeyOf, index)
+    : null;
+
+  // 퀵은 커서가 앞으로만 가므로 목록 끝을 지나갈 수 있다 — 그때가 '한 바퀴 완료'다.
+  // 세트 하나를 도는 다른 모드와 달리 퀵에는 채점도 결과 모달도 없어, 이 화면이 세션의 끝이다.
+  if (isQuick && index >= total) {
+    return (
+      <section className="workspace" aria-label="문제 풀이 영역">
+        <article className="question-card quick-done" data-testid="quick-exhausted">
+          <h2 className="quick-done-title">한 바퀴 다 풀었어요</h2>
+          <p className="quick-done-body">
+            {activeProduct === 'csts' ? 'CSTS' : 'ISTQB'} 전 세트 {total}문항을 모두 봤습니다 ·
+            {' '}정답 <strong>{quick!.correct}</strong> · 오답 <strong>{quick!.wrong}</strong> ·
+            {' '}최고 연속 <strong>{quick!.best}</strong>
+          </p>
+          <button
+            type="button"
+            className="primary"
+            data-testid="quick-restart-btn"
+            onClick={() => { startQuick(); beginSession(); }}
+          >
+            다시 섞어 시작
+          </button>
+        </article>
+      </section>
+    );
+  }
 
   // 시험 시작 게이트 — "시작하기"를 누르기 전에는 문항을 노출하지 않는다.
   // 시작하면 타이머가 0부터 시작하고, 채점 전까지 세트·모드가 잠긴다(사이드바에서 처리).
@@ -277,17 +309,25 @@ export const QuestionWorkspace = () => {
 
   const safeIndex = Math.min(Math.max(index, 0), total - 1);
   const currentQuestion = currentQuestions[safeIndex];
+  // 퀵 문항의 출처 세트 — 전 세트를 섞어 내므로 "지금 이건 어느 세트 문제인가"가 필요하다.
+  const setTitleOfSource = currentQuestion.sourceSetId
+    ? appData?.sets.find((s) => s.id === currentQuestion.sourceSetId)?.title
+    : undefined;
   // 보기 없는 단답형도 동의어 정답을 배열로 가질 수 있다 — 보기가 있을 때만 복수정답 표기(QuestionCard와 동일 기준).
   const isMulti = currentQuestion.options.length > 0 && currentQuestion.answer.length > 1;
 
   const goPrev = () => setIndex((i) => Math.max(0, i - 1));
   const goNext = () => setIndex((i) => Math.min(total - 1, i + 1));
+  // 퀵의 '다음'은 답을 확정한 뒤에만 열린다 — 확인 없이 넘기면 그 문항이 집계에서 빠져
+  // "진행 3인데 정답+오답은 2"처럼 화면의 숫자끼리 안 맞는다.
+  const quickReady = isQuick && isQuickCommitted(currentQuestion, answers[answerKeyOf(currentQuestion)] || []);
 
   return (
     <section className="workspace" aria-label="문제 풀이 영역">
       <header className="topbar">
         <div>
-          <p id="setMeta">{setTitle}</p>
+          {/* 퀵은 세트를 가로지르므로 세트명 대신 그 문항의 출처를 밝힌다. */}
+          <p id="setMeta">{isQuick ? (setTitleOfSource || '전 세트 랜덤') : setTitle}</p>
           <div className="question-title-row">
             <h2 id="questionTitle">문제 {currentQuestion.number}{isMulti ? ' · 복수정답' : ''}</h2>
             {currentQuestion.chapter && (
@@ -295,27 +335,36 @@ export const QuestionWorkspace = () => {
             )}
           </div>
         </div>
-        <div className="topbar-actions">
-          <button id="prevBtn" type="button" aria-label="이전 문제" disabled={safeIndex === 0} onClick={goPrev}>‹</button>
-          <button id="nextBtn" type="button" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
-        </div>
+        {/* 퀵에는 순차 이동 버튼이 없다 — 커서가 앞으로만 가고, 넘기는 것은 아래 '다음 문제'다. */}
+        {!isQuick && (
+          <div className="topbar-actions">
+            <button id="prevBtn" type="button" aria-label="이전 문제" disabled={safeIndex === 0} onClick={goPrev}>‹</button>
+            <button id="nextBtn" type="button" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
+          </div>
+        )}
       </header>
+
+      {quick && (
+        // 진행·정답·오답·연속 — 퀵에는 진행률(N/총계)도 타이머도 없다. 무한이라 분모가 없고,
+        // 기록을 남기지 않으므로 시간을 재는 의미도 없다.
+        <div className="quick-scoreboard" data-testid="quick-scoreboard" role="status" aria-live="polite">
+          <span className="qs-item"><b data-testid="qs-solved">{quick.solved}</b><small>진행</small></span>
+          <span className="qs-item qs-ok"><b data-testid="qs-correct">{quick.correct}</b><small>정답</small></span>
+          <span className="qs-item qs-no"><b data-testid="qs-wrong">{quick.wrong}</b><small>오답</small></span>
+          <span className="qs-item qs-streak">
+            <b data-testid="qs-streak">{quick.streak}</b>
+            <small>연속{quick.best > 0 ? ` · 최고 ${quick.best}` : ''}</small>
+          </span>
+        </div>
+      )}
 
       {chapterFilter && (
         <div className="chapter-filter-banner" data-testid="chapter-filter-banner" role="status">
-          {mode === 'random' ? (
-            // 챕터 미니 시험(랜덤+필터) — 연습과 달리 채점되어 챕터 통계에 반영된다.
-            <span className="cf-text">
-              <strong>{chapterFilter}</strong> 미니 시험 — {total}문항
-              <small className="cf-hint">채점하면 챕터 통계에 반영돼요 — 약점 보완 후 재측정에 쓰세요.</small>
-            </span>
-          ) : (
-            <span className="cf-text">
-              <strong>{chapterFilter}</strong> 챕터만 연습 중 — {total}문항
-              {/* 연습은 이력에 집계되지 않는다(무기록) — 정답률 갱신 경로를 안내해 기대 어긋남 방지. */}
-              <small className="cf-hint">연습은 통계에 기록되지 않아요 — 미니 시험·시험 채점으로 정답률을 갱신하세요.</small>
-            </span>
-          )}
+          <span className="cf-text">
+            <strong>{chapterFilter}</strong> 챕터만 연습 중 — {total}문항
+            {/* 연습은 이력에 집계되지 않는다(무기록) — 정답률 갱신 경로를 안내해 기대 어긋남 방지. */}
+            <small className="cf-hint">연습은 통계에 기록되지 않아요 — 시험 채점으로 정답률을 갱신하세요.</small>
+          </span>
           <button
             type="button"
             className="cf-clear"
@@ -368,45 +417,63 @@ export const QuestionWorkspace = () => {
         />
       </article>
 
-      {/* 데스크톱 인라인 팔레트(접이식). 모바일에선 CSS로 숨기고 하단바/점프핀으로 대체. */}
-      <section className="palette-block">
-        <div className="palette-head">
-          <div className="palette-summary">
-            문항 목록 <small>{safeIndex + 1} / {total} · 답함 {answered}</small>
-          </div>
-          <div className="palette-actions">
-            <button
-              type="button"
-              className="pill"
-              aria-expanded={!navCollapsed}
-              data-testid="palette-toggle"
-              onClick={() => setNavCollapsed(!navCollapsed)}
-            >
-              {navCollapsed ? '▸ 펼치기' : '▾ 접기'}
-            </button>
-            <button type="button" className="pill accent" data-testid="palette-jump-btn" onClick={() => setPaletteOpen(true)}>
-              ⤢ 문항 이동
-            </button>
-          </div>
-        </div>
-        {!navCollapsed && <QuestionPalette withId />}
-      </section>
+      {/* 퀵의 유일한 진행 수단 — 한 문항씩 확인하고 넘긴다. 문항 목록도 점프도 없다:
+          목록은 "정해진 N문항 중 어디쯤인가"를 위한 장치인데 퀵에는 그 N이 없다. */}
+      {isQuick ? (
+        <nav className="quick-next-bar" aria-label="다음 문제로">
+          <button
+            type="button"
+            className="primary quick-next-btn"
+            data-testid="quick-next-btn"
+            disabled={!quickReady}
+            onClick={advanceQuick}
+          >
+            {quickReady ? '다음 문제 →' : '답을 고르면 넘어갈 수 있어요'}
+          </button>
+        </nav>
+      ) : (
+        <>
+          {/* 데스크톱 인라인 팔레트(접이식). 모바일에선 CSS로 숨기고 하단바/점프핀으로 대체. */}
+          <section className="palette-block">
+            <div className="palette-head">
+              <div className="palette-summary">
+                문항 목록 <small>{safeIndex + 1} / {total} · 답함 {answered}</small>
+              </div>
+              <div className="palette-actions">
+                <button
+                  type="button"
+                  className="pill"
+                  aria-expanded={!navCollapsed}
+                  data-testid="palette-toggle"
+                  onClick={() => setNavCollapsed(!navCollapsed)}
+                >
+                  {navCollapsed ? '▸ 펼치기' : '▾ 접기'}
+                </button>
+                <button type="button" className="pill accent" data-testid="palette-jump-btn" onClick={() => setPaletteOpen(true)}>
+                  ⤢ 문항 이동
+                </button>
+              </div>
+            </div>
+            {!navCollapsed && <QuestionPalette withId />}
+          </section>
 
-      {/* 모바일 전용: 하단 고정 액션바(CSS로 ≤880px만 노출).
-          순차 이동(‹ ›)·채점·문항 점프를 한 줄에 모은다 — 점프 버튼을 본문 위에 떠 있는
-          플로팅 핀으로 두면 해설을 읽는 동안 텍스트를 가려서(스크롤해도 따라옴) 학습을 방해한다. */}
-      <nav className="mobile-actionbar" aria-label="문항 이동·채점">
-        <button type="button" className="ab-nav" aria-label="이전 문제" disabled={safeIndex === 0} onClick={goPrev}>‹</button>
-        {canGrade ? (
-          <button type="button" className="ab-main" data-testid="grade-button-m" onClick={requestGrade}>채점하기</button>
-        ) : isGraded ? (
-          <button type="button" className="ab-main subtle" onClick={() => setResultOpen(true)}>결과 요약</button>
-        ) : null}
-        <button type="button" className="jump-pin" data-testid="jump-pin" aria-label="문항 이동" onClick={() => setPaletteOpen(true)}>
-          <span className="jp-dot" aria-hidden="true" />{safeIndex + 1} / {total}
-        </button>
-        <button type="button" className="ab-nav" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
-      </nav>
+          {/* 모바일 전용: 하단 고정 액션바(CSS로 ≤880px만 노출).
+              순차 이동(‹ ›)·채점·문항 점프를 한 줄에 모은다 — 점프 버튼을 본문 위에 떠 있는
+              플로팅 핀으로 두면 해설을 읽는 동안 텍스트를 가려서(스크롤해도 따라옴) 학습을 방해한다. */}
+          <nav className="mobile-actionbar" aria-label="문항 이동·채점">
+            <button type="button" className="ab-nav" aria-label="이전 문제" disabled={safeIndex === 0} onClick={goPrev}>‹</button>
+            {canGrade ? (
+              <button type="button" className="ab-main" data-testid="grade-button-m" onClick={requestGrade}>채점하기</button>
+            ) : isGraded ? (
+              <button type="button" className="ab-main subtle" onClick={() => setResultOpen(true)}>결과 요약</button>
+            ) : null}
+            <button type="button" className="jump-pin" data-testid="jump-pin" aria-label="문항 이동" onClick={() => setPaletteOpen(true)}>
+              <span className="jp-dot" aria-hidden="true" />{safeIndex + 1} / {total}
+            </button>
+            <button type="button" className="ab-nav" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
+          </nav>
+        </>
+      )}
     </section>
   );
 };

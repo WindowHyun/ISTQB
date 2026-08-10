@@ -50,28 +50,6 @@ const round = (id: string, createdAt = Date.now()) => ({
 });
 
 describe('멀티탭 — 누적형 UI 상태는 마지막 쓰기가 이기지 않는다', () => {
-  it('다른 탭이 쌓은 퀵 회차를 이 탭의 저장이 지우지 않는다', () => {
-    store.useQuizStore.setState({ activeProduct: 'istqb' });
-    // 이 탭이 한 번 저장해 기준선을 잡는다(퀵 회차 없음).
-    store.useQuizStore.getState().setSetId('ISTQB-FL-V4-A');
-    vi.advanceTimersByTime(600);
-    expect(readUi().quickRounds ?? []).toHaveLength(0);
-
-    // 다른 탭이 퀵 회차를 채점해 넣는다.
-    otherTabWrites({ quickRounds: [round('r-other')] });
-
-    // 이 탭은 그 사실을 모른 채 문항을 넘긴다 → saveUiState.
-    store.useQuizStore.getState().setIndex(3);
-    vi.advanceTimersByTime(600);
-
-    const saved = readUi();
-    expect(saved.index, '커서는 이 탭 값이 이겨야 한다').toBe(3);
-    expect(
-      (saved.quickRounds ?? []).map((r: { id: string }) => r.id),
-      '다른 탭의 퀵 회차가 사라졌다 — 조용한 유실이다',
-    ).toEqual(['r-other']);
-  });
-
   it('다른 탭의 복습 진척·시험 기준점·오답 대상도 함께 보존된다', () => {
     store.useQuizStore.setState({ activeProduct: 'istqb' });
     store.useQuizStore.getState().setSetId('ISTQB-FL-V4-A');
@@ -115,14 +93,14 @@ describe('멀티탭 — 누적형 UI 상태는 마지막 쓰기가 이기지 않
     store.useQuizStore.getState().setSetId('ISTQB-FL-V4-A');
     vi.advanceTimersByTime(600);
 
-    otherTabWrites({ quickRounds: [round('r-other')] });
+    otherTabWrites({ reviewedOk: { 'ISTQB-FL-V4-A': [3, 4] } });
     store.useQuizStore.getState().setIndex(2);
     vi.advanceTimersByTime(600);
 
     expect(
-      store.useQuizStore.getState().quickRounds.map((r) => r.id),
+      store.useQuizStore.getState().reviewedOk['ISTQB-FL-V4-A'],
       '디스크에는 살렸는데 화면(메모리)은 여전히 모른다',
-    ).toEqual(['r-other']);
+    ).toEqual([3, 4]);
   });
 });
 

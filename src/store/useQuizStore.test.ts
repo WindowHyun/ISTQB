@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useQuizStore, freshQuickRounds, QUICK_ROUND_TTL_MS, ExamHistory } from "./useQuizStore";
+import { useQuizStore } from "./useQuizStore";
 
 // #75 채점 루프가 의존하는 store 액션 검증 (#76 — store 로직 유닛 테스트).
 function reset() {
@@ -124,12 +124,12 @@ describe("useQuizStore 세션/네비/타이머 액션", () => {
 
   it("setMode는 모드가 바뀔 때만 챕터 필터를 해제한다(같은 모드 재확정은 보존)", () => {
     // 복원 직후 App이 저장된 모드를 그대로 재확정하는 경로에서 필터가 지워지면
-    // 미니 시험(랜덤+챕터) 복원이 무효화된다.
-    useQuizStore.setState({ mode: "random", chapterFilter: "테스트 기법" });
-    useQuizStore.getState().setMode("random"); // 같은 모드 재확정
+    // 챕터 집중 연습 복원이 무효화된다.
+    useQuizStore.setState({ mode: "practice", chapterFilter: "테스트 기법" });
+    useQuizStore.getState().setMode("practice"); // 같은 모드 재확정
     expect(useQuizStore.getState().chapterFilter).toBe("테스트 기법");
 
-    useQuizStore.getState().setMode("practice"); // 실제 모드 전환
+    useQuizStore.getState().setMode("exam"); // 실제 모드 전환
     expect(useQuizStore.getState().chapterFilter).toBeNull();
   });
 
@@ -144,7 +144,7 @@ describe("useQuizStore 세션/네비/타이머 액션", () => {
   it("commitSetChange는 세트 교체와 새 세션 개시를 함께 처리한다", () => {
     useQuizStore.setState({
       mode: "practice", setId: "A", index: 7, elapsedSeconds: 120,
-      chapterFilter: "테스트 기법", drawerOpen: true, pendingSetChange: "B",
+      chapterFilter: "테스트 기법", drawerOpen: true,
     });
     useQuizStore.getState().commitSetChange("B");
     const st = useQuizStore.getState();
@@ -153,22 +153,19 @@ describe("useQuizStore 세션/네비/타이머 액션", () => {
     expect(st.elapsedSeconds).toBe(0);
     expect(st.chapterFilter).toBeNull();
     expect(st.drawerOpen).toBe(false);
-    expect(st.pendingSetChange).toBeNull(); // 보류 해제
   });
 
-  it("commitSetChange는 랜덤 모드에서 바꾼 세트의 답안을 비운다(이어풀기 없음, F4)", () => {
+  it("commitSetChange는 연습 모드에서 답안을 건드리지 않는다", () => {
+    // 연습은 답안 네임스페이스가 세트별로 갈려 있어 세트를 바꿔도 잃을 것이 없다.
     useQuizStore.setState({
-      mode: "random", setId: "A",
-      answers: { "A-random-q1": ["a"], "B-random-q9": ["c"], "B-exam-q1": ["b"] },
-      graded: { "B-random": true },
-      pendingSetChange: "B",
+      mode: "practice", setId: "A",
+      answers: { "A-practice-q1": ["a"], "B-practice-q9": ["c"], "B-exam-q1": ["b"] },
     });
     useQuizStore.getState().commitSetChange("B");
     const st = useQuizStore.getState();
-    expect(st.answers["B-random-q9"]).toBeUndefined(); // 바꾼 세트의 랜덤 답안은 초기화
-    expect(st.answers["B-exam-q1"]).toEqual(["b"]);    // 다른 모드는 건드리지 않는다
-    expect(st.graded["B-random"]).toBe(false);
-    expect(st.resumePrompt).toBe(false);               // 랜덤은 이어풀기를 묻지 않는다
+    expect(st.answers["B-practice-q9"]).toEqual(["c"]);
+    expect(st.answers["B-exam-q1"]).toEqual(["b"]);
+    expect(st.resumePrompt).toBe(false); // 연습은 이어풀기를 묻지 않는다
   });
 
   it("commitSetChange는 시험 모드에서 이전 답안이 있으면 이어풀기를 묻는다", () => {
@@ -201,20 +198,21 @@ describe("useQuizStore 세션/네비/타이머 액션", () => {
     expect(useQuizStore.getState().examStartedAt).toEqual({});
   });
 
-  it("랜덤 모드 초기화는 시험 기준점을 건드리지 않는다", () => {
+  it("시험 아닌 모드의 초기화는 시험 기준점을 건드리지 않는다", () => {
     useQuizStore.setState({ examStartedAt: { A: 111 }, answers: {}, graded: {} });
-    useQuizStore.getState().clearAnswers("A", "random");
+    useQuizStore.getState().clearAnswers("A", "practice");
     expect(useQuizStore.getState().examStartedAt).toEqual({ A: 111 });
   });
 });
 
-// 퀵의 setId·mode는 항상 같아서 채점 키(QUICK-quick)도 늘 같다. 이전 회차의 채점 상태를
-// 비우지 않으면 두 번째 세션이 '이미 채점됨'으로 시작해 보기가 잠기고 채점 버튼도 안 뜬다.
-// (유저 관점 전수 시나리오에서 실제로 두 번째 퀵의 보기 클릭이 먹지 않아 발견됐다)
-describe('startQuick — 이전 회차 잔재 정리', () => {
-  it('이전 퀵의 채점 상태를 해제한다', () => {
+// 퀵의 setId·mode는 항상 같아서 답안 키 공간도 늘 같다. 이전 세션의 잔재를 비우지 않으면
+// 같은 문항이 다시 나올 때 옛 답이 선택된 채로 뜨고, 즉시 피드백 모드라 정답·해설이
+// 미리 펼쳐진다 — '푸는' 단계 자체가 건너뛰어진다.
+describe('startQuick — 이전 세션 잔재 정리', () => {
+  it('예전 버전이 남긴 채점 상태를 해제한다', () => {
+    // 퀵에는 채점이 없지만, 구버전에서 저장된 graded가 남아 있으면 보기가 잠긴 채 시작한다.
     useQuizStore.setState({ graded: { 'QUICK-quick': true, 'A-exam': true } });
-    useQuizStore.getState().startQuick(10);
+    useQuizStore.getState().startQuick();
     expect(useQuizStore.getState().graded['QUICK-quick']).toBe(false);
     // 다른 세트·모드의 채점 상태는 건드리지 않는다.
     expect(useQuizStore.getState().graded['A-exam']).toBe(true);
@@ -228,24 +226,31 @@ describe('startQuick — 이전 회차 잔재 정리', () => {
         'A-exam-Q1': ['c'],
       },
     });
-    useQuizStore.getState().startQuick(15);
+    useQuizStore.getState().startQuick();
     expect(useQuizStore.getState().answers).toEqual({ 'A-exam-Q1': ['c'] });
   });
 
-  it('추첨을 비우고 문항 수를 반영하며 재추첨 신호를 올린다', () => {
+  it('출제 순서를 비우고 재추첨 신호를 올린다', () => {
     useQuizStore.setState({
       quickDraw: { certification: 'csts', items: [{ id: 'X', setId: 'S' }] },
       quickNonce: 3,
       index: 7,
     });
-    useQuizStore.getState().startQuick(20);
+    useQuizStore.getState().startQuick();
     const s = useQuizStore.getState();
     expect(s.quickDraw).toBeNull();
-    expect(s.quickSize).toBe(20);
     expect(s.quickNonce).toBe(4);
     expect(s.index).toBe(0);
     expect(s.mode).toBe('quick');
     expect(s.setId).toBe('QUICK');
+  });
+
+  it('advanceQuick은 커서를 앞으로만 옮긴다', () => {
+    // 되돌아가기를 열어 두면 이미 정답을 본 문항이 다시 세어져 집계가 흔들린다.
+    useQuizStore.setState({ index: 0 });
+    useQuizStore.getState().advanceQuick();
+    useQuizStore.getState().advanceQuick();
+    expect(useQuizStore.getState().index).toBe(2);
   });
 });
 
@@ -316,55 +321,3 @@ describe('resetProgressForSets — 이력 삭제와 짝이 되는 상태 정리'
 
 // 퀵 회차는 이력(histories)이 아니라 별도 보관이라, 만료·삭제 규칙이 이력과 다르다.
 // 이 규칙이 깨지면 "기록을 남기지 않는다"는 약속이나 "이력 비우기"가 조용히 무력화된다.
-describe('퀵 임시 회차(quickRounds)', () => {
-  const round = (id: string, cert: ExamHistory['certification'], createdAt: number): ExamHistory => ({
-    id, setId: 'QUICK', mode: 'quick', answers: {}, certification: cert, createdAt,
-  });
-
-  beforeEach(() => {
-    useQuizStore.setState({ quickRounds: [] });
-  });
-
-  it('freshQuickRounds는 24시간이 지난 회차를 버린다', () => {
-    const now = 1_700_000_000_000;
-    const kept = round('new', 'istqb', now - QUICK_ROUND_TTL_MS + 1_000);
-    const gone = round('old', 'istqb', now - QUICK_ROUND_TTL_MS - 1_000);
-    expect(freshQuickRounds([kept, gone], now).map((r) => r.id)).toEqual(['new']);
-  });
-
-  it('createdAt이 없는 회차는 즉시 만료로 본다(무기한 잔존 방지)', () => {
-    expect(freshQuickRounds([round('x', 'istqb', undefined as unknown as number)], 1_700_000_000_000)).toEqual([]);
-  });
-
-  it('addQuickRound는 넣으면서 만료분을 함께 버린다', () => {
-    useQuizStore.setState({ quickRounds: [round('old', 'istqb', 0)] });
-    useQuizStore.getState().addQuickRound(round('new', 'istqb', Date.now()));
-    expect(useQuizStore.getState().quickRounds.map((r) => r.id)).toEqual(['new']);
-  });
-
-  it('clearQuickRounds는 해당 자격증 회차만 지운다', () => {
-    const now = Date.now();
-    useQuizStore.setState({
-      quickRounds: [round('i', 'istqb', now), round('c', 'csts', now)],
-    });
-    useQuizStore.getState().clearQuickRounds('istqb');
-    expect(useQuizStore.getState().quickRounds.map((r) => r.id)).toEqual(['c']);
-  });
-
-  // 자격증을 모르는 회차를 남기면 어느 제품의 '이력 비우기'로도 지워지지 않는다.
-  it('clearQuickRounds는 자격증 미상 회차도 함께 지운다', () => {
-    const now = Date.now();
-    useQuizStore.setState({
-      quickRounds: [round('legacy', undefined, now), round('c', 'csts', now)],
-    });
-    useQuizStore.getState().clearQuickRounds('istqb');
-    expect(useQuizStore.getState().quickRounds.map((r) => r.id)).toEqual(['c']);
-  });
-
-  it('clearQuickRounds()에 자격증을 주지 않으면 전부 지운다', () => {
-    const now = Date.now();
-    useQuizStore.setState({ quickRounds: [round('i', 'istqb', now), round('c', 'csts', now)] });
-    useQuizStore.getState().clearQuickRounds();
-    expect(useQuizStore.getState().quickRounds).toEqual([]);
-  });
-});

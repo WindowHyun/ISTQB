@@ -1,40 +1,42 @@
 import { create } from 'zustand';
 import { answerKeyPrefix, gradeKeyFor } from '../utils/answerKey';
 
-// quick: 제품의 전 세트에서 10~20문항을 뽑아 짧게 푸는 모드. 세트 하나에 매이지 않으므로
-// setId는 QUICK_SET_ID 센티넬을 쓴다(실재하는 세트 id와 겹치지 않는다 — 계약은 단위 테스트로 고정).
-export type QuizMode = 'home' | 'exam' | 'practice' | 'random' | 'review' | 'quick';
+// quick: 제품의 전 세트를 통째로 섞어 한 문항씩 무한으로 푸는 모드(구 '랜덤'을 흡수했다).
+// 세트 하나에 매이지 않으므로 setId는 QUICK_SET_ID 센티넬을 쓴다
+// (실재하는 세트 id와 겹치지 않는다 — 계약은 단위 테스트로 고정).
+export type QuizMode = 'home' | 'exam' | 'practice' | 'review' | 'quick';
 
-/** 퀵 랜덤 회차의 setId. 어느 세트에도 속하지 않는다는 표식이다. */
+/**
+ * 이력 레코드가 가질 수 있는 모드 — 지금 고를 수 있는 모드에 폐지된 'random'을 더한 것.
+ *
+ * 랜덤 모드는 퀵에 흡수돼 사라졌지만 **기존 사용자의 회차 이력은 보존한다**. 그래서
+ * "지금 진입할 수 있는 모드"(QuizMode)와 "이력에 실려 있을 수 있는 모드"는 다르다.
+ * 둘을 같은 타입으로 두면 폐지 모드를 지우는 순간 과거 이력이 타입·검증에서 탈락해
+ * 조용히 폐기된다(이 저장소에서 실제로 났던 결함 유형이다).
+ */
+export type HistoryMode = QuizMode | 'random';
+
+/** 퀵 회차의 setId. 어느 세트에도 속하지 않는다는 표식이다. */
 export const QUICK_SET_ID = 'QUICK';
 
 /**
- * 퀵 회차 보관 기간 — 24시간. 퀵은 회차 기록을 남기지 않는 모드라(요약·타임라인·이력
- * 목록에 나오지 않는다) 채점 결과를 어딘가 영구 보관하면 그 사양과 모순된다. 다만 방금
- * 틀린 것을 바로 못 보면 학습이 끊기므로, 만료가 있는 임시 보관으로 절충한다.
- */
-export const QUICK_ROUND_TTL_MS = 24 * 60 * 60 * 1000;
-
-/** 만료되지 않은 퀵 회차만 고른다(읽는 시점에 거른다 — 타이머를 두면 앱이 꺼진 동안 안 돈다). */
-export function freshQuickRounds(rounds: ExamHistory[] | undefined, now = Date.now()): ExamHistory[] {
-  if (!rounds?.length) return [];
-  return rounds.filter((r) => now - (r.createdAt ?? 0) < QUICK_ROUND_TTL_MS);
-}
-
-/**
- * 실제로 풀이가 일어나는 모드 목록(게이트 'home' 제외) — 답안·채점 키가 생기는 모드다.
+ * 답안·채점 키가 생길 수 있는 모드 목록(게이트 'home' 제외).
  * storage의 이력 허용 모드도 여기서 파생한다: 두 목록을 따로 관리하면 모드를 추가할 때
  * 한쪽 누락으로 이력이 무단 폐기되거나(그 결함이 실제로 났다) 초기화가 반쪽이 된다.
+ *
+ * 'random'이 남아 있는 이유는 두 가지이고, 둘 다 신규 진입과는 무관하다.
+ *  1) 기존 이력 보존 — HISTORY_MODES가 여기서 파생한다. 빼면 과거 랜덤 회차가 검증에서
+ *     탈락해 통계·오답노트에서 통째로 사라진다.
+ *  2) 흔적 정리 — resetProgressForSets('이력 비우기')가 지울 키를 여기서 조립한다.
+ *     빼면 예전 랜덤 답안·채점 상태가 지워지지 않고 저장소에 영영 남는다.
  */
 export const PLAY_MODES = ['exam', 'practice', 'random', 'review', 'quick'] as const;
-
-/** 퀵에서 고를 수 있는 문항 수. 듀오링고식 짧은 세션 규모. */
-export const QUICK_SIZES = [10, 15, 20] as const;
 
 export interface ExamHistory {
   id: string;
   setId: string;
-  mode: QuizMode;
+  // 폐지된 'random'을 포함한다 — 기존 회차 이력을 보존하기 위해서다(HistoryMode 주석 참고).
+  mode: HistoryMode;
   // 소속 제품(채점 시 기록). 과거 기록엔 없을 수 있어 setId 기반 추론으로 폴백한다 —
   // 세트가 index.json에서 제거/개명돼도 제품 스코프 필터에서 이력이 실종되지 않게 한다.
   certification?: 'istqb' | 'csts';
@@ -60,8 +62,8 @@ export interface ExamHistory {
   // CSTS 검정방법별 가중 점수(채점 시점 스냅샷) — 4지선다·서답형 1.5점/진위형 1.0점 배점.
   // ISTQB 이력에는 없음(단순 정답률 기준이라 불필요). 과거(수정 전) CSTS 기록엔 없을 수 있다.
   cstsWeighted?: { score: number; maxScore: number };
-  // 챕터 미니 시험(랜덤 모드 + 챕터 필터) 회차 표식. 세트 전체 회차가 아니므로
-  // 타임라인·직전 대비 비교에서는 같은 챕터끼리만 비교한다(챕터 통계에는 그대로 반영).
+  // 레거시 — 폐지된 챕터 미니 시험(랜덤 모드 + 챕터 필터) 회차 표식. 신규 기록에는 실리지
+  // 않지만, 과거 회차를 세트 전체 회차와 섞어 비교하지 않으려면 읽는 쪽은 계속 봐야 한다.
   chapter?: string;
 }
 
@@ -72,11 +74,6 @@ export interface QuizState {
   index: number;
   answers: Record<string, string[]>;
   histories: Record<string, ExamHistory>;
-  /**
-   * 퀵 회차 — 이력(histories)과 분리해 둔다. 여기 있는 것은 회차 목록·요약·타임라인에
-   * 들어가지 않고, 챕터 통계와 '최근 퀵 오답'에만 쓰이며 24시간 뒤 사라진다.
-   */
-  quickRounds: ExamHistory[];
   reviewIds: Record<string, string[]>;
   graded: Record<string, boolean>;
   // 시험 시작 게이트(Phase 1) — 세트별로 "시작하기"를 눌러 응시를 개시했는지.
@@ -90,6 +87,7 @@ export interface QuizState {
   examStartedAt: Record<string, number>;
   navCollapsed: boolean;
   // 챕터 집중 연습 필터(Phase 3). null이면 전체. 세트/모드 전환 시 해제되며 영속화하지 않는다.
+  // 연습 모드 전용이다 — 이 필터를 쓰던 다른 경로(챕터 미니 시험 = 랜덤 + 필터)는 폐지됐다.
   chapterFilter: string | null;
 
   // UI 오버레이/드로어 상태(영속화하지 않음 — 새로고침 시 닫힘).
@@ -109,14 +107,6 @@ export interface QuizState {
   // 복원한 시험 답안이 최신 채점 회차와 동일할 때 띄우는 "채점 완료된 회차" 안내.
   // 같은 답안 재채점으로 회차가 중복 적립되는 것을 막는다. null이면 비표시.
   gradedResume: { correct: number | null; total: number | null } | null;
-  // 랜덤 진행 중 세트를 바꾸려 할 때, 확인을 받기까지 보류한 대상 세트 id.
-  // 랜덤은 세트별로 추첨을 보관하지 않으므로(F4) 세트를 바꾸면 진행이 사라진다 —
-  // 소리 없이 버리지 않고 한 번 묻는다. null이면 보류 중인 변경이 없다.
-  // 세트 선택은 사이드바, 확인 모달은 AppModals라 스토어가 둘의 접점이다.
-  pendingSetChange: string | null;
-  // 랜덤 '새 문제 뽑기' 확인 — 세트 변경과 같은 손실(현재 추첨·답안 폐기)인데
-  // 종전에는 이 경로만 확인 없이 즉시 실행돼 규칙이 갈렸다.
-  pendingRedraw: boolean;
   // 이어풀기 배너의 '처음부터' 확인 — 종전에는 인덱스만 0으로 되돌리고 답안은 그대로
   // 뒀다. 버튼 이름('처음부터', 짝은 '계속하기')이 약속한 것은 초기화인데 실제로는
   // 첫 문항으로 이동만 해서, 사용자는 "초기화가 안 된다"로 겪었다. 이제 실제로 지우되
@@ -130,15 +120,19 @@ export interface QuizState {
   // 목록이 줄지 않던(학습 루프가 닫히지 않던) 문제를 여기서 닫는다.
   // 다시 채점해 또 틀리면 해당 번호는 제거돼 재풀이 대상으로 돌아온다.
   reviewedOk: Record<string, number[]>;
-  // 랜덤 '새 문제 뽑기' 트리거 — 증가하면 useQuestions가 현재 추첨을 버리고 재추첨한다.
-  randomNonce: number;
-  // 랜덤 현재 추첨(뽑힌 문항 id 목록)을 영속화해 새로고침 시 같은 문항으로 이어풀게 한다.
-  // null이면 미추첨/재추첨 필요. 모드 진입·'새 문제 뽑기'는 이 값을 비워 새 추첨을 유도한다.
-  randomDraw: { setId: string; chapter: string | null; ids: string[] } | null;
-  // 퀵 추첨 스냅샷 — 전 세트에서 뽑으므로 randomDraw(세트 하나 전제)와 별도 필드다.
-  // 문항 id만으로는 어느 세트에서 왔는지 알 수 없어(오답 귀속·복원에 필요) setId를 함께 남긴다.
+  /**
+   * 퀵 출제 순서 — 제품의 전 세트를 한 번씩만 담아 섞은 목록이다(재수록 문항은 대표 하나).
+   * index가 이 목록을 앞으로만 훑는 커서이고, 끝에 닿으면 '한 바퀴 완료'로 세션이 끝난다.
+   *
+   * 종전에는 10~20문항만 뽑아 담았다. 무한 모드가 되면서 목록 전체를 담는데, 그래야
+   * "같은 문제가 두 번 나오지 않는다"를 커서 하나로 보장할 수 있다 — 매번 다시 뽑으면
+   * 이미 푼 문항을 걸러낼 별도 기록이 필요해지고, 그 기록이 곧 '기록을 남기지 않는다'는
+   * 사양과 부딪힌다.
+   *
+   * 문항 id만으로는 어느 세트에서 왔는지 알 수 없어(복원 시 어떤 세트를 로드할지) setId를 함께 남긴다.
+   */
   quickDraw: { certification: string; items: { id: string; setId: string }[] } | null;
-  quickSize: number;
+  // 퀵 재추첨 트리거 — 증가하면 useQuestions가 현재 순서를 버리고 새로 섞는다.
   quickNonce: number;
 
   // Actions
@@ -148,9 +142,6 @@ export interface QuizState {
   setIndex: (index: number | ((prev: number) => number)) => void;
   setAnswer: (key: string, selected: string[]) => void;
   addHistory: (history: ExamHistory) => void;
-  /** 퀵 회차를 임시 보관에 넣는다(만료된 것은 이때 함께 청소한다). */
-  addQuickRound: (round: ExamHistory) => void;
-  clearQuickRounds: (certification?: string | null) => void;
   // 오답(review) 대상 문항 id 목록. 키는 `${setId}-${mode}`(과거 데이터는 setId 단독일 수 있음).
   setReviewIds: (key: string, ids: string[]) => void;
   setGraded: (key: string, value: boolean) => void;
@@ -186,8 +177,6 @@ export interface QuizState {
   setResumePrompt: (show: boolean) => void;
   setQuitExamOpen: (open: boolean) => void;
   setGradedResume: (info: QuizState['gradedResume']) => void;
-  setPendingSetChange: (setId: string | null) => void;
-  setPendingRedraw: (open: boolean) => void;
   setPendingRestart: (open: boolean) => void;
   setConfirmExitExam: (open: boolean) => void;
   /** 오답 재풀이로 맞힌 문항 번호를 기록한다(재풀이 대상에서 제외). */
@@ -196,11 +185,11 @@ export interface QuizState {
   unmarkReviewed: (setId: string, numbers: number[]) => void;
   // 세트 전환(교체 + 새 세션 + 모드별 후처리). 사이드바·확인 모달의 공용 진입점.
   commitSetChange: (setId: string) => void;
-  redrawRandom: () => void;
-  setRandomDraw: (draw: QuizState['randomDraw']) => void;
   setQuickDraw: (draw: QuizState['quickDraw']) => void;
-  /** 퀵 진입 — 문항 수를 정하고 새로 추첨하게 한다(기존 추첨은 버린다). */
-  startQuick: (size: number) => void;
+  /** 퀵 진입/다시 시작 — 이전 진행을 비우고 전 세트를 새로 섞게 한다. */
+  startQuick: () => void;
+  /** 퀵 '다음 문제' — 커서를 앞으로만 옮긴다(되돌아갈 수 없는 것이 이 모드의 규칙이다). */
+  advanceQuick: () => void;
   resetToGate: () => void;
   hydrate: (state: Partial<QuizState>) => void;
 }
@@ -217,17 +206,8 @@ export const sessionScopeDefaults = () => ({
   reviewedOk: {} as Record<string, number[]>,
   reviewIds: {} as Record<string, string[]>,
   chapterFilter: null as string | null,
-  // 제품 전환 시 이전 제품의 랜덤 추첨이 새 제품으로 새지 않게 초기화(복원 시 해당 제품 값으로 덮음).
-  randomDraw: null as { setId: string; chapter: string | null; ids: string[] } | null,
-  // 퀵도 제품 스코프다 — 제품을 바꾸면 이전 제품 문항으로 이어풀기가 되지 않게 비운다.
+  // 퀵은 제품 스코프다 — 제품을 바꾸면 이전 제품 문항으로 이어풀기가 되지 않게 비운다.
   quickDraw: null as { certification: string; items: { id: string; setId: string }[] } | null,
-  // 퀵 회차도 제품 스코프다. 여기 없으면 hydrate가 이전 제품 값을 덮지 못해(복원 값이
-  // 비어 있으면 sanitizeUiState가 필드를 아예 넣지 않는다) ISTQB 회차가 CSTS 메모리에
-  // 살아남고, 이어지는 saveUiState가 그것을 CSTS 저장소 키에 기록한다 — 제품 간 오염이다.
-  // 화면의 productQuickRounds 필터는 certification 없는 회차를 통과시켜 방어가 완전하지 않다.
-  quickRounds: [] as ExamHistory[],
-  // 사용자가 고른 퀵 문항 수. 추첨 시점에만 쓰이므로 세션 스코프로 충분하다.
-  quickSize: QUICK_SIZES[0] as number,
   quickNonce: 0,
 });
 
@@ -238,7 +218,6 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   index: 0,
   answers: {},
   histories: {},
-  quickRounds: [],
   reviewIds: {},
   graded: {},
   examStarted: {},
@@ -259,15 +238,10 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   resumePrompt: false,
   quitExamOpen: false,
   gradedResume: null,
-  pendingSetChange: null,
-  pendingRedraw: false,
   pendingRestart: false,
   confirmExitExam: false,
   reviewedOk: {},
-  randomNonce: 0,
-  randomDraw: null,
   quickDraw: null,
-  quickSize: QUICK_SIZES[0] as number,
   quickNonce: 0,
 
   setActiveProduct: (activeProduct) => set({ activeProduct }),
@@ -285,18 +259,6 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   })),
   addHistory: (history) => set((state) => ({
     histories: { ...state.histories, [history.id]: history }
-  })),
-  addQuickRound: (round) => set((state) => ({
-    // 넣을 때 만료분을 함께 버린다 — 읽는 쪽에서도 거르지만, 저장소가 무한정 자라는 것은 막는다.
-    quickRounds: [...freshQuickRounds(state.quickRounds), round],
-  })),
-  clearQuickRounds: (certification) => set((state) => ({
-    // 이력 비우기는 현재 제품만 지운다 — 퀵도 같은 범위를 따른다.
-    // certification이 없던 과거 회차는 어느 제품인지 알 수 없으므로 함께 버린다
-    // (24시간 임시 목록이라 보존 가치가 없고, 남으면 지울 방법이 사라진다).
-    quickRounds: certification
-      ? state.quickRounds.filter((r) => !!r.certification && r.certification !== certification)
-      : [],
   })),
   setReviewIds: (key, ids) => set((state) => ({
     reviewIds: { ...state.reviewIds, [key]: ids }
@@ -392,8 +354,6 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   setResumePrompt: (resumePrompt) => set({ resumePrompt }),
   setQuitExamOpen: (quitExamOpen) => set({ quitExamOpen }),
   setGradedResume: (gradedResume) => set({ gradedResume }),
-  setPendingSetChange: (pendingSetChange) => set({ pendingSetChange }),
-  setPendingRedraw: (pendingRedraw) => set({ pendingRedraw }),
   setPendingRestart: (pendingRestart) => set({ pendingRestart }),
   setConfirmExitExam: (confirmExitExam) => set({ confirmExitExam }),
   markReviewed: (setId, numbers) => set((state) => {
@@ -409,20 +369,17 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     return { reviewedOk: { ...state.reviewedOk, [setId]: next } };
   }),
   // 세트 전환 의례 — 세트 교체 + 새 세션 개시 + 모드별 후처리를 한 곳에 모은다.
-  // 사이드바(즉시 전환)와 확인 모달(랜덤 진행 중 승인 후 전환)이 같은 경로를 타야
-  // 한쪽만 답안 정리를 빠뜨리는 어긋남이 생기지 않는다(beginSession과 같은 이유).
+  // 사이드바와 이어풀기 선택 모달이 같은 경로를 타야 한쪽만 답안 정리를 빠뜨리는
+  // 어긋남이 생기지 않는다(beginSession과 같은 이유).
   commitSetChange: (newSetId) => {
     const prev = get();
-    // 세트 교체 + 새 세션 개시(beginSession과 동일) + 드로어 닫기 + 보류 해제.
+    // 세트 교체 + 새 세션 개시(beginSession과 동일) + 드로어 닫기.
     set({
       setId: newSetId, chapterFilter: null,
       index: 0, elapsedSeconds: 0, lastTick: Date.now(),
-      drawerOpen: false, pendingSetChange: null,
+      drawerOpen: false,
     });
-    if (prev.mode === 'random') {
-      // 랜덤은 이어풀기 없음 — 바꾼 세트의 랜덤 답안을 비우고 새로 시작한다(F4).
-      get().clearAnswers(newSetId, 'random');
-    } else if (
+    if (
       // 바꾼 세트가 시험 모드에 이전 답안을 갖고 있으면 "이어풀기/새로 풀기" 선택 모달을 띄운다.
       prev.mode === 'exam' &&
       Object.keys(prev.answers).some((k) => k.startsWith(answerKeyPrefix(newSetId, 'exam')))
@@ -430,35 +387,36 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       set({ resumePrompt: true });
     }
   },
-  // '새 문제 뽑기' — 세대(nonce)를 올리고 저장된 추첨을 비워 useQuestions가 새로 추첨하게 한다.
-  redrawRandom: () => set((state) => ({ randomNonce: state.randomNonce + 1, randomDraw: null })),
-  setRandomDraw: (randomDraw) => set({ randomDraw }),
   setQuickDraw: (quickDraw) => set({ quickDraw }),
-  // 추첨을 비워 새로 뽑게 한다 — 진입할 때마다 같은 문항이 나오면 '퀵'의 의미가 없다.
-  startQuick: (quickSize) => set((state) => {
-    // 이전 퀵 회차의 답안·채점 상태를 반드시 비운다. 퀵의 setId·mode는 항상 같아서
-    // 채점 키(QUICK-quick)도 늘 같다 — 남겨 두면 두 번째 세션이 '이미 채점됨' 상태로
-    // 시작해 보기가 잠기고(정답이 미리 공개된 채) 채점 버튼도 뜨지 않는다.
-    // 답안도 함께 지운다: 재수록 문항이 다시 뽑히면 이전 회차의 답이 선택된 채로 보인다.
+  // 순서를 비워 새로 섞게 한다 — 진입할 때마다 같은 순서가 나오면 '랜덤'의 의미가 없다.
+  startQuick: () => set((state) => {
+    // 이전 퀵 세션의 답안을 반드시 비운다. 퀵의 setId·mode는 항상 같아서 답안 키 공간도
+    // 늘 같다 — 남겨 두면 새 세션에서 그 문항이 다시 나올 때 이전 답이 선택되고 정답·해설이
+    // 미리 펼쳐진 채로 보인다(즉시 피드백 모드라 '푸는' 단계 자체가 건너뛰어진다).
     const prefix = answerKeyPrefix(QUICK_SET_ID, 'quick');
     const nextAnswers = { ...state.answers };
     for (const key in nextAnswers) {
       if (key.startsWith(prefix)) delete nextAnswers[key];
     }
     return {
-      mode: 'quick', setId: QUICK_SET_ID, quickSize, quickDraw: null, index: 0,
+      mode: 'quick', setId: QUICK_SET_ID, quickDraw: null, index: 0,
       chapterFilter: null, quickNonce: state.quickNonce + 1,
       answers: nextAnswers,
+      // 퀵은 채점이 없는 모드지만, 예전 버전에서 남은 채점 플래그가 있으면 보기가 잠긴
+      // 채로 시작한다(graded면 QuestionCard가 locked). 진입할 때 확실히 내려 둔다.
       graded: { ...state.graded, [gradeKeyFor(QUICK_SET_ID, 'quick')]: false },
     };
   }),
+  // 앞으로만 간다 — 되돌아가기를 허용하면 이미 정답을 본 문항을 다시 세게 되고,
+  // 진행·연속 정답 집계가 커서 기준이라 그 순간 수치가 흔들린다.
+  advanceQuick: () => set((state) => ({ index: state.index + 1 })),
   // 진입/캐시 복원 시 항상 최초 화면(제품 선택 게이트)으로 — 오버레이도 모두 닫는다.
   resetToGate: () => set({
     mode: 'home', activeProduct: null,
     drawerOpen: false, settingsOpen: false, statsOpen: false,
     wrongNoteOpen: false, resultOpen: false, paletteOpen: false, confirmGradeOpen: false,
     resumeNotice: false, resumePrompt: false, quitExamOpen: false, gradedResume: null,
-    pendingSetChange: null, pendingRedraw: false, pendingRestart: false, confirmExitExam: false,
+    pendingRestart: false, confirmExitExam: false,
     // 제품 게이트로 돌아가면 시험 시작 상태도 리셋(다음 진입 시 시작 게이트 재노출).
     examStarted: {}, chapterFilter: null,
   }),

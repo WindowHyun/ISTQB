@@ -103,7 +103,7 @@ function uncoveredTuples(t: number, chosen: Combo[]): number {
 }
 
 async function openBar(page: Page) {
-  const sel = page.locator("#quickSize");
+  const sel = page.getByTestId("quick-start-btn");
   if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
 }
 
@@ -111,7 +111,6 @@ async function enter(page: Page, c: Combo) {
   await openProduct(page, c.product as "ISTQB" | "CSTS");
   await openBar(page);
   if (c.mode === "quick") {
-    await page.locator("#quickSize").selectOption(c.size);
     await page.getByTestId("quick-start-btn").click();
   } else {
     await page.locator(`.segmented button[data-mode="${c.mode}"]`).click();

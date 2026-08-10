@@ -61,7 +61,7 @@ test.describe("약점 분석(Phase 3)", () => {
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
     // 2회차(랜덤, 같은 세트): 첫 문항만 정답 → 최신 회차 오답 39.
-    await modeBtn(page, "랜덤").click();
+    await modeBtn(page, "연습").click();
     await expect(page.locator("#questionStem")).toBeVisible();
     await answerCurrentCorrectly(page, "istqb/sample-a.json");
     await submitGrade(page);

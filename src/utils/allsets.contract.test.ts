@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { buildQuickPool, drawQuick } from '../hooks/useQuestions';
+import { buildQuickPool } from '../hooks/useQuestions';
 import { makeCanonicalIdResolver } from './chapterStats';
 
 /**
@@ -105,18 +105,14 @@ describe('모든 세트 — 퀵 랜덤 풀 기여', () => {
     else expect(inPool, `원본 ${inSource}개인데 풀에 ${inPool}개`).toBeGreaterThan(0);
   });
 
-  it.each([['CSTS']])('%s — 추첨하면 서답형이 30%%를 넘지 않는다', (cert) => {
-    const perSet = loaded
-      .filter(({ set }) => set.certification === cert)
-      .map(({ set, questions }) => ({ setId: set.id, questions: questions as never[] }));
+  it.each([['ISTQB'], ['CSTS']])('%s — 퀵 풀이 그 자격증 전 세트를 담는다', (cert) => {
+    // 퀵은 무한 모드라 "한 회차에 몇 개"라는 상한이 없다. 대신 지켜야 할 계약은
+    // "그 자격증의 모든 세트가 출제 대상에 들어간다"이다 — 한 세트라도 빠지면
+    // 그 세트 문항은 퀵에서 영영 나오지 않는다.
+    const entries = loaded.filter(({ set }) => set.certification === cert);
+    const perSet = entries.map(({ set, questions }) => ({ setId: set.id, questions: questions as never[] }));
     const pool = buildQuickPool(perSet, canonical);
-    for (const size of [10, 15, 20]) {
-      const drawn = drawQuick(pool, size);
-      expect(drawn).toHaveLength(size);
-      const shorts = drawn.filter((c) => (c.question as Q).type === 'short_answer').length;
-      // 상한은 floor(size * 0.3) — 선택형이 모자랄 때만 넘길 수 있는데 이 풀은 충분하다.
-      expect(shorts, `${size}문항 중 서답형 ${shorts}개`).toBeLessThanOrEqual(Math.floor(size * 0.3));
-    }
+    expect(new Set(pool.map((c) => c.setId)).size).toBe(entries.length);
   });
 });
 

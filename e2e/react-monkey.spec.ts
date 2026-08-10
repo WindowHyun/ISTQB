@@ -172,7 +172,7 @@ for (const seed of [42, 1337, 20260730]) {
       }
       // 가끔 퀵 문항 수를 바꾼다 — CLICKABLE은 button만 훑어서 select가 통째로 빠져 있었다.
       if (rand() < 0.05) {
-        const sel = page.locator("#quickSize");
+        const sel = page.getByTestId("quick-start-btn");
         if (await sel.count() && await sel.isVisible().catch(() => false)) {
           const size = ["10", "15", "20"][Math.floor(rand() * 3)];
           await sel.selectOption(size).catch(() => {});

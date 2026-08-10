@@ -124,7 +124,7 @@ test.describe("챕터 미니 시험(S3)", () => {
 test.describe("랜덤 UX(S1·S5)", () => {
   test("'새 문제 뽑기'로 답안 초기화 + 재추첨(S5)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await page.locator('.segmented button[data-mode="random"]').click();
+    await page.locator('.segmented button[data-mode="practice"]').click();
     await page.waitForSelector("#options .option");
     await page.locator("#options .option").first().click();
     await expect(page.locator("#progressText")).toHaveText("1 / 40");
@@ -137,7 +137,7 @@ test.describe("랜덤 UX(S1·S5)", () => {
 
   test("랜덤 진행 중 새로고침 → 같은 추첨으로 진행이 유지된다(S1)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await page.locator('.segmented button[data-mode="random"]').click();
+    await page.locator('.segmented button[data-mode="practice"]').click();
     await page.waitForSelector("#options .option");
     const before = (await page.locator("#questionTitle").textContent()) || "";
     await page.locator("#options .option").first().click();

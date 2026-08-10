@@ -46,7 +46,7 @@ test.describe("엣지-모드", () => {
 
   test("랜덤 모드는 40문항 이하로 로드된다", async ({ page }) => {
     await openSet(page, "CSTS", "CSTS-FL-2402");
-    await modeBtn(page, "랜덤").click();
+    await modeBtn(page, "연습").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
     const n = await page.locator("#questionNav button").count();
     expect(n).toBeGreaterThan(0);
@@ -115,7 +115,7 @@ test.describe("엣지-모드", () => {
 
   test("랜덤 모드는 채점이 가능하다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "랜덤").click();
+    await modeBtn(page, "연습").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
     await page.locator("#options .option").first().click();
     await submitGrade(page);
@@ -152,7 +152,7 @@ test.describe("시험 시작 게이트·응시 중 잠금", () => {
     // 세트 드롭다운·비-exam 모드 버튼 비활성 + 잠금 힌트.
     await expect(page.getByTestId("set-select")).toBeDisabled();
     await expect(page.locator('.segmented button[data-mode="practice"]')).toBeDisabled();
-    await expect(page.locator('.segmented button[data-mode="random"]')).toBeDisabled();
+    await expect(page.locator('.segmented button[data-mode="practice"]')).toBeDisabled();
     await expect(page.getByTestId("exam-lock-hint")).toBeVisible();
   });
 

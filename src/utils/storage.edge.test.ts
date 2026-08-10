@@ -235,17 +235,17 @@ describe('다른 탭의 쓰기 — storage 이벤트', () => {
     expect(store.useQuizStore.getState().answers).toEqual({});
   });
 
-  it('UI 상태 키의 누적형 필드(복습 진척·퀵 회차)를 받아 온다', () => {
-    store.useQuizStore.setState({ activeProduct: 'istqb', reviewedOk: {}, quickRounds: [] });
+  it('UI 상태 키의 누적형 필드(복습 진척·오답 대상)를 받아 온다', () => {
+    store.useQuizStore.setState({ activeProduct: 'istqb', reviewedOk: {}, reviewIds: {} });
     window.dispatchEvent(new StorageEvent('storage', {
       key: UI,
       newValue: JSON.stringify({
         reviewedOk: { [SET]: [1, 2] },
-        quickRounds: [{ id: 'q1', setId: 'QUICK', mode: 'quick', answers: {}, createdAt: Date.now() }],
+        reviewIds: { [`${SET}-exam`]: ['Q1'] },
       }),
     }));
     const s = store.useQuizStore.getState();
     expect(s.reviewedOk[SET]).toEqual([1, 2]);
-    expect(s.quickRounds.map((r) => r.id)).toEqual(['q1']);
+    expect(s.reviewIds[`${SET}-exam`]).toEqual(['Q1']);
   });
 });

@@ -156,7 +156,7 @@ test.describe("비기능 · 부하/스트레스·메모리", () => {
     await openSet(page, "ISTQB", A);
     const t0 = Date.now();
     for (let r = 0; r < 5; r++) {
-      for (const m of ["연습", "랜덤", "오답", "연습"] as const) {
+      for (const m of ["연습", "시험", "오답", "연습"] as const) {
         await modeBtn(page, m).click();
         await page.waitForTimeout(30);
       }
@@ -271,7 +271,6 @@ test.describe("비기능 · 정확도/복원력", () => {
       expect(probe, "setOffline이 걸리지 않았다 — 이 테스트는 무력하다").toBe("blocked");
 
       await page.getByRole("button", { name: "ISTQB" }).click();
-      await page.locator("#quickSize").selectOption("20");
       await page.getByTestId("quick-start-btn").click();
       await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
       // 풀이 자체가 되는지까지 본다 — 지문만 뜨고 답할 자리가 없으면 데이터가 반쪽으로 온 것이다.

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useQuizStore, ExamHistory, QUICK_SET_ID, freshQuickRounds } from '../../store/useQuizStore';
+import { useQuizStore, ExamHistory, QUICK_SET_ID } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { gradeKeyFor } from '../../utils/answerKey';
 import { useTheme, ThemePref } from '../../hooks/useTheme';
@@ -64,27 +64,24 @@ export const AppModals = () => {
   // 슬라이스 구독(O1). elapsedSeconds는 결과 모달이 열려 있을 때만 반영해
   // 닫혀 있는 동안 타이머 틱으로 리렌더되지 않게 한다(열려 있으면 기존처럼 초 단위 갱신).
   const {
-    setId, mode, activeProduct, histories, quickRounds, resultElapsedSeconds, chapterFilter,
+    setId, mode, activeProduct, histories, resultElapsedSeconds,
     settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, resumePrompt,
-    quitExamOpen, gradedResume, pendingSetChange,
+    quitExamOpen, gradedResume,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
     setMode, beginSession, clearAnswers, setReviewIds, setSetId, setChapterFilter, setResumePrompt,
-    resetProgressForSets, clearQuickRounds,
-    setQuitExamOpen, setGradedResume, setRandomDraw,
-    setPendingSetChange, commitSetChange, reviewedOk,
-    pendingRedraw, setPendingRedraw, pendingRestart, setPendingRestart, setResumeNotice,
+    resetProgressForSets,
+    setQuitExamOpen, setGradedResume,
+    reviewedOk,
+    pendingRestart, setPendingRestart,
     confirmExitExam, setConfirmExitExam,
-    redrawRandom, resetToGate,
+    resetToGate,
   } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, activeProduct: s.activeProduct, histories: s.histories,
-    quickRounds: s.quickRounds, clearQuickRounds: s.clearQuickRounds,
     resultElapsedSeconds: s.resultOpen ? s.elapsedSeconds : 0,
-    chapterFilter: s.chapterFilter,
     settingsOpen: s.settingsOpen, statsOpen: s.statsOpen, wrongNoteOpen: s.wrongNoteOpen,
     resultOpen: s.resultOpen, paletteOpen: s.paletteOpen, confirmGradeOpen: s.confirmGradeOpen,
     resumePrompt: s.resumePrompt,
     quitExamOpen: s.quitExamOpen, gradedResume: s.gradedResume,
-    pendingSetChange: s.pendingSetChange,
     setSettingsOpen: s.setSettingsOpen, setStatsOpen: s.setStatsOpen, setWrongNoteOpen: s.setWrongNoteOpen,
     setResultOpen: s.setResultOpen, setPaletteOpen: s.setPaletteOpen, setDrawerOpen: s.setDrawerOpen,
     setConfirmGradeOpen: s.setConfirmGradeOpen, setMode: s.setMode, beginSession: s.beginSession,
@@ -92,14 +89,10 @@ export const AppModals = () => {
     resetProgressForSets: s.resetProgressForSets,
     setChapterFilter: s.setChapterFilter, setResumePrompt: s.setResumePrompt,
     setQuitExamOpen: s.setQuitExamOpen, setGradedResume: s.setGradedResume,
-    setRandomDraw: s.setRandomDraw,
-    setPendingSetChange: s.setPendingSetChange, commitSetChange: s.commitSetChange,
     reviewedOk: s.reviewedOk,
-    pendingRedraw: s.pendingRedraw, setPendingRedraw: s.setPendingRedraw,
     pendingRestart: s.pendingRestart, setPendingRestart: s.setPendingRestart,
-    setResumeNotice: s.setResumeNotice,
     confirmExitExam: s.confirmExitExam, setConfirmExitExam: s.setConfirmExitExam,
-    redrawRandom: s.redrawRandom, resetToGate: s.resetToGate,
+    resetToGate: s.resetToGate,
   })));
   // examLocked — useQuizSession이 단일 원천(게이트·사이드바 잠금과 동일 규칙 집합).
   const { appData, total, answered, correctCount, cstsWeighted, gradeAndShow, examLocked } = useQuizSession();
@@ -137,8 +130,6 @@ export const AppModals = () => {
   useBackDismiss(confirmHomeOpen, () => setConfirmHomeOpen(false), BACK_PRIORITY.confirm);
   useBackDismiss(guideOpen, () => setGuideOpen(false), BACK_PRIORITY.confirm);
   // 뒤로가기 = 취소(계속 풀기) — 확인 모달의 안전한 기본값이다.
-  useBackDismiss(Boolean(pendingSetChange), () => setPendingSetChange(null), BACK_PRIORITY.confirm);
-  useBackDismiss(pendingRedraw, () => setPendingRedraw(false), BACK_PRIORITY.confirm);
   useBackDismiss(pendingRestart, () => setPendingRestart(false), BACK_PRIORITY.confirm);
   useBackDismiss(Boolean(pendingImport), () => setPendingImport(null), BACK_PRIORITY.confirm);
   useBackDismiss(confirmExitExam, () => setConfirmExitExam(false), BACK_PRIORITY.confirm);
@@ -182,11 +173,11 @@ export const AppModals = () => {
   }, [histories, sets, activeProduct]);
   // Phase 2 — 결과 모달의 "직전 회차 대비" 비교(현재 세트·모드의 최신 회차 기준).
   // productHistories(메모화·제품 필터)를 입력으로 써 다른 제품 이력 변경에는 재계산하지 않는다.
-  // 챕터 미니 시험(랜덤+필터)은 같은 챕터 미니 회차끼리만 비교한다(표본 불일치 왜곡 방지).
-  const compareChapter = mode === 'random' ? (chapterFilter ?? null) : null;
+  // 세트 전체 회차끼리만 비교한다. 폐지된 챕터 미니 시험 회차(chapter 표식이 있는 과거 기록)는
+  // 표본이 달라 섞이면 안 되는데, 그 필터는 latestAttemptComparison이 chapter=null로 받아 처리한다.
   const attemptCompare = React.useMemo(
-    () => latestAttemptComparison(Object.values(productHistories), setId, mode, compareChapter),
-    [productHistories, setId, mode, compareChapter],
+    () => latestAttemptComparison(Object.values(productHistories), setId, mode, null),
+    [productHistories, setId, mode],
   );
   const fmtAns = (arr: string[]) => formatAnswerList(arr, '미응답');
   // 세트별 "전 회차 오답의 합집합" — 최신 회차만 보여주면 같은 세트를 랜덤으로
@@ -195,37 +186,6 @@ export const AppModals = () => {
   // 전용 뷰 타입(WrongNoteSetView) — 도메인 ExamHistory를 가짜 id(merged-*)로 위조하지 않는다.
   // useMemo: AppModals는 answers를 구독(useQuizSession)해 답안 클릭마다 리렌더되므로,
   // 메모 없이는 오답노트가 닫혀 있어도 매 클릭 전체 이력 정렬·병합을 재계산한다.
-  // 현재 제품의 유효(미만료) 퀵 회차 — 오답노트와 통계가 같은 모집단을 본다.
-  // 제품 필터가 빠지면 CSTS에서 푼 퀵이 ISTQB 챕터 통계에 남의 챕터로 끼어든다.
-  const productQuickRounds = React.useMemo(
-    () => freshQuickRounds(quickRounds).filter((r) => !r.certification || r.certification === activeProduct),
-    [quickRounds, activeProduct],
-  );
-
-  /**
-   * 최근 퀵 오답 — 세트 그룹과 섞지 않는다(퀵은 세트를 다 푼 것이 아니다).
-   * 보기 전용이라 상세 진입을 두지 않는다: 퀵은 여러 세트에서 뽑히므로 문항 번호가
-   * 겹치는데(A세트 3번·B세트 3번), 번호로 상세를 찾는 기존 경로로는 구분할 수 없다.
-   */
-  const quickWrongs = React.useMemo(() => {
-    const rounds = [...productQuickRounds]
-      .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)); // 최신 회차가 대표
-    const seen = new Map<string, { setId: string; setTitle: string; item: NonNullable<ExamHistory['wrongItems']>[number] }>();
-    for (const r of rounds) {
-      for (const it of r.wrongItems ?? []) {
-        const sid = it.setId ?? r.setId;
-        const key = `${sid}:${it.number}`;
-        if (seen.has(key)) continue;
-        seen.set(key, {
-          setId: sid,
-          setTitle: appData?.sets.find((x) => x.id === sid)?.title ?? sid,
-          item: it,
-        });
-      }
-    }
-    return [...seen.values()].sort((a, b) =>
-      a.setTitle.localeCompare(b.setTitle, 'ko') || a.item.number - b.item.number);
-  }, [productQuickRounds, appData]);
 
   // 세트별 오답 합집합 — 순수 로직은 utils/wrongNote로 꺼냈다(유닛으로 고정 가능).
   // useMemo: AppModals는 answers를 구독(useQuizSession)해 답안 클릭마다 리렌더되므로,
@@ -335,19 +295,15 @@ export const AppModals = () => {
     // 이전 기록이 재생성됨"). 이력과 그 이력에서 파생된 상태를 함께 비운다.
     // 퀵 회차의 setId는 실재 세트가 아닌 센티넬이라 목록에 따로 넣어야 한다.
     resetProgressForSets([...sets.map((x) => x.id), QUICK_SET_ID]);
-    // 퀵 임시 회차는 이력이 아니라 별도 보관이라 위 삭제에 걸리지 않는다 — 함께 지우지
-    // 않으면 "이력 비우기" 직후에도 오답노트에 퀵 오답이 그대로 남는다(초기화 미완).
-    clearQuickRounds(activeProduct);
     showToast('현재 자격증의 응시 이력과 풀이 기록을 모두 삭제했습니다.', 'success');
   };
 
-  // 약점 챕터 집중 세션(Phase 3): 통계에서 챕터를 고르면 그 챕터로 필터해 진입한다.
-  // - 연습(practice): 즉시 피드백, 통계 무기록.
-  // - 미니 시험(random): 챕터 문항 10개 추첨, 채점 시 챕터 통계에 반영 — 약점
-  //   "발견→보완→재측정" 루프의 재측정 단계를 담당한다.
+  // 약점 챕터 집중 연습(Phase 3): 통계에서 챕터를 고르면 그 챕터로 필터해 연습에 진입한다.
+  // 즉시 피드백이고 통계에는 기록되지 않는다 — 정답률 갱신은 시험 채점이 맡는다.
+  // (짝이던 '미니 시험'은 랜덤 모드로 구현돼 있어 랜덤 폐지와 함께 사라졌다.)
   // 진단은 전 세트 합산이므로, 현재 세트에 해당 챕터 문항이 없으면 그 챕터가 있는
   // 세트로 자동 전환한다(빈 필터 화면 착지 방지). setMode가 필터를 초기화하므로 필터는 그 뒤에 건다.
-  const startChapterSession = async (chapter: string, target: 'practice' | 'random') => {
+  const startChapterSession = async (chapter: string) => {
     // 응시 중 잠금 — 학습 통계 버튼은 잠금 중에도 열리므로, 여기서 막지 않으면
     // setMode+beginSession으로 잠금을 우회해 시험 타이머가 소실된다(버튼 disabled와 이중 방어).
     if (examLocked) {
@@ -372,18 +328,11 @@ export const AppModals = () => {
         }
       }
     } catch { /* 세트 로드 실패 시 현재 세트 유지 — 빈 필터 안내가 그레이스풀 처리 */ }
-    if (target === 'random') {
-      // 미니 시험은 새 추첨으로 시작 — 세트가 방금 바뀌었을 수 있어 현재 setId를 다시 읽는다.
-      // 저장된 추첨을 비워 useQuestions가 이번 챕터로 새로 뽑게 한다(이전 미니 추첨 복원 방지).
-      clearAnswers(useQuizStore.getState().setId, 'random');
-      setRandomDraw(null);
-    }
-    setMode(target);
+    setMode('practice');
     setChapterFilter(chapter);
     beginSession();
   };
-  const handlePracticeChapter = (chapter: string) => startChapterSession(chapter, 'practice');
-  const handleMiniTestChapter = (chapter: string) => startChapterSession(chapter, 'random');
+  const handlePracticeChapter = (chapter: string) => startChapterSession(chapter);
 
   const handleResetMode = async () => {
     clearAnswers(setId, mode);
@@ -433,90 +382,6 @@ export const AppModals = () => {
         </Modal>
       )}
 
-      {pendingSetChange && (
-        <Modal title="세트 변경" onClose={() => setPendingSetChange(null)}>
-          <div className="modal-body confirm-body" data-testid="pending-set-change-modal">
-            <p>
-              랜덤 모드로 <strong>{answered}문항</strong>을 푸는 중입니다.
-              세트를 바꾸면 <strong>지금 뽑힌 문항과 답안이 사라집니다</strong>
-              (랜덤은 세트별로 보관하지 않습니다).
-            </p>
-            <div className="confirm-actions">
-              <button type="button" data-testid="pending-set-change-cancel" onClick={() => setPendingSetChange(null)}>
-                계속 풀기
-              </button>
-              <button
-                type="button"
-                className="danger"
-                data-testid="pending-set-change-confirm"
-                onClick={() => commitSetChange(pendingSetChange)}
-              >
-                세트 바꾸기
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {pendingRestart && (
-        <Modal title="처음부터 풀기" onClose={() => setPendingRestart(false)}>
-          <div className="modal-body confirm-body" data-testid="pending-restart-modal">
-            <p>
-              지금까지 고른 <strong>{answered}문항</strong>의 답이 지워지고 1번 문항부터 다시 시작합니다.
-              이어서 풀려면 &lsquo;계속 풀기&rsquo;를 누르세요.
-            </p>
-            <div className="confirm-actions">
-              <button type="button" data-testid="pending-restart-cancel" onClick={() => setPendingRestart(false)}>
-                계속 풀기
-              </button>
-              <button
-                type="button"
-                className="danger"
-                data-testid="pending-restart-confirm"
-                onClick={() => {
-                  // 이름이 약속한 대로 실제로 초기화한다 — 종전에는 setIndex(0)뿐이라
-                  // 답 선택이 그대로 남았다. beginSession이 위치·타이머를 함께 되돌린다.
-                  clearAnswers(setId, mode);
-                  beginSession();
-                  setResumeNotice(false);
-                  setPendingRestart(false);
-                }}
-              >
-                처음부터 풀기
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {pendingRedraw && (
-        <Modal title="새 문제 뽑기" onClose={() => setPendingRedraw(false)}>
-          <div className="modal-body confirm-body" data-testid="pending-redraw-modal">
-            <p>
-              지금까지 푼 <strong>{answered}문항</strong>이 사라지고 새 문항으로 다시 뽑습니다.
-              (랜덤은 이전 추첨을 보관하지 않습니다)
-            </p>
-            <div className="confirm-actions">
-              <button type="button" data-testid="pending-redraw-cancel" onClick={() => setPendingRedraw(false)}>
-                계속 풀기
-              </button>
-              <button
-                type="button"
-                className="danger"
-                data-testid="pending-redraw-confirm"
-                onClick={() => {
-                  clearAnswers(setId, 'random');
-                  redrawRandom();
-                  beginSession();
-                  setPendingRedraw(false);
-                }}
-              >
-                새로 뽑기
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
 
       {confirmExitExam && (
         <Modal title="시험 화면 나가기" onClose={() => setConfirmExitExam(false)}>
@@ -632,35 +497,11 @@ export const AppModals = () => {
       {wrongNoteOpen && (
         <Modal title="오답 노트" onClose={() => { setWrongNoteOpen(false); setWrongNoteSetId(null); setWrongNoteQuestionNo(null); }}>
           <div className="modal-body" data-testid="wrong-note">
-            {wrongNoteBySet.length === 0 && quickWrongs.length === 0 ? (
-              <p>표시할 오답이 없습니다. (시험·랜덤 모드에서 채점하면 기록됩니다)</p>
+            {wrongNoteBySet.length === 0 ? (
+              <p>표시할 오답이 없습니다. (시험 모드에서 채점하면 기록됩니다)</p>
             ) : !selectedWrong ? (
               // 1단계: 오답이 있는 세트 선택
               <>
-              {/* 퀵 오답 — 세트 그룹과 분리해 먼저 보여준다. 만료가 있는 임시 목록이라
-                  "언제 사라지는가"를 문구로 밝힌다. 보기 전용(상세 진입 없음). */}
-              {quickWrongs.length > 0 && (
-                <section className="quick-wrong-note" data-testid="quick-wrong-note">
-                  <h4>⚡ 최근 퀵 오답 {quickWrongs.length}개</h4>
-                  <p className="stats-hint">
-                    퀵은 회차 기록을 남기지 않습니다. 이 목록은 채점 후 24시간 뒤 자동으로 사라져요.
-                  </p>
-                  <ul className="quick-wrong-list">
-                    {quickWrongs.map(({ setId: sid, setTitle, item }) => (
-                      <li key={`${sid}:${item.number}`} data-testid="quick-wrong-item">
-                        <span className="qw-src">{setTitle}</span>
-                        <span className="qw-no">{item.number}번</span>
-                        <span className="qw-ans">
-                          내 답 <b>{fmtAns(item.myAnswer)}</b> · 정답 <b>{fmtAns(item.correctAnswer)}</b>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-              {wrongNoteBySet.length === 0 && (
-                <p>세트별 오답은 아직 없습니다. (시험·랜덤 모드에서 채점하면 기록됩니다)</p>
-              )}
               {/* 노트(전 회차 누적)와 '오답 다시 풀기'(최근 채점 기준)의 범위 차이 안내(A4). */}
               <p className="stats-hint">
                 오답 노트는 전 회차 누적 기록이에요. 사이드바의 ‘오답 다시 풀기’는 최근 채점 기준으로 출제됩니다.
@@ -953,11 +794,9 @@ export const AppModals = () => {
           sets={sets}
           duplicateGroups={appData?.duplicateGroups}
           duplicateChapters={appData?.duplicateChapters}
-          quickRounds={productQuickRounds}
           onClose={() => setStatsOpen(false)}
           onClear={handleClearHistories}
           onPracticeChapter={handlePracticeChapter}
-          onMiniTestChapter={handleMiniTestChapter}
           practiceLocked={examLocked}
           certification={activeProduct}
           onDeleteRound={handleDeleteRound}
@@ -1046,15 +885,7 @@ export const AppModals = () => {
           elapsedSeconds={resultElapsedSeconds}
           attemptRound={attemptCompare.round}
           previousRate={attemptCompare.previousRate}
-          // 챕터 미니 시험(랜덤+필터)은 회차 라벨도 구분 — "랜덤 N회차"로 표기하면
-          // 세트 전체 랜덤과 섞여 보인다(회차 번호는 같은 챕터 미니끼리만 센다).
-          modeLabel={compareChapter ? `${compareChapter} 미니` : (MODE_LABEL[mode] ?? mode)}
-          // 퀵은 세트 전체를 푼 것이 아니라 합격 판정의 근거가 없다.
-          hidePassVerdict={mode === 'quick'}
-          // 퀵의 오답은 회차 단위로 모이지 않고 각 문항의 출처 세트별로 흩어져 노트에
-          // 들어간다. 결과 모달에서 바로 열면 방금 푼 회차의 오답만 보일 것이라
-          // 기대하게 되는데 실제로는 세트별 전 회차 합산이 뜬다 — 진입로를 두지 않는다.
-          hideWrongNote={mode === 'quick'}
+          modeLabel={MODE_LABEL[mode] ?? mode}
           onClose={() => setResultOpen(false)}
           onOpenWrongNote={() => { setResultOpen(false); setWrongNoteOpen(true); }}
           onRetry={() => {

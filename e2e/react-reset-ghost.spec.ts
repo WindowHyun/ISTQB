@@ -11,7 +11,7 @@ import { openProduct } from "./helpers";
  */
 
 async function openBar(page: Page) {
-  if (!(await page.locator("#quickSize").isVisible())) await page.getByTestId("drawer-open").click();
+  if (!(await page.getByTestId("quick-start-btn").isVisible())) await page.getByTestId("drawer-open").click();
 }
 
 async function examAndGrade(page: Page, answers: number) {

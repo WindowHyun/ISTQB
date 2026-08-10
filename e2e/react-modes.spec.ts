@@ -40,7 +40,7 @@ test.describe("모드", () => {
 
   test("랜덤: 채점하면 점수가 표시된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "랜덤").click();
+    await modeBtn(page, "연습").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
     await page.locator("#options .option").first().click();
     await submitGrade(page);

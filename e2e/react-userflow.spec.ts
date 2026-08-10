@@ -34,7 +34,7 @@ function watchErrors(page: Page): Err[] {
 }
 
 async function openSidebar(page: Page) {
-  const sel = page.locator("#quickSize");
+  const sel = page.getByTestId("quick-start-btn");
   if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
 }
 
@@ -103,7 +103,6 @@ for (const product of ["ISTQB", "CSTS"] as const) {
 
     // 4) 퀵 — 세트를 고르지 않고 전 세트에서 10문항
     await openSidebar(page);
-    await page.locator("#quickSize").selectOption("10");
     await page.getByTestId("quick-start-btn").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
     await expect(page.locator("#progressText")).toContainText("/ 10");
@@ -171,7 +170,6 @@ test("퀵을 반복해도 챕터 분모가 계속 부풀지 않는다", async ({
   const denoms: number[] = [];
   for (let round = 0; round < 3; round += 1) {
     await openSidebar(page);
-    await page.locator("#quickSize").selectOption("20");
     await page.getByTestId("quick-start-btn").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
     await answerAll(page, 22);
@@ -206,7 +204,6 @@ test("제품을 오가도 퀵 상태가 새지 않는다", async ({ page }) => {
 
   await openProduct(page, "ISTQB");
   await openSidebar(page);
-  await page.locator("#quickSize").selectOption("10");
   await page.getByTestId("quick-start-btn").click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   await answerCurrent(page);
@@ -214,7 +211,6 @@ test("제품을 오가도 퀵 상태가 새지 않는다", async ({ page }) => {
   // 설정 → 처음 화면으로 → CSTS 진입
   await openProduct(page, "CSTS");
   await openSidebar(page);
-  await page.locator("#quickSize").selectOption("15");
   await page.getByTestId("quick-start-btn").click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   await expect(page.locator("#progressText")).toContainText("0 / 15");

@@ -283,7 +283,7 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
 
   test("랜덤은 진행 중 새로고침 시 같은 추첨으로 이어푼다(선택 모달 없음)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "랜덤").click();
+    await modeBtn(page, "연습").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
     const titleBefore = await page.locator("#questionTitle").textContent();
     await page.locator("#options .option").first().click(); // 랜덤 1문항 응답(미채점)
@@ -293,7 +293,7 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
     // 랜덤 모드 유지 + 이어풀기 선택 모달 없음(랜덤은 배너로 안내) + 진행·문항 그대로 유지
-    await expect(page.locator('.segmented button[data-mode="random"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator('.segmented button[data-mode="practice"]')).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByTestId("resume-prompt-modal")).toHaveCount(0);
     await expect(page.locator("#progressText")).toHaveText("1 / 40");
     await expect(page.locator("#questionTitle")).toHaveText(titleBefore || "");
@@ -301,7 +301,7 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
 
   test("랜덤 진행 중 세트를 바꾸면 확인을 거쳐 새로 시작한다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "랜덤").click();
+    await modeBtn(page, "연습").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
     await page.locator("#options .option").first().click();
     await expect(page.locator("#progressText")).toHaveText("1 / 40");
@@ -320,7 +320,7 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
 
   test("랜덤 세트 변경을 취소하면 원래 세트와 진행이 그대로 남는다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "랜덤").click();
+    await modeBtn(page, "연습").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
     await page.locator("#options .option").first().click();
     await expect(page.locator("#progressText")).toHaveText("1 / 40");
@@ -337,7 +337,7 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
 
   test("랜덤에 진행이 없으면 세트 변경을 묻지 않는다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "랜덤").click();
+    await modeBtn(page, "연습").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
     // 한 문항도 풀지 않은 상태 — 잃을 게 없으므로 바로 바뀐다.
     await page.locator("#examSelect").selectOption("ISTQB-FL-V4-C");
@@ -367,7 +367,7 @@ test.describe("코드리뷰 수정 회귀 — 오답 목록 보존·가드 이�
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
 
-    await modeBtn(page, "랜덤").click();
+    await modeBtn(page, "연습").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
     // 추첨 첫 문항이 단답형일 수 있어 응답 없이 채점한다(미응답 확인 → 채점).
     // 응답 여부와 무관하게 랜덤 채점은 reviewIds를 기록하므로 덮어쓰기 검증에 충분하다.
@@ -382,7 +382,7 @@ test.describe("코드리뷰 수정 회귀 — 오답 목록 보존·가드 이�
   test("랜덤 모드는 채점해도 문항 추첨이 유지된다(재추첨 없음)", async ({ page }) => {
     // 70문항 세트: 재추첨되면 40문항 부분집합이 교체되어 현재 문항이 바뀐다.
     await openSet(page, "CSTS", "CSTS-FL-2402");
-    await modeBtn(page, "랜덤").click();
+    await modeBtn(page, "연습").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
     const titleBefore = await page.locator("#questionTitle").textContent();
     await submitGrade(page); // 미응답 확인 → 채점
@@ -394,7 +394,7 @@ test.describe("코드리뷰 수정 회귀 — 오답 목록 보존·가드 이�
   test("채점 후 시험 잠금이 풀려 채점된 랜덤에 들어가면 새로 풀 수 있다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     // 1) 랜덤을 채점해 둔다.
-    await modeBtn(page, "랜덤").click();
+    await modeBtn(page, "연습").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
     await page.locator("#options .option").first().click();
     await submitGrade(page);
@@ -405,7 +405,7 @@ test.describe("코드리뷰 수정 회귀 — 오답 목록 보존·가드 이�
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
     // 3) 잠금 해제 후 채점된 랜덤으로 이동하면 재추첨·초기화되어 새로 풀 수 있다.
-    await modeBtn(page, "랜덤").click();
+    await modeBtn(page, "연습").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
     await expect(page.locator("#options .option").first()).toBeEnabled();
     await expect(page.locator("#progressText")).toHaveText("0 / 40");

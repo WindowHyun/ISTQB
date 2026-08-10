@@ -28,14 +28,13 @@ const bad = (s: string) => { problems.push(s); console.log("  ✗ " + s); };
 const note = (s: string) => console.log("· " + s);
 
 async function openBar(page: Page) {
-  const sel = page.locator("#quickSize");
+  const sel = page.getByTestId("quick-start-btn");
   if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
 }
 
-async function startQuick(page: Page, product: "ISTQB" | "CSTS", size = "10") {
+async function startQuick(page: Page, product: "ISTQB" | "CSTS") {
   await openProduct(page, product);
   await openBar(page);
-  await page.locator("#quickSize").selectOption(size);
   await page.getByTestId("quick-start-btn").click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 }
@@ -110,23 +109,22 @@ test("UX: 키보드만으로 퀵을 시작하고 풀 수 있다", async ({ page 
   await page.evaluate(() => localStorage.clear());
   await openProduct(page, "ISTQB");
 
-  // 문항 수 셀렉트에 키보드로 도달 가능한가 — Tab만으로 닿지 못하면 마우스 없이는 못 쓴다.
+  // 퀵 시작 버튼에 키보드로 도달 가능한가 — Tab만으로 닿지 못하면 마우스 없이는 못 쓴다.
   const reached = await page.evaluate(() => {
-    const sel = document.querySelector<HTMLSelectElement>("#quickSize");
-    if (!sel) return { found: false, tabbable: false, labelled: false };
+    const el = document.querySelector<HTMLButtonElement>("[data-testid='quick-start-btn']");
+    if (!el) return { found: false, tabbable: false, labelled: false };
     return {
       found: true,
-      tabbable: sel.tabIndex >= 0 && !sel.disabled,
-      labelled: !!(sel.getAttribute("aria-label") || document.querySelector('label[for="quickSize"]')),
+      tabbable: el.tabIndex >= 0 && !el.disabled,
+      labelled: !!(el.getAttribute("aria-label") || (el.textContent ?? "").trim()),
     };
   });
-  if (!reached.found) bad("퀵 문항 수 셀렉트를 찾을 수 없다");
-  if (!reached.tabbable) bad("퀵 문항 수 셀렉트에 키보드로 도달할 수 없다");
-  if (!reached.labelled) bad("퀵 문항 수 셀렉트에 접근 가능한 이름이 없다");
+  if (!reached.found) bad("퀵 시작 버튼을 찾을 수 없다");
+  if (!reached.tabbable) bad("퀵 시작 버튼에 키보드로 도달할 수 없다");
+  if (!reached.labelled) bad("퀵 시작 버튼에 접근 가능한 이름이 없다");
 
   // 셀렉트를 키보드로 조작하고 시작 버튼을 Enter로 누른다.
-  await page.locator("#quickSize").focus();
-  await page.locator("#quickSize").selectOption("15");
+  await page.getByTestId("quick-start-btn").focus();
   await page.getByTestId("quick-start-btn").focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
@@ -175,7 +173,7 @@ test("UI: 모바일에서 퀵 컨트롤이 터치 타깃 최소 크기를 만족
   // WCAG 2.1 AA(2.5.5는 AAA지만 모바일 실사용 기준으로 44px를 쓴다).
   const MIN = 44;
   for (const [label, sel] of [
-    ["문항 수 셀렉트", "#quickSize"],
+    ["퀵 시작 버튼", "[data-testid='quick-start-btn']"],
     ["시작 버튼", '[data-testid="quick-start-btn"]'],
   ] as const) {
     const box = await page.locator(sel).boundingBox();
@@ -259,7 +257,6 @@ test("UI: 퀵 결과의 중립 표면이 라이트·다크 모두에서 읽을 �
     await page.goto("/");
     await page.evaluate((t) => { localStorage.clear(); localStorage.setItem("istqb-theme", t as string); }, theme);
     await openProduct(page, "ISTQB");
-    await page.locator("#quickSize").selectOption("10");
     await page.getByTestId("quick-start-btn").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
     await answerCurrent(page);

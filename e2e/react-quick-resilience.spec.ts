@@ -20,7 +20,7 @@ import { openProduct } from "./helpers";
 
 async function startQuick(page: Page, size: string) {
   await openProduct(page, "ISTQB");
-  const select = page.locator("#quickSize");
+  const select = page.getByTestId("quick-start-btn");
   if (!(await select.isVisible())) await page.getByTestId("drawer-toggle").click();
   await select.selectOption(size);
   await page.getByTestId("quick-start-btn").click();
@@ -68,7 +68,7 @@ test.describe("퀵 — 복원력", () => {
       await route.fulfill({ status: 503, body: "blocked for test" });
     });
 
-    const select = page.locator("#quickSize");
+    const select = page.getByTestId("quick-start-btn");
     if (!(await select.isVisible())) await page.getByTestId("drawer-toggle").click();
     await select.selectOption("10");
     await page.getByTestId("quick-start-btn").click();

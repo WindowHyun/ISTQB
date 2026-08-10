@@ -14,7 +14,7 @@ const problems: string[] = [];
 const bad = (s: string) => { problems.push(s); console.log("  ✗ " + s); };
 
 async function openBar(page: Page) {
-  const sel = page.locator("#quickSize");
+  const sel = page.getByTestId("quick-start-btn");
   if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
 }
 
@@ -168,7 +168,7 @@ test("정합성: 오답 수가 결과·오답노트·재풀이에서 어긋나�
   // 세트 단위 회차(랜덤)로 대조한다 — 퀵은 회차를 남기지 않아 세트 오답노트·재풀이에
   // 들어가지 않으므로, 이 삼자 대조의 재료가 될 수 없다(그 분리는 아래에서 따로 본다).
   await openBar(page);
-  await page.locator('.segmented button[data-mode="random"]').click();
+  await page.locator('.segmented button[data-mode="practice"]').click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   const roundTotal = num(await page.locator("#progressText").textContent(), /\/\s*(\d+)/);
   await answerAll(page, (roundTotal ?? 40) + 2);
@@ -210,7 +210,6 @@ test("정합성: 오답 수가 결과·오답노트·재풀이에서 어긋나�
   // 4) 퀵을 한 회차 더 풀어도 위 세 숫자는 그대로여야 한다 — 퀵 오답은 임시 목록으로만
   //    간다. 여기서 세트 그룹 합이 늘면 "기록을 남기지 않는다"는 약속이 깨진 것이다.
   await openBar(page);
-  await page.locator("#quickSize").selectOption("10");
   await page.getByTestId("quick-start-btn").click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   await answerAll(page, 12);
@@ -245,7 +244,6 @@ test("정합성: 진행률과 문항 팔레트의 '답함' 개수가 같다", as
   await openProduct(page, "CSTS");
 
   await openBar(page);
-  await page.locator("#quickSize").selectOption("15");
   await page.getByTestId("quick-start-btn").click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 
