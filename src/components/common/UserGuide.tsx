@@ -50,7 +50,7 @@ export const UserGuide = ({ onClose }: { onClose: () => void }) => (
         <h4>📊 학습 통계 — 약점 찾고 재측정하기</h4>
         <ul>
           <li><strong>챕터별 정답률</strong>이 낮은 순으로 표시되고, 합격 컷 미만 챕터는 약점으로 강조됩니다.</li>
-          <li>약점 챕터의 <strong>연습</strong> 버튼 = 그 챕터만 골라 연습(기록 없음), <strong>미니 시험</strong> 버튼 = 그 챕터 10문항 시험(<strong>채점하면 통계에 반영</strong>) — 보완 후 실력이 올랐는지 재측정하는 용도입니다.</li>
+          <li>약점 챕터의 <strong>연습</strong> 버튼으로 그 챕터 문항만 골라 해설과 함께 익힐 수 있어요(<strong>기록 없음</strong>). 보완 후 실력이 올랐는지 재려면 <strong>시험</strong> 모드로 채점하세요 — 챕터별 정답률은 시험 채점으로 갱신됩니다.</li>
           <li>세트별 <strong>회차 타임라인</strong>에서 1회차→N회차 성장 추이를 확인할 수 있습니다.</li>
         </ul>
       </section>

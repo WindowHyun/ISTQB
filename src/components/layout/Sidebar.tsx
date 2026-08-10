@@ -413,9 +413,11 @@ export const Sidebar = () => {
             </button>
           </div>
           {mode === 'quick' && (
+            // 퀵에서 틀린 문항이 어디에도 남지 않는다는 것은 화면만 봐서는 알 수 없다.
+            // 밝혀 두지 않으면 "방금 틀렸는데 오답 노트에 왜 없냐"가 결함 신고로 돌아온다.
             <p className="action-hint" data-testid="quick-review-hint">
-              퀵 오답은 <strong>오답 노트</strong>에서 24시간 동안 볼 수 있어요.
-              다시 재려면 <strong>학습 통계</strong>의 챕터 미니 시험을 쓰세요.
+              퀵에서 틀린 문항은 <strong>기록되지 않습니다</strong> — 그 자리에서 해설로 확인하세요.
+              오답을 남기려면 <strong>시험</strong> 모드로 채점하면 됩니다.
             </p>
           )}
         </section>

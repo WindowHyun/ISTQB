@@ -72,7 +72,7 @@ export const AppModals = () => {
     resetProgressForSets,
     setQuitExamOpen, setGradedResume,
     reviewedOk,
-    pendingRestart, setPendingRestart,
+    pendingRestart, setPendingRestart, setResumeNotice,
     confirmExitExam, setConfirmExitExam,
     resetToGate,
   } = useQuizStore(useShallow((s) => ({
@@ -91,6 +91,7 @@ export const AppModals = () => {
     setQuitExamOpen: s.setQuitExamOpen, setGradedResume: s.setGradedResume,
     reviewedOk: s.reviewedOk,
     pendingRestart: s.pendingRestart, setPendingRestart: s.setPendingRestart,
+    setResumeNotice: s.setResumeNotice,
     confirmExitExam: s.confirmExitExam, setConfirmExitExam: s.setConfirmExitExam,
     resetToGate: s.resetToGate,
   })));
@@ -401,6 +402,37 @@ export const AppModals = () => {
                 onClick={() => { setConfirmExitExam(false); resetToGate(); }}
               >
                 나가기
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {pendingRestart && (
+        <Modal title="처음부터 풀기" onClose={() => setPendingRestart(false)}>
+          <div className="modal-body confirm-body" data-testid="pending-restart-modal">
+            <p>
+              지금까지 고른 <strong>{answered}문항</strong>의 답이 지워지고 1번 문항부터 다시 시작합니다.
+              이어서 풀려면 &lsquo;계속 풀기&rsquo;를 누르세요.
+            </p>
+            <div className="confirm-actions">
+              <button type="button" data-testid="pending-restart-cancel" onClick={() => setPendingRestart(false)}>
+                계속 풀기
+              </button>
+              <button
+                type="button"
+                className="danger"
+                data-testid="pending-restart-confirm"
+                onClick={() => {
+                  // 이름이 약속한 대로 실제로 초기화한다 — 종전에는 setIndex(0)뿐이라
+                  // 답 선택이 그대로 남았다. beginSession이 위치·타이머를 함께 되돌린다.
+                  clearAnswers(setId, mode);
+                  beginSession();
+                  setResumeNotice(false);
+                  setPendingRestart(false);
+                }}
+              >
+                처음부터 풀기
               </button>
             </div>
           </div>
