@@ -193,9 +193,14 @@ test.describe("APK 기능 · 퀵(터치)", () => {
     const viewport = page.viewportSize()!;
     await page.locator("#options .option").first().tap();
     await expect(page.locator("#feedback")).toBeVisible();
+
+    // '다음 문제'는 하단 고정 바가 아니라 해설 뒤 본문 흐름에 있다 — 떠 있는 버튼으로
+    // 두면 해설을 읽는 동안 텍스트를 가리기 때문이다(하단 액션바 주석의 같은 이유).
+    // 그래서 "화면 안에 있는가"가 아니라 "스크롤해 닿으면 제스처바에 안 걸리는가"를 본다.
     const next = page.getByTestId("quick-next-btn");
+    await next.scrollIntoViewIfNeeded();
     const box = (await next.boundingBox())!;
-    expect(box.y + box.height, "'다음 문제'가 제스처바 영역에 걸린다")
+    expect(box.y + box.height, "스크롤해도 '다음 문제'가 제스처바 영역에 걸린다")
       .toBeLessThanOrEqual(viewport.height - SAFE_BOTTOM + 1);
     expect(box.height, "터치 타깃이 44px 미만").toBeGreaterThanOrEqual(44);
 
