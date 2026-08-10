@@ -50,7 +50,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 
 | QA 역량 | 본 프로젝트에서 한 일 | 근거 |
 |---------|----------------------|------|
-| 테스트 자동화 | Playwright **E2E 438개**(기능·비기능·APK) + Vitest **유닛 618개**(속성 기반 21 포함) 작성·CI 연동 | `e2e/`, `src/**/*.test.ts` |
+| 테스트 자동화 | Playwright **E2E 417개**(기능·비기능·APK) + Vitest **유닛 618개**(속성 기반 21 포함) 작성·CI 연동 | `e2e/`, `src/**/*.test.ts` |
 | 테스트 설계 | 모드·문항유형·네비·설정·영속성·엣지(경계·격리·복원·대용량 import)·표/그림·반응형·접근성으로 시나리오 분해 | [`docs/e2e-test-scenarios.md`](docs/e2e-test-scenarios.md) |
 | 회귀 방지 | 결함 수정마다 회귀 테스트 추가(수정 전 실패 확인), CI 머지 게이트 | 파서 회귀 케이스, 14-job CI |
 | 결함 발견·RCA | **PDF 원본 ↔ 앱 렌더 전수 대조**로 결함 식별, 반복 결함 근본원인 분석 | 아래 [Case Studies](#결함-발견--근본원인-분석-case-studies) |
@@ -118,7 +118,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 ## 테스트 전략
 
 ```
-        ▲  E2E (Playwright) — 438개: 사용자 플로우·엣지·크로스뷰포트·A11y(axe)·시드 랜덤 스모크·몽키·APK WebView
+        ▲  E2E (Playwright) — 417개: 사용자 플로우·엣지·크로스뷰포트·A11y(axe)·시드 랜덤 스모크·몽키·APK WebView
        ───
       ─────  통합/렌더 — jsdom 렌더 테스트(파서·RichText)
      ───────  유닛 (Vitest) — 618개: 정답판정·파서·컷스코어·챕터/회차 통계·저장·타이머·토스트·store 액션·store↔storage 연동·추첨 분포·속성 기반 21
