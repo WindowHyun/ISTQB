@@ -50,7 +50,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 
 | QA 역량 | 본 프로젝트에서 한 일 | 근거 |
 |---------|----------------------|------|
-| 테스트 자동화 | Playwright **E2E 438개**(기능·비기능·APK) + Vitest **유닛 618개**(속성 기반 21 포함) 작성·CI 연동 | `e2e/`, `src/**/*.test.ts` |
+| 테스트 자동화 | Playwright **E2E 417개**(기능·비기능·APK) + Vitest **유닛 618개**(속성 기반 21 포함) 작성·CI 연동 | `e2e/`, `src/**/*.test.ts` |
 | 테스트 설계 | 모드·문항유형·네비·설정·영속성·엣지(경계·격리·복원·대용량 import)·표/그림·반응형·접근성으로 시나리오 분해 | [`docs/e2e-test-scenarios.md`](docs/e2e-test-scenarios.md) |
 | 회귀 방지 | 결함 수정마다 회귀 테스트 추가(수정 전 실패 확인), CI 머지 게이트 | 파서 회귀 케이스, 14-job CI |
 | 결함 발견·RCA | **PDF 원본 ↔ 앱 렌더 전수 대조**로 결함 식별, 반복 결함 근본원인 분석 | 아래 [Case Studies](#결함-발견--근본원인-분석-case-studies) |
@@ -63,14 +63,14 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 ## 주요 기능
 
 - ISTQB / CSTS 자격증 선택 → 세트 선택 → 풀이로 이어지는 진입 흐름
-- **연습 · 시험 · 랜덤 · 오답 · 퀵** 5가지 모드
-- 연습 모드: 답 선택 후 즉시 정답/해설 확인 / 시험·랜덤·오답 모드: 채점 후 결과 확인
-- **퀵 랜덤** — 제품(ISTQB/CSTS)의 **전 세트에서 10·15·20문항을 뽑아** 제한시간 없이 푸는 짧은 세션. 서답형도 섞여 나오되 **한 회차의 30%를 넘지 않습니다**. 여러 세트에 재수록된 동일 문항은 **46그룹 96문항**을 빌드 타임에 식별해 한 회차에 중복 출제되지 않게 하고, 재수록본끼리 챕터명이 갈리는 3문항은 대표 챕터로 통일해 집계합니다.
+- **연습 · 시험 · 오답 · 퀵** 4가지 모드
+- 연습·오답·퀵 모드: 답 선택 후 즉시 정답/해설 확인 / 시험 모드: 채점 후 결과 확인
+- **퀵** — 제품(ISTQB/CSTS)의 **전 세트를 통째로 섞어 한 문항씩 무한으로** 푸는 모드. 풀면 바로 정답·해설이 열리고 '다음 문제'로 넘어갑니다. 진행·정답·오답·연속 정답을 상시 보여주며 **제한시간도 기록도 없습니다**(회차 이력·오답 노트·챕터 통계 어디에도 남지 않습니다). 여러 세트에 재수록된 동일 문항은 **46그룹 96문항**을 빌드 타임에 식별해 한 바퀴에 두 번 나오지 않게 하고, 재수록본끼리 챕터명이 갈리는 3문항은 대표 챕터로 통일해 집계합니다.
   - **회차 기록을 남기지 않습니다** — 응시 횟수·평균 정답률·타임라인·짧은 세션 목록 어디에도 잡히지 않고 IndexedDB에도 저장되지 않습니다(세트를 다 푼 기록이 아니므로 실전 통계를 흐리지 않게).
   - 대신 **챕터별 약점 분석에는 기여**하고, 오답은 오답노트 맨 위 **퀵 전용 임시 목록**(보기 전용, 출처 세트명 표기)에 실립니다. 이 목록은 채점 후 **24시간이 지나면 자동으로 사라지고**, `이력 비우기`로도 함께 지워집니다.
 - 오답 모드에서 `오답 다시풀기` 전까지 기존 오답 기록 보호
 - **시험 시작 게이트 + 응시 중 잠금**(Phase 1) — 시험 모드는 "시험 시작"을 눌러야 응시 개시(타이머 0부터), 응시 중(채점 전)에는 문제 세트·다른 모드 변경이 잠기고 🔒 안내 표시 · 채점하면 잠금 해제
-- 앱을 껐다 켜도 풀이 상태·모드 복원(localStorage / IndexedDB), **재접속·세트 변경 시 시험 답안이 있으면 “이어풀기 / 새로 풀기” 선택** (랜덤 모드는 매번 새로 추첨 — 항상 새로 시작)
+- 앱을 껐다 켜도 풀이 상태·모드 복원(localStorage / IndexedDB), **재접속·세트 변경 시 시험 답안이 있으면 “이어풀기 / 새로 풀기” 선택**
 - **시험 채점 후 재응시** — 결과 모달의 **"다시 풀기"** 버튼 또는 활성 모드 탭 재클릭으로 원클릭 재응시(다른 모드 왕복·재접속 경로도 유지)
 - 풀이 기록 JSON **내보내기 / 가져오기**
 - **자격증별 합격 컷스코어** — ISTQB 65%(40문항 기준 26) / CSTS 환산 52.5점, 채점 후 합/불 결과 요약(값 줄바꿈 없이 한 줄 표기)
@@ -112,13 +112,13 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 | 설정 모달 | [`pc/05-settings.png`](docs/screenshots/pc/05-settings.png) | [`mobile/05-settings.png`](docs/screenshots/mobile/05-settings.png) |
 | 그림 문항(상태도) | [`pc/06-figure.png`](docs/screenshots/pc/06-figure.png) | [`mobile/06-figure.png`](docs/screenshots/mobile/06-figure.png) |
 | 단답형 입력 | [`pc/07-shortanswer.png`](docs/screenshots/pc/07-shortanswer.png) | [`mobile/07-shortanswer.png`](docs/screenshots/mobile/07-shortanswer.png) |
-| 학습 통계(약점·미니 시험·타임라인) | [`pc/08-stats.png`](docs/screenshots/pc/08-stats.png) | [`mobile/08-stats.png`](docs/screenshots/mobile/08-stats.png) |
+| 학습 통계(약점·타임라인) | [`pc/08-stats.png`](docs/screenshots/pc/08-stats.png) | [`mobile/08-stats.png`](docs/screenshots/mobile/08-stats.png) |
 | 사이트 사용법(사용설명서) | [`pc/09-guide.png`](docs/screenshots/pc/09-guide.png) | [`mobile/09-guide.png`](docs/screenshots/mobile/09-guide.png) |
 
 ## 테스트 전략
 
 ```
-        ▲  E2E (Playwright) — 438개: 사용자 플로우·엣지·크로스뷰포트·A11y(axe)·시드 랜덤 스모크·몽키·APK WebView
+        ▲  E2E (Playwright) — 417개: 사용자 플로우·엣지·크로스뷰포트·A11y(axe)·시드 랜덤 스모크·몽키·APK WebView
        ───
       ─────  통합/렌더 — jsdom 렌더 테스트(파서·RichText)
      ───────  유닛 (Vitest) — 618개: 정답판정·파서·컷스코어·챕터/회차 통계·저장·타이머·토스트·store 액션·store↔storage 연동·추첨 분포·속성 기반 21

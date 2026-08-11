@@ -16,16 +16,22 @@ import { HISTORY_MODES } from './storage';
 describe('isGradedMode', () => {
   it('채점 회차가 남는 모드만 참이다', () => {
     expect(isGradedMode('exam')).toBe(true);
-    expect(isGradedMode('random')).toBe(true);
-    expect(isGradedMode('quick')).toBe(true);
   });
 
-  // 연습·오답은 즉시 피드백이라 채점 개념이 없다. 참이 되면 채점 버튼이 떠서
+  // 연습·오답·퀵은 즉시 피드백이라 채점 개념이 없다. 참이 되면 채점 버튼이 떠서
   // 이미 정답을 본 문항으로 회차가 기록된다.
+  // 퀵은 한 문항씩 확인하고 넘기는 무한 모드가 되면서 '회차'라는 단위 자체가 없어졌다.
   it('즉시 피드백 모드와 게이트는 거짓이다', () => {
     expect(isGradedMode('practice')).toBe(false);
     expect(isGradedMode('review')).toBe(false);
+    expect(isGradedMode('quick')).toBe(false);
     expect(isGradedMode('home')).toBe(false);
+  });
+
+  // 폐지된 모드 — 이력에는 남지만 새로 채점될 일이 없다. 참이면 사이드바가 진입할 수
+  // 없는 모드의 채점 UI를 그린다.
+  it('폐지된 랜덤 모드는 거짓이다', () => {
+    expect(isGradedMode('random')).toBe(false);
   });
 
   // includes를 startsWith/정규식으로 바꾸면 조용히 새는 지점 — 못 박아 둔다.
@@ -38,7 +44,7 @@ describe('isGradedMode', () => {
   });
 
   it('GRADED_MODES의 모든 원소가 참이고, 그 밖은 전부 거짓이다', () => {
-    expect([...GRADED_MODES]).toEqual(['exam', 'random', 'quick']);
+    expect([...GRADED_MODES]).toEqual(['exam']);
     for (const m of GRADED_MODES) expect(isGradedMode(m)).toBe(true);
     const others = HISTORY_MODES.filter((m) => !(GRADED_MODES as readonly string[]).includes(m));
     for (const m of others) expect(isGradedMode(m), `${m}`).toBe(false);
@@ -48,7 +54,9 @@ describe('isGradedMode', () => {
 describe('MODE_LABEL', () => {
   it('모드별 라벨이 고정돼 있다', () => {
     expect(MODE_LABEL).toEqual({
-      practice: '연습', exam: '시험', random: '랜덤', review: '오답', quick: '퀵',
+      practice: '연습', exam: '시험', review: '오답', quick: '퀵',
+      // 폐지된 모드 — 신규 진입은 없지만 과거 회차를 이름 없이 표시하지 않으려면 라벨은 남는다.
+      random: '랜덤',
     });
   });
 

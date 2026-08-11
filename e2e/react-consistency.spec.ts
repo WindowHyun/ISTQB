@@ -14,7 +14,7 @@ const problems: string[] = [];
 const bad = (s: string) => { problems.push(s); console.log("  ✗ " + s); };
 
 async function openBar(page: Page) {
-  const sel = page.locator("#quickSize");
+  const sel = page.getByTestId("quick-start-btn");
   if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
 }
 
@@ -25,7 +25,7 @@ async function openBar(page: Page) {
  * 그 사이에 문항이 다시 그려지면 count는 이전 렌더(선택형)를 보고 click은 새 렌더를
  * 기다리다 죽는다. 실제로 전수 실행에서 이 자리가 300초 타임아웃으로 실패했고, 그때
  * 화면은 서답형(단답형 정답 입력)이었는데 진행률은 0/15로 첫 문항에 머물러 있었다.
- * 퀵에는 서답형이 최대 30%까지 섞이므로(B5) 이 경합은 드물게 오는 것이 아니다.
+ * 퀵은 유형을 가리지 않고 서답형도 그대로 내므로 이 경합은 드물게 오는 것이 아니다.
  *
  * 그래서 '둘 중 먼저 보이는 쪽'을 기다린 뒤 그 유형에 맞춰 답한다.
  */
@@ -165,10 +165,14 @@ test("정합성: 오답 수가 결과·오답노트·재풀이에서 어긋나�
   await page.evaluate(() => localStorage.clear());
   await openProduct(page, "ISTQB");
 
-  // 세트 단위 회차(랜덤)로 대조한다 — 퀵은 회차를 남기지 않아 세트 오답노트·재풀이에
-  // 들어가지 않으므로, 이 삼자 대조의 재료가 될 수 없다(그 분리는 아래에서 따로 본다).
+  // 세트 단위 회차(시험)로 대조한다 — 채점이 남는 유일한 모드다. 퀵은 아무것도 기록하지
+  // 않아 세트 오답노트·재풀이에 들어가지 않으므로 이 삼자 대조의 재료가 될 수 없다
+  // (그 분리는 아래 4)에서 따로 본다).
   await openBar(page);
-  await page.locator('.segmented button[data-mode="random"]').click();
+  await page.locator('.segmented button[data-mode="exam"]').click();
+  const gate = page.getByTestId("exam-start-btn");
+  await gate.waitFor({ state: "visible", timeout: 5_000 }).catch(() => {});
+  if (await gate.count()) await gate.click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   const roundTotal = num(await page.locator("#progressText").textContent(), /\/\s*(\d+)/);
   await answerAll(page, (roundTotal ?? 40) + 2);
@@ -207,16 +211,16 @@ test("정합성: 오답 수가 결과·오답노트·재풀이에서 어긋나�
     bad(`재풀이 대상(${retryTotal})이 전체 오답(${wrongFromResult})보다 많다`);
   }
 
-  // 4) 퀵을 한 회차 더 풀어도 위 세 숫자는 그대로여야 한다 — 퀵 오답은 임시 목록으로만
-  //    간다. 여기서 세트 그룹 합이 늘면 "기록을 남기지 않는다"는 약속이 깨진 것이다.
+  // 4) 퀵을 몇 문항 풀어도 위 숫자는 그대로여야 한다 — 퀵은 아무것도 기록하지 않는다.
+  //    여기서 세트 그룹 합이 늘면 "기록을 남기지 않는다"는 약속이 깨진 것이다.
   await openBar(page);
-  await page.locator("#quickSize").selectOption("10");
   await page.getByTestId("quick-start-btn").click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-  await answerAll(page, 12);
-  await grade(page);
-  const quickWrong = num(await page.getByTestId("result-summary").innerText(), /오답\s*(\d+)개/);
-  await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
+  for (let i = 0; i < 5; i += 1) {
+    await answerCurrent(page);
+    await expect(page.locator("#feedback")).toBeVisible();
+    await page.getByTestId("quick-next-btn").click();
+  }
 
   await openBar(page);
   await page.getByRole("button", { name: /오답 노트/ }).first().click();
@@ -226,61 +230,10 @@ test("정합성: 오답 수가 결과·오답노트·재풀이에서 어긋나�
   for (let i = 0; i < (await groupsAfter.count()); i += 1) {
     noteTotalAfter += num(await groupsAfter.nth(i).innerText(), /오답\s*(\d+)/) ?? 0;
   }
-  const quickItems = await page.getByTestId("quick-wrong-item").count();
-  console.log(`· 퀵 오답 ${quickWrong} | 퀵 목록 ${quickItems} | 세트 그룹 합 ${noteTotal}→${noteTotalAfter}`);
+  console.log(`· 세트 그룹 합 ${noteTotal}→${noteTotalAfter}(퀵 5문항 이후)`);
   if (noteTotalAfter !== noteTotal) {
     bad(`퀵을 풀었더니 세트 오답노트 합이 ${noteTotal}→${noteTotalAfter}로 변했다`);
   }
-  if (quickWrong !== null && quickItems !== quickWrong) {
-    bad(`퀵 결과 오답(${quickWrong})과 퀵 오답 목록(${quickItems})이 다르다`);
-  }
 
-  expect(problems, problems.join("\n")).toEqual([]);
-});
-
-test("정합성: 진행률과 문항 팔레트의 '답함' 개수가 같다", async ({ page }) => {
-  test.setTimeout(300_000);
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  await openProduct(page, "CSTS");
-
-  await openBar(page);
-  await page.locator("#quickSize").selectOption("15");
-  await page.getByTestId("quick-start-btn").click();
-  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-
-  // 5문항만 답한다. 단계마다 진행률을 확인하고 넘어간다 — 렌더가 자리를 잡기 전에
-  // '다음'을 누르면 이전 문항을 다시 답하게 되고, 그 어긋남이 아래 팔레트 대조를
-  // 조용히 틀리게 만든다(경합이라 재현이 들쭉날쭉해 원인을 찾기 어렵다).
-  for (let i = 0; i < 5; i += 1) {
-    await answerCurrent(page);
-    await expect(page.locator("#progressText")).toContainText(`${i + 1} / 15`);
-    const n = page.locator("#nextBtn");
-    if (await n.count() && !(await n.isDisabled())) await n.click();
-  }
-  const answered = num(await page.locator("#progressText").textContent(), /^(\d+)/);
-
-  // 데스크톱에서는 팔레트가 이미 펼쳐져 있고 palette-toggle은 '접기'다 —
-  // 무턱대고 누르면 팔레트가 사라져 검사가 0건으로 무력해진다. 없을 때만 연다.
-  if ((await page.locator(".question-nav button").count()) === 0) {
-    await page.getByTestId("palette-toggle").click();
-    await page.waitForTimeout(400);
-  }
-  // 팔레트는 .question-nav 안의 버튼에 answered/unanswered 클래스를 붙인다.
-  // 셀렉터가 어긋나면 0이 나와 검사가 조용히 무력해지므로, 버튼이 실제로 있는지 먼저 본다.
-  const palette = await page.evaluate(() => {
-    const btns = Array.from(document.querySelectorAll(".question-nav button"));
-    return {
-      total: btns.length,
-      answered: btns.filter((b) => b.classList.contains("answered")).length,
-    };
-  });
-  const paletteAnswered = palette.answered;
-  if (palette.total === 0) bad("팔레트 버튼을 찾지 못했다 — 셀렉터가 어긋나 검사가 무력하다");
-  if (palette.total !== 15) bad(`팔레트 버튼 수(${palette.total})가 출제 문항 수(15)와 다르다`);
-  console.log(`· 진행률 답함 ${answered} | 팔레트 답함 ${paletteAnswered}`);
-  if (answered !== paletteAnswered) {
-    bad(`진행률(${answered})과 팔레트 답함(${paletteAnswered})이 다르다`);
-  }
   expect(problems, problems.join("\n")).toEqual([]);
 });

@@ -145,39 +145,37 @@ test.describe("APK 기능 · 핵심 플로우(터치)", () => {
 // 퀵은 이 프로젝트에서 한 번도 안 돌았다. 데스크톱 스펙이 뷰포트를 390px로 줄여
 // 터치 타깃을 재긴 하지만, WebView UA도 안전영역 변수도 없는 환경이라 여기서
 // 검증되는 것(제스처바 회피·드로어 안 컨트롤·웹뷰 재시작 복원)을 대신해 주지 못한다.
-test.describe("APK 기능 · 퀵 랜덤(터치)", () => {
+test.describe("APK 기능 · 퀵(터치)", () => {
   test.beforeEach(async ({ page }) => simulateApkInsets(page));
 
-  const startQuick = async (page: Page, size: string) => {
+  const startQuick = async (page: Page) => {
     await page.goto("/");
     await page.getByRole("button", { name: "ISTQB" }).tap();
     await page.getByTestId("drawer-open").tap();
-    await page.locator("#quickSize").selectOption(size);
     await page.getByTestId("quick-start-btn").tap();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   };
 
-  test("AF11 드로어 안 퀵 컨트롤이 제스처바를 피하고 탭으로 출제된다", async ({ page }) => {
+  test("AF11 드로어 안 퀵 시작 버튼이 제스처바를 피하고 탭으로 출제된다", async ({ page }) => {
     const errors = collectErrors(page);
     await page.goto("/");
     await page.getByRole("button", { name: "ISTQB" }).tap();
     await page.getByTestId("drawer-open").tap();
 
     const viewport = page.viewportSize()!;
-    for (const target of [page.locator("#quickSize"), page.getByTestId("quick-start-btn")]) {
-      await expect(target).toBeVisible();
-      const box = (await target.boundingBox())!;
-      // 제스처바에 걸리면 탭이 시스템 제스처로 먹혀 "눌러도 반응 없는" 컨트롤이 된다.
-      expect(box.y + box.height, "퀵 컨트롤이 제스처바 영역에 걸린다")
-        .toBeLessThanOrEqual(viewport.height - SAFE_BOTTOM + 1);
-      // 실기기 터치 최소 크기(44px) — 데스크톱 스펙에서 고쳤지만 여기선 미검증이었다.
-      expect(box.height, "터치 타깃이 44px 미만").toBeGreaterThanOrEqual(44);
-    }
+    const target = page.getByTestId("quick-start-btn");
+    await expect(target).toBeVisible();
+    const box = (await target.boundingBox())!;
+    // 제스처바에 걸리면 탭이 시스템 제스처로 먹혀 "눌러도 반응 없는" 컨트롤이 된다.
+    expect(box.y + box.height, "퀵 시작 버튼이 제스처바 영역에 걸린다")
+      .toBeLessThanOrEqual(viewport.height - SAFE_BOTTOM + 1);
+    // 실기기 터치 최소 크기(44px) — 데스크톱 스펙에서 고쳤지만 여기선 미검증이었다.
+    expect(box.height, "터치 타깃이 44px 미만").toBeGreaterThanOrEqual(44);
 
-    await page.locator("#quickSize").selectOption("10");
-    await page.getByTestId("quick-start-btn").tap();
+    await target.tap();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-    await expect(page.locator(".mtb-meta").first()).toContainText("/ 10");
+    // 퀵은 진행률(N/총계) 대신 점수판을 쓴다.
+    await expect(page.getByTestId("quick-scoreboard")).toBeVisible();
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
@@ -185,51 +183,36 @@ test.describe("APK 기능 · 퀵 랜덤(터치)", () => {
     expect(errors).toEqual([]);
   });
 
-  // 퀵 회차의 setId는 'QUICK'이라 오답의 출처 세트는 wrongItems[].setId에만 남는다.
-  // 이력은 읽을 때마다 정제되므로, 정제가 그 필드를 흘리면 채점 직후에는 멀쩡하다가
-  // 웹뷰 재시작 한 번에 오답노트가 '퀵 랜덤' 한 덩어리로 뭉친다(실제로 났던 결함).
-  // 재시작이 일상인 APK에서 재라, 이 축은 여기서 잡는 게 맞다.
-  test("AF12 퀵 오답의 출처 세트 표기가 웹뷰 재시작에도 유지된다", async ({ page }) => {
+  // '다음 문제'는 퀵의 유일한 진행 수단이라 하단에 폭을 가득 차지한다. 제스처바에 걸리면
+  // 탭이 시스템 제스처로 먹혀 모드 전체가 진행 불가가 된다 — 재시작이 일상인 APK에서 재라,
+  // 이 축은 여기서 잡는 게 맞다.
+  test("AF12 '다음 문제'가 제스처바를 피하고, 웹뷰 재시작에도 진행이 유지된다", async ({ page }) => {
     const errors = collectErrors(page);
-    await startQuick(page, "20");
+    await startQuick(page);
 
-    for (let i = 0; i < 20; i += 1) {
-      const opt = page.locator("#options .option").first();
-      if (await opt.count()) await opt.tap();
-      const next = page.getByRole("button", { name: "다음 문제" });
-      if (!(await next.count()) || (await next.isDisabled())) break;
-      await next.tap();
-    }
-    await submitGrade(page, "grade-button-m");
-    await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
-    // 퀵 결과 모달에는 '오답 노트 보기'가 없다 — 드로어의 상시 진입로로 연다.
-    await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).tap();
-    await page.getByTestId("drawer-open").tap();
-    await page.getByRole("button", { name: /오답 노트/ }).first().tap();
-    await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 20_000 });
-    // 퀵 오답은 세트 그룹에 섞이지 않고 전용 임시 목록에만 실린다.
-    await expect(page.getByTestId("quick-wrong-note")).toBeVisible();
-    expect(await page.getByTestId("wrong-note-set-btn").count(),
-      "퀵만 풀었는데 세트 오답 그룹이 생겼다").toBe(0);
+    const viewport = page.viewportSize()!;
+    await page.locator("#options .option").first().tap();
+    await expect(page.locator("#feedback")).toBeVisible();
 
-    // 각 오답에 출처 세트명이 붙는다 — 정제기가 setId를 떨구면 전부 한 이름으로 뭉친다.
-    const srcOf = () => page.locator('[data-testid="quick-wrong-item"] .qw-src')
-      .evaluateAll((els) => els.map((e) => e.textContent ?? ""));
-    const before = await srcOf();
-    expect(before.length, "퀵 오답이 하나도 없다").toBeGreaterThan(0);
-    const beforeSets = new Set(before).size;
-    expect(beforeSets, "출처 세트명이 비어 있다").toBeGreaterThan(0);
+    // '다음 문제'는 하단 고정 바가 아니라 해설 뒤 본문 흐름에 있다 — 떠 있는 버튼으로
+    // 두면 해설을 읽는 동안 텍스트를 가리기 때문이다(하단 액션바 주석의 같은 이유).
+    // 그래서 "화면 안에 있는가"가 아니라 "스크롤해 닿으면 제스처바에 안 걸리는가"를 본다.
+    const next = page.getByTestId("quick-next-btn");
+    await next.scrollIntoViewIfNeeded();
+    const box = (await next.boundingBox())!;
+    expect(box.y + box.height, "스크롤해도 '다음 문제'가 제스처바 영역에 걸린다")
+      .toBeLessThanOrEqual(viewport.height - SAFE_BOTTOM + 1);
+    expect(box.height, "터치 타깃이 44px 미만").toBeGreaterThanOrEqual(44);
 
-    await page.reload(); // 앱 프로세스 재시작 = 이력 재정제 경로
+    await next.tap();
+    await page.locator("#options .option").first().tap();
+    await expect(page.getByTestId("qs-solved")).toHaveText("2");
+
+    // 앱 프로세스 재시작 = 저장된 출제 순서·커서·답안의 복원 경로.
+    await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).tap();
-    await page.getByTestId("drawer-open").tap();
-    await page.getByRole("button", { name: "오답 노트" }).first().tap();
-    await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 20_000 });
-    const after = await srcOf();
-    expect(after.length, `재시작 전 오답 ${before.length}개가 후 ${after.length}개가 됐다`)
-      .toBe(before.length);
-    expect(new Set(after).size, `재시작 전 ${beforeSets}개 출처가 후 ${new Set(after).size}개로 뭉쳤다`)
-      .toBe(beforeSets);
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("qs-solved"), "재시작에 퀵 진행이 사라졌다").toHaveText("2");
     expect(errors).toEqual([]);
   });
 });

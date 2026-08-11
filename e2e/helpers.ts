@@ -10,7 +10,7 @@ export const modeBtn = (page: Page, label: string) =>
  *
  * **`#questionStem`이 보이는 것을 상태 단언으로 쓰지 않는다.**
  *
- * 지문은 연습·시험·랜덤·오답·퀵 어느 모드에서나 보인다. 그래서 "무언가를 눌렀고
+ * 지문은 연습·시험·오답·퀵 어느 모드에서나 보인다. 그래서 "무언가를 눌렀고
  * 지문이 보인다"는 거의 항상 참이고, 아무것도 증명하지 못한다.
  *
  * 실제로 그렇게 통과한 검사가 있었다. react-userflow의 오답 재풀이 단계는 퀵 모드에서
@@ -26,7 +26,7 @@ export const modeBtn = (page: Page, label: string) =>
  */
 
 /** 현재 풀이 모드가 기대와 같은지 — 지문 가시성 대신 aria-pressed를 직접 읽는다. */
-export async function expectMode(page: Page, label: "연습" | "시험" | "랜덤" | "오답") {
+export async function expectMode(page: Page, label: "연습" | "시험" | "오답") {
   await expect(
     modeBtn(page, label),
     `모드가 '${label}'로 전환되지 않았다 — 지문이 보인다는 것만으로는 전환을 증명하지 못한다`,
@@ -136,4 +136,40 @@ export async function gotoStable(page: Page, url = "/") {
     await page.waitForTimeout(1000);
     await page.goto(url);
   }
+}
+
+// ── 퀵(무한 모드) ────────────────────────────────────────────────────
+// 퀵은 제품 전 세트를 섞어 한 문항씩 낸다. 문항 수 선택이 없어 진입은 버튼 하나다.
+// 사이드바가 드로어인 폭에서는 실사용자와 동일하게 먼저 연다.
+export async function startQuick(page: Page, product: "ISTQB" | "CSTS") {
+  await openProduct(page, product);
+  const btn = page.getByTestId("quick-start-btn");
+  if (!(await btn.isVisible())) await page.getByTestId("drawer-open").click();
+  await btn.click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+}
+
+/** 현재 퀵 문항에 답한다(유형 불문) — 답하면 정답·해설이 즉시 열린다. */
+export async function answerQuick(page: Page) {
+  const short = page.locator(".short-answer-input");
+  const blanks = await short.count();
+  if (blanks) {
+    for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
+    await page.locator(".short-answer-check").click();
+    return;
+  }
+  // 복수정답은 정답 개수만큼 골라야 확정된다 — 보기를 순서대로 눌러 채운다.
+  const opts = page.locator("#options .option");
+  const n = await opts.count();
+  for (let i = 0; i < n; i += 1) {
+    await opts.nth(i).click();
+    if (await page.locator("#feedback").count()) break;
+  }
+}
+
+/** 한 문항을 풀고 다음으로 넘어간다. */
+export async function solveQuickOne(page: Page) {
+  await answerQuick(page);
+  await expect(page.locator("#feedback")).toBeVisible();
+  await page.getByTestId("quick-next-btn").click();
 }

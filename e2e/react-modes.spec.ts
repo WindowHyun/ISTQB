@@ -38,14 +38,6 @@ test.describe("모드", () => {
     expect(correct + missed).toBeGreaterThan(0);
   });
 
-  test("랜덤: 채점하면 점수가 표시된다", async ({ page }) => {
-    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "랜덤").click();
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
-    await page.locator("#options .option").first().click();
-    await submitGrade(page);
-    await expect(page.getByTestId("score")).toContainText("점수", { timeout: 8_000 });
-  });
 
   test("오답 다시풀기: review 모드로 진입해 답을 다시 고를 수 있다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");

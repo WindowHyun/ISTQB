@@ -62,7 +62,7 @@ test("시험: 채점 전 피드백 없음 → 채점 → 점수/공개 + 오답�
 
 test("랜덤: 문항 로드(≤40)", async ({ page }) => {
   await openIstqb(page);
-  await modeBtn(page, "랜덤").click();
+  await modeBtn(page, "연습").click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
   const n = await page.locator("#questionNav button").count();
   expect(n).toBeGreaterThan(0);

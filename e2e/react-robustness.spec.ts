@@ -17,7 +17,7 @@ test("주입: 음수 elapsedSeconds 백업으로 제한시간을 늘릴 수 있�
       setId: "ISTQB-FL-V4-A",
       index: 0,
       elapsedSeconds: -86400, // 하루치 음수 — 남은 시간이 제한(60분)을 넘어서는지
-      reviewIds: {}, navCollapsed: false, randomDraw: null, chapterFilter: null,
+      reviewIds: {}, navCollapsed: false, chapterFilter: null,
     },
     answers: {},
     histories: {},

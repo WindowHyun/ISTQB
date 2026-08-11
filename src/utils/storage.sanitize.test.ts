@@ -54,19 +54,15 @@ describe("sanitizeUiState", () => {
     expect(sanitizeUiState(undefined)).toEqual({});
     expect(sanitizeUiState(42)).toEqual({});
   });
-  it("randomDraw는 setId·ids가 유효할 때만 통과한다(새로고침 이어풀기용)", () => {
-    expect(
-      sanitizeUiState({ randomDraw: { setId: "S", chapter: null, ids: ["S-1", 2, "S-3"] } }).randomDraw,
-    ).toEqual({ setId: "S", chapter: null, ids: ["S-1", "S-3"] });
-    // chapter 문자열은 보존(미니 시험 스코프).
-    expect(
-      sanitizeUiState({ randomDraw: { setId: "S", chapter: "테스트 기법", ids: ["S-1"] } }).randomDraw,
-    ).toEqual({ setId: "S", chapter: "테스트 기법", ids: ["S-1"] });
+  it("폐지된 랜덤 모드는 연습으로 내려받는다(진입할 수 없는 모드로 복원하지 않는다)", () => {
+    // 버리기만 하면 mode 필드가 없는 복원본이 되어, 메모리에 남아 있던 직전 모드가
+    // 그대로 쓰인다 — 그 값은 진입 경로에 따라 달라져 복원 결과가 흔들린다.
+    expect(sanitizeUiState({ mode: "random" }).mode).toBe("practice");
   });
-  it("손상된 randomDraw(빈 ids·setId 없음·비객체)는 버린다", () => {
-    expect(sanitizeUiState({ randomDraw: { setId: "S", ids: [] } }).randomDraw).toBeUndefined();
-    expect(sanitizeUiState({ randomDraw: { ids: ["S-1"] } }).randomDraw).toBeUndefined();
-    expect(sanitizeUiState({ randomDraw: "nope" }).randomDraw).toBeUndefined();
+  it("폐지된 randomDraw는 통과시키지 않는다", () => {
+    expect(
+      (sanitizeUiState({ randomDraw: { setId: "S", chapter: null, ids: ["S-1"] } }) as Record<string, unknown>).randomDraw,
+    ).toBeUndefined();
   });
 });
 

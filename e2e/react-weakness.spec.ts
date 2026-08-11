@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { enterExam, modeBtn, openSet, submitGrade } from "./helpers";
+import { enterExam, openSet, submitGrade } from "./helpers";
 
 // Phase 3: 챕터별 약점 분석·챕터 집중 연습·오답노트 전 회차 합산.
 
@@ -60,8 +60,9 @@ test.describe("약점 분석(Phase 3)", () => {
     await enterExam(page);
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
-    // 2회차(랜덤, 같은 세트): 첫 문항만 정답 → 최신 회차 오답 39.
-    await modeBtn(page, "랜덤").click();
+    // 2회차(같은 세트 재응시): 첫 문항만 정답 → 최신 회차 오답 39.
+    // 채점이 남는 모드는 이제 시험뿐이라 같은 모드로 다시 응시한다(재클릭 → 초기화 + 게이트 재노출).
+    await enterExam(page);
     await expect(page.locator("#questionStem")).toBeVisible();
     await answerCurrentCorrectly(page, "istqb/sample-a.json");
     await submitGrade(page);

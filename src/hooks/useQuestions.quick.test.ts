@@ -1,12 +1,11 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { buildQuickPool, drawQuick, type Question } from './useQuestions';
+import { buildQuickPool, shuffleQuestions, type Question } from './useQuestions';
 import { makeCanonicalIdResolver } from '../utils/chapterStats';
 
 /**
- * drawQuick은 shuffleQuestions(= Math.random)를 거친다. 시드를 고정하지 않으면 아래
- * '상한만큼 들어간다' 검사가 추첨 순서에 따라 흔들린다.
+ * shuffleQuestions는 Math.random을 쓴다. 시드를 고정하지 않으면 순서에 기대는 검사가 흔들린다.
  *
  * 실측: 서답형 8·선택형 8에서 10개를 뽑으면 서답형이 3개 나올 확률 99.65%,
  *       2개 나올 확률 0.35%다(20만 회 측정). 선택형이 8개뿐이라 10개를 채우려면
@@ -54,7 +53,7 @@ describe('buildQuickPool', () => {
     expect(pool.map((c) => [c.id, c.setId])).toEqual([['A-1', 'S1'], ['A-2', 'S1'], ['B-1', 'S2']]);
   });
 
-  // 사양 변경: 서답형도 퀵에 나온다. 거르는 지점이 풀에서 추첨(drawQuick)으로 옮겨 갔다 —
+  // 서답형도 퀵에 그대로 나온다. 무한 모드가 되면서 유형 상한 자체가 없어졌다 —
   // 입력에 시간이 걸리는 것은 여전하므로 한 회차를 점령하지 않게 상한만 둔다.
   it('유형을 가리지 않는다 — 서답형도 풀에 넣는다', () => {
     const pool = buildQuickPool(
@@ -64,38 +63,29 @@ describe('buildQuickPool', () => {
     expect(pool.map((c) => c.id)).toEqual(['A-1', 'A-2', 'A-3']);
   });
 
-  it('추첨은 서답형을 상한(30%)까지만 넣고 나머지는 선택형으로 채운다', () => {
-    vi.spyOn(Math, 'random').mockImplementation(seeded(7)); // 순서 의존 제거(위 seeded 주석)
-    const questions = [
-      ...Array.from({ length: 8 }, (_, i) => q(`S-${i}`, { type: 'short_answer' })),
-      ...Array.from({ length: 8 }, (_, i) => q(`M-${i}`)),
-    ];
-    const drawn = drawQuick(buildQuickPool([{ setId: 'S1', questions }], identity), 10);
-    expect(drawn).toHaveLength(10);
-    // 정확히 3이어야 한다(서답형 8·선택형 8에서 10을 뽑으면 상한 floor(10*0.3)=3에 걸린다).
-    // 상한만 보면(<=3) 서답형이 0개일 때도 통과하는데, 그건 '상한이 동작한다'가 아니라
-    // 사양 변경 전의 '서답형을 통째로 뺀다'로 되돌아간 상태다 — 이 검사가 잡아야 할
-    // 회귀가 바로 그것이라 상한으로는 무력하다.
-    expect(drawn.filter((c) => c.question.type === 'short_answer').length,
-      '서답형이 상한(3)만큼 들어가지 않았다 — 0이면 유형이 통째로 빠진 것이다').toBe(3);
+  it('출제 순서는 풀을 통째로 담는다 — 잘라 내지 않는다', () => {
+    // 무한 모드의 계약: 커서 하나로 "같은 문제가 두 번 나오지 않음"을 보장하려면
+    // 순서 목록이 풀 전체여야 한다. 앞에서 N개만 잘라 내면 그 보장이 깨진다.
+    const pool = buildQuickPool(
+      [{ setId: 'S1', questions: [q('a1'), q('a2'), q('a3'), q('a4'), q('a5')] }],
+      (id) => id,
+    );
+    vi.spyOn(Math, 'random').mockImplementation(seeded(7));
+    const order = shuffleQuestions(pool);
+    expect(order).toHaveLength(pool.length);
+    expect(new Set(order.map((c) => c.id))).toEqual(new Set(pool.map((c) => c.id)));
   });
 
-  // 선택형이 모자라면 문항 수를 줄이는 것보다 서답형으로 채우는 편이 낫다.
-  it('선택형이 모자라면 상한을 넘겨서라도 문항 수를 채운다', () => {
-    const questions = [
-      ...Array.from({ length: 9 }, (_, i) => q(`S-${i}`, { type: 'short_answer' })),
-      q('M-0'),
-    ];
-    const drawn = drawQuick(buildQuickPool([{ setId: 'S1', questions }], identity), 10);
-    expect(drawn).toHaveLength(10);
-    // 제목이 말하는 '상한을 넘겼다'를 직접 못 박는다 — 길이만 보면 상한(3)을 지키느라
-    // 문항 수가 줄어드는 반대 동작과 구분되지 않는다(그때도 이 검사는 통과할 수 있다).
-    expect(drawn.filter((c) => c.question.type === 'short_answer').length,
-      '선택형이 1개뿐인데 서답형이 상한을 넘겨 채워지지 않았다').toBe(9);
+  it('서답형에 상한을 두지 않는다 — 회차가 없으니 비율을 맞출 대상도 없다', () => {
+    // 종전에는 한 회차의 30%까지만 서답형을 넣었다. 무한 모드에서 그 상한을 유지하면
+    // 앞쪽이 선택형으로만 채워져 서답형은 한참 뒤에야 나오거나 영영 안 나온다.
+    const shorts = Array.from({ length: 8 }, (_, i) => q(`s${i}`, { type: 'short_answer' }));
+    const pool = buildQuickPool([{ setId: 'S1', questions: shorts }], (id) => id);
+    vi.spyOn(Math, 'random').mockImplementation(seeded(3));
+    const order = shuffleQuestions(pool);
+    expect(order.filter((c) => c.question.type === 'short_answer')).toHaveLength(8);
   });
 
-  // 재수록 문항은 세트마다 id가 다르다 — id 비교만으로는 걸러지지 않아,
-  // 한 세션에 같은 문제가 두 번 나온다.
   it('재수록 그룹은 한 번만 넣는다 — 먼저 만난 세트의 것을 쓴다', () => {
     const canonical = makeCanonicalIdResolver([['A-1', 'B-1', 'C-1']]);
     const pool = buildQuickPool(
@@ -137,7 +127,7 @@ describe('buildQuickPool — 실제 문항 데이터', () => {
       canonical,
     );
 
-  it.each([['ISTQB'], ['CSTS']])('%s 풀이 최대 문항 수(20)보다 충분히 크다', (cert) => {
+  it.each([['ISTQB'], ['CSTS']])('%s 풀이 한 세션으로 다 못 풀 만큼 크다', (cert) => {
     expect(poolFor(cert).length).toBeGreaterThan(100);
   });
 

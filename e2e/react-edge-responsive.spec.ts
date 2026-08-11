@@ -82,25 +82,6 @@ test.describe("엣지-반응형", () => {
       expect(box!.x + box!.width).toBeLessThanOrEqual(375 + 1); // 뷰포트 폭(375) 안(±1px 반올림 여유)
     });
 
-    test("통계 챕터 행의 연습·미니 시험 버튼이 한 줄로 렌더된다(세로 꺾임 회귀)", async ({ page }) => {
-      await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-      // 채점 1회로 챕터 통계를 만든다 — 모바일에선 모드 버튼이 드로어 안에 있다.
-      await page.getByTestId("drawer-open").click();
-      await enterExam(page);
-      await page.locator("#options .option").first().click();
-      await submitGrade(page, "grade-button-m"); // 모바일: 하단 액션바 채점 버튼
-      await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
-      await page.getByTestId("drawer-open").click();
-      await page.getByTestId("stats-open").click();
-      const mini = page.getByTestId("chapter-minitest-btn").first();
-      await expect(mini).toBeVisible();
-      // 세로로 꺾이면('미/니/시/험') 높이가 4줄(≥60px)이 된다 — 한 줄이면 ~30px.
-      const box = await mini.boundingBox();
-      expect(box).not.toBeNull();
-      expect(box!.height).toBeLessThan(45);
-      const prac = await page.getByTestId("chapter-practice-btn").first().boundingBox();
-      expect(prac!.height).toBeLessThan(45);
-    });
   });
 
   test.describe("초소형(320x640)", () => {

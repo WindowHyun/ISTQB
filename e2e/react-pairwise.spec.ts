@@ -10,7 +10,7 @@ import { openProduct, gotoStable } from "./helpers";
  *
  * 요인:
  *   product   ISTQB / CSTS
- *   mode      practice / exam / random / review / quick
+ *   mode      practice / exam / review / quick
  *   size      10 / 15 / 20        (퀵에서만 의미, 그 외엔 무시)
  *   width     desktop(1280) / mobile(390)
  *   graded    채점함 / 안 함
@@ -18,7 +18,7 @@ import { openProduct, gotoStable } from "./helpers";
 
 const FACTORS = {
   product: ["ISTQB", "CSTS"],
-  mode: ["practice", "exam", "random", "review", "quick"],
+  mode: ["practice", "exam", "review", "quick"],
   size: ["10", "15", "20"],
   width: ["desktop", "mobile"],
   graded: ["yes", "no"],
@@ -103,7 +103,7 @@ function uncoveredTuples(t: number, chosen: Combo[]): number {
 }
 
 async function openBar(page: Page) {
-  const sel = page.locator("#quickSize");
+  const sel = page.getByTestId("quick-start-btn");
   if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
 }
 
@@ -111,7 +111,6 @@ async function enter(page: Page, c: Combo) {
   await openProduct(page, c.product as "ISTQB" | "CSTS");
   await openBar(page);
   if (c.mode === "quick") {
-    await page.locator("#quickSize").selectOption(c.size);
     await page.getByTestId("quick-start-btn").click();
   } else {
     await page.locator(`.segmented button[data-mode="${c.mode}"]`).click();
@@ -154,15 +153,19 @@ test.describe("페어와이즈 조합", () => {
         }
         if (!hasStem) continue;
 
-        // 답을 하나 고르면 진행률이 오르는가(답안 키가 어긋나면 여기서 드러난다).
-        const before = await page.locator("#progressText").textContent();
+        // 답을 하나 고르면 진행 표시가 오르는가(답안 키가 어긋나면 여기서 드러난다).
+        // 퀵은 진행률(N/총계) 대신 점수판을 쓴다 — 무한이라 분모가 없다.
+        const counter = c.mode === "quick"
+          ? page.getByTestId("qs-solved")
+          : page.locator("#progressText");
+        const before = await counter.textContent();
         const opt = page.locator("#options .option").first();
         if (await opt.count()) {
           await opt.click();
           await page.waitForTimeout(150);
-          const after = await page.locator("#progressText").textContent();
-          if (before === after && /^0 \//.test(before ?? "")) {
-            problems.push(`${label}: 답을 골라도 진행률이 그대로 (${before})`);
+          const after = await counter.textContent();
+          if (before === after && /^0/.test(before ?? "")) {
+            problems.push(`${label}: 답을 골라도 진행이 그대로 (${before})`);
           }
         }
 
@@ -175,15 +178,8 @@ test.describe("페어와이즈 조합", () => {
             if (await cm.count()) await cm.click();
             const res = page.getByTestId("result-summary");
             if (!(await res.count())) problems.push(`${label}: 채점했는데 결과가 뜨지 않음`);
-            else {
-              // 퀵은 합격 판정을 붙이지 않는다.
-              const text = await res.innerText();
-              if (c.mode === "quick" && /합격 기준/.test(text)) {
-                problems.push(`${label}: 퀵인데 합격 판정이 표시됨`);
-              }
-              if (c.mode !== "quick" && !/합격 기준/.test(text)) {
-                problems.push(`${label}: 실전 회차인데 합격 기준이 없음`);
-              }
+            else if (!/합격 기준/.test(await res.innerText())) {
+              problems.push(`${label}: 실전 회차인데 합격 기준이 없음`);
             }
           }
         }

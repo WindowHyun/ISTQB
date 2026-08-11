@@ -8,9 +8,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
  * 답안에는 원래 기준선 병합이 있었지만 나머지 UI 상태에는 없어서, saveUiState가 자기
  * 메모리를 통째로 덮어썼다. 실측(Chromium 2탭)에서 이렇게 났다:
  *
- *   B탭 선점 진입      → 디스크 quickRounds 0건
- *   A탭 퀵 10문항 채점 → 디스크 quickRounds 1건
- *   B탭에서 문항 이동  → 디스크 quickRounds 0건   ← A의 회차가 사라진다
+ *   B탭 선점 진입      → 디스크 reviewedOk 0건
+ *   A탭 복습 진척 기록 → 디스크 reviewedOk 1건
+ *   B탭에서 문항 이동  → 디스크 reviewedOk 0건   ← A의 진척이 사라진다
  *
  * 여기서는 그 상황을 한 프로세스 안에서 재현한다. "다른 탭"은 이 탭이 모르는 사이에
  * localStorage가 바뀐 상태로 흉내 낸다 — storage 이벤트가 없는 최악의 경우(이벤트를
@@ -44,34 +44,8 @@ function otherTabWrites(patch: Record<string, unknown>) {
   localStorage.setItem(UI, JSON.stringify({ ...readUi(), ...patch }));
 }
 
-const round = (id: string, createdAt = Date.now()) => ({
-  id, setId: 'QUICK', mode: 'quick' as const, certification: 'istqb' as const,
-  answers: {}, createdAt, correct: 1, total: 10,
-});
 
 describe('멀티탭 — 누적형 UI 상태는 마지막 쓰기가 이기지 않는다', () => {
-  it('다른 탭이 쌓은 퀵 회차를 이 탭의 저장이 지우지 않는다', () => {
-    store.useQuizStore.setState({ activeProduct: 'istqb' });
-    // 이 탭이 한 번 저장해 기준선을 잡는다(퀵 회차 없음).
-    store.useQuizStore.getState().setSetId('ISTQB-FL-V4-A');
-    vi.advanceTimersByTime(600);
-    expect(readUi().quickRounds ?? []).toHaveLength(0);
-
-    // 다른 탭이 퀵 회차를 채점해 넣는다.
-    otherTabWrites({ quickRounds: [round('r-other')] });
-
-    // 이 탭은 그 사실을 모른 채 문항을 넘긴다 → saveUiState.
-    store.useQuizStore.getState().setIndex(3);
-    vi.advanceTimersByTime(600);
-
-    const saved = readUi();
-    expect(saved.index, '커서는 이 탭 값이 이겨야 한다').toBe(3);
-    expect(
-      (saved.quickRounds ?? []).map((r: { id: string }) => r.id),
-      '다른 탭의 퀵 회차가 사라졌다 — 조용한 유실이다',
-    ).toEqual(['r-other']);
-  });
-
   it('다른 탭의 복습 진척·시험 기준점·오답 대상도 함께 보존된다', () => {
     store.useQuizStore.setState({ activeProduct: 'istqb' });
     store.useQuizStore.getState().setSetId('ISTQB-FL-V4-A');
@@ -115,14 +89,14 @@ describe('멀티탭 — 누적형 UI 상태는 마지막 쓰기가 이기지 않
     store.useQuizStore.getState().setSetId('ISTQB-FL-V4-A');
     vi.advanceTimersByTime(600);
 
-    otherTabWrites({ quickRounds: [round('r-other')] });
+    otherTabWrites({ reviewedOk: { 'ISTQB-FL-V4-A': [3, 4] } });
     store.useQuizStore.getState().setIndex(2);
     vi.advanceTimersByTime(600);
 
     expect(
-      store.useQuizStore.getState().quickRounds.map((r) => r.id),
+      store.useQuizStore.getState().reviewedOk['ISTQB-FL-V4-A'],
       '디스크에는 살렸는데 화면(메모리)은 여전히 모른다',
-    ).toEqual(['r-other']);
+    ).toEqual([3, 4]);
   });
 });
 

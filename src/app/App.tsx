@@ -241,7 +241,13 @@ export const App = () => {
         {/* 키보드 사용자용 본문 바로가기(B3) — 포커스될 때만 보인다. */}
         <a className="skip-link" href="#questionStem">본문 바로가기</a>
         <MobileTopBar />
-        <main className="app-shell" data-drawer={drawerOpen ? 'open' : 'closed'} aria-label={`${activeProduct.toUpperCase()} 문제풀이 앱`}>
+        <main
+          className="app-shell"
+          data-drawer={drawerOpen ? 'open' : 'closed'}
+          // 퀵에는 하단 고정 액션바가 없다 — CSS가 그만큼의 아래 여백을 되돌릴 수 있게 알린다.
+          data-mode={mode}
+          aria-label={`${activeProduct.toUpperCase()} 문제풀이 앱`}
+        >
           <ModeAnnouncer />
           <Sidebar />
           {drawerOpen && <div className="drawer-backdrop" onClick={() => setDrawerOpen(false)} aria-hidden="true" />}

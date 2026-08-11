@@ -80,7 +80,7 @@ describe('findGradedRoundMatch — 답안이 최신 채점 회차와 같은지',
     expect(findGradedRoundMatch(byId(other), SET, 'exam', other.answers)).toBeNull();
   });
 
-  it('챕터 스코프가 다르면 보지 않는다(미니 시험 회차가 세트 전체 판정에 끼지 않는다)', () => {
+  it('챕터 스코프가 다르면 보지 않는다(폐지된 미니 시험 회차가 세트 전체 판정에 끼지 않는다)', () => {
     const mini = round({
       id: 'r-mini', mode: 'random', chapter: '테스트 기초',
       answers: { [`${SET}-random-Q1`]: ['a'] },
@@ -150,56 +150,27 @@ describe('restorePersistentSnapshot — 랜덤/시험 복원 착지', () => {
     localStorage.setItem(ANS, JSON.stringify(answers));
   }
 
-  it('저장된 추첨이 있고 미채점이면 같은 추첨으로 이어푼다', async () => {
-    seed(
-      { mode: 'random', setId: SET, index: 3, randomDraw: { setId: SET, chapter: null, ids: ['Q1', 'Q2'] } },
-      { [`${SET}-random-Q1`]: ['a'] },
-    );
-    await storage.restorePersistentSnapshot('istqb');
-    const s = store.useQuizStore.getState();
-    expect(s.randomDraw?.ids, '추첨이 비워져 진행이 사라졌다').toEqual(['Q1', 'Q2']);
-    expect(s.answers[`${SET}-random-Q1`]).toEqual(['a']);
-    expect(s.resumeNotice, '첫 문항이 아니면 이어풀기 배너가 떠야 한다').toBe(true);
-    expect(s.resumePrompt).toBe(false);
-  });
-
-  it('첫 문항에서 이어풀면 위치 배너는 띄우지 않는다', async () => {
-    seed(
-      { mode: 'random', setId: SET, index: 0, randomDraw: { setId: SET, chapter: null, ids: ['Q1'] } },
-      { [`${SET}-random-Q1`]: ['a'] },
-    );
-    await storage.restorePersistentSnapshot('istqb');
-    expect(store.useQuizStore.getState().resumeNotice).toBe(false);
-  });
-
-  it('미니 시험(챕터 스코프)이면 챕터 필터도 함께 되살린다', async () => {
-    seed(
-      { mode: 'random', setId: SET, index: 1, randomDraw: { setId: SET, chapter: '테스트 기초', ids: ['Q1'] } },
-      { [`${SET}-random-Q1`]: ['a'] },
-    );
-    await storage.restorePersistentSnapshot('istqb');
-    expect(
-      store.useQuizStore.getState().chapterFilter,
-      '챕터 필터를 되살리지 않으면 추첨 스코프가 어긋나 일반 랜덤으로 재추첨된다',
-    ).toBe('테스트 기초');
-  });
-
-  it('저장된 추첨이 없는데 랜덤 진행이 남아 있으면 비우고 1회 안내한다', async () => {
+  it('폐지된 랜덤 모드로 저장돼 있으면 연습으로 시작한다', async () => {
+    // 랜덤은 퀵에 흡수돼 출제 분기가 없다 — 그 모드로 복원하면 빈 화면이 된다.
     seed({ mode: 'random', setId: SET, index: 2 }, { [`${SET}-random-Q1`]: ['a'] });
     await storage.restorePersistentSnapshot('istqb');
     const s = store.useQuizStore.getState();
-    expect(s.answers[`${SET}-random-Q1`], '랜덤 답안이 남아 유령 진행이 된다').toBeUndefined();
-    expect(s.randomDraw).toBeNull();
-    expect(document.body.textContent, '무통보 초기화 — 안내 토스트가 없다').toContain('랜덤은 접속할 때마다');
+    expect(s.mode, '진입할 수 없는 모드로 복원됐다').toBe('practice');
+    expect(s.index, '랜덤 세션은 이어풀 수 없으므로 처음부터다').toBe(0);
+    expect(s.resumeNotice).toBe(false);
+    expect(s.resumePrompt).toBe(false);
   });
 
-  it('추첨의 세트가 현재 세트와 다르면 이어풀지 않는다', async () => {
-    seed(
-      { mode: 'random', setId: SET, index: 1, randomDraw: { setId: 'ISTQB-FL-V4-B', chapter: null, ids: ['Q1'] } },
-      { [`${SET}-random-Q1`]: ['a'] },
-    );
+  it('랜덤 진행이 있었으면 무통보로 바꾸지 않고 1회 안내한다', async () => {
+    seed({ mode: 'random', setId: SET, index: 2 }, { [`${SET}-random-Q1`]: ['a'] });
     await storage.restorePersistentSnapshot('istqb');
-    expect(store.useQuizStore.getState().randomDraw).toBeNull();
+    expect(document.body.textContent, '무통보 전환 — 안내 토스트가 없다').toContain('랜덤 모드는 퀵으로 합쳐졌어요');
+  });
+
+  it('랜덤 답안 자체는 지우지 않는다 — 이력 보존 정책상 이력 비우기로만 지운다', async () => {
+    seed({ mode: 'random', setId: SET, index: 2 }, { [`${SET}-random-Q1`]: ['a'] });
+    await storage.restorePersistentSnapshot('istqb');
+    expect(store.useQuizStore.getState().answers[`${SET}-random-Q1`]).toEqual(['a']);
   });
 
   it('시험 답안이 남아 있으면 이어풀기/새로 풀기 선택 모달을 띄운다', async () => {

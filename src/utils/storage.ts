@@ -1,4 +1,4 @@
-import { useQuizStore, QuizState, QuizMode, ExamHistory, sessionScopeDefaults, PLAY_MODES } from '../store/useQuizStore';
+import { useQuizStore, QuizState, HistoryMode, ExamHistory, sessionScopeDefaults, PLAY_MODES } from '../store/useQuizStore';
 import debounce from 'lodash-es/debounce';
 import { showToast } from './toast';
 import { answerKeyPrefix, gradeKeyFor } from './answerKey';
@@ -224,8 +224,15 @@ export function sanitizeAnswers(value: unknown): Record<string, string[]> {
 // (예전에 고친 "챕터 미니 시험이 최고 정답률을 부풀림"과 같은 결함). 계약은 단위 테스트로 고정.
 // 목록을 여기서 다시 적지 않는다 — 스토어의 PLAY_MODES가 단일 원천이다(둘이 갈리면
 // 새 모드의 이력이 조용히 exam으로 보정된다).
-export const HISTORY_MODES: QuizMode[] = [...PLAY_MODES];
-const VALID_MODES: string[] = ["home", ...HISTORY_MODES];
+// PLAY_MODES에는 폐지된 'random'이 남아 있다 — 기존 회차 이력을 보존하기 위해서다.
+export const HISTORY_MODES: HistoryMode[] = [...PLAY_MODES];
+
+/**
+ * 복원된 UI 상태의 mode로 허용할 값. 이력(HISTORY_MODES)과 달리 폐지된 'random'은 빠진다 —
+ * 진입할 수 없는 모드로 복원하면 출제 분기가 없어 빈 화면이 된다.
+ * 저장값이 'random'인 사용자는 아래 restore에서 연습 모드로 내려받는다.
+ */
+const VALID_MODES: string[] = ["home", "exam", "practice", "review", "quick"];
 
 // 외부(IndexedDB 구버전 데이터·백업 파일) 이력을 정제한다 — sanitizeAnswers/sanitizeUiState와
 // 같은 계층. 필드를 검증하지 않으면 손상된 백업의 wrongItems 등이 그대로 상태에 들어가
@@ -331,7 +338,15 @@ export function sanitizeHistory(value: unknown): ExamHistory | null {
 export function sanitizeUiState(value: unknown): Partial<QuizState> {
   if (!isPlainObject(value)) return {};
   const out: Partial<QuizState> = {};
-  if (typeof value.mode === "string" && VALID_MODES.includes(value.mode)) {
+  if (value.mode === "random") {
+    // 폐지된 랜덤 모드로 저장된 사용자를 연습으로 내려받는다. 그냥 버리면 mode 필드가
+    // 아예 없는 복원본이 되어 메모리에 남아 있던 직전 모드가 그대로 쓰이는데, 그 값이
+    // 무엇인지는 진입 경로에 따라 달라진다 — 복원 결과가 경로에 좌우되지 않게 못박는다.
+    // 연습을 고른 이유: 세트 스코프이면서 게이트도 잠금도 없는 유일한 모드다.
+    // (랜덤 답안은 지우지 않는다 — 키가 `-random-`이라 연습 화면에 새지 않고, 이력 보존
+    //  정책상 '이력 비우기'로만 지워진다.)
+    out.mode = "practice";
+  } else if (typeof value.mode === "string" && VALID_MODES.includes(value.mode)) {
     out.mode = value.mode as QuizState["mode"];
   }
   if (typeof value.setId === "string") out.setId = value.setId;
@@ -376,13 +391,10 @@ export function sanitizeUiState(value: unknown): Partial<QuizState> {
   if (typeof value.chapterFilter === 'string' && value.chapterFilter) {
     out.chapterFilter = value.chapterFilter;
   }
-  // 퀵 추첨 스냅샷 — 제품과 (문항 id, 출처 세트) 쌍이 온전할 때만 통과(손상·조작 값 방어).
-  // 출처 세트가 없으면 오답 귀속과 복원이 성립하지 않으므로 그 항목은 버린다.
-  if (Array.isArray(value.quickRounds)) {
-    // 이력과 같은 정제기를 태운다(같은 모양이므로) — 만료 판정은 읽는 쪽에서 한다.
-    const rounds = value.quickRounds.map(sanitizeHistory).filter((h): h is ExamHistory => h !== null);
-    if (rounds.length) out.quickRounds = rounds;
-  }
+  // 퀵 출제 순서 스냅샷 — 제품과 (문항 id, 출처 세트) 쌍이 온전할 때만 통과(손상·조작 값 방어).
+  // 출처 세트가 없으면 복원 시 어느 세트를 열지 정할 수 없으므로 그 항목은 버린다.
+  // (구버전의 quickRounds — 24시간짜리 퀵 회차 임시 보관 — 는 퀵에 채점이 없어지면서
+  //  폐지됐다. 저장값이 남아 있어도 여기서 통과시키지 않으므로 자연히 사라진다.)
   if (isPlainObject(value.quickDraw)) {
     const qd = value.quickDraw as UnknownRecord;
     const rawItems = Array.isArray(qd.items) ? qd.items : [];
@@ -397,18 +409,7 @@ export function sanitizeUiState(value: unknown): Partial<QuizState> {
       out.quickDraw = { certification: qd.certification, items };
     }
   }
-  // 랜덤 추첨 스냅샷 — setId·ids가 유효할 때만 통과(손상 값 방어). chapter는 없으면 null(일반 랜덤).
-  if (isPlainObject(value.randomDraw)) {
-    const rd = value.randomDraw as UnknownRecord;
-    const ids = stringArray(rd.ids);
-    if (typeof rd.setId === 'string' && rd.setId && ids.length) {
-      out.randomDraw = {
-        setId: rd.setId,
-        chapter: typeof rd.chapter === 'string' && rd.chapter ? rd.chapter : null,
-        ids,
-      };
-    }
-  }
+  // 구버전의 randomDraw(랜덤 추첨 스냅샷)는 랜덤 모드 폐지와 함께 사라졌다 — 통과시키지 않는다.
   return out;
 }
 
@@ -434,7 +435,9 @@ function invalidateSessionRestoreCache(product: 'istqb' | 'csts') {
 export function findGradedRoundMatch(
   histories: Record<string, ExamHistory>,
   setId: string,
-  mode: QuizMode,
+  // 이력 레코드와 대조하는 함수이므로 폐지된 'random'까지 물을 수 있어야 한다
+  // (기존 랜덤 회차를 보존하기로 했다 — HistoryMode 주석 참고).
+  mode: HistoryMode,
   answers: Record<string, string[]>,
   chapter: string | null = null,
 ): ExamHistory | null {
@@ -549,45 +552,22 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
     );
     const sid = restoredUi.setId ?? '';
     const m = restoredUi.mode;
+    // 정제 전 원본 모드 — sanitizeUiState가 'random'을 'practice'로 내려받으므로,
+    // "원래 랜덤이었는가"는 여기서만 알 수 있다(안내 문구 분기에 쓴다).
+    const rawMode = isPlainObject(uiState) ? uiState.mode : undefined;
     const store = useQuizStore.getState();
-    if (m === 'random') {
-      // 저장된 추첨(뽑힌 문항 id)이 있으면 새로고침이라도 같은 문항으로 이어푼다 —
-      // 답안은 문항 id로 저장되므로 위치·답안이 그대로 유지된다(우발적 새로고침 진행 유실 방지).
-      const draw = restoredUi.randomDraw;
-      const canResume = !!draw && draw.setId === sid && draw.ids.length > 0;
-      if (canResume) {
-        // 이미 채점을 마친 랜덤 회차의 답안이면 이어풀기로 복원하지 않는다 — 같은 답안
-        // 재채점 시 회차가 중복 적립된다(graded는 비영속이라 새로고침 후 미채점처럼 보임).
-        // 기존 정책대로 답안·추첨을 비워 새로 시작한다.
-        const gradedRound = findGradedRoundMatch(histories, sid, 'random', sanitizedAnswers, draw!.chapter ?? null);
-        if (gradedRound) {
-          store.clearAnswers(sid, 'random');
-          store.setRandomDraw(null);
-          store.setIndex(0);
-          store.setResumePrompt(false);
-          store.setResumeNotice(false);
-        } else {
-          // 진행 중(미채점) — 같은 추첨으로 이어푼다. 미니 시험(챕터 스코프)이면 챕터 필터도
-          // 복원해 추첨 스코프를 맞춘다(chapterFilter는 비영속이라 여기서 draw 정보로 되살린다).
-          if (draw!.chapter) store.setChapterFilter(draw!.chapter);
-          store.setResumePrompt(false);
-          // 첫 문항이 아니면 이어풀기 위치 배너를 띄운다(#A).
-          store.setResumeNotice((restoredUi.index ?? 0) > 0);
-        }
-      } else {
-        // 저장된 추첨이 없으면(구버전/최초 진입) 기존 정책대로 새로 추첨한다.
-        const hadRandomProgress = Object.keys(sanitizedAnswers).some((k) =>
-          k.startsWith(answerKeyPrefix(sid, 'random')),
-        );
-        store.clearAnswers(sid, 'random');
-        store.setRandomDraw(null);
-        store.setIndex(0);
-        store.setResumePrompt(false);
-        store.setResumeNotice(false);
-        // 무통보 초기화 방지 — 진행이 실제로 사라진 경우에만 정책을 1회 안내한다.
-        if (hadRandomProgress) {
-          showToast('랜덤은 접속할 때마다 새로 추첨돼요 — 이전 진행은 초기화되었습니다.', 'info');
-        }
+    // 폐지된 랜덤 모드로 저장돼 있던 사용자는 sanitizeUiState가 연습으로 내려받았다.
+    // 랜덤 세션은 이어풀 수 없으므로(출제 분기가 없다) 새 세션으로 시작하고 한 번 안내한다.
+    if (rawMode === 'random') {
+      const hadRandomProgress = Object.keys(sanitizedAnswers).some((k) =>
+        k.startsWith(answerKeyPrefix(sid, 'random')),
+      );
+      store.setIndex(0);
+      store.setResumePrompt(false);
+      store.setResumeNotice(false);
+      // 무통보 초기화 방지 — 진행이 실제로 사라진 경우에만 정책을 1회 안내한다.
+      if (hadRandomProgress) {
+        showToast('랜덤 모드는 퀵으로 합쳐졌어요 — 연습 모드로 시작합니다.', 'info');
       }
     } else {
       // 시험 모드로 복원했고 이전 답안이 남아 있으면 "이어풀기/새로 풀기" 선택 모달을 띄운다.
@@ -631,22 +611,16 @@ export const saveUiState = debounce((state: Partial<QuizState>) => {
       elapsedSeconds: state.elapsedSeconds,
       reviewIds: state.reviewIds,
       navCollapsed: state.navCollapsed,
-      // 랜덤 추첨(뽑힌 문항 id) — 새로고침 시 같은 문항으로 이어풀기 위해 영속화.
-      randomDraw: state.randomDraw,
-      // 퀵 추첨 — 없으면 새로고침 시 다시 뽑혀 풀던 문항과 답안이 사라진다.
+      // 퀵 출제 순서 — 없으면 새로고침 시 다시 섞여 풀던 위치와 진행 집계가 사라진다.
       quickDraw: state.quickDraw,
-      // 챕터 집중 연습/미니 시험의 필터 — 영속화하지 않으면 새로고침 시 전체 세트로
-      // 돌아가 랜덤(이어풀기)과 동작이 어긋난다. 배너의 '전체 보기'로 언제든 해제 가능.
+      // 챕터 집중 연습의 필터 — 영속화하지 않으면 새로고침 시 전체 세트로 돌아가,
+      // 필터가 걸린 줄 알고 있는 진행과 어긋난다. 배너의 '전체 보기'로 언제든 해제 가능.
       chapterFilter: state.chapterFilter,
       // 시험 제한시간의 기준점 — 저장하지 않으면 앱을 껐다 켠 시간이 경과에서 빠져
       // 제한시간을 무한히 늘릴 수 있다.
       examStartedAt: state.examStartedAt,
       // 오답 재풀이 진척 — 저장하지 않으면 새로고침마다 복습이 헛일이 된다.
       reviewedOk: state.reviewedOk,
-      // 퀵 회차(24시간 임시). 이력(IndexedDB)이 아니라 여기 둔다 — 퀵은 회차 기록을
-      // 남기지 않는 모드라 영구 저장소에 넣으면 사양과 모순된다.
-      // 내보내기(exportUserData)에는 넣지 않는다: 복원 시점엔 이미 만료됐을 값이다.
-      quickRounds: state.quickRounds,
     };
     // 다른 탭이 넣은 누적 기록(퀵 회차·복습 진척·시험 기준점·오답 대상)을 덮어쓰지 않는다.
     // 커서형 필드는 safeState 그대로다 — 위 MERGEABLE_UI_KEYS 주석 참고.
@@ -659,7 +633,6 @@ export const saveUiState = debounce((state: Partial<QuizState>) => {
         reviewIds: merged.reviewIds ?? {},
         reviewedOk: merged.reviewedOk ?? {},
         examStartedAt: merged.examStartedAt ?? {},
-        quickRounds: merged.quickRounds ?? [],
       });
     }
 
@@ -714,8 +687,8 @@ function resetWriteBaseline(answers: Record<string, string[]>) {
 // 합칠 것과 합치지 말 것을 구분한다:
 // - 누적형(아래 MERGEABLE_UI_KEYS): 키마다 주인이 다른 기록이다. 회차 id·세트 id·채점
 //   키 단위로 다른 탭이 넣은 것을 보존해야 한다.
-// - 커서형(mode·setId·index·elapsedSeconds·navCollapsed·chapterFilter·randomDraw·
-//   quickDraw): "지금 이 탭이 보고 있는 위치"다. 두 탭이 서로 다른 문항을 보고 있을 때
+// - 커서형(mode·setId·index·elapsedSeconds·navCollapsed·chapterFilter·quickDraw):
+//   "지금 이 탭이 보고 있는 위치"다. 두 탭이 서로 다른 문항을 보고 있을 때
 //   합쳐진 커서는 어느 쪽에도 맞지 않으므로 마지막 쓰기가 이긴다(종전 동작 유지).
 const MERGEABLE_UI_KEYS = ['reviewIds', 'reviewedOk', 'examStartedAt'] as const;
 
@@ -734,21 +707,13 @@ function mergeKeyed<T>(
   return merged;
 }
 
-/** 퀵 회차는 배열이지만 id가 곧 키다 — 병합을 위해 레코드로 바꿨다가 되돌린다. */
-function roundsById(rounds: ExamHistory[] | undefined): Record<string, ExamHistory> {
-  const out: Record<string, ExamHistory> = {};
-  for (const r of rounds ?? []) out[r.id] = r;
-  return out;
-}
-
 interface UiBaseline {
   reviewIds: Record<string, string[]>;
   reviewedOk: Record<string, number[]>;
   examStartedAt: Record<string, number>;
-  quickRounds: Record<string, ExamHistory>;
 }
 const emptyUiBaseline = (): UiBaseline =>
-  ({ reviewIds: {}, reviewedOk: {}, examStartedAt: {}, quickRounds: {} });
+  ({ reviewIds: {}, reviewedOk: {}, examStartedAt: {} });
 
 let lastWrittenUi: UiBaseline = emptyUiBaseline();
 let lastWrittenUiKey = '';
@@ -758,7 +723,6 @@ function uiBaselineOf(state: Partial<QuizState>): UiBaseline {
     reviewIds: { ...(state.reviewIds ?? {}) },
     reviewedOk: { ...(state.reviewedOk ?? {}) },
     examStartedAt: { ...(state.examStartedAt ?? {}) },
-    quickRounds: roundsById(state.quickRounds),
   };
 }
 
@@ -799,16 +763,6 @@ function mergeUiWithStored<T extends Partial<QuizState>>(mine: T): { merged: T; 
     }
   }
 
-  // 퀵 회차(배열) — id를 키로 같은 규칙을 적용한다.
-  const mineRounds = roundsById(mine.quickRounds);
-  const nextRounds = mergeKeyed(mineRounds, roundsById(stored.quickRounds), lastWrittenUi.quickRounds);
-  if (Object.keys(nextRounds).length !== Object.keys(mineRounds).length) {
-    // 만료 판정은 읽는 쪽(freshQuickRounds)이 하므로 여기서는 순서만 맞춘다.
-    (merged as Partial<QuizState>).quickRounds = Object.values(nextRounds).sort(
-      (a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0),
-    );
-    adopted = true;
-  }
   return { merged, adopted };
 }
 
@@ -905,7 +859,6 @@ export async function exportUserData() {
       elapsedSeconds: state.elapsedSeconds,
       reviewIds: state.reviewIds,
       navCollapsed: state.navCollapsed,
-      randomDraw: state.randomDraw,
       quickDraw: state.quickDraw,
       chapterFilter: state.chapterFilter,
       // 시험 제한시간의 벽시계 기준점. 빠뜨리면 응시 중에 만든 백업을 복원했을 때
@@ -1119,13 +1072,11 @@ if (typeof window !== 'undefined') {
           reviewIds: incoming.reviewIds ?? store.reviewIds,
           reviewedOk: incoming.reviewedOk ?? store.reviewedOk,
           examStartedAt: incoming.examStartedAt ?? store.examStartedAt,
-          quickRounds: incoming.quickRounds ?? store.quickRounds,
         };
         const same =
           JSON.stringify(next.reviewIds) === JSON.stringify(store.reviewIds) &&
           JSON.stringify(next.reviewedOk) === JSON.stringify(store.reviewedOk) &&
-          JSON.stringify(next.examStartedAt) === JSON.stringify(store.examStartedAt) &&
-          JSON.stringify(next.quickRounds) === JSON.stringify(store.quickRounds);
+          JSON.stringify(next.examStartedAt) === JSON.stringify(store.examStartedAt);
         if (same) return; // 내용이 같으면 setState하지 않는다(구독 → 재저장 루프 방지)
         useQuizStore.setState(next);
         resetUiWriteBaseline({ ...store, ...next });
@@ -1148,23 +1099,11 @@ useQuizStore.subscribe((state, prevState) => {
     state.index !== prevState.index ||
     state.reviewIds !== prevState.reviewIds ||
     state.navCollapsed !== prevState.navCollapsed ||
-    state.randomDraw !== prevState.randomDraw ||
     state.quickDraw !== prevState.quickDraw ||
     state.chapterFilter !== prevState.chapterFilter ||
     // 시험 시작 시각이 잡히는 순간 즉시 저장한다 — 이걸 놓치면 앱을 껐다 켰을 때
     // 기준점이 없어 제한시간이 처음부터 다시 흐른다.
     state.examStartedAt !== prevState.examStartedAt ||
-    // 퀵 회차(24시간 임시 보관). saveUiState의 allowlist에는 원래 있었지만 이 목록에는
-    // 없어서, quickRounds가 바뀌어도 저장이 걸리지 않았다.
-    //
-    // 지금 이것이 유실로 이어지지는 않는다 — 채점은 setGraded도 함께 호출하고,
-    // QuestionWorkspace의 타이머 effect가 isGraded를 의존성에 두고 있어 그 순간 cleanup의
-    // flushPersist()가 동기로 저장한다(실측: 이 줄을 빼도 채점 직후 즉시 저장됨).
-    // 즉 퀵 회차의 영속성이 '무관한 컴포넌트의 effect 정리 타이밍'에 의존하고 있다.
-    // 그 의존성 배열은 바로 위 주석에서 이미 "매 렌더 재시작을 피하려" 손질된 적이 있고,
-    // isGraded가 빠지는 순간 퀵 회차는 저장 경로를 잃는다 — 그때 이를 잡아 줄 검사도 없다.
-    // 다른 누적형 필드(reviewedOk·examStartedAt·reviewIds)와 같은 규칙으로 맞춰 둔다.
-    state.quickRounds !== prevState.quickRounds ||
     state.reviewedOk !== prevState.reviewedOk
   ) {
     saveUiState(state);

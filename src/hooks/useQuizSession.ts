@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../store/useQuizStore';
 import { useQuestions, Question } from './useQuestions';
 import { isQuestionCorrect, isAnswered } from '../utils/answer';
-import { answerKeyFor, gradeKeyFor } from '../utils/answerKey';
+import { answerKeyFor, gradeKeyFor, QuestionIdentity } from '../utils/answerKey';
 import { buildRoundHistory, makeRoundId } from '../utils/roundHistory';
 import { questionKey } from '../utils/chapterStats';
 import { computeCstsWeightedScore } from '../utils/scoring';
@@ -16,11 +16,11 @@ import { saveHistoryToDB } from '../utils/storage';
 export function useQuizSession() {
   // 슬라이스 구독(O1) — elapsedSeconds는 구독하지 않고 채점 시점에 getState()로 읽는다
   // (구독하면 이 훅을 쓰는 모든 컴포넌트가 타이머 틱마다 리렌더된다).
-  const { mode, setId, answers, graded, examStarted, addHistory, addQuickRound, setReviewIds, setGraded, setResultOpen, setConfirmGradeOpen, markReviewed, unmarkReviewed } =
+  const { mode, setId, answers, graded, examStarted, addHistory, setReviewIds, setGraded, setResultOpen, setConfirmGradeOpen, markReviewed, unmarkReviewed } =
     useQuizStore(useShallow((s) => ({
       mode: s.mode, setId: s.setId, answers: s.answers, graded: s.graded,
       examStarted: s.examStarted[s.setId],
-      addHistory: s.addHistory, addQuickRound: s.addQuickRound, setReviewIds: s.setReviewIds, setGraded: s.setGraded,
+      addHistory: s.addHistory, setReviewIds: s.setReviewIds, setGraded: s.setGraded,
       markReviewed: s.markReviewed, unmarkReviewed: s.unmarkReviewed,
       setResultOpen: s.setResultOpen, setConfirmGradeOpen: s.setConfirmGradeOpen,
     })));
@@ -28,8 +28,10 @@ export function useQuizSession() {
 
   // 각 모드는 자체 답안 네임스페이스를 사용한다(오답 모드는 재풀이용 별도 기록).
   // useCallback: 아래 파생 메모들의 의존성이라 매 렌더 참조가 바뀌면 메모가 무효화된다.
+  // 인자를 Question이 아니라 QuestionIdentity(id·number)로 받는다 — 키 조립에 필요한 것이
+  // 그뿐이고, 좁게 받아야 문항의 부분집합만 아는 호출부(quickStats)도 이 함수를 쓸 수 있다.
   const answerKeyOf = useCallback(
-    (q: Question) => answerKeyFor(setId, mode, q),
+    (q: QuestionIdentity) => answerKeyFor(setId, mode, q),
     [setId, mode],
   );
 
@@ -45,7 +47,7 @@ export function useQuizSession() {
       const selected = answers[answerKeyOf(q)] || [];
       if (isAnswered(selected, q.answerParts)) answeredCount += 1;
       if (isQuestionCorrect(q.answer, selected, q.type, q.answerParts)) correct += 1;
-      // 채점된 시험/랜덤 또는 오답 모드에서 틀린 문항 목록(오답노트·네비 표시용).
+      // 채점된 시험 또는 오답 모드에서 틀린 문항 목록(오답노트·네비 표시용).
       else wrong.push({ q, i });
     });
     return { answered: answeredCount, correctCount: correct, wrongQuestions: wrong };
@@ -85,11 +87,7 @@ export function useQuizSession() {
     // 판정 규칙이 갈라져 화면 표시와 기록이 어긋날 수 있다.
     const wrongQs = wrongQuestions.map(({ q }) => q);
     const wrongIds = wrongQs.map(questionKey);
-    // 퀵은 세트 하나에 매이지 않아 index.json에서 제목을 찾을 수 없다 — 그대로 두면
-    // 통계 목록에 센티넬 'QUICK'이 그대로 노출된다.
-    const setTitle = mode === 'quick'
-      ? '퀵 랜덤'
-      : appData?.sets.find((s) => s.id === setId)?.title;
+    const setTitle = appData?.sets.find((s) => s.id === setId)?.title;
     // 회차 레코드 조립은 utils/roundHistory가 단일 원천이다 — 훅 안에 두면 유닛이 닿지
     // 못해(이 훅은 커버리지 0%였다) 필드 누락이 새로고침 뒤에야 조용히 드러났다.
     // 시각·난수는 인자로 넘겨 그쪽을 결정적으로 유지한다.
@@ -107,34 +105,19 @@ export function useQuizSession() {
       setTitle,
       // 매초 리렌더를 피하려고 구독 대신 채점 시점에 스냅샷으로 읽는다(O1).
       elapsedSeconds: snapshot.elapsedSeconds,
-      // 챕터 미니 시험(랜덤+필터) 표식 — 타임라인·회차 비교에서 세트 전체 회차와 분리된다.
-      // (연습은 채점이 없고 시험 모드 진입 시 setMode가 필터를 해제하므로 랜덤에서만 값이 실린다)
-      chapter: snapshot.chapterFilter ?? undefined,
       // CSTS 합격 판정 가중 점수 스냅샷 — ISTQB는 저장하지 않는다(단순 정답률이라 불필요).
       cstsWeighted: snapshot.activeProduct === 'csts' ? cstsWeighted : undefined,
       now: Date.now(),
       id: makeRoundId(),
     });
-    if (mode === 'quick') {
-      // 퀵은 회차 기록을 남기지 않는다(요약·타임라인·이력 목록에 나오지 않는다).
-      // 대신 24시간 임시 보관에 넣어 방금 틀린 것을 볼 수 있게 하고, 챕터 통계에는 합산한다.
-      // 세트별 오답 버킷(reviewIds)에는 넣지 않는다 — 세트를 다 풀지도 않았는데 그 세트의
-      // 오답 모드에 섞이면, 세트 단위 학습 흐름이 퀵 결과로 오염된다.
-      // 이 결정이 사양의 단일 원천이다. 읽는 쪽(useQuestions의 review 분기)도 퀵 키를
-      // 보지 않는다 — 종전에는 읽기만 남아 있어 "담긴다"는 주석과 실제가 어긋났다.
-      addQuickRound(history);
-    } else {
-      addHistory(history);
-      // 채점 이력을 IndexedDB에 영속화(새로고침 후 통계 대시보드에서 조회).
-      saveHistoryToDB(history);
-    }
-    if (mode !== 'quick') {
-      // 모드별로 저장해 랜덤 채점이 시험 오답 목록을 덮어쓰지 않게 한다(오답 모드는 합집합을 읽음).
-      setReviewIds(gradeKey, wrongIds);
-      // 다시 틀린 문항은 '복습함'에서 되돌린다 — 아니면 한 번 복습했다는 이유로
-      // 이후 계속 오답인데도 재풀이 목록에 영영 나타나지 않는다.
-      unmarkReviewed(setId, wrongQs.map((q) => q.number));
-    }
+    addHistory(history);
+    // 채점 이력을 IndexedDB에 영속화(새로고침 후 통계 대시보드에서 조회).
+    saveHistoryToDB(history);
+    // 모드별로 저장해 모드 간 오답 목록이 서로를 덮어쓰지 않게 한다(오답 모드는 합집합을 읽음).
+    setReviewIds(gradeKey, wrongIds);
+    // 다시 틀린 문항은 '복습함'에서 되돌린다 — 아니면 한 번 복습했다는 이유로
+    // 이후 계속 오답인데도 재풀이 목록에 영영 나타나지 않는다.
+    unmarkReviewed(setId, wrongQs.map((q) => q.number));
     setGraded(gradeKey, true);
   };
 
