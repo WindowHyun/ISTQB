@@ -96,7 +96,8 @@ test.describe("전이 — S2E 시험(게이트→응시중→채점후)", () => 
     await page.locator("#options .option").first().click();
     await expect(page.locator("#feedback")).toHaveCount(0); // 시험은 즉시 피드백 없음
     await expect(page.getByTestId("set-select")).toBeDisabled(); // 잠금
-    await expect(page.locator('.segmented button[data-mode="random"]')).toBeDisabled();
+    // 세그먼트에 '랜덤'은 없다(퀵에 흡수) — 남아 있는 다른 모드로 잠금을 확인한다.
+    await expect(page.locator('.segmented button[data-mode="quick"]')).toBeDisabled();
   });
 
   test("T19/T20: 응시 중 '오답 다시 풀기'·통계 '연습' 진입 차단(잠금 우회 방지)", async ({ page }) => {
@@ -181,7 +182,13 @@ test.describe("전이 — S2E 시험(게이트→응시중→채점후)", () => 
 });
 
 test.describe("전이 — S3 랜덤 / S4 오답", () => {
-  test("T5/T31/T32: 랜덤 진입(≤40) → 재클릭 무변화 → 채점 → 점수", async ({ page }) => {
+  /**
+   * ⚠ 보류(skip) — 검사 대상이 '세그먼트의 랜덤 탭'인데 그 탭이 사라졌다(퀵에 흡수, 147a9f0).
+   * 재클릭 무변화·세트 전체 40문항 추첨은 그 탭이 있어야 성립하는 성질이라, 살아 있는
+   * 랜덤(챕터 미니 시험)으로 옮기면 다른 검사가 된다 — 미니 시험의 진입·채점은
+   * react-flow-ux의 '챕터 미니 시험(S3)' describe가 이미 덮는다.
+   */
+  test.skip("T5/T31/T32: 랜덤 진입(≤40) → 재클릭 무변화 → 채점 → 점수", async ({ page }) => {
     await openSet(page, "ISTQB", A);
     await modeBtn(page, "랜덤").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
@@ -194,7 +201,8 @@ test.describe("전이 — S3 랜덤 / S4 오답", () => {
     await expect(page.getByTestId("score")).toContainText("점수", { timeout: 8_000 });
   });
 
-  test("T33/T35: 채점된 랜덤 재진입 → 재추첨·초기화 / 진행 중 리로드 → 이어풀기(진행 유지)", async ({ page }) => {
+  // ⚠ 보류(skip) — 위와 같은 이유(세그먼트 랜덤 탭 부재).
+  test.skip("T33/T35: 채점된 랜덤 재진입 → 재추첨·초기화 / 진행 중 리로드 → 이어풀기(진행 유지)", async ({ page }) => {
     await openSet(page, "ISTQB", A);
     await modeBtn(page, "랜덤").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });

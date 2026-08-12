@@ -281,7 +281,13 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
     await expect(page.locator("#progressText")).toHaveText("0 / 40");
   });
 
-  test("랜덤은 진행 중 새로고침 시 같은 추첨으로 이어푼다(선택 모달 없음)", async ({ page }) => {
+  /**
+   * ⚠ 보류(skip) — 검사 대상이 '세트 전체 40문항 랜덤'인데 그 진입로(세그먼트의 랜덤 탭)가
+   * 사라졌다(퀵에 흡수, 147a9f0). 살아 있는 랜덤은 챕터 필터가 걸린 미니 시험(최대 10문항)
+   * 뿐이라, 40문항을 전제로 한 이 검사들을 그대로 옮기면 재는 대상이 달라진다.
+   * 미니 시험의 진입·채점·이어풀기는 react-flow-ux의 '챕터 미니 시험(S3)'이 덮는다.
+   */
+  test.skip("랜덤은 진행 중 새로고침 시 같은 추첨으로 이어푼다(선택 모달 없음)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await modeBtn(page, "랜덤").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
@@ -299,7 +305,8 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
     await expect(page.locator("#questionTitle")).toHaveText(titleBefore || "");
   });
 
-  test("랜덤 진행 중 세트를 바꾸면 확인을 거쳐 새로 시작한다", async ({ page }) => {
+  // ⚠ 보류(skip) — 위와 같은 이유(세그먼트 랜덤 탭 부재).
+  test.skip("랜덤 진행 중 세트를 바꾸면 확인을 거쳐 새로 시작한다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await modeBtn(page, "랜덤").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
@@ -318,7 +325,8 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
     await expect(page.locator("#examSelect")).toHaveValue("ISTQB-FL-V4-C");
   });
 
-  test("랜덤 세트 변경을 취소하면 원래 세트와 진행이 그대로 남는다", async ({ page }) => {
+  // ⚠ 보류(skip) — 위와 같은 이유(세그먼트 랜덤 탭 부재).
+  test.skip("랜덤 세트 변경을 취소하면 원래 세트와 진행이 그대로 남는다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await modeBtn(page, "랜덤").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
@@ -335,7 +343,8 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
     await expect(page.locator("#progressText")).toHaveText("1 / 40");
   });
 
-  test("랜덤에 진행이 없으면 세트 변경을 묻지 않는다", async ({ page }) => {
+  // ⚠ 보류(skip) — 위와 같은 이유(세그먼트 랜덤 탭 부재).
+  test.skip("랜덤에 진행이 없으면 세트 변경을 묻지 않는다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await modeBtn(page, "랜덤").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
@@ -359,7 +368,8 @@ test.describe("학습 UX — 피드백 접근성(I)", () => {
 });
 
 test.describe("코드리뷰 수정 회귀 — 오답 목록 보존·가드 이동 초기화", () => {
-  test("랜덤 채점이 시험 오답 목록을 덮어쓰지 않는다(오답 모드 합집합)", async ({ page }) => {
+  // ⚠ 보류(skip) — 위와 같은 이유(세그먼트 랜덤 탭 부재).
+  test.skip("랜덤 채점이 시험 오답 목록을 덮어쓰지 않는다(오답 모드 합집합)", async ({ page }) => {
     // 70문항 세트: 랜덤은 40문항만 추첨하므로, 시험 오답(≈69)이 보존되면 합집합 > 40.
     await openSet(page, "CSTS", "CSTS-FL-2402");
     await enterExam(page);
@@ -379,7 +389,8 @@ test.describe("코드리뷰 수정 회귀 — 오답 목록 보존·가드 이�
       .toBeGreaterThan(40);
   });
 
-  test("랜덤 모드는 채점해도 문항 추첨이 유지된다(재추첨 없음)", async ({ page }) => {
+  // ⚠ 보류(skip) — 위와 같은 이유(세그먼트 랜덤 탭 부재).
+  test.skip("랜덤 모드는 채점해도 문항 추첨이 유지된다(재추첨 없음)", async ({ page }) => {
     // 70문항 세트: 재추첨되면 40문항 부분집합이 교체되어 현재 문항이 바뀐다.
     await openSet(page, "CSTS", "CSTS-FL-2402");
     await modeBtn(page, "랜덤").click();
@@ -391,7 +402,8 @@ test.describe("코드리뷰 수정 회귀 — 오답 목록 보존·가드 이�
     await expect(page.locator("#questionNav button")).toHaveCount(40);
   });
 
-  test("채점 후 시험 잠금이 풀려 채점된 랜덤에 들어가면 새로 풀 수 있다", async ({ page }) => {
+  // ⚠ 보류(skip) — 위와 같은 이유(세그먼트 랜덤 탭 부재).
+  test.skip("채점 후 시험 잠금이 풀려 채점된 랜덤에 들어가면 새로 풀 수 있다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     // 1) 랜덤을 채점해 둔다.
     await modeBtn(page, "랜덤").click();

@@ -168,10 +168,14 @@ test("정합성: 오답 수가 결과·오답노트·재풀이에서 어긋나�
   await page.evaluate(() => localStorage.clear());
   await openProduct(page, "ISTQB");
 
-  // 세트 단위 회차(랜덤)로 대조한다 — 퀵은 회차를 남기지 않아 세트 오답노트·재풀이에
+  // 세트 단위 회차(시험)로 대조한다 — 퀵은 회차를 남기지 않아 세트 오답노트·재풀이에
   // 들어가지 않으므로, 이 삼자 대조의 재료가 될 수 없다(그 분리는 아래에서 따로 본다).
+  // 종전에는 랜덤으로 회차를 만들었는데 그 진입로가 사라졌다(퀵에 흡수) — 세트 전체를
+  // 채점하는 회차라는 점은 시험이 같으므로 재료를 시험으로 바꾼다.
   await openBar(page);
-  await page.locator('.segmented button[data-mode="random"]').click();
+  await page.locator('.segmented button[data-mode="exam"]').click();
+  const gate = page.getByTestId("exam-start-btn");
+  if (await gate.count()) await gate.click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   const roundTotal = num(await page.locator("#progressText").textContent(), /\/\s*(\d+)/);
   await answerAll(page, (roundTotal ?? 40) + 2);

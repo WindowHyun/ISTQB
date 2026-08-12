@@ -1,12 +1,12 @@
 import { test, expect, Page } from "@playwright/test";
-import { expectMode, openProduct, enterQuick, quickStat, answerCurrent } from "./helpers";
+import { expectMode, openProduct, enterQuick, enterMiniTest, quickStat, answerCurrent } from "./helpers";
 
 /**
  * 유저 관점 전수 시나리오 — "실제로 이 앱을 쓰는 사람이 겪는 흐름"을 끝까지 밟는다.
  *
  * 기존 스펙은 기능 단위로 쪼개져 있어, 한 사람이 이어서 하는 행동에서만 드러나는
  * 어긋남(모드를 오가며 상태가 섞이는 것 등)을 놓친다. 여기서는 한 세션 안에서
- * 연습→시험→랜덤→퀵→오답→통계를 이어 밟고, 매 단계마다 콘솔 오류와 화면 정합을 본다.
+ * 연습→시험→미니 시험→퀵→오답→통계를 이어 밟고, 매 단계마다 콘솔 오류와 화면 정합을 본다.
  */
 
 type Err = { kind: string; text: string };
@@ -59,7 +59,7 @@ async function closeResult(page: Page) {
 }
 
 for (const product of ["ISTQB", "CSTS"] as const) {
-  test(`${product} — 한 사람이 연습→시험→랜덤→퀵→오답→통계를 이어서 밟는다`, async ({ page }) => {
+  test(`${product} — 한 사람이 연습→시험→미니 시험→퀵→오답→통계를 이어서 밟는다`, async ({ page }) => {
     const errs = watchErrors(page);
     await openProduct(page, product);
 
@@ -83,8 +83,9 @@ for (const product of ["ISTQB", "CSTS"] as const) {
     const examRate = await page.getByTestId("result-rate").textContent();
     await closeResult(page);
 
-    // 3) 랜덤
-    await pickMode(page, "random");
+    // 3) 랜덤(챕터 미니 시험) — 세그먼트의 '랜덤'은 빠졌고(퀵에 흡수) 통계의 챕터
+    //    '미니 시험'이 유일한 진입로다. 바로 위 시험 회차가 챕터 통계를 만들어 둔 상태다.
+    await enterMiniTest(page);
     await answerAll(page);
     await grade(page);
     await closeResult(page);
@@ -131,10 +132,12 @@ for (const product of ["ISTQB", "CSTS"] as const) {
     const minis = page.getByTestId("stats-mini-rounds");
     if (await minis.count()) await expect(minis).not.toContainText("퀵 랜덤");
 
-    // 응시 횟수는 시험+랜덤 2회여야 한다 — 퀵이 섞이면 3이 된다.
+    // 응시 횟수는 시험 1회다. 미니 시험(챕터 10문항)은 세트 전체 회차가 아니라 요약에서
+    // 제외되고(StatsDashboard의 isSetLevelRound), 퀵도 회차를 남기지 않는다 —
+    // 둘 중 하나라도 섞이면 여기가 2 이상이 된다.
     const attempts = await page.locator(".stats-summary div:nth-child(1) strong").textContent();
     console.log(`[유저] ${product} 응시 횟수=${attempts} · 시험 결과=${examRate}`);
-    expect(attempts).toBe("2");
+    expect(attempts).toBe("1");
 
     // 챕터 분모 합이 '풀어 본 서로 다른 문항 수'를 넘지 않는다(중복 이중 집계 감지).
     const denom = await page.locator(".sc-rate").evaluateAll((els) =>

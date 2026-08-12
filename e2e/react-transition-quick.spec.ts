@@ -10,7 +10,9 @@ import { openProduct } from "./helpers";
  * 이 조합에서 나왔다. 5×5 왕복을 기계적으로 밟아 남은 칸을 확인한다.
  */
 
-const SEGMENT_MODES = ["practice", "exam", "random", "review"] as const;
+// 세그먼트에 남은 모드 — random은 빠졌다(퀵에 흡수). 랜덤 모드 자체는 살아 있지만
+// 통계의 챕터 미니 시험으로만 들어가므로 '세그먼트 왕복'의 대상이 아니다.
+const SEGMENT_MODES = ["practice", "exam", "review"] as const;
 type Seg = typeof SEGMENT_MODES[number];
 
 const problems: string[] = [];
@@ -73,7 +75,7 @@ async function toQuick(page: Page) {
   await page.waitForTimeout(200);
 }
 
-test("전이: 세그먼트 4모드 ↔ 퀵 왕복 (8방향)", async ({ page }) => {
+test("전이: 세그먼트 3모드 ↔ 퀵 왕복 (6방향)", async ({ page }) => {
   test.setTimeout(300_000);
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
@@ -111,7 +113,7 @@ test("전이: 세그먼트 4모드 ↔ 퀵 왕복 (8방향)", async ({ page }) =
       bad(`quick→${m}: 문항이 렌더되지 않음 (${JSON.stringify(back)})`);
     }
   }
-  console.log(`· 4모드 × 왕복 = 8방향 검사 완료`);
+  console.log(`· 3모드 × 왕복 = 6방향 검사 완료`);
   expect(problems, problems.join("\n")).toEqual([]);
 });
 
@@ -220,13 +222,14 @@ test("전이: 퀵 진행 중에는 세트 셀렉트가 사라져 추첨도 진�
 });
 
 /**
- * 5모드 전이 전수 — 25개 순서쌍을 기계적으로 전부 밟는다.
+ * 4모드 전이 전수 — 16개 순서쌍을 기계적으로 전부 밟는다.
  *
- * 기존 커버리지를 세어 보니 exam·practice·quick은 모든 상대와 왕복하지만
- * random↔review는 어느 스펙도 밟지 않았다. "대부분 덮었다"와 "전수"는 다르므로
- * 목록을 코드가 만들게 해서 빠진 칸이 생기지 않게 한다.
+ * "대부분 덮었다"와 "전수"는 다르므로 목록을 코드가 만들게 해서 빠진 칸이 생기지 않게 한다.
+ * (종전에는 random을 포함한 5모드 25칸이었다. random이 세그먼트에서 빠지면서 4모드 16칸이
+ *  된다 — 살아 있는 랜덤은 진입 절차가 달라 이 순회의 대상이 아니다.)
  */
-const ALL_MODES = ["practice", "exam", "random", "review", "quick"] as const;
+// random은 세그먼트에서 빠져(퀵에 흡수) goAny의 진입 방식으로 도달할 수 없다.
+const ALL_MODES = ["practice", "exam", "review", "quick"] as const;
 type AnyMode = typeof ALL_MODES[number];
 
 /**
@@ -250,7 +253,7 @@ async function goAny(page: Page, m: AnyMode) {
   await page.waitForTimeout(180);
 }
 
-test("전이 전수: 5모드 25개 순서쌍을 모두 밟아도 앱이 살아 있다", async ({ page }) => {
+test("전이 전수: 4모드 16개 순서쌍을 모두 밟아도 앱이 살아 있다", async ({ page }) => {
   // 예산 5분(실측 46초 단독). 잡 타임아웃보다 작게 두는 이유는 react-fullsweep 주석 참고.
   test.setTimeout(300_000);
   const errs: string[] = [];
@@ -266,9 +269,12 @@ test("전이 전수: 5모드 25개 순서쌍을 모두 밟아도 앱이 살아 �
       await openProduct(page, "ISTQB");
 
       // 오답 모드로 가려면 오답이 있어야 한다 — 없으면 사양상 진입하지 않는다.
-      // random/review가 관여하는 칸을 실제로 밟으려면 먼저 오답을 만들어 둔다.
+      // review가 관여하는 칸을 실제로 밟으려면 먼저 오답을 만들어 둔다.
+      // (종전에는 랜덤으로 오답을 만들었는데 그 진입로가 사라졌다 — 시험이 같은 역할을 한다.)
       if (from === "review" || to === "review") {
-        await goAny(page, "random");
+        await goAny(page, "exam");
+        const gate = page.getByTestId("exam-start-btn");
+        if (await gate.count()) await gate.click();
         await page.locator("#options .option").first().click();
         await page.getByTestId("grade-button").click();
         const c = page.getByTestId("confirm-grade");
@@ -282,7 +288,7 @@ test("전이 전수: 5모드 25개 순서쌍을 모두 밟아도 앱이 살아 �
       walked += 1;
 
       // 전이가 실제로 일어났는지 센다. 이 확인이 없으면 진입 경로가 무동작이어도
-      // "앱이 살아 있다"는 그대로 참이라 25칸 전부가 조용히 초록으로 남는다
+      // "앱이 살아 있다"는 그대로 참이라 16칸 전부가 조용히 초록으로 남는다
       // (react-quick에서 같은 결함을 겪었다: 없는 셀렉터로 20문항을 한 번도 밟지 않았다).
       // 칸별로 to와 일치할 것을 요구하지는 않는다 — 거절이 사양인 칸이 있다.
       if ((await storeState(page, to)).mode === to) landed += 1;
@@ -302,16 +308,16 @@ test("전이 전수: 5모드 25개 순서쌍을 모두 밟아도 앱이 살아 �
       if (alive.overflow) bad(`${from}→${to}: 문서 가로 넘침`);
     }
   }
-  console.log(`· 5모드 전이 전수 ${walked}칸 (5×5) · 실제 전이 ${landed}칸`);
+  console.log(`· 4모드 전이 전수 ${walked}칸 (4×4) · 실제 전이 ${landed}칸`);
   if (refused.length) console.log(`  · 전이하지 않은 칸: ${refused.join(", ")}`);
   if (errs.length) bad(`JS 오류: ${JSON.stringify(errs.slice(0, 5))}`);
   // 순회 자체가 끝까지 돌았는가. 중간에서 새면 아래 검사들이 덜 밟은 상태로 통과한다.
-  expect(walked, "순회가 25칸을 다 밟지 못했다").toBe(25);
-  // 그리고 그 칸들이 실제로 모드를 옮겼는가. 실측이 25/25이므로 하한(>=20 따위)이 아니라
-  // 25를 그대로 요구한다 — 여유를 둔 하한은 "몇 칸이 조용히 무동작이어도 통과"라서
+  expect(walked, "순회가 16칸을 다 밟지 못했다").toBe(16);
+  // 그리고 그 칸들이 실제로 모드를 옮겼는가. 실측이 16/16이므로 하한(>=12 따위)이 아니라
+  // 16을 그대로 요구한다 — 여유를 둔 하한은 "몇 칸이 조용히 무동작이어도 통과"라서
   // 지금 없애려는 결함을 그대로 다시 만든다. 거절이 사양인 칸이 생기면 그때
   // 그 칸을 이름으로 예외 처리하고 숫자를 낮춘다(무엇이 왜 빠지는지 코드에 남게).
-  expect(landed, `25칸 중 ${landed}칸만 전이했다 — 진입 경로가 죽었을 수 있다(${refused.join(", ")})`)
-    .toBe(25);
+  expect(landed, `16칸 중 ${landed}칸만 전이했다 — 진입 경로가 죽었을 수 있다(${refused.join(", ")})`)
+    .toBe(16);
   expect(problems, problems.join("\n")).toEqual([]);
 });

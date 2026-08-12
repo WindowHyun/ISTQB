@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { enterExam, submitGrade } from "./helpers";
+import { completeAttempt, enterExam, enterMiniTest, submitGrade } from "./helpers";
 
 // React 앱 기능 전수 회귀 스펙 — 게이트·모드·채점·오답노트·설정·진위/단답 UI.
 // (Playwright 전수조사에서 도출: 626문항 렌더/404/예외 0, 기능 플로우 정상)
@@ -60,13 +60,14 @@ test("시험: 채점 전 피드백 없음 → 채점 → 점수/공개 + 오답�
   await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 5_000 });
 });
 
-test("랜덤: 문항 로드(≤40)", async ({ page }) => {
+// 랜덤 진입로는 통계의 챕터 미니 시험뿐이다(세그먼트의 '랜덤'은 퀵에 흡수돼 빠졌다).
+test("랜덤(미니 시험): 문항 로드(≤10)", async ({ page }) => {
   await openIstqb(page);
-  await modeBtn(page, "랜덤").click();
-  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
+  await completeAttempt(page); // 챕터 통계 생성
+  await enterMiniTest(page);
   const n = await page.locator("#questionNav button").count();
   expect(n).toBeGreaterThan(0);
-  expect(n).toBeLessThanOrEqual(40);
+  expect(n).toBeLessThanOrEqual(10);
 });
 
 test("설정: 모달 + 글자 크기 반영", async ({ page }) => {

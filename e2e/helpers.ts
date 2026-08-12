@@ -80,6 +80,24 @@ export async function enterExamMobile(page: Page) {
 }
 
 /**
+ * 랜덤 진입 — 통계의 챕터 '미니 시험'이 유일한 진입로다.
+ *
+ * 모드 세그먼트의 '랜덤'은 빠졌다(147a9f0 — "세트 안 무작위와 전 세트 무작위를 둘 다 두면
+ * 무엇이 다른지 설명할 수 없는 두 버튼이 나란히 있는 것"이라 퀵에 흡수). 랜덤 **모드**는
+ * 그대로 살아 있고, 이제 챕터 필터가 걸린 최대 10문항 회차로만 도달한다.
+ *
+ * 그래서 이 헬퍼에는 '세트 전체 40문항'이 없다 — 종전 스펙들이 기대하던 그 형태의 랜덤은
+ * 제품에서 사라졌다. 챕터 목록은 채점 이력에서 만들어지므로 회차 하나가 선행돼야 한다
+ * (completeAttempt 등).
+ */
+export async function enterMiniTest(page: Page) {
+  await page.getByTestId("stats-open").click();
+  await page.getByTestId("chapter-minitest-btn").first().click();
+  await expect(page.getByTestId("chapter-filter-banner")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+}
+
+/**
  * 퀵 진입 — 모드 세그먼트가 유일한 진입로다.
  *
  * 종전에는 문항 수 콤보(#quickSize)에서 10·15·20을 고르고 '시작'을 누르는 두 단계였다.

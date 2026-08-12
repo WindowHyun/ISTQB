@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { enterExam, modeBtn, openProduct, openSet } from "./helpers";
+import { completeAttempt, enterExam, enterMiniTest, modeBtn, openProduct, openSet } from "./helpers";
 
 const SET = "ISTQB-FL-V4-A";
 
@@ -33,7 +33,19 @@ test.describe("확인 가드", () => {
   });
 
   // B4: 세트 변경과 같은 손실인데 이 경로만 확인 없이 즉시 실행됐다.
-  test("'새 문제 뽑기'는 진행이 있으면 확인을 거친다", async ({ page }) => {
+  /**
+   * ⚠ 보류(skip) — 검사 대상 컨트롤이 제품에서 사라졌다.
+   *
+   * '새 문제 뽑기'(data-testid="random-redraw") 버튼은 147a9f0에서 사이드바와 함께 빠졌다.
+   * 확인 모달(pending-redraw-*)과 스토어 액션(redrawRandom)은 남아 있지만 누를 곳이 없어
+   * 지금은 도달 불가능한 코드다.
+   *
+   * 지우지 않고 남겨 두는 이유: 버튼 제거가 의도한 사양 변경인지, 사이드바를 줄이는 과정에서
+   * 딸려 나간 것인지 커밋만으로는 알 수 없다. 전자라면 이 두 검사와 함께 죽은 모달·액션도
+   * 걷어내야 하고, 후자라면 버튼을 되살리는 것이 맞다 — 어느 쪽이든 이 자리에 결정이
+   * 필요하다는 사실이 보여야 한다. 붉은 채로 두면 무시하는 법을 배우게 되므로 skip으로 둔다.
+   */
+  test.skip("'새 문제 뽑기'는 진행이 있으면 확인을 거친다", async ({ page }) => {
     await openSet(page, "ISTQB", SET);
     await modeBtn(page, "랜덤").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
@@ -50,7 +62,8 @@ test.describe("확인 가드", () => {
     await expect(page.locator("#progressText")).toHaveText("0 / 40");
   });
 
-  test("'새 문제 뽑기'는 진행이 없으면 묻지 않는다", async ({ page }) => {
+  // ⚠ 보류(skip) — 위와 같은 이유(random-redraw 버튼 부재).
+  test.skip("'새 문제 뽑기'는 진행이 없으면 묻지 않는다", async ({ page }) => {
     await openSet(page, "ISTQB", SET);
     await modeBtn(page, "랜덤").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
@@ -90,10 +103,10 @@ test.describe("확인 가드", () => {
 
 // C3: 헤더는 원본 번호, 팔레트는 순번이라 랜덤·오답 모드에서 서로 달랐다.
 test.describe("문항 번호 일관성", () => {
-  test("랜덤 모드에서 팔레트 번호가 헤더 문항 번호와 일치한다", async ({ page }) => {
+  test("랜덤(미니 시험)에서 팔레트 번호가 헤더 문항 번호와 일치한다", async ({ page }) => {
     await openSet(page, "ISTQB", SET);
-    await modeBtn(page, "랜덤").click();
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
+    await completeAttempt(page); // 챕터 통계 생성 — 미니 시험 진입로
+    await enterMiniTest(page);
     const header = (await page.locator("#questionTitle").textContent()) || "";
     const num = header.match(/문제 (\d+)/)?.[1];
     expect(num).toBeTruthy();

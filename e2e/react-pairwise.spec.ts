@@ -4,23 +4,27 @@ import { openProduct, gotoStable } from "./helpers";
 /**
  * 페어와이즈(all-pairs) 조합 테스트.
  *
- * 요인을 전조합하면 2×5×2×2 = 40가지라 E2E로 돌리기엔 비싸다. 결함 대부분은
+ * 요인을 전조합하면 2×4×2×2 = 32가지라 E2E로 돌리기엔 비싸다. 결함 대부분은
  * 두 요인의 조합에서 드러난다는 관찰에 기대어, 모든 '요인쌍'이 최소 한 번은 함께
  * 나타나는 최소 집합만 실행한다.
  *
  * 요인:
  *   product   ISTQB / CSTS
- *   mode      practice / exam / random / review / quick
+ *   mode      practice / exam / review / quick
  *   width     desktop(1280) / mobile(390)
  *   graded    채점함 / 안 함
  *
  * size(10/15/20)는 뺐다 — 퀵이 문항 수를 묻지 않게 되면서 그 요인이 고를 값을 잃었다.
  * 값이 하나뿐인 요인은 조합을 3배로 부풀리기만 하고 아무 상호작용도 더하지 않는다.
+ *
+ * random도 뺐다 — 모드 세그먼트에서 빠져(퀵에 흡수) 이 스펙의 진입 방식(세그먼트 클릭)으로는
+ * 도달할 수 없다. 살아 있는 랜덤(챕터 미니 시험)은 진입 절차가 달라(통계 → 챕터 버튼)
+ * 이 조합 매트릭스에 그대로 얹히지 않는다 — 전용 스펙들이 따로 덮는다.
  */
 
 const FACTORS = {
   product: ["ISTQB", "CSTS"],
-  mode: ["practice", "exam", "random", "review", "quick"],
+  mode: ["practice", "exam", "review", "quick"],
   width: ["desktop", "mobile"],
   graded: ["yes", "no"],
 } as const;

@@ -122,7 +122,12 @@ test.describe("챕터 미니 시험(S3)", () => {
 });
 
 test.describe("랜덤 UX(S1·S5)", () => {
-  test("'새 문제 뽑기'로 답안 초기화 + 재추첨(S5)", async ({ page }) => {
+  /**
+   * ⚠ 보류(skip) — '새 문제 뽑기'(random-redraw) 버튼이 147a9f0에서 사이드바와 함께 빠졌다.
+   * 확인 모달·스토어 액션은 남아 있으나 누를 곳이 없다. 판단이 필요한 자리라 지우지 않는다
+   * (react-guards의 같은 skip 주석에 사정을 적어 뒀다).
+   */
+  test.skip("'새 문제 뽑기'로 답안 초기화 + 재추첨(S5)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await page.locator('.segmented button[data-mode="random"]').click();
     await page.waitForSelector("#options .option");
@@ -135,7 +140,13 @@ test.describe("랜덤 UX(S1·S5)", () => {
     await expect(page.locator("#progressText")).toHaveText("0 / 40");
   });
 
-  test("랜덤 진행 중 새로고침 → 같은 추첨으로 진행이 유지된다(S1)", async ({ page }) => {
+  /**
+   * ⚠ 보류(skip) — 검사 대상이 '세트 전체 40문항 랜덤'인데 그 진입로가 사라졌다(퀵에 흡수).
+   * 살아 있는 랜덤(챕터 미니 시험)의 같은 성질은 바로 위 describe의
+   * "미니 시험 진행 중 새로고침 → 같은 챕터·문항으로 이어푼다"가 이미 덮고 있다.
+   * 즉 이 검사를 미니 시험으로 옮기면 그 검사와 겹친다 — 그래서 옮기지 않고 보류한다.
+   */
+  test.skip("랜덤 진행 중 새로고침 → 같은 추첨으로 진행이 유지된다(S1)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await page.locator('.segmented button[data-mode="random"]').click();
     await page.waitForSelector("#options .option");
