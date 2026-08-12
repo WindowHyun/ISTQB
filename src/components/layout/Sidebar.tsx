@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useQuizStore } from '../../store/useQuizStore';
+import { useQuizStore, QUICK_ALL } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { reviewTargetIds } from '../../hooks/useQuestions';
 import { gradeKeyFor } from '../../utils/answerKey';
@@ -137,7 +137,8 @@ export const Sidebar = () => {
       showToast('시험 응시 중에는 퀵을 시작할 수 없습니다. 먼저 채점하세요.', 'info');
       return;
     }
-    startQuick();
+    // 문항 수를 묻지 않으므로 전 세트를 섞어 끝까지 낸다(QUICK_ALL 주석 참고).
+    startQuick(QUICK_ALL);
     beginSession();
     closeDrawer();
   };
@@ -211,7 +212,12 @@ export const Sidebar = () => {
           <p id="productSubtitle">
             {certLabel}{productScope ? ` · ${productScope}` : ''}
           </p>
-          <h1 id="productTitle">{currentSet?.title || '문제 풀이'}</h1>
+          {/* 퀵에서는 세트명을 쓰지 않는다 — 세트 셀렉트를 감춘 것과 같은 이유이고,
+              여기가 실제로 세트명이 새어 나오던 자리다. 퀵 모드로 들어와도 setId는 직전에
+              고른 세트 그대로여서(모드 세그먼트는 mode만 바꾼다) 전 세트를 섞어 푸는 중에
+              "(공개답안) CSTS 2402FL"이 제목으로 떠 있었다 — 지금 푸는 문항의 출처도
+              아니어서 순전히 잘못된 정보다. */}
+          <h1 id="productTitle">{mode === 'quick' ? '퀵 랜덤' : (currentSet?.title || '문제 풀이')}</h1>
         </div>
         {/* 모바일 드로어 전용 닫기 버튼(CSS로 데스크톱 숨김) — 터치 스크린리더 사용자는
             백드롭(aria-hidden)·Esc 외의 명시적 탈출 UI가 필요하다. */}
@@ -276,23 +282,25 @@ export const Sidebar = () => {
       )}
 
       <div className="sidebar-controls" data-exam-locked={examLocked ? 'true' : undefined}>
+        {/* 퀵에서는 세트 선택을 통째로 내린다.
+            퀵은 세트 개념이 없는 모드다(제품의 전 세트를 섞어 낸다). 종전에는 셀렉트를
+            남겨 두고 disabled로만 막았는데, 그러면 "지금 이 세트를 풀고 있다"는 잘못된
+            읽기를 화면이 계속 제공한다 — 퀵으로 들어오기 직전에 고른 세트 이름이 그대로
+            떠 있기 때문이다. 고를 수도 없고 뜻하는 바도 없는 컨트롤이라 자리를 비운다.
+            (열어 두면 안 되는 이유는 그대로다: 바꿔도 출제 목록은 퀵 추첨 그대로여서
+            화면상 아무 일도 안 일어나는 것처럼 보이지만, 실제로는 진행이 통째로 사라진다.
+            답안 키가 `${setId}-${mode}-${qid}`라 퀵의 센티넬(QUICK-quick-*)로 저장한 답을
+            그 세트 기준으로 찾게 돼 도달할 수 없게 된다.) */}
+        {mode !== 'quick' && (
         <section className="panel">
           {/* 라벨은 화면에서 감추고 보조기기에는 남긴다 — 셀렉트가 세트 제목을 그대로
               보여 주므로 위에 회색 대문자 라벨을 겹쳐 두면 같은 말을 두 번 하는 셈이다. */}
           <label className="sr-only" htmlFor="examSelect">문제 세트</label>
-          {/* 퀵도 잠근다. 퀵은 세트 개념이 없는 모드라(전 세트에서 뽑는다) 여기서 세트를
-              고르는 것 자체가 의미가 없는데, 종전에는 열려 있어 바꿀 수 있었다. 바꿔도
-              출제 목록은 퀵 추첨 그대로여서 화면상 아무 일도 안 일어나는 것처럼 보이지만,
-              실제로는 진행이 통째로 사라진다: 답안 키가 `${setId}-${mode}-${qid}`라
-              퀵의 센티넬(QUICK-quick-*)로 저장한 답을 그 세트 기준으로 찾게 돼 도달할 수
-              없게 된다(진행률 2/10 → 0/10, 새로고침해도 복구 안 됨).
-              같은 위험을 자동 선택 effect는 이미 알고 가드하고 있었는데(위 주석 참고)
-              사용자가 직접 바꾸는 이 경로만 비어 있었다. */}
           <select
             id="examSelect"
             value={setId}
             onChange={handleSetChange}
-            disabled={examLocked || quickUnderway}
+            disabled={examLocked}
             data-testid="set-select"
           >
             {sets.map((set) => (
@@ -301,14 +309,8 @@ export const Sidebar = () => {
               </option>
             ))}
           </select>
-          {/* 잠금 사유를 밝힌다 — 이유 없이 비활성만 되면 "왜 안 눌리지"가 된다.
-              시험 모드는 아래 exam-lock-hint가 따로 안내하므로 퀵일 때만 붙인다. */}
-          {quickUnderway && (
-            <p className="action-hint" data-testid="quick-set-lock-hint">
-              퀵은 전 세트를 섞어 풀어요 — 다른 모드로 바꾸면 세트를 다시 고를 수 있습니다.
-            </p>
-          )}
         </section>
+        )}
 
         <section className="panel">
           {/* 시각 라벨 없음 — 세그먼트 자체가 role=group + aria-label로 이름을 갖고 있고,

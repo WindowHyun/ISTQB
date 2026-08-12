@@ -31,6 +31,16 @@ export const PLAY_MODES = ['exam', 'practice', 'random', 'review', 'quick'] as c
 /** 퀵에서 고를 수 있는 문항 수. 듀오링고식 짧은 세션 규모. */
 export const QUICK_SIZES = [10, 15, 20] as const;
 
+/**
+ * 문항 수를 고르지 않는 퀵 — 제품의 전 세트를 섞어 끝까지 낸다.
+ *
+ * 사이드바의 문항 수 선택을 없앤 뒤(끝이 정해지지 않은 모드에 '10문항'을 고르게 하는 것은
+ * 거짓말이다) 진입로가 넘길 값이 없어졌다. 추첨은 useQuestions가 `Math.min(size, pool.length)`로
+ * 하므로 풀보다 큰 값은 곧 '전부'다 — quickSize를 nullable로 만들어 추첨·복원·영속화
+ * 세 곳에 분기를 추가하는 대신 상수 하나로 같은 뜻을 표현한다.
+ */
+export const QUICK_ALL = Number.MAX_SAFE_INTEGER;
+
 export interface ExamHistory {
   id: string;
   setId: string;

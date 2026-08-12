@@ -13,6 +13,7 @@ import { useBackDismiss } from '../../hooks/useBackDismiss';
 import { BACK_PRIORITY } from '../../utils/backGuard';
 import { QuestionCard } from './QuestionCard';
 import { QuestionPalette } from './QuestionPalette';
+import { QuickScoreboard } from './QuickScoreboard';
 import { ErrorState } from '../common/ErrorState';
 
 export const QuestionWorkspace = () => {
@@ -286,8 +287,11 @@ export const QuestionWorkspace = () => {
   return (
     <section className="workspace" aria-label="문제 풀이 영역">
       <header className="topbar">
-        <div>
-          <p id="setMeta">{setTitle}</p>
+        <div className="topbar-title">
+          {/* 퀵에서는 세트명을 쓰지 않는다 — 전 세트를 섞어 내는 모드라 '현재 세트'가 없고,
+              setId도 어느 세트도 아닌 센티넬(QUICK)이라 여기서 조회하면 늘 빈 값이다.
+              빈 <p>를 남기면 제목 위에 원인 모를 여백만 생기므로 요소째 뺀다. */}
+          {mode !== 'quick' && <p id="setMeta">{setTitle}</p>}
           <div className="question-title-row">
             <h2 id="questionTitle">문제 {currentQuestion.number}{isMulti ? ' · 복수정답' : ''}</h2>
             {currentQuestion.chapter && (
@@ -295,6 +299,12 @@ export const QuestionWorkspace = () => {
             )}
           </div>
         </div>
+        {/* 퀵 현황은 헤더의 오른쪽 빈자리에 들어간다(CSS의 margin-left:auto가 밀어 붙인다).
+            래퍼로 감싸지 않는 이유: .topbar은 space-between이라 감싸면 한 덩이가 더 생겨
+            좁은 폭에서 점수판만 아래 줄로 흘리는 처리를 그 래퍼에 또 걸어야 한다. */}
+        {mode === 'quick' && (
+          <QuickScoreboard questions={currentQuestions} cursor={safeIndex} />
+        )}
         <div className="topbar-actions">
           <button id="prevBtn" type="button" aria-label="이전 문제" disabled={safeIndex === 0} onClick={goPrev}>‹</button>
           <button id="nextBtn" type="button" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
