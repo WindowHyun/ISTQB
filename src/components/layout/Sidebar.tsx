@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore, QUICK_ALL } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { reviewTargetIds } from '../../hooks/useQuestions';
-import { gradeKeyFor } from '../../utils/answerKey';
+import { answerKeyPrefix, gradeKeyFor } from '../../utils/answerKey';
 import { useSetCounts } from '../../hooks/useSetCounts';
 import { TimerClock } from '../common/TimerClock';
 import { BRAND_LOGO_SRC } from '../../utils/brandLogo';
@@ -28,7 +28,7 @@ export const Sidebar = () => {
     mode, setId, activeProduct, drawerOpen,
     setMode, setSetId, beginSession, clearAnswers,
     setStatsOpen, setSettingsOpen, setWrongNoteOpen, setResultOpen, setDrawerOpen,
-    setQuitExamOpen, commitSetChange, startQuick,
+    setQuitExamOpen, commitSetChange, setPendingSetChange, startQuick,
   } = useQuizStore(useShallow((s) => ({
     mode: s.mode, setId: s.setId, activeProduct: s.activeProduct, drawerOpen: s.drawerOpen,
     setMode: s.setMode, setSetId: s.setSetId, beginSession: s.beginSession,
@@ -38,6 +38,7 @@ export const Sidebar = () => {
     setDrawerOpen: s.setDrawerOpen,
     setQuitExamOpen: s.setQuitExamOpen,
     commitSetChange: s.commitSetChange,
+    setPendingSetChange: s.setPendingSetChange,
     startQuick: s.startQuick,
   })));
   const asideRef = React.useRef<HTMLElement>(null);
@@ -96,9 +97,30 @@ export const Sidebar = () => {
   // 모바일 드로어 안에서 컨트롤을 조작하면 드로어를 닫아 문제로 복귀한다.
   const closeDrawer = () => setDrawerOpen(false);
 
+  // 랜덤 진행 중 판정 — 현재 세트에 답한 문항이 있고 아직 채점하지 않은 상태.
+  // 채점 후에는 결과를 이미 봤으므로 세트 변경을 막을 이유가 없다.
+  const hasRandomProgress = () => {
+    const s = useQuizStore.getState();
+    if (s.graded[gradeKeyFor(setId, 'random')]) return false;
+    return Object.keys(s.answers).some((k) => k.startsWith(answerKeyPrefix(setId, 'random')));
+  };
+
   const handleSetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     // 세트를 바꿔도 현재 모드는 유지한다(연습으로 초기화하지 않음, #2).
-    commitSetChange(e.target.value);
+    const newSetId = e.target.value;
+    // 랜덤은 세트별로 추첨을 보관하지 않아(F4) 세트를 바꾸면 지금 푸는 문항이 통째로
+    // 사라진다. 진행이 있는데 아직 채점 전이면 소리 없이 버리지 않고 한 번 묻는다.
+    // (select는 value={setId} 제어 컴포넌트라 여기서 반환하면 표시가 원래 세트로 되돌아간다)
+    //
+    // 이 가드는 147a9f0에서 사이드바를 줄이며 함께 빠졌었다. 확인 모달(pendingSetChange)은
+    // 남아 있었지만 띄우는 쪽이 없어져, 랜덤 진행 중 세트를 바꾸면 경고 없이 진행이
+    // 사라지는 상태였다. 랜덤 진입로가 통계의 챕터 미니 시험으로 옮겨졌을 뿐 이 손실
+    // 경로는 그대로 살아 있다(미니 시험/전체 보기 중에도 세트 셀렉트는 열려 있다).
+    if (mode === 'random' && hasRandomProgress()) {
+      setPendingSetChange(newSetId);
+      return;
+    }
+    commitSetChange(newSetId);
   };
 
   const handleModeChange = (newMode: typeof mode) => {

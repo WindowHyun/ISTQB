@@ -14,12 +14,13 @@ test.describe("사이트 사용법(사용설명서)", () => {
     // 각 모드와 핵심 규칙이 설명돼 있다.
     await expect(guide).toContainText("연습");
     await expect(guide).toContainText("시험 시작");
-    await expect(guide).toContainText("새 문제 뽑기");
+    // '새 문제 뽑기'는 제품에서 제거됐다 — 가이드도 더 이상 안내하지 않는다.
+    await expect(guide).not.toContainText("새 문제 뽑기");
     await expect(guide).toContainText("미니 시험");
     await expect(guide).toContainText("퀵 랜덤");
     // 퀵의 두 가지 약속(기록 없음 · 오답 24시간)은 화면 어디에도 안내가 없으면
     // 사용자가 "왜 통계에 안 잡히지"를 결함으로 신고하게 된다.
-    await expect(guide).toContainText("회차 기록을 아예 남기지 않습니다");
+    await expect(guide).toContainText("회차 기록은 아예 남지 않습니다");
     await expect(guide).toContainText("24시간");
     await expect(guide).toContainText("✓ 극복");
     await expect(guide).toContainText("기록 내보내기");

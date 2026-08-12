@@ -98,6 +98,23 @@ export async function enterMiniTest(page: Page) {
 }
 
 /**
+ * 세트 전체 랜덤(최대 40문항) 진입 — 미니 시험으로 들어간 뒤 챕터 제한을 푼다.
+ *
+ * 모드 세그먼트의 '랜덤' 탭이 사라진 뒤 이 경로가 유일하다. 배너의 '전체 보기'는
+ * chapterFilter만 지우고 mode는 'random'으로 두므로, 같은 모드가 챕터 10문항에서
+ * 세트 전체 40문항으로 넓어진다(useQuestions의 MINI_TEST_SIZE / RANDOM_DRAW_SIZE 분기).
+ *
+ * 즉 '세트 전체 랜덤'은 죽은 기능이 아니다 — 진입로만 바뀌었다. 이 헬퍼를 쓰는 검사들이
+ * 그 사실을 고정한다.
+ */
+export async function enterFullRandom(page: Page) {
+  await enterMiniTest(page);
+  await page.getByTestId("chapter-filter-clear").click();
+  await expect(page.getByTestId("chapter-filter-banner")).toHaveCount(0);
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+}
+
+/**
  * 퀵 진입 — 모드 세그먼트가 유일한 진입로다.
  *
  * 종전에는 문항 수 콤보(#quickSize)에서 10·15·20을 고르고 '시작'을 누르는 두 단계였다.

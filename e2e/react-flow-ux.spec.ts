@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { completeAttempt, enterExam, modeBtn, openSet, submitGrade, closeResult } from "./helpers";
+import { completeAttempt, enterExam, enterFullRandom, modeBtn, openSet, submitGrade, closeResult } from "./helpers";
 
 // 흐름·기획 개선(S1~S6) — 응시 포기, 채점 완료 회차 새로고침 가드, 챕터 미니 시험,
 // 랜덤 초기화 안내·새 문제 뽑기, 오답 극복 배지.
@@ -122,33 +122,12 @@ test.describe("챕터 미니 시험(S3)", () => {
 });
 
 test.describe("랜덤 UX(S1·S5)", () => {
-  /**
-   * ⚠ 보류(skip) — '새 문제 뽑기'(random-redraw) 버튼이 147a9f0에서 사이드바와 함께 빠졌다.
-   * 확인 모달·스토어 액션은 남아 있으나 누를 곳이 없다. 판단이 필요한 자리라 지우지 않는다
-   * (react-guards의 같은 skip 주석에 사정을 적어 뒀다).
-   */
-  test.skip("'새 문제 뽑기'로 답안 초기화 + 재추첨(S5)", async ({ page }) => {
+  // 세트 전체 랜덤(40문항)의 이어풀기. 미니 시험(챕터 10문항) 이어풀기는 위 describe가
+  // 따로 덮는다 — 둘은 추첨 크기와 스코프가 달라 같은 검사가 아니다.
+  test("랜덤 진행 중 새로고침 → 같은 추첨으로 진행이 유지된다(S1)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await page.locator('.segmented button[data-mode="random"]').click();
-    await page.waitForSelector("#options .option");
-    await page.locator("#options .option").first().click();
-    await expect(page.locator("#progressText")).toHaveText("1 / 40");
-
-    await page.getByTestId("random-redraw").click();
-    // 진행이 있으면 세트 변경과 같은 규칙으로 확인을 거친다(B4).
-    await page.getByTestId("pending-redraw-confirm").click();
-    await expect(page.locator("#progressText")).toHaveText("0 / 40");
-  });
-
-  /**
-   * ⚠ 보류(skip) — 검사 대상이 '세트 전체 40문항 랜덤'인데 그 진입로가 사라졌다(퀵에 흡수).
-   * 살아 있는 랜덤(챕터 미니 시험)의 같은 성질은 바로 위 describe의
-   * "미니 시험 진행 중 새로고침 → 같은 챕터·문항으로 이어푼다"가 이미 덮고 있다.
-   * 즉 이 검사를 미니 시험으로 옮기면 그 검사와 겹친다 — 그래서 옮기지 않고 보류한다.
-   */
-  test.skip("랜덤 진행 중 새로고침 → 같은 추첨으로 진행이 유지된다(S1)", async ({ page }) => {
-    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await page.locator('.segmented button[data-mode="random"]').click();
+    await completeAttempt(page); // 챕터 통계 생성 — 미니 시험이 랜덤의 진입로다
+    await enterFullRandom(page);
     await page.waitForSelector("#options .option");
     const before = (await page.locator("#questionTitle").textContent()) || "";
     await page.locator("#options .option").first().click();

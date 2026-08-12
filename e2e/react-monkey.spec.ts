@@ -98,7 +98,6 @@ const CLICKABLE = [
   "[data-testid='palette-toggle']",
   "[data-testid='grade-button']",
   "[data-testid='exam-start-btn']",
-  "[data-testid='random-redraw']",
   "[data-testid='stats-open']",
   "[data-testid='result-open']",
   ".modal-header button",
