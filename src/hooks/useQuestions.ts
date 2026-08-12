@@ -69,11 +69,12 @@ export interface AppData {
 // 동기화 규칙이 코드 곳곳에 흩어져 있었다. 이제 여기서는 스토어만 읽고, 필요한 문항 객체는
 // 로드된 문항에서 id로 되살린다(같은 tick 내 zustand set/get은 동기라 훅 인스턴스 간에도 일관).
 // - 채점(setReviewIds)으로 effect가 재실행돼도 저장된 추첨이 있으므로 재추첨되지 않는다.
-// - '새 문제 뽑기'·모드 진입은 추첨을 비워(setRandomDraw(null)) 새로 뽑게 한다.
-// - randomNonce는 상태가 아니라 "재추첨하라"는 이벤트 트리거다(추첨을 구독하지 않으므로
-//   effect를 다시 돌리는 신호가 별도로 필요하다).
+// - 챕터 미니 시험 진입은 추첨을 비워(setRandomDraw(null)) 새로 뽑게 한다.
+//   ('새 문제 뽑기' 버튼과 그 nonce 트리거는 제거됐다 — 진입로가 없어진 기능이다.)
 
-// 챕터 미니 시험은 10문항(재측정용 짧은 세션), 일반 랜덤은 40문항(모의고사 규모).
+// 챕터 미니 시험은 10문항(재측정용 짧은 세션). 챕터 필터를 해제하면(배너의 '전체 보기')
+// 같은 랜덤 모드가 세트 전체에서 40문항을 뽑는다 — 모드 세그먼트의 '랜덤' 탭이 사라진
+// 지금, 이 경로가 세트 전체 랜덤에 닿는 유일한 길이다.
 const MINI_TEST_SIZE = 10;
 const RANDOM_DRAW_SIZE = 40;
 
@@ -202,11 +203,10 @@ export function useQuestions() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   // 슬라이스 구독(O1) — 타이머 틱·답안 변경에 이 훅이 리렌더를 유발하지 않는다.
-  const { setId, mode, reviewIds, chapterFilter, randomNonce, reviewedOk, activeProduct, quickNonce } =
+  const { setId, mode, reviewIds, chapterFilter, reviewedOk, activeProduct, quickNonce } =
     useQuizStore(useShallow((s) => ({
       setId: s.setId, mode: s.mode, reviewIds: s.reviewIds, chapterFilter: s.chapterFilter,
       reviewedOk: s.reviewedOk[s.setId],
-      randomNonce: s.randomNonce,
       activeProduct: s.activeProduct,
       // 퀵 재추첨 트리거 — 추첨 자체를 구독하지 않으므로 effect를 다시 돌릴 신호가 따로 필요하다.
       quickNonce: s.quickNonce,
@@ -378,7 +378,7 @@ export function useQuestions() {
         setCurrentQuestions([]);
       });
     return () => { cancelled = true; };
-  }, [appData, setId, mode, reviewIds, chapterFilter, randomNonce, reloadKey, reviewedOk]);
+  }, [appData, setId, mode, reviewIds, chapterFilter, reloadKey, reviewedOk]);
 
   // 실패 배너의 "다시 시도" — 에러를 지우고 두 로드 effect를 재실행한다.
   const retryLoad = () => {

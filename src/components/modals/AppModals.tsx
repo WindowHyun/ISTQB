@@ -72,9 +72,9 @@ export const AppModals = () => {
     resetProgressForSets, clearQuickRounds,
     setQuitExamOpen, setGradedResume, setRandomDraw,
     setPendingSetChange, commitSetChange, reviewedOk,
-    pendingRedraw, setPendingRedraw, pendingRestart, setPendingRestart, setResumeNotice,
+    pendingRestart, setPendingRestart, setResumeNotice,
     confirmExitExam, setConfirmExitExam,
-    redrawRandom, resetToGate,
+    resetToGate,
   } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, activeProduct: s.activeProduct, histories: s.histories,
     quickRounds: s.quickRounds, clearQuickRounds: s.clearQuickRounds,
@@ -95,11 +95,10 @@ export const AppModals = () => {
     setRandomDraw: s.setRandomDraw,
     setPendingSetChange: s.setPendingSetChange, commitSetChange: s.commitSetChange,
     reviewedOk: s.reviewedOk,
-    pendingRedraw: s.pendingRedraw, setPendingRedraw: s.setPendingRedraw,
     pendingRestart: s.pendingRestart, setPendingRestart: s.setPendingRestart,
     setResumeNotice: s.setResumeNotice,
     confirmExitExam: s.confirmExitExam, setConfirmExitExam: s.setConfirmExitExam,
-    redrawRandom: s.redrawRandom, resetToGate: s.resetToGate,
+    resetToGate: s.resetToGate,
   })));
   // examLocked — useQuizSession이 단일 원천(게이트·사이드바 잠금과 동일 규칙 집합).
   const { appData, total, answered, gradedTotal, gradedCorrect, cstsWeighted, gradeAndShow, examLocked } = useQuizSession();
@@ -138,7 +137,6 @@ export const AppModals = () => {
   useBackDismiss(guideOpen, () => setGuideOpen(false), BACK_PRIORITY.confirm);
   // 뒤로가기 = 취소(계속 풀기) — 확인 모달의 안전한 기본값이다.
   useBackDismiss(Boolean(pendingSetChange), () => setPendingSetChange(null), BACK_PRIORITY.confirm);
-  useBackDismiss(pendingRedraw, () => setPendingRedraw(false), BACK_PRIORITY.confirm);
   useBackDismiss(pendingRestart, () => setPendingRestart(false), BACK_PRIORITY.confirm);
   useBackDismiss(Boolean(pendingImport), () => setPendingImport(null), BACK_PRIORITY.confirm);
   useBackDismiss(confirmExitExam, () => setConfirmExitExam(false), BACK_PRIORITY.confirm);
@@ -483,35 +481,6 @@ export const AppModals = () => {
                 }}
               >
                 처음부터 풀기
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {pendingRedraw && (
-        <Modal title="새 문제 뽑기" onClose={() => setPendingRedraw(false)}>
-          <div className="modal-body confirm-body" data-testid="pending-redraw-modal">
-            <p>
-              지금까지 푼 <strong>{answered}문항</strong>이 사라지고 새 문항으로 다시 뽑습니다.
-              (랜덤은 이전 추첨을 보관하지 않습니다)
-            </p>
-            <div className="confirm-actions">
-              <button type="button" data-testid="pending-redraw-cancel" onClick={() => setPendingRedraw(false)}>
-                계속 풀기
-              </button>
-              <button
-                type="button"
-                className="danger"
-                data-testid="pending-redraw-confirm"
-                onClick={() => {
-                  clearAnswers(setId, 'random');
-                  redrawRandom();
-                  beginSession();
-                  setPendingRedraw(false);
-                }}
-              >
-                새로 뽑기
               </button>
             </div>
           </div>

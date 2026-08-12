@@ -125,9 +125,6 @@ export interface QuizState {
   // 소리 없이 버리지 않고 한 번 묻는다. null이면 보류 중인 변경이 없다.
   // 세트 선택은 사이드바, 확인 모달은 AppModals라 스토어가 둘의 접점이다.
   pendingSetChange: string | null;
-  // 랜덤 '새 문제 뽑기' 확인 — 세트 변경과 같은 손실(현재 추첨·답안 폐기)인데
-  // 종전에는 이 경로만 확인 없이 즉시 실행돼 규칙이 갈렸다.
-  pendingRedraw: boolean;
   // 이어풀기 배너의 '처음부터' 확인 — 종전에는 인덱스만 0으로 되돌리고 답안은 그대로
   // 뒀다. 버튼 이름('처음부터', 짝은 '계속하기')이 약속한 것은 초기화인데 실제로는
   // 첫 문항으로 이동만 해서, 사용자는 "초기화가 안 된다"로 겪었다. 이제 실제로 지우되
@@ -141,8 +138,6 @@ export interface QuizState {
   // 목록이 줄지 않던(학습 루프가 닫히지 않던) 문제를 여기서 닫는다.
   // 다시 채점해 또 틀리면 해당 번호는 제거돼 재풀이 대상으로 돌아온다.
   reviewedOk: Record<string, number[]>;
-  // 랜덤 '새 문제 뽑기' 트리거 — 증가하면 useQuestions가 현재 추첨을 버리고 재추첨한다.
-  randomNonce: number;
   // 랜덤 현재 추첨(뽑힌 문항 id 목록)을 영속화해 새로고침 시 같은 문항으로 이어풀게 한다.
   // null이면 미추첨/재추첨 필요. 모드 진입·'새 문제 뽑기'는 이 값을 비워 새 추첨을 유도한다.
   randomDraw: { setId: string; chapter: string | null; ids: string[] } | null;
@@ -202,7 +197,6 @@ export interface QuizState {
   setQuitExamOpen: (open: boolean) => void;
   setGradedResume: (info: QuizState['gradedResume']) => void;
   setPendingSetChange: (setId: string | null) => void;
-  setPendingRedraw: (open: boolean) => void;
   setPendingRestart: (open: boolean) => void;
   setConfirmExitExam: (open: boolean) => void;
   /** 오답 재풀이로 맞힌 문항 번호를 기록한다(재풀이 대상에서 제외). */
@@ -211,7 +205,6 @@ export interface QuizState {
   unmarkReviewed: (setId: string, numbers: number[]) => void;
   // 세트 전환(교체 + 새 세션 + 모드별 후처리). 사이드바·확인 모달의 공용 진입점.
   commitSetChange: (setId: string) => void;
-  redrawRandom: () => void;
   setRandomDraw: (draw: QuizState['randomDraw']) => void;
   setQuickDraw: (draw: QuizState['quickDraw']) => void;
   /** 퀵 진입 — 문항 수를 정하고 새로 추첨하게 한다(기존 추첨은 버린다). */
@@ -278,11 +271,9 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   quitExamOpen: false,
   gradedResume: null,
   pendingSetChange: null,
-  pendingRedraw: false,
   pendingRestart: false,
   confirmExitExam: false,
   reviewedOk: {},
-  randomNonce: 0,
   randomDraw: null,
   quickDraw: null,
   quickSize: QUICK_ALL,
@@ -437,7 +428,6 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   setQuitExamOpen: (quitExamOpen) => set({ quitExamOpen }),
   setGradedResume: (gradedResume) => set({ gradedResume }),
   setPendingSetChange: (pendingSetChange) => set({ pendingSetChange }),
-  setPendingRedraw: (pendingRedraw) => set({ pendingRedraw }),
   setPendingRestart: (pendingRestart) => set({ pendingRestart }),
   setConfirmExitExam: (confirmExitExam) => set({ confirmExitExam }),
   markReviewed: (setId, numbers) => set((state) => {
@@ -474,8 +464,6 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       set({ resumePrompt: true });
     }
   },
-  // '새 문제 뽑기' — 세대(nonce)를 올리고 저장된 추첨을 비워 useQuestions가 새로 추첨하게 한다.
-  redrawRandom: () => set((state) => ({ randomNonce: state.randomNonce + 1, randomDraw: null })),
   setRandomDraw: (randomDraw) => set({ randomDraw }),
   setQuickDraw: (quickDraw) => set({ quickDraw }),
   // 추첨을 비워 새로 뽑게 한다 — 진입할 때마다 같은 문항이 나오면 '퀵'의 의미가 없다.
@@ -505,7 +493,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     drawerOpen: false, settingsOpen: false, statsOpen: false,
     wrongNoteOpen: false, resultOpen: false, paletteOpen: false, confirmGradeOpen: false,
     resumeNotice: false, resumePrompt: false, quitExamOpen: false, gradedResume: null,
-    pendingSetChange: null, pendingRedraw: false, pendingRestart: false, confirmExitExam: false,
+    pendingSetChange: null, pendingRestart: false, confirmExitExam: false,
     // 제품 게이트로 돌아가면 시험 시작 상태도 리셋(다음 진입 시 시작 게이트 재노출).
     examStarted: {}, chapterFilter: null,
   }),
