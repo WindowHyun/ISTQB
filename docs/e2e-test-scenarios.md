@@ -15,73 +15,77 @@ Playwright 프로젝트는 **4개**다 — `react`(기능·Chromium) · `nonfunc
 
 > 대상: React 앱(`index.vite.html` → Vercel `dist` 배포본). Playwright로 자동화.
 > 실행: 기능 `npm run test:e2e`(`react` 프로젝트) · 비기능 `npm run test:nf` · APK/WebView `npm run test:apk`.
-> 세 프로젝트 모두 CI 게이트다(`e2e` · `nonfunctional` · `apk` job).
+> 네 프로젝트 모두 CI 게이트다 — 잡은 셋이고(`e2e` · `nonfunctional` · `apk`), `apk` 잡이 `apk`·`apk-nf`를 함께 돌린다.
 > CI 실행 메커니즘(빌드·서버 기동·병렬·재시도)은 [`ci/ci.md`](./ci/ci.md) 참고.
 > 공용 헬퍼: `e2e/helpers.ts` (`openProduct`, `openSet`, `modeBtn`, `gotoQuestion`, `submitGrade`).
 > 표기: G(전제) / W(행위) / T(기대).
 
 ---
 
-## 스펙 파일 인덱스 — 기능(react) 404 / 52파일
+## 스펙 파일 인덱스 — 기능(`react`)
 
-| 스펙 파일 | 개수 | 영역 |
-|-----------|------|------|
-| `react-study-ux` | 27 | 이어풀기 배너·제출 전 검토·오답노트 재설계·재응시·결과 nowrap·aria-live |
-| `react-edge-modes` | 23 | 엣지: 모드 격리·리셋·잠금·시험 전환 가드 |
-| `react-edge-modal` | 20 | 엣지: 모달 Esc/백드롭·통계·토글·오답노트 문항 보기 |
-| `react-edge-content` | 17 | 엣지: 라이트박스·표·콘솔·토스트·콘텐츠 표시 회귀 |
-| `react-edge-grade` | 18 | 엣지: 미응답 확인·컷스코어·복수정답·진위형·단답형 |
-| `react-final` | 15 | 최종점검 회귀 |
-| `react-edge-persist` | 13 | 엣지: 복원·가져오기·테마/콘솔 지속·저장 불가 환경 |
-| `react-edge-responsive` | 13 | 엣지: 드로어·점프핀·하단바·320px·768px |
-| `react-transition` | 15 | 상태 전이(S0~S4 × 39전이) |
-| `react-edge-figtable` | 14 | 엣지: 특정 표/그림 문항 |
-| `react-edge-nav` | 14 | 엣지: 경계 네비게이션 |
-| `react-flow-ux` | 13 | 응시 포기·채점완료 가드·미니 시험·새 문제 뽑기·극복 배지 |
-| `react-stats` | 11 | 학습 통계 대시보드 |
-| `react-a11y` | 10 | 접근성(ARIA·키보드) |
-| `react-qtypes` | 10 | 문항 유형(진위형·단답형·복수정답) |
-| `react-quick` | 7 | **퀵 랜덤** 출제·채점·이어풀기·잠금 |
-| `react-quick-ux` | 6 | **퀵 조작** — 패널 위치·시작 버튼 표시 규칙·문항 수 콤보 유지 |
-| `react-quick-wrongnote` | 3 | **퀵 오답 사양** — 임시 목록 분리·회차 무기록·이력 비우기 연동 |
-| `react-edge-import` | 9 | 엣지: 대용량/비정상 import 견고성 |
-| `react-content` | 8 | 콘텐츠 렌더링·라이트박스 |
-| `react-back-dismiss` | 7 | 뒤로가기로 모달 닫기 |
-| `react-edge` | 7 | 엣지(빈 오답·경계·rapid) |
-| `react-features` | 7 | 다크모드·결과요약·통계·미응답확인·포커스 |
-| `react-functional` | 7 | 핵심 기능 흐름 |
-| `react-guards` | 7 | 진입·전환 가드 |
-| `react-persistence` | 7 | 영속성/백업 |
-| `react-responsive` | 7 | 반응형(모바일·태블릿) |
-| `react-modes` | 6 | 풀이 모드 |
-| `react-navigation` | 6 | 네비게이션 |
-| `react-robustness` | 6 | 견고성(비정상 입력·상태) |
-| `react-settings` | 6 | 설정 |
-| `react-uiux-quick` | 6 | **퀵 UI/UX** — axe·키보드·터치 타깃·테마×글자 12조합·대비 |
-| `react-transition-quick` | 5 | **5모드 전이 25칸 전수** + 퀵 왕복·연속 회차·세트 격리 |
-| `react-consistency` | 4 | **정합성** — 결과·통계·이력·팔레트가 같은 값을 보는가 |
-| `react-layout` | 4 | 하이브리드 레이아웃(팔레트·드로어) |
-| `react-review-loop` | 4 | 오답 재풀이 루프 |
-| `react-state-matrix` | 4 | 상태 매트릭스 |
-| `react-userflow` | 4 | 사용자 시나리오(전 기능 종단) |
-| `react-a11y-axe` | 3 | **axe-core WCAG 2.1 AA** — 주요 화면·다크/모바일·**코드 블록 문항** |
-| `react-debug` | 3 | 화면 콘솔(`?debug`) |
-| `react-monkey` | 3 | **몽키** — 시드 3개 × 무작위 120회 조작 후 불변식 |
-| `react-quick-resilience` | 3 | 퀵 회차의 저장 왕복(채점 직후 새로고침에도 임시 회차가 남는가) |
-| `react-phase2` | 3 | 회차 비교·타임라인·델타(데이터 오라클) |
-| `react-exam-timer` | 2 | 시험 제한시간 |
-| `react-feedback-link` | 2 | 제보 링크 |
-| `react-fullsweep` | 2 | **전 문항 626 렌더 스윕**(2폭) |
-| `react-guide` | 2 | 사이트 사용법 |
-| `react-pwa` | 2 | PWA 업데이트 배너 |
-| `react-reset-ghost` | 2 | **초기화 유령 가드** — 이력 비우기·회차 단건 삭제 후 오답 모드에 삭제분이 남지 않는가 |
-| `react-weakness` | 2 | 챕터 약점·오답 합산 |
-| `react-feedback` | 1 | 즉시 피드백 |
-| `react-fullgrade` | 1 | **12세트 전수 채점**(100%) |
-| `react-grade` | 1 | 채점 루프 |
-| `react-pairwise` | 1 | **페어와이즈** 2-way 전수(16/120 조합) |
-| `react-random-smoke` | 1 | 시드 랜덤 스모크(JSON 오라클, `SMOKE_SEED`) |
-| `react-smoke` | 1 | 스모크 |
+> 스펙별 테스트 **개수 열은 뺐다.** 위 규약과 같은 이유다 — `react-flow-ux`는 13에서, `react-guards`는
+> 7에서 어긋난 채로 남아 있었고, 아무도 그 숫자로 판단하지 않으면서 갱신 부채만 만들었다.
+> 이 표는 "어느 스펙이 무엇을 덮는가"를 찾는 색인이다.
+
+| 스펙 파일 | 영역 |
+|-----------|------|
+| `react-study-ux` | 이어풀기 배너·제출 전 검토·오답노트 재설계·재응시·결과 nowrap·aria-live |
+| `react-edge-modes` | 엣지: 모드 격리·리셋·잠금·시험 전환 가드 |
+| `react-edge-modal` | 엣지: 모달 Esc/백드롭·통계·토글·오답노트 문항 보기 |
+| `react-edge-content` | 엣지: 라이트박스·표·콘솔·토스트·콘텐츠 표시 회귀 |
+| `react-edge-grade` | 엣지: 미응답 확인·컷스코어·복수정답·진위형·단답형 |
+| `react-final` | 최종점검 회귀 |
+| `react-edge-persist` | 엣지: 복원·가져오기·테마/콘솔 지속·저장 불가 환경 |
+| `react-edge-responsive` | 엣지: 드로어·점프핀·하단바·320px·768px |
+| `react-transition` | 상태 전이 전수(S0 게이트 · S1 연습 · S2E 시험 3단계 · S3 미니 시험 · S4 오답) |
+| `react-edge-figtable` | 엣지: 특정 표/그림 문항 |
+| `react-edge-nav` | 엣지: 경계 네비게이션 |
+| `react-flow-ux` | 응시 포기·채점완료 가드·미니 시험(추첨·이어풀기)·극복 배지·시험 제한시간·챕터 집중 연습 |
+| `react-stats` | 학습 통계 대시보드 |
+| `react-a11y` | 접근성(ARIA·키보드) |
+| `react-qtypes` | 문항 유형(진위형·단답형·복수정답) |
+| `react-quick` | **퀵 랜덤** 출제·채점·이어풀기·잠금 |
+| `react-quick-ux` | **퀵 조작** — 패널 위치·'다시 섞어 시작'·오답노트 진입로 제외·헤더 점수판·세트 컨트롤 복귀 |
+| `react-quick-wrongnote` | **퀵 오답 사양** — 임시 목록 분리·회차 무기록·이력 비우기 연동 |
+| `react-edge-import` | 엣지: 대용량/비정상 import 견고성 |
+| `react-content` | 콘텐츠 렌더링·라이트박스 |
+| `react-back-dismiss` | 뒤로가기로 모달 닫기 |
+| `react-edge` | 엣지(빈 오답·경계·rapid) |
+| `react-features` | 다크모드·결과요약·통계·미응답확인·포커스 |
+| `react-functional` | 핵심 기능 흐름 |
+| `react-guards` | 진입·전환 가드 |
+| `react-persistence` | 영속성/백업 |
+| `react-responsive` | 반응형(모바일·태블릿) |
+| `react-modes` | 풀이 모드 |
+| `react-navigation` | 네비게이션 |
+| `react-robustness` | 견고성(비정상 입력·상태) |
+| `react-settings` | 설정 |
+| `react-uiux-quick` | **퀵 UI/UX** — axe·키보드·터치 타깃·테마×글자 12조합·대비 |
+| `react-transition-quick` | **4모드 전이 16칸 전수**(연습·시험·오답·퀵) + 퀵 왕복·연속 회차·세트 격리 |
+| `react-consistency` | **정합성** — 결과·통계·이력·팔레트가 같은 값을 보는가 |
+| `react-layout` | 하이브리드 레이아웃(팔레트·드로어) |
+| `react-review-loop` | 오답 재풀이 루프 |
+| `react-state-matrix` | 상태 매트릭스 |
+| `react-userflow` | 사용자 시나리오(전 기능 종단) |
+| `react-a11y-axe` | **axe-core WCAG 2.1 AA** — 주요 화면·다크/모바일·**코드 블록 문항** |
+| `react-debug` | 화면 콘솔(`?debug`) |
+| `react-monkey` | **몽키** — 시드 3개 × 무작위 120회 조작 후 불변식 |
+| `react-quick-resilience` | 퀵 회차의 저장 왕복(채점 직후 새로고침에도 임시 회차가 남는가) |
+| `react-phase2` | 회차 비교·타임라인·델타(데이터 오라클) |
+| `react-exam-timer` | 시험 제한시간 |
+| `react-feedback-link` | 제보 링크 |
+| `react-fullsweep` | **전 문항 626 렌더 스윕**(2폭) |
+| `react-guide` | 사이트 사용법 |
+| `react-pwa` | PWA 업데이트 배너 |
+| `react-reset-ghost` | **초기화 유령 가드** — 이력 비우기·회차 단건 삭제 후 오답 모드에 삭제분이 남지 않는가 |
+| `react-weakness` | 챕터 약점·오답 합산 |
+| `react-feedback` | 즉시 피드백 |
+| `react-fullgrade` | **12세트 전수 채점**(100%) |
+| `react-grade` | 채점 루프 |
+| `react-pairwise` | **페어와이즈** 3-way 전수(16/32 조합 — 제품×모드×폭×채점) |
+| `react-random-smoke` | 시드 랜덤 스모크(JSON 오라클, `SMOKE_SEED`) |
+| `react-smoke` | 스모크 |
 
 ## 비기능(nonfunctional) 13 — `npm run test:nf`
 
@@ -109,7 +113,7 @@ Pixel 7 디바이스 프로파일 + WebView UA + `MainActivity`의 안전영역 
 | 5 | 연습 즉시 피드백 + 누수 없음 | G 연습 · W 보기 선택 · T 피드백 표시, 다음 문항엔 없음 |
 | 6 | 팔레트+키보드 이동 | G 연습 · W 3번 클릭/→ · T current 갱신·제목 변경 |
 | 7 | 시험: 채점 전 비공개→채점→공개+오답노트 | G 시험 · W 선택·채점 · T 점수·#feedback·오답노트 모달 |
-| 8 | 랜덤: 문항 로드 ≤40 | G 랜덤 · W 진입 · T 1≤문항수≤40 |
+| 8 | 랜덤(미니 시험): 문항 로드 ≤10 | G 통계에 챕터 이력 · W 챕터 '미니 시험' · T 1≤문항수≤10 |
 | 9 | 설정 모달+글자 크기 | G ISTQB · W 설정→크게 · T data-qfont=large |
 | 10 | CSTS 진위형(O/X)·단답형(입력) UI 존재 | G CSTS 전 세트 스캔 · T O/X 보기·단답 입력 발견 |
 
@@ -120,7 +124,7 @@ Pixel 7 디바이스 프로파일 + WebView UA + `MainActivity`의 안전영역 
 | 11 | 연습 복수정답: 모두 선택해야 피드백 | G Q6(정답2) · W 1개→2개 선택 · T 1개=피드백X, 2개=피드백O |
 | 12 | 시험: 채점 후 보기 잠금 | G 시험 채점 · T 보기 버튼 disabled |
 | 13 | 시험: 채점 후 팔레트 정/오답 색 | G 시험 채점 · T `.correct`+`.missed` ≥1 |
-| 14 | 랜덤: 채점 시 점수 표시 | G 랜덤 · W 선택·채점 · T "점수" 표시 |
+| 14 | 랜덤(미니 시험): 채점 시 점수 표시 | G 미니 시험 진입 · W 선택·채점 · T "점수" 표시 |
 | 15 | 오답 다시풀기: review 재응답 | G 시험 채점 후 · W 오답 다시풀기 · T 보기 선택 가능(또는 빈 화면) |
 
 ## 3. 네비게이션 (6) — `react-navigation`
@@ -246,14 +250,13 @@ Pixel 7 디바이스 프로파일 + WebView UA + `MainActivity`의 안전영역 
 | P3-1 | 채점 → 챕터별 정답률(약점순) → '연습'으로 챕터 집중 연습 진입 | react-weakness |
 | P3-2 | 오답노트 전 회차 합산 — 최신 회차 정답도 과거 오답이면 유지 | react-weakness |
 | P4-1 | 백업 가져오기 스키마 버전 검증·원자성(유닛: storage.import.test) | 유닛 |
-| ST-* | 상태 전이 전수(S0 게이트/S1 연습/S2E 시험 3단계/S3 랜덤/S4 오답 × 전이 39건) | react-transition |
+| ST-* | 상태 전이 전수(S0 게이트/S1 연습/S2E 시험 3단계/S3 미니 시험/S4 오답 — T 번호로 전이를 식별하며, 랜덤 탭과 함께 사라진 전이는 번호를 비워 두고 재사용하지 않는다) | react-transition |
 | RS-1 | 시드 랜덤 스모크 — 매 실행 다른 세트·답 조합, 원본 JSON 기준 기대 점수와 UI 점수 일치(`SMOKE_SEED` 재현) | react-random-smoke |
 | S2-1 | 응시 포기: 응시 중 '응시 포기'→확인→답안 삭제·게이트 복귀·회차 기록 없음 | react-flow-ux |
 | S2-2 | 응시 중 '처음 화면으로'는 확인 모달 경유(무단 우회 차단) | react-flow-ux |
 | S4-1 | 채점 후 새로고침 → '채점 완료된 회차' 가드(지난 결과 보기/새 회차 시작) — 중복 회차 차단 | react-flow-ux · react-study-ux · react-transition |
 | S3-1 | 챕터 미니 시험: 10문항 추첨·'미니' 회차 라벨·세트 타임라인 미포함 | react-flow-ux |
-| S5-1 | 랜덤 '새 문제 뽑기' — 답안 초기화+재추첨 | react-flow-ux |
-| S1-1 | 랜덤 새로고침 재추첨 정책 토스트 안내 | react-flow-ux |
+| S1-1 | 미니 시험 진행 중 새로고침 → 같은 챕터·같은 문항으로 이어풀기(일반 랜덤으로 바뀌지 않음) | react-flow-ux |
 | S6-1 | 오답 '극복' 배지(최근 시험 2회 연속 정답) + 범례 | react-flow-ux |
 | G-1 | 사용설명서: 게이트 하단 버튼 → 모드·통계·백업 설명, Esc 닫기 | react-guide |
 | G-2 | 사용설명서: 설정 진입점 — 설정 모달 닫고 가이드 표시(겹침 방지) | react-guide |

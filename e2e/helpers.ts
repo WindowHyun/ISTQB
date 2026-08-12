@@ -132,7 +132,17 @@ export function quickStat(page: Page, cell: "solved" | "correct" | "wrong" | "st
  *
  * 퀵에는 서답형이 최대 30%까지 섞이므로(B5) `#options .option` 클릭만 쓰면 뽑기 결과에
  * 따라 그 셀렉터가 아예 없어 타임아웃한다 — '가끔 깨지는 테스트'로 보이지만 원인은
- * 타이밍이 아니라 문항 유형이다. 다답형은 모든 칸이 차야 '답함'으로 센다(isAnswered).
+ * 타이밍이 아니라 문항 유형이다.
+ *
+ * **복수정답은 정답 개수만큼 다 골라야 '답함'으로 확정된다**(`isQuickCommitted` — 하나만
+ * 누르면 3개짜리 문항이 첫 클릭에 오답으로 굳어 버리므로 일부러 그렇게 뒀다). 종전 이
+ * 헬퍼는 주석으로만 그 사실을 적어 두고 첫 보기 하나만 눌렀다. 그래서 뽑기가 복수정답
+ * 문항을 앞쪽에 놓는 회차에서만 퀵 점수판이 늘지 않아 `react-quick-ux`가 3회 중 1회꼴로
+ * 실패했다 — 타이밍처럼 보이지만 원인은 문항 유형이었다.
+ *
+ * 정답이 몇 개인지는 화면에 없으므로 보기를 순서대로 전부 누른다. 상한(cap)이 정답
+ * 개수에서 스스로 멈추고 초과 클릭은 무시되므로(react-edge-grade의 cap 검사) 결과는
+ * '앞에서부터 정답 개수만큼 선택'으로 결정된다.
  */
 export async function answerCurrent(page: Page) {
   const short = page.locator(".short-answer-input");
@@ -147,7 +157,15 @@ export async function answerCurrent(page: Page) {
     if (await check.count()) await check.first().click();
     return;
   }
-  await page.locator("#options .option").first().click();
+  const options = page.locator("#options .option");
+  // 복수정답 표기는 문제 제목이 단다("문제 4 · 복수정답" — QuestionWorkspace).
+  const title = (await page.locator("#questionTitle").textContent()) || "";
+  if (title.includes("복수정답")) {
+    const total = await options.count();
+    for (let i = 0; i < total; i += 1) await options.nth(i).click();
+    return;
+  }
+  await options.first().click();
 }
 
 // 채점: 채점 버튼 클릭 후 미응답 경고 모달이 뜨면 확인까지 처리한다.

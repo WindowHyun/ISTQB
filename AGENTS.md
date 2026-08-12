@@ -10,7 +10,7 @@
   - `docs/harness/data-harness.md`를 읽습니다.
 - UI, CSS, 문제 렌더링, 이미지, 표, 선택지, 반응형 레이아웃:
   - `docs/harness/ui-render-harness.md`를 읽습니다.
-- 앱 동작, 풀이 모드(연습·시험·랜덤·오답·퀵), 채점, 챕터 통계, 오답 노트, 상태 저장,
+- 앱 동작, 풀이 모드(연습·시험·퀵·오답 + 통계에서만 들어가는 챕터 미니 시험), 채점, 챕터 통계, 오답 노트, 상태 저장,
   제품 전환, 탭 간 동기화, 가져오기/내보내기:
   - `docs/harness/app-logic-harness.md`를 읽습니다.
 - Android, Capacitor, `www/`, APK, 매니페스트, 아이콘, 서비스 워커 패키징:

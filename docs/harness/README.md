@@ -16,7 +16,7 @@
 | --- | --- | --- |
 | 문제 데이터, 정답, 선택지, 해설, 이미지 경로 | `data-harness.md` | `npm run verify` + `python3 scripts/verify-pdf-data.py` |
 | UI, CSS, 렌더링, 이미지, 표, 선택지, 반응형 레이아웃 | `ui-render-harness.md` | `npm run lint typecheck` + `npm run test:e2e`, 모바일 영향 시 `npm run test:apk` |
-| 앱 동작, 풀이 모드(연습·시험·랜덤·오답·**퀵**), 채점, 챕터 통계, 상태 저장, 가져오기/내보내기 | `app-logic-harness.md` | `npm test` + `npm run test:e2e`, 채점·통계·저장 키를 고쳤으면 `npm run test:mutation` |
+| 앱 동작, 풀이 모드(연습·시험·**퀵**·오답 + 통계에서만 들어가는 챕터 미니 시험), 채점, 챕터 통계, 상태 저장, 가져오기/내보내기 | `app-logic-harness.md` | `npm test` + `npm run test:e2e`, 채점·통계·저장 키를 고쳤으면 `npm run test:mutation` |
 | Android, Capacitor, 패키징되는 에셋, APK | `android-build-harness.md` | `npm run build` → `npm run cap:sync` + `npm run test:apk` |
 | 릴리스 또는 여러 영역에 걸친 전달 | `release-harness.md` | 관련 영역 점검 전체 |
 
