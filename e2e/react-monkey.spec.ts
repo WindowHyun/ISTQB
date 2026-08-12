@@ -170,13 +170,19 @@ for (const seed of [42, 1337, 20260730]) {
           trail.push(`type:${junk.slice(0, 8)}`);
         }
       }
-      // 가끔 퀵 문항 수를 바꾼다 — CLICKABLE은 button만 훑어서 select가 통째로 빠져 있었다.
+      // 가끔 세트를 바꾼다 — CLICKABLE은 button만 훑어서 select가 통째로 빠져 있었다.
+      // (종전에는 퀵 문항 수 셀렉트를 흔들었는데 그 컨트롤은 없어졌다. 남은 select는
+      //  세트 셀렉트뿐이고, 세트 전환은 확인 모달·답안 이관이 얽혀 훨씬 값진 흔들기다.)
       if (rand() < 0.05) {
-        const sel = page.locator("#quickSize");
+        const sel = page.locator("#examSelect");
         if (await sel.count() && await sel.isVisible().catch(() => false)) {
-          const size = ["10", "15", "20"][Math.floor(rand() * 3)];
-          await sel.selectOption(size).catch(() => {});
-          trail.push(`quickSize:${size}`);
+          const opts = await sel.locator("option").evaluateAll(
+            (os) => os.map((o) => (o as HTMLOptionElement).value));
+          if (opts.length) {
+            const pick = opts[Math.floor(rand() * opts.length)];
+            await sel.selectOption(pick).catch(() => {});
+            trail.push(`setId:${pick}`);
+          }
         }
       }
       // 가끔 Esc를 누른다.

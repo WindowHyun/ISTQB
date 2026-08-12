@@ -113,24 +113,49 @@ export function buildQuickPool(
  */
 export const QUICK_SHORT_ANSWER_RATIO = 0.3;
 
+/**
+ * 상한은 **총량이 아니라 접두(prefix) 성질**이다 — 앞에서 몇 개를 끊어 보든 그 구간의
+ * 서답형이 30%를 넘지 않는다.
+ *
+ * 종전에는 `floor(size * 0.3)`을 회차 전체의 총량으로 걸었다. 문항 수를 고르던 시절
+ * (10·15·20)에는 그것이 곧 접두 성질이기도 했다 — 회차가 곧 전부였으니까. 그런데 퀵이
+ * 문항 수를 묻지 않고 전 세트를 끝까지 내게 되면서 size가 풀 전체가 됐고, 그 순간
+ * 상한이 아무것도 막지 못하게 됐다: CSTS는 440문항 중 서답형이 63개(14.3%)라
+ * `floor(440*0.3)=132`에 절대 닿지 않는다. 즉 검사는 통과하는데 정렬은 순수 셔플이라,
+ * 서답형이 앞쪽에 몰리는 것을 막는 코드가 사실상 사라져 있었다(데이터 비율이 우연히
+ * 낮아 티가 안 났을 뿐, 서답형이 많은 세트가 들어오는 순간 드러난다).
+ *
+ * 그래서 자리마다 예산을 다시 계산한다. 선택형이 떨어지면 상한을 넘겨서라도 채운다 —
+ * 문항 수를 줄이는 것보다 낫다는 판단은 종전과 같다.
+ *
+ * 대가: 서답형과 선택형을 각자의 대기열에서 꺼내므로 두 유형의 '위치'는 규칙적이 된다
+ * (어떤 문항이 뽑히는지는 여전히 무작위다). 뭉쳐 나오는 것보다 이 편이 낫다고 본다.
+ */
 export function drawQuick(pool: QuickCandidate[], size: number, shuffled?: QuickCandidate[]): QuickCandidate[] {
   const order = shuffled ?? shuffleQuestions(pool);
-  const cap = Math.floor(size * QUICK_SHORT_ANSWER_RATIO);
+  const shorts = order.filter((c) => c.question.type === 'short_answer');
+  const others = order.filter((c) => c.question.type !== 'short_answer');
   const picked: QuickCandidate[] = [];
-  const deferred: QuickCandidate[] = [];
-  let shorts = 0;
-  for (const c of order) {
-    if (picked.length >= size) break;
-    if (c.question.type === 'short_answer') {
-      if (shorts >= cap) { deferred.push(c); continue; }
-      shorts += 1;
+  let used = 0;
+  let si = 0;
+  let oi = 0;
+  while (picked.length < size) {
+    const budget = Math.floor((picked.length + 1) * QUICK_SHORT_ANSWER_RATIO);
+    if (si < shorts.length && used + 1 <= budget) {
+      picked.push(shorts[si]);
+      si += 1;
+      used += 1;
+    } else if (oi < others.length) {
+      picked.push(others[oi]);
+      oi += 1;
+    } else if (si < shorts.length) {
+      // 선택형이 떨어졌다 — 여기서 멈추면 문항 수가 줄어든다.
+      picked.push(shorts[si]);
+      si += 1;
+      used += 1;
+    } else {
+      break; // 풀을 다 썼다(size가 풀보다 큰 경우 = 전 세트 출제).
     }
-    picked.push(c);
-  }
-  // 선택형이 모자라 자리가 비면 미뤄 둔 서답형으로 채운다 — 문항 수를 줄이는 것보다 낫다.
-  for (const c of deferred) {
-    if (picked.length >= size) break;
-    picked.push(c);
   }
   return picked;
 }

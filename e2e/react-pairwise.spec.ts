@@ -4,27 +4,28 @@ import { openProduct, gotoStable } from "./helpers";
 /**
  * 페어와이즈(all-pairs) 조합 테스트.
  *
- * 요인을 전조합하면 2×5×3×2×2 = 120가지라 E2E로 돌리기엔 비싸다. 결함 대부분은
+ * 요인을 전조합하면 2×5×2×2 = 40가지라 E2E로 돌리기엔 비싸다. 결함 대부분은
  * 두 요인의 조합에서 드러난다는 관찰에 기대어, 모든 '요인쌍'이 최소 한 번은 함께
  * 나타나는 최소 집합만 실행한다.
  *
  * 요인:
  *   product   ISTQB / CSTS
  *   mode      practice / exam / random / review / quick
- *   size      10 / 15 / 20        (퀵에서만 의미, 그 외엔 무시)
  *   width     desktop(1280) / mobile(390)
  *   graded    채점함 / 안 함
+ *
+ * size(10/15/20)는 뺐다 — 퀵이 문항 수를 묻지 않게 되면서 그 요인이 고를 값을 잃었다.
+ * 값이 하나뿐인 요인은 조합을 3배로 부풀리기만 하고 아무 상호작용도 더하지 않는다.
  */
 
 const FACTORS = {
   product: ["ISTQB", "CSTS"],
   mode: ["practice", "exam", "random", "review", "quick"],
-  size: ["10", "15", "20"],
   width: ["desktop", "mobile"],
   graded: ["yes", "no"],
 } as const;
 
-type Combo = { product: string; mode: string; size: string; width: string; graded: string };
+type Combo = { product: string; mode: string; width: string; graded: string };
 
 /** 요인 k개를 고르는 모든 조합의 인덱스 — t-way 커버링에 쓴다. */
 function indexCombos(n: number, t: number): number[][] {
@@ -39,9 +40,9 @@ function indexCombos(n: number, t: number): number[][] {
 
 const ALL_COMBOS: Combo[] = (() => {
   const out: Combo[] = [];
-  for (const p of FACTORS.product) for (const m of FACTORS.mode) for (const s of FACTORS.size) {
+  for (const p of FACTORS.product) for (const m of FACTORS.mode) {
     for (const w of FACTORS.width) for (const g of FACTORS.graded) {
-      out.push({ product: p, mode: m, size: s, width: w, graded: g });
+      out.push({ product: p, mode: m, width: w, graded: g });
     }
   }
   return out;
@@ -103,22 +104,17 @@ function uncoveredTuples(t: number, chosen: Combo[]): number {
 }
 
 async function openBar(page: Page) {
-  const sel = page.locator("#quickSize");
-  if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
+  if (!(await page.locator(".segmented").isVisible())) await page.getByTestId("drawer-open").click();
 }
 
 async function enter(page: Page, c: Combo) {
   await openProduct(page, c.product as "ISTQB" | "CSTS");
   await openBar(page);
-  if (c.mode === "quick") {
-    await page.locator("#quickSize").selectOption(c.size);
-    await page.getByTestId("quick-start-btn").click();
-  } else {
-    await page.locator(`.segmented button[data-mode="${c.mode}"]`).click();
-    if (c.mode === "exam") {
-      const gate = page.getByTestId("exam-start-btn");
-      if (await gate.count()) await gate.click();
-    }
+  // 퀵도 이제 다른 모드와 같은 진입로다(세그먼트) — 전용 분기가 필요 없다.
+  await page.locator(`.segmented button[data-mode="${c.mode}"]`).click();
+  if (c.mode === "exam") {
+    const gate = page.getByTestId("exam-start-btn");
+    if (await gate.count()) await gate.click();
   }
   await page.waitForTimeout(400);
 }
@@ -134,7 +130,7 @@ test.describe("페어와이즈 조합", () => {
     console.log(`· ${STRENGTH}-way 커버링: ${COMBOS.length}케이스 (전조합 ${ALL_COMBOS.length} 대비 ${Math.round(COMBOS.length / ALL_COMBOS.length * 100)}%) · 미커버 0`);
 
     for (const c of COMBOS) {
-      const label = `${c.product}/${c.mode}/${c.size}/${c.width}/graded=${c.graded}`;
+      const label = `${c.product}/${c.mode}/${c.width}/graded=${c.graded}`;
       const errs: string[] = [];
       const onErr = (e: Error) => errs.push(String(e).slice(0, 160));
       page.on("pageerror", onErr);
@@ -154,15 +150,20 @@ test.describe("페어와이즈 조합", () => {
         }
         if (!hasStem) continue;
 
-        // 답을 하나 고르면 진행률이 오르는가(답안 키가 어긋나면 여기서 드러난다).
-        const before = await page.locator("#progressText").textContent();
+        // 답을 하나 고르면 집계가 오르는가(답안 키가 어긋나면 여기서 드러난다).
+        // 퀵에는 진행률(#progressText)이 없다 — 끝이 정해지지 않아 분모가 없기 때문이다.
+        // 그 모드에서는 헤더 점수판의 '진행'이 같은 역할을 하므로 읽는 곳만 바꾼다.
+        const counter = c.mode === "quick"
+          ? page.locator(".quick-scoreboard .qs-item").first().locator("b")
+          : page.locator("#progressText");
+        const before = await counter.textContent();
         const opt = page.locator("#options .option").first();
         if (await opt.count()) {
           await opt.click();
           await page.waitForTimeout(150);
-          const after = await page.locator("#progressText").textContent();
-          if (before === after && /^0 \//.test(before ?? "")) {
-            problems.push(`${label}: 답을 골라도 진행률이 그대로 (${before})`);
+          const after = await counter.textContent();
+          if (before === after && /^0(\s|$)/.test((before ?? "").trim())) {
+            problems.push(`${label}: 답을 골라도 진행이 그대로 (${before})`);
           }
         }
 

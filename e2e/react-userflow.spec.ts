@@ -1,18 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { expectMode, openProduct } from "./helpers";
-
-/** 유형을 가리지 않고 현재 문항에 답한다 — 퀵에는 서답형이 최대 30% 섞인다(B5).
- *  보기 클릭만 쓰면 뽑기 결과에 따라 셀렉터가 아예 없어 타임아웃으로 죽는다. */
-async function answerCurrent(page: Page) {
-  const short = page.locator(".short-answer-input");
-  const blanks = await short.count();
-  if (blanks) {
-    // 다답형은 모든 칸이 차야 '답함'으로 센다(isAnswered) — 첫 칸만 채우면 진행률이 안 오른다.
-    for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
-    return;
-  }
-  await page.locator("#options .option").first().click();
-}
+import { expectMode, openProduct, enterQuick, quickStat, answerCurrent } from "./helpers";
 
 /**
  * 유저 관점 전수 시나리오 — "실제로 이 앱을 쓰는 사람이 겪는 흐름"을 끝까지 밟는다.
@@ -34,8 +21,7 @@ function watchErrors(page: Page): Err[] {
 }
 
 async function openSidebar(page: Page) {
-  const sel = page.locator("#quickSize");
-  if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
+  if (!(await page.locator(".segmented").isVisible())) await page.getByTestId("drawer-open").click();
 }
 
 async function pickMode(page: Page, mode: string) {
@@ -87,9 +73,11 @@ for (const product of ["ISTQB", "CSTS"] as const) {
     const gate = page.getByTestId("exam-start-btn");
     if (await gate.count()) await gate.click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-    // 응시 중에는 퀵 시작이 잠긴다(잠금 우회 방지).
+    // 응시 중에는 다른 모드로 나갈 수 없다 — 퀵 세그먼트도 함께 잠긴다(잠금 우회 방지).
+    // 종전에는 퀵 패널의 시작 버튼이 상시 떠 있어 그 disabled를 봤는데, 그 패널은 이제
+    // 퀵 안에서만 렌더된다. 잠금을 거는 지점 자체가 세그먼트로 옮겨졌다.
     await openSidebar(page);
-    await expect(page.getByTestId("quick-start-btn")).toBeDisabled();
+    await expect(page.locator('.segmented button[data-mode="quick"]')).toBeDisabled();
     await answerAll(page);
     await grade(page);
     const examRate = await page.getByTestId("result-rate").textContent();
@@ -101,18 +89,15 @@ for (const product of ["ISTQB", "CSTS"] as const) {
     await grade(page);
     await closeResult(page);
 
-    // 4) 퀵 — 세트를 고르지 않고 전 세트에서 10문항
-    await openSidebar(page);
-    await page.locator("#quickSize").selectOption("10");
-    await page.getByTestId("quick-start-btn").click();
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-    await expect(page.locator("#progressText")).toContainText("/ 10");
+    // 4) 퀵 — 세트를 고르지 않고 전 세트에서 낸다(문항 수도 고르지 않는다).
+    await enterQuick(page);
+    await expect(quickStat(page, "solved")).toHaveText("0");
     await answerAll(page, 12);
     await grade(page);
     const quickResult = page.getByTestId("result-summary");
     // 퀵은 합격 판정을 내리지 않는다.
     await expect(quickResult).not.toContainText("합격 기준");
-    await expect(page.getByTestId("result-rate")).toContainText("/ 10문항");
+    await expect(page.getByTestId("result-rate")).toContainText("문항");
     await closeResult(page);
 
     // 5) 오답 노트 — 세트 오답(시험·랜덤)과 퀵 오답이 서로 다른 자리에 모인다.
@@ -170,10 +155,13 @@ test("퀵을 반복해도 챕터 분모가 계속 부풀지 않는다", async ({
 
   const denoms: number[] = [];
   for (let round = 0; round < 3; round += 1) {
+    // 회차마다 새로 섞는다 — 퀵 안에서는 세그먼트 재클릭이 아니라 이 버튼이 재추첨이다.
     await openSidebar(page);
-    await page.locator("#quickSize").selectOption("20");
-    await page.getByTestId("quick-start-btn").click();
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    if (round === 0) await enterQuick(page);
+    else {
+      await page.getByTestId("quick-start-btn").click();
+      await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    }
     await answerAll(page, 22);
     await grade(page);
     await closeResult(page);
@@ -204,20 +192,12 @@ test("퀵을 반복해도 챕터 분모가 계속 부풀지 않는다", async ({
 test("제품을 오가도 퀵 상태가 새지 않는다", async ({ page }) => {
   const errs = watchErrors(page);
 
-  await openProduct(page, "ISTQB");
-  await openSidebar(page);
-  await page.locator("#quickSize").selectOption("10");
-  await page.getByTestId("quick-start-btn").click();
-  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  await enterQuick(page, "ISTQB");
   await answerCurrent(page);
 
   // 설정 → 처음 화면으로 → CSTS 진입
-  await openProduct(page, "CSTS");
-  await openSidebar(page);
-  await page.locator("#quickSize").selectOption("15");
-  await page.getByTestId("quick-start-btn").click();
-  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-  await expect(page.locator("#progressText")).toContainText("0 / 15");
+  await enterQuick(page, "CSTS");
+  await expect(quickStat(page, "solved")).toHaveText("0");
 
   const draw = await page.evaluate(() => {
     const raw = localStorage.getItem("csts-fl-v1-sample-ui-state");

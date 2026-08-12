@@ -148,12 +148,13 @@ test.describe("APK 기능 · 핵심 플로우(터치)", () => {
 test.describe("APK 기능 · 퀵 랜덤(터치)", () => {
   test.beforeEach(async ({ page }) => simulateApkInsets(page));
 
-  const startQuick = async (page: Page, size: string) => {
+  // 퀵 진입로는 모드 세그먼트다 — 문항 수 콤보는 없앴다(끝을 정해 놓지 않는 모드라
+  // 고를 값이 없다). 드로어를 열고 탭하는 실사용자 동선은 그대로다.
+  const startQuick = async (page: Page) => {
     await page.goto("/");
     await page.getByRole("button", { name: "ISTQB" }).tap();
     await page.getByTestId("drawer-open").tap();
-    await page.locator("#quickSize").selectOption(size);
-    await page.getByTestId("quick-start-btn").tap();
+    await page.locator('.segmented button[data-mode="quick"]').tap();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   };
 
@@ -164,20 +165,32 @@ test.describe("APK 기능 · 퀵 랜덤(터치)", () => {
     await page.getByTestId("drawer-open").tap();
 
     const viewport = page.viewportSize()!;
-    for (const target of [page.locator("#quickSize"), page.getByTestId("quick-start-btn")]) {
+    const checkTarget = async (target: ReturnType<typeof page.locator>, what: string) => {
       await expect(target).toBeVisible();
       const box = (await target.boundingBox())!;
       // 제스처바에 걸리면 탭이 시스템 제스처로 먹혀 "눌러도 반응 없는" 컨트롤이 된다.
-      expect(box.y + box.height, "퀵 컨트롤이 제스처바 영역에 걸린다")
+      expect(box.y + box.height, `${what}이 제스처바 영역에 걸린다`)
         .toBeLessThanOrEqual(viewport.height - SAFE_BOTTOM + 1);
       // 실기기 터치 최소 크기(44px) — 데스크톱 스펙에서 고쳤지만 여기선 미검증이었다.
-      expect(box.height, "터치 타깃이 44px 미만").toBeGreaterThanOrEqual(44);
-    }
+      expect(box.height, `${what} 터치 타깃이 44px 미만`).toBeGreaterThanOrEqual(44);
+    };
 
-    await page.locator("#quickSize").selectOption("10");
-    await page.getByTestId("quick-start-btn").tap();
+    // 진입로는 모드 세그먼트의 '퀵'이다(문항 수 콤보는 없앴다) — 여기가 제스처바에
+    // 걸리면 APK에서는 퀵에 들어갈 방법 자체가 없다.
+    const quickTab = page.locator('.segmented button[data-mode="quick"]');
+    await checkTarget(quickTab, "퀵 모드 버튼");
+    await quickTab.tap();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-    await expect(page.locator(".mtb-meta").first()).toContainText("/ 10");
+
+    // 퀵 안에서만 존재하는 재추첨 버튼도 같은 기준으로 본다.
+    await page.getByTestId("drawer-open").tap();
+    await checkTarget(page.getByTestId("quick-start-btn"), "다시 섞어 시작 버튼");
+    await page.getByTestId("drawer-close").tap();
+
+    // 퀵에는 진행률(N/총계)이 없다 — 끝을 정해 놓지 않아 분모가 없다. 상단바도 사이드바와
+    // 같은 규칙으로 그 자리를 비우고, 현황은 문제 헤더의 점수판이 맡는다.
+    await expect(page.locator(".mtb-meta")).toHaveCount(0);
+    await expect(page.locator(".quick-scoreboard .qs-item")).toHaveCount(4);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
@@ -191,7 +204,7 @@ test.describe("APK 기능 · 퀵 랜덤(터치)", () => {
   // 재시작이 일상인 APK에서 재라, 이 축은 여기서 잡는 게 맞다.
   test("AF12 퀵 오답의 출처 세트 표기가 웹뷰 재시작에도 유지된다", async ({ page }) => {
     const errors = collectErrors(page);
-    await startQuick(page, "20");
+    await startQuick(page);
 
     for (let i = 0; i < 20; i += 1) {
       const opt = page.locator("#options .option").first();

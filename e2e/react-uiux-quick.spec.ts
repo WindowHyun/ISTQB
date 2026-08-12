@@ -1,19 +1,6 @@
 import { test, expect, Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { openProduct, gotoStable } from "./helpers";
-
-/** 유형을 가리지 않고 현재 문항에 답한다 — 퀵에는 서답형이 최대 30% 섞인다(B5).
- *  보기 클릭만 쓰면 뽑기 결과에 따라 셀렉터가 아예 없어 타임아웃으로 죽는다. */
-async function answerCurrent(page: Page) {
-  const short = page.locator(".short-answer-input");
-  const blanks = await short.count();
-  if (blanks) {
-    // 다답형은 모든 칸이 차야 '답함'으로 센다(isAnswered) — 첫 칸만 채우면 진행률이 안 오른다.
-    for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
-    return;
-  }
-  await page.locator("#options .option").first().click();
-}
+import { openProduct, gotoStable, enterQuick, quickStat, answerCurrent } from "./helpers";
 
 /**
  * 퀵 랜덤 UI/UX 검사.
@@ -26,19 +13,6 @@ async function answerCurrent(page: Page) {
 const problems: string[] = [];
 const bad = (s: string) => { problems.push(s); console.log("  ✗ " + s); };
 const note = (s: string) => console.log("· " + s);
-
-async function openBar(page: Page) {
-  const sel = page.locator("#quickSize");
-  if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
-}
-
-async function startQuick(page: Page, product: "ISTQB" | "CSTS", size = "10") {
-  await openProduct(page, product);
-  await openBar(page);
-  await page.locator("#quickSize").selectOption(size);
-  await page.getByTestId("quick-start-btn").click();
-  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-}
 
 /** 보기가 있는 문항이 나올 때까지 '다음'으로 이동한다(찾으면 true). */
 async function advanceToOptionQuestion(page: Page, max = 20): Promise<boolean> {
@@ -70,11 +44,10 @@ test("UI: 퀵 화면 axe 스캔 — 라이트·다크·모바일", async ({ page
   // 라이트 · 데스크톱 — 진입 패널이 보이는 상태
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
-  await openProduct(page, "ISTQB");
-  await axeScan(page, "퀵 진입 패널(라이트)");
-
-  await startQuick(page, "ISTQB");
-  await axeScan(page, "퀵 풀이 화면(라이트)");
+  // 퀵 패널은 퀵 안에서만 렌더된다(진입로는 모드 세그먼트다) — 밖에서 스캔하면
+  // 아무것도 없는 사이드바를 훑고 통과한다. 들어간 뒤에 본다.
+  await enterQuick(page, "ISTQB");
+  await axeScan(page, "퀵 풀이 화면(라이트) — 패널·헤더 점수판 포함");
 
   // 채점 결과 — 이번에 추가한 중립 표면(.result-score.neutral)이 여기서만 나온다.
   await answerCurrent(page);
@@ -88,17 +61,17 @@ test("UI: 퀵 화면 axe 스캔 — 라이트·다크·모바일", async ({ page
   // 다크
   await page.evaluate(() => localStorage.setItem("istqb-theme", "dark"));
   await page.reload();
-  await openProduct(page, "ISTQB");
+  await enterQuick(page, "ISTQB");
   await page.waitForTimeout(400);
-  await axeScan(page, "퀵 진입 패널(다크)");
+  await axeScan(page, "퀵 화면(다크)");
 
   // 모바일
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
-  await openProduct(page, "ISTQB");
+  await enterQuick(page, "ISTQB");
   await page.getByTestId("drawer-open").click();
   await page.waitForTimeout(400);
-  await axeScan(page, "퀵 진입 패널(모바일 다크)");
+  await axeScan(page, "퀵 화면(모바일 다크)");
 
   expect(problems, problems.join("\n")).toEqual([]);
 });
@@ -110,46 +83,43 @@ test("UX: 키보드만으로 퀵을 시작하고 풀 수 있다", async ({ page 
   await page.evaluate(() => localStorage.clear());
   await openProduct(page, "ISTQB");
 
-  // 문항 수 셀렉트에 키보드로 도달 가능한가 — Tab만으로 닿지 못하면 마우스 없이는 못 쓴다.
-  const reached = await page.evaluate(() => {
-    const sel = document.querySelector<HTMLSelectElement>("#quickSize");
-    if (!sel) return { found: false, tabbable: false, labelled: false };
-    return {
-      found: true,
-      tabbable: sel.tabIndex >= 0 && !sel.disabled,
-      labelled: !!(sel.getAttribute("aria-label") || document.querySelector('label[for="quickSize"]')),
-    };
-  });
-  if (!reached.found) bad("퀵 문항 수 셀렉트를 찾을 수 없다");
-  if (!reached.tabbable) bad("퀵 문항 수 셀렉트에 키보드로 도달할 수 없다");
-  if (!reached.labelled) bad("퀵 문항 수 셀렉트에 접근 가능한 이름이 없다");
+  // 퀵의 진입로는 모드 세그먼트다(문항 수 셀렉트는 없앴다 — 끝이 정해지지 않은 모드에
+  // 문항 수를 고르게 하는 것이 거짓말이라서). 그 버튼에 키보드로 닿고 이름이 읽히는가.
+  const quickBtn = page.locator('.segmented button[data-mode="quick"]');
+  const reached = await quickBtn.evaluate((el) => ({
+    tabbable: (el as HTMLButtonElement).tabIndex >= 0 && !(el as HTMLButtonElement).disabled,
+    named: ((el.textContent || "") + (el.getAttribute("aria-label") || "")).trim().length > 0,
+  }));
+  if (!reached.tabbable) bad("퀵 모드 버튼에 키보드로 도달할 수 없다");
+  if (!reached.named) bad("퀵 모드 버튼에 접근 가능한 이름이 없다");
 
-  // 셀렉트를 키보드로 조작하고 시작 버튼을 Enter로 누른다.
-  await page.locator("#quickSize").focus();
-  await page.locator("#quickSize").selectOption("15");
-  await page.getByTestId("quick-start-btn").focus();
+  // 버튼을 Enter로 눌러 진입한다.
+  await quickBtn.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-  await expect(page.locator("#progressText")).toContainText("/ 15");
-  note("키보드만으로 퀵 15문항 시작 성공");
+  await expect(quickStat(page, "solved")).toHaveText("0");
+  note("키보드만으로 퀵 진입 성공");
 
   // 보기 선택도 키보드로 — 라디오/버튼 어느 쪽이든 포커스 후 Enter/Space가 먹어야 한다.
   // 퀵에는 서답형이 섞이므로(B5) 보기가 있는 문항까지 이동한 뒤 검사한다.
   // 그냥 첫 문항을 잡으면 서답형이 뽑힌 회차에서 셀렉터가 없어 헛되이 죽는다.
   if (!(await advanceToOptionQuestion(page))) {
-    bad("15문항을 다 넘겨도 보기가 있는 문항이 없다 — 퀵이 서답형만 뽑았다");
+    bad("20문항을 다 넘겨도 보기가 있는 문항이 없다 — 퀵이 서답형만 뽑았다");
     expect(problems, problems.join("\n")).toEqual([]);
     return;
   }
+  // 진행은 헤더 점수판에서 읽는다 — 퀵에는 진행률(#progressText)이 없다(분모가 없는 모드).
+  const solvedBefore = Number((await quickStat(page, "solved").textContent()) ?? "0");
   const opt = page.locator("#options .option").first();
   await opt.focus();
   await page.keyboard.press("Enter");
   await page.waitForTimeout(200);
-  let progressed = /^1 \//.test((await page.locator("#progressText").textContent()) ?? "");
+  const solved = async () => Number((await quickStat(page, "solved").textContent()) ?? "0");
+  let progressed = (await solved()) > solvedBefore;
   if (!progressed) {
     await page.keyboard.press(" ");
     await page.waitForTimeout(200);
-    progressed = /^1 \//.test((await page.locator("#progressText").textContent()) ?? "");
+    progressed = (await solved()) > solvedBefore;
   }
   if (!progressed) bad("보기를 키보드(Enter/Space)로 선택할 수 없다");
 
@@ -168,15 +138,15 @@ test("UI: 모바일에서 퀵 컨트롤이 터치 타깃 최소 크기를 만족
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
-  await openProduct(page, "ISTQB");
+  await enterQuick(page, "ISTQB");
   await page.getByTestId("drawer-open").click();
   await page.waitForTimeout(400);
 
   // WCAG 2.1 AA(2.5.5는 AAA지만 모바일 실사용 기준으로 44px를 쓴다).
   const MIN = 44;
   for (const [label, sel] of [
-    ["문항 수 셀렉트", "#quickSize"],
-    ["시작 버튼", '[data-testid="quick-start-btn"]'],
+    ["퀵 모드 버튼", '.segmented button[data-mode="quick"]'],
+    ["다시 섞어 시작 버튼", '[data-testid="quick-start-btn"]'],
   ] as const) {
     const box = await page.locator(sel).boundingBox();
     if (!box) { bad(`${label}: 화면에 없다`); continue; }
@@ -206,7 +176,7 @@ test("UI: 테마 × 글자 크기 조합에서 퀵 화면이 넘치거나 잘리
           localStorage.setItem("istqb-theme", t as string);
           localStorage.setItem("istqb-q-font", f as string);
         }, [theme, font]);
-        await openProduct(page, "ISTQB");
+        await enterQuick(page, "ISTQB");
         if (width === 390) await page.getByTestId("drawer-open").click();
         await page.waitForTimeout(350);
 
@@ -221,6 +191,23 @@ test("UI: 테마 × 글자 크기 조합에서 퀵 화면이 넘치거나 잘리
         if (panel.scrollW > panel.clientW + 1) {
           bad(`${label}: 퀵 패널 가로 넘침 ${panel.scrollW}>${panel.clientW}`);
         }
+
+        // 헤더 점수판 — 문제 제목과 한 줄을 나눠 쓰므로 큰 글자·좁은 폭에서 먼저 넘친다.
+        const board = await page.evaluate(() => {
+          const el = document.querySelector(".quick-scoreboard") as HTMLElement | null;
+          if (!el) return null;
+          const bar = el.closest(".topbar") as HTMLElement | null;
+          return {
+            scrollW: el.scrollWidth,
+            clientW: el.clientWidth,
+            barOverflow: bar ? bar.scrollWidth > bar.clientWidth + 1 : false,
+          };
+        });
+        if (!board) { bad(`${label}: 퀵 점수판이 없다`); continue; }
+        if (board.scrollW > board.clientW + 1) {
+          bad(`${label}: 점수판 가로 넘침 ${board.scrollW}>${board.clientW}`);
+        }
+        if (board.barOverflow) bad(`${label}: 점수판이 헤더 카드를 넘겼다`);
 
         // 문서 전체 넘침
         const doc = await page.evaluate(() => ({
@@ -258,10 +245,7 @@ test("UI: 퀵 결과의 중립 표면이 라이트·다크 모두에서 읽을 �
   for (const theme of ["light", "dark"] as const) {
     await page.goto("/");
     await page.evaluate((t) => { localStorage.clear(); localStorage.setItem("istqb-theme", t as string); }, theme);
-    await openProduct(page, "ISTQB");
-    await page.locator("#quickSize").selectOption("10");
-    await page.getByTestId("quick-start-btn").click();
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    await enterQuick(page, "ISTQB");
     await answerCurrent(page);
     await page.getByTestId("grade-button").click();
     const c = page.getByTestId("confirm-grade");

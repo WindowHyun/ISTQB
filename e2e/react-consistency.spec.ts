@@ -14,8 +14,7 @@ const problems: string[] = [];
 const bad = (s: string) => { problems.push(s); console.log("  ✗ " + s); };
 
 async function openBar(page: Page) {
-  const sel = page.locator("#quickSize");
-  if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
+  if (!(await page.locator(".segmented").isVisible())) await page.getByTestId("drawer-open").click();
 }
 
 /**
@@ -210,8 +209,7 @@ test("정합성: 오답 수가 결과·오답노트·재풀이에서 어긋나�
   // 4) 퀵을 한 회차 더 풀어도 위 세 숫자는 그대로여야 한다 — 퀵 오답은 임시 목록으로만
   //    간다. 여기서 세트 그룹 합이 늘면 "기록을 남기지 않는다"는 약속이 깨진 것이다.
   await openBar(page);
-  await page.locator("#quickSize").selectOption("10");
-  await page.getByTestId("quick-start-btn").click();
+  await page.locator('.segmented button[data-mode="quick"]').click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   await answerAll(page, 12);
   await grade(page);
@@ -245,8 +243,7 @@ test("정합성: 진행률과 문항 팔레트의 '답함' 개수가 같다", as
   await openProduct(page, "CSTS");
 
   await openBar(page);
-  await page.locator("#quickSize").selectOption("15");
-  await page.getByTestId("quick-start-btn").click();
+  await page.locator('.segmented button[data-mode="quick"]').click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 
   // 5문항만 답한다. 단계마다 진행률을 확인하고 넘어간다 — 렌더가 자리를 잡기 전에

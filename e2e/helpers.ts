@@ -79,6 +79,53 @@ export async function enterExamMobile(page: Page) {
   if (await start.count()) await start.tap();
 }
 
+/**
+ * 퀵 진입 — 모드 세그먼트가 유일한 진입로다.
+ *
+ * 종전에는 문항 수 콤보(#quickSize)에서 10·15·20을 고르고 '시작'을 누르는 두 단계였다.
+ * 그 콤보는 사라졌다 — 끝을 정해 놓지 않은 모드에 문항 수를 고르게 하는 것이 거짓말이라,
+ * 이제 세그먼트를 누르는 순간 제품의 전 세트를 섞어 첫 문항을 낸다. 그래서 이 헬퍼에는
+ * size 인자가 없다(있던 자리에 무엇을 넣어야 할지 답할 수 없으면 그 인자는 없는 것이다).
+ *
+ * 퀵 안의 '다시 섞어 시작'(quick-start-btn)은 진입이 아니라 재추첨이므로 여기서 누르지
+ * 않는다 — 누르면 방금 들어와 뽑힌 회차를 버리고 다시 뽑는 셈이라 의도가 흐려진다.
+ */
+export async function enterQuick(page: Page, product?: "ISTQB" | "CSTS") {
+  if (product) await openProduct(page, product);
+  const btn = page.locator('.segmented button[data-mode="quick"]');
+  // 모바일/태블릿(≤880px)에서는 세그먼트가 드로어 안이라 숨어 있다 — 실사용자와 같이 연다.
+  if (!(await btn.isVisible())) await page.getByTestId("drawer-open").click();
+  await btn.click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+}
+
+/**
+ * 퀵 점수판의 한 칸 값. 퀵에는 진행률(#progressText)이 없다 — 끝이 정해지지 않아 분모가
+ * 없기 때문이다. 그 자리를 문제 헤더의 점수판이 대신하므로, 퀵의 '얼마나 풀었나'는
+ * 여기서 읽는다.
+ */
+export function quickStat(page: Page, cell: "solved" | "correct" | "wrong" | "streak") {
+  const index = { solved: 0, correct: 1, wrong: 2, streak: 3 }[cell];
+  return page.locator(".quick-scoreboard .qs-item").nth(index).locator("b");
+}
+
+/**
+ * 유형을 가리지 않고 현재 문항에 답한다.
+ *
+ * 퀵에는 서답형이 최대 30%까지 섞이므로(B5) `#options .option` 클릭만 쓰면 뽑기 결과에
+ * 따라 그 셀렉터가 아예 없어 타임아웃한다 — '가끔 깨지는 테스트'로 보이지만 원인은
+ * 타이밍이 아니라 문항 유형이다. 다답형은 모든 칸이 차야 '답함'으로 센다(isAnswered).
+ */
+export async function answerCurrent(page: Page) {
+  const short = page.locator(".short-answer-input");
+  const blanks = await short.count();
+  if (blanks) {
+    for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
+    return;
+  }
+  await page.locator("#options .option").first().click();
+}
+
 // 채점: 채점 버튼 클릭 후 미응답 경고 모달이 뜨면 확인까지 처리한다.
 export async function submitGrade(page: Page, testid = "grade-button") {
   await page.getByTestId(testid).click();

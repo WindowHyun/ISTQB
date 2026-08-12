@@ -18,12 +18,11 @@ import { openProduct } from "./helpers";
  *    실제로 성립하는지만 지킨다 — 두 저장 경로 중 무엇이 일하든 결과는 같아야 한다.
  */
 
-async function startQuick(page: Page, size: string) {
+async function startQuick(page: Page) {
   await openProduct(page, "ISTQB");
-  const select = page.locator("#quickSize");
-  if (!(await select.isVisible())) await page.getByTestId("drawer-toggle").click();
-  await select.selectOption(size);
-  await page.getByTestId("quick-start-btn").click();
+  const btn = page.locator('.segmented button[data-mode="quick"]');
+  if (!(await btn.isVisible())) await page.getByTestId("drawer-open").click();
+  await btn.click();
 }
 
 async function answerCurrent(page: Page) {
@@ -68,10 +67,9 @@ test.describe("퀵 — 복원력", () => {
       await route.fulfill({ status: 503, body: "blocked for test" });
     });
 
-    const select = page.locator("#quickSize");
-    if (!(await select.isVisible())) await page.getByTestId("drawer-toggle").click();
-    await select.selectOption("10");
-    await page.getByTestId("quick-start-btn").click();
+    const btn = page.locator('.segmented button[data-mode="quick"]');
+    if (!(await btn.isVisible())) await page.getByTestId("drawer-open").click();
+    await btn.click();
 
     // 문항이 실제로 떠야 한다 — 종전에는 여기서 에러 배너가 떴다.
     await expect(
@@ -87,7 +85,7 @@ test.describe("퀵 — 복원력", () => {
   });
 
   test("퀵 채점 직후 새로고침해도 회차와 퀵 오답이 남는다(왕복 가드)", async ({ page }) => {
-    await startQuick(page, "10");
+    await startQuick(page);
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
     await gradeAll(page, 10);
 
@@ -120,7 +118,7 @@ test.describe("퀵 — 복원력", () => {
   });
 
   test("퀵에서는 '오답 다시 풀기'를 내리고 갈 곳을 안내한다", async ({ page }) => {
-    await startQuick(page, "10");
+    await startQuick(page);
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 
     const drawer = page.getByTestId("drawer-toggle");

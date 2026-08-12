@@ -28,16 +28,17 @@ export function freshQuickRounds(rounds: ExamHistory[] | undefined, now = Date.n
  */
 export const PLAY_MODES = ['exam', 'practice', 'random', 'review', 'quick'] as const;
 
-/** 퀵에서 고를 수 있는 문항 수. 듀오링고식 짧은 세션 규모. */
-export const QUICK_SIZES = [10, 15, 20] as const;
-
 /**
- * 문항 수를 고르지 않는 퀵 — 제품의 전 세트를 섞어 끝까지 낸다.
+ * 퀵의 출제 규모 — 제품의 전 세트를 섞어 끝까지 낸다.
  *
- * 사이드바의 문항 수 선택을 없앤 뒤(끝이 정해지지 않은 모드에 '10문항'을 고르게 하는 것은
- * 거짓말이다) 진입로가 넘길 값이 없어졌다. 추첨은 useQuestions가 `Math.min(size, pool.length)`로
+ * 문항 수 선택(종전 10·15·20)은 없앴다: 끝을 정해 놓지 않은 모드에 '10문항'을 고르게
+ * 하는 것은 거짓말이기 때문이다. 추첨은 useQuestions가 `Math.min(size, pool.length)`로
  * 하므로 풀보다 큰 값은 곧 '전부'다 — quickSize를 nullable로 만들어 추첨·복원·영속화
  * 세 곳에 분기를 추가하는 대신 상수 하나로 같은 뜻을 표현한다.
+ *
+ * 이 값이 **기본값**이라는 점이 중요하다. 퀵 진입로는 둘이고(모드 세그먼트, 퀵 패널의
+ * 재추첨 버튼) 세그먼트는 startQuick을 거치지 않는다. 기본값을 10으로 두면 그쪽으로 들어온
+ * 퀵만 조용히 10문항이 된다 — setId 불변식과 똑같은 모양의 어긋남이다.
  */
 export const QUICK_ALL = Number.MAX_SAFE_INTEGER;
 
@@ -240,8 +241,9 @@ export const sessionScopeDefaults = () => ({
   // 살아남고, 이어지는 saveUiState가 그것을 CSTS 저장소 키에 기록한다 — 제품 간 오염이다.
   // 화면의 productQuickRounds 필터는 certification 없는 회차를 통과시켜 방어가 완전하지 않다.
   quickRounds: [] as ExamHistory[],
-  // 사용자가 고른 퀵 문항 수. 추첨 시점에만 쓰이므로 세션 스코프로 충분하다.
-  quickSize: QUICK_SIZES[0] as number,
+  // 퀵 추첨 규모. 고르는 값이 아니라 늘 '전부'다(QUICK_ALL 주석) — 추첨 시점에만 쓰이므로
+  // 세션 스코프로 충분하다.
+  quickSize: QUICK_ALL as number,
   quickNonce: 0,
   // 제품이 바뀌면 돌아갈 세트도 남의 제품 것이 되므로 함께 비운다.
   preQuickSetId: null as string | null,
@@ -283,7 +285,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   randomNonce: 0,
   randomDraw: null,
   quickDraw: null,
-  quickSize: QUICK_SIZES[0] as number,
+  quickSize: QUICK_ALL,
   quickNonce: 0,
   preQuickSetId: null,
 

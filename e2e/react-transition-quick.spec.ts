@@ -26,8 +26,11 @@ async function snapshot(page: Page) {
       gate: !!document.querySelector('[data-testid="exam-start-gate"]'),
       stem: !!document.querySelector("#questionStem"),
       progress: document.querySelector("#progressText")?.textContent?.replace(/\s+/g, " ").trim() ?? "",
-      // 퀵 진입 버튼이 살아 있는지(잠금 상태 확인용)
-      quickDisabled: (document.querySelector('[data-testid="quick-start-btn"]') as HTMLButtonElement | null)?.disabled ?? null,
+      // 퀵의 '진행' — 이 모드에는 진행률(분모)이 없어 헤더 점수판의 첫 칸이 그 자리를 맡는다.
+      solved: document.querySelector(".quick-scoreboard .qs-item b")?.textContent?.trim() ?? null,
+      // 퀵 진입이 잠겼는지 — 진입로가 모드 세그먼트로 옮겨져 그 버튼의 disabled를 본다.
+      // (종전에는 퀵 패널의 시작 버튼을 봤는데, 그 패널은 이제 퀵 안에서만 렌더된다.)
+      quickDisabled: (document.querySelector('.segmented button[data-mode="quick"]') as HTMLButtonElement | null)?.disabled ?? null,
       // 채점 잠금이면 보기가 잠긴다 — '이미 채점됨' 상태로 새 세션이 시작되는 결함 감지.
       locked: !!document.querySelector("#options .option[aria-disabled='true'], #options .option.locked"),
     };
@@ -64,9 +67,9 @@ async function toSegment(page: Page, mode: Seg) {
   await page.waitForTimeout(150);
 }
 
-async function toQuick(page: Page, size = "10") {
-  await page.locator("#quickSize").selectOption(size).catch(() => {});
-  await page.getByTestId("quick-start-btn").click({ timeout: 5000 }).catch(() => {});
+async function toQuick(page: Page) {
+  // 퀵 진입로는 모드 세그먼트다 — 문항 수 콤보와 '시작' 버튼을 거치던 두 단계는 없어졌다.
+  await page.locator('.segmented button[data-mode="quick"]').click({ timeout: 5000 }).catch(() => {});
   await page.waitForTimeout(200);
 }
 
@@ -86,9 +89,11 @@ test("전이: 세그먼트 4모드 ↔ 퀵 왕복 (8방향)", async ({ page }) =
     const store = await storeState(page, "quick");
     if (store.mode !== "quick") bad(`${m}→quick: 모드가 quick이 아님 (${store.mode})`);
     if (store.setId !== "QUICK") bad(`${m}→quick: setId 센티넬이 아님 (${store.setId})`);
-    if (store.quickItems !== 10) bad(`${m}→quick: 추첨 수가 10이 아님 (${store.quickItems})`);
+    // 문항 수를 고르지 않는다 — 전 세트를 섞어 낸다. 한 세트 분량(ISTQB 최대 70)을
+    // 넘는지로 '전 세트 출제'를 본다(정확한 수는 재수록 제거 때문에 데이터에 달렸다).
+    if (!(store.quickItems > 70)) bad(`${m}→quick: 전 세트 출제가 아님 (추첨 ${store.quickItems})`);
     if (!inQuick.stem) bad(`${m}→quick: 문항이 렌더되지 않음`);
-    if (!/0 \/ 10/.test(inQuick.progress)) bad(`${m}→quick: 새 세션인데 진행률이 0이 아님 (${inQuick.progress})`);
+    if (inQuick.solved !== "0") bad(`${m}→quick: 새 세션인데 진행이 0이 아님 (${inQuick.solved})`);
 
     // quick → m
     await toSegment(page, m);
@@ -117,10 +122,13 @@ test("전이: 퀵 → 퀵 (연속 재시작)에서 잠금·진행이 초기화�
   await openProduct(page, "ISTQB");
 
   for (let round = 1; round <= 3; round += 1) {
-    await toQuick(page, "10");
+    // 1회차는 세그먼트로 들어가고, 이후는 '다시 섞어 시작'이 재시작 경로다 —
+    // 이미 퀵일 때 같은 세그먼트를 다시 누르는 것은 무동작이 사양이다(잠금 우회 방지).
+    if (round === 1) await toQuick(page);
+    else await page.getByTestId("quick-start-btn").click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
     const s = await snapshot(page);
-    if (!/0 \/ 10/.test(s.progress)) bad(`퀵 ${round}회차: 진행률이 0이 아님 (${s.progress})`);
+    if (s.solved !== "0") bad(`퀵 ${round}회차: 진행이 0이 아님 (${s.solved})`);
     if (s.locked) bad(`퀵 ${round}회차: 시작하자마자 보기가 잠김(이전 채점 잔재)`);
 
     // 답하고 채점 — 다음 회차가 이 상태를 물려받으면 안 된다.
@@ -168,47 +176,46 @@ test("전이: 시험 응시 중에는 퀵 진입이 잠기고, 채점 후 풀린
  * 센티넬(QUICK-quick-*)로 저장한 답을 바뀐 세트 기준으로 찾게 돼 진행률이 0으로 떨어졌다
  * (실측 2/10 → 0/10, 새로고침해도 복구 안 됨 · #172).
  *
- * 이제 컨트롤 자체를 잠가 구조적으로 막는다. 그래서 검사도 바꾼다 —
- * (1) 퀵 중에는 세트 셀렉트가 잠겨 있는가, (2) 조작을 시도해도 추첨과 **진행률**이
- * 그대로인가. (2)의 진행률이 종전에 빠져 있던 부분이다.
+ * 이제 컨트롤 자체를 없애 구조적으로 막는다(종전에는 남겨 두고 disabled만 걸었는데,
+ * 그러면 퀵으로 들어오기 직전 세트 이름이 계속 떠 있어 "이 세트를 풀고 있다"는 잘못된
+ * 읽기를 화면이 제공한다). 그래서 검사도 바꾼다 —
+ * (1) 퀵 중에 세트 셀렉트가 DOM에서 사라지는가, (2) 그 사이 추첨과 **진행**이 그대로인가.
  */
-test("전이: 퀵 진행 중에는 세트 셀렉트가 잠겨 추첨도 진행도 오염되지 않는다", async ({ page }) => {
+test("전이: 퀵 진행 중에는 세트 셀렉트가 사라져 추첨도 진행도 오염되지 않는다", async ({ page }) => {
   test.setTimeout(300_000);
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await openProduct(page, "ISTQB");
 
-  await toQuick(page, "10");
+  await toQuick(page);
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   await page.locator("#options .option").first().click();
-  await expect(page.locator("#progressText")).toContainText("1 / 10");
+  const solved = page.locator(".quick-scoreboard .qs-item").first().locator("b");
+  await expect(solved).toHaveText("1");
 
   const readDraw = () => page.evaluate(() => {
     const raw = localStorage.getItem("istqb-fl-v4-sample-ui-state");
     return raw ? JSON.parse(raw).quickDraw?.items?.map((i: { id: string }) => i.id) ?? [] : [];
   }) as Promise<string[]>;
   const beforeIds = await readDraw();
-  const beforeProgress = await page.locator("#progressText").textContent();
 
-  // 잠겨 있어야 한다 — 여기가 이번에 세운 계약이다.
-  const select = page.locator("#examSelect");
-  await expect(select, "퀵 진행 중인데 세트 셀렉트가 열려 있다").toBeDisabled();
+  // 사라져 있어야 한다 — 여기가 이번에 세운 계약이다.
+  await expect(page.locator("#examSelect"), "퀵 진행 중인데 세트 셀렉트가 남아 있다").toHaveCount(0);
 
-  // 그래도 조작을 시도해 본다(잠금이 표시만이고 실제로는 먹히는 경우를 잡는다).
-  // 비활성 컨트롤이라 대기가 길어지므로 짧은 타임아웃으로 끊는다.
-  const options = await select.locator("option").all();
-  if (options.length > 1) {
-    const other = await options[1].getAttribute("value");
-    if (other) await select.selectOption(other, { timeout: 1500 }).catch(() => {});
-    await page.waitForTimeout(300);
-  }
+  // 저장된 setId도 센티넬이어야 한다 — 실재 세트로 남으면 답안 키가 그 세트로 갈려
+  // 진행이 통째로 사라진다(#172가 정확히 그 경로였다).
+  const storedSetId = await page.evaluate(() => {
+    const raw = localStorage.getItem("istqb-fl-v4-sample-ui-state");
+    return raw ? JSON.parse(raw).setId : null;
+  });
+  if (storedSetId !== "QUICK") bad(`퀵인데 저장된 setId가 센티넬이 아님 (${storedSetId})`);
 
+  await page.waitForTimeout(300);
   const afterIds = await readDraw();
-  const afterProgress = await page.locator("#progressText").textContent();
-  console.log(`· 추첨 ${beforeIds.length} → ${afterIds.length} · 진행 ${beforeProgress} → ${afterProgress}`);
+  const afterSolved = await solved.textContent();
+  console.log(`· 추첨 ${beforeIds.length} → ${afterIds.length} · 진행 ${afterSolved}`);
   if (JSON.stringify(beforeIds) !== JSON.stringify(afterIds)) bad("퀵 추첨이 달라졌다");
-  // 종전 검사에 없던 축 — 답안 키가 갈리면 여기가 0으로 떨어진다.
-  if (beforeProgress !== afterProgress) bad(`진행률이 ${beforeProgress} → ${afterProgress}로 변했다`);
+  if (afterSolved !== "1") bad(`진행이 1 → ${afterSolved}로 변했다`);
   expect(problems, problems.join("\n")).toEqual([]);
 });
 
@@ -227,13 +234,11 @@ type AnyMode = typeof ALL_MODES[number];
  * (응시 중 잠금, 오답 없음). 다만 거절과 '컨트롤이 아예 없다'는 다르다 — 후자는 제품이
  * 아니라 검사가 깨진 것이므로 여기서 소리를 낸다. 세그먼트 버튼 4개는 어떤 상태에서도
  * 항상 렌더되므로(비활성일 수는 있어도) 부재는 곧 셀렉터 부패다.
- * 퀵 시작 버튼만은 예외로 사라진다: 퀵 진행 중 같은 문항 수면 감춰 둔다(Sidebar 주석).
+ * 퀵도 이제 같은 세그먼트로 들어간다 — 전용 진입로(문항 수 콤보 + 시작 버튼)가 없어져
+ * 예외 분기가 필요 없다.
  */
 async function goAny(page: Page, m: AnyMode) {
-  if (m === "quick") {
-    await page.locator("#quickSize").selectOption("10").catch(() => {});
-    await page.getByTestId("quick-start-btn").click({ timeout: 5000 }).catch(() => {});
-  } else {
+  {
     const btn = page.locator(`.segmented button[data-mode="${m}"]`);
     if (!(await btn.count())) bad(`${m}: 세그먼트 버튼이 DOM에 없다 — 셀렉터가 썩었다`);
     await btn.click({ timeout: 5000 }).catch(() => {});

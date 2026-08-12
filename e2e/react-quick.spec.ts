@@ -1,39 +1,12 @@
 import { test, expect, Page } from "@playwright/test";
-import { openProduct } from "./helpers";
+import { openProduct, enterQuick, quickStat, answerCurrent } from "./helpers";
 
-// 퀵 랜덤 — 제품의 전 세트에서 10~20문항을 짧게 푸는 모드.
+// 퀵 랜덤 — 제품의 전 세트를 섞어 한 문항씩 내는 모드(끝을 정해 두지 않는다).
 // 세트 하나에 매이지 않아 setId가 센티넬(QUICK)이라, 세트를 전제하는 기존 경로들이
 // 조용히 어긋날 수 있다. 그 지점들을 여기서 고정한다.
-
-async function startQuick(page: Page, product: "ISTQB" | "CSTS", size: string) {
-  await openProduct(page, product);
-  const select = page.locator("#quickSize");
-  // 모바일에서는 사이드바가 드로어라 숨어 있다 — 실사용자와 동일하게 연다.
-  if (!(await select.isVisible())) await page.getByTestId("drawer-toggle").click();
-  await select.selectOption(size);
-  await page.getByTestId("quick-start-btn").click();
-  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-}
-
-/**
- * 현재 문항에 답한다 — 유형을 가리지 않는다.
- *
- * 사양 변경(B5) 이후 퀵에는 서답형이 최대 30%까지 섞인다. 그래서 "첫 문항에 답한다"를
- * `#options .option` 클릭으로 쓰면, 뽑기 결과에 따라 3번에 1번꼴로 그 셀렉터가 아예
- * 존재하지 않아 30초를 기다리다 죽는다(실제로 그렇게 실패했다 — 무작위 추첨이라
- * '가끔 깨지는 테스트'로 보였을 뿐 원인은 타이밍이 아니라 문항 유형이었다).
- */
-async function answerCurrent(page: Page) {
-  const short = page.locator(".short-answer-input");
-  const blanks = await short.count();
-  if (blanks) {
-    // 빈칸이 여러 개인 다답형은 '모든 칸'이 차야 답한 것으로 센다(isAnswered).
-    // 첫 칸만 채우면 진행률이 0인 채로 남아, 원인을 모르는 실패가 된다.
-    for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
-    return;
-  }
-  await page.locator("#options .option").first().click();
-}
+//
+// 진입·응답 헬퍼는 helpers로 모았다 — 문항 수 콤보가 사라지면서 스펙마다 복사돼 있던
+// 지역 헬퍼가 전부 같은 지점에서 깨졌다(그 자체가 중복의 대가였다).
 
 /**
  * quickDraw는 saveUiState의 500ms 디바운스를 거쳐 저장된다. 시작 직후 바로 읽으면
@@ -59,34 +32,37 @@ function readUi(page: Page, product: "istqb" | "csts") {
 }
 
 test.describe("퀵 랜덤", () => {
-  test("고른 문항 수만큼, 제품의 여러 세트에서 뽑는다", async ({ page }) => {
-    await startQuick(page, "CSTS", "10");
-    await expect(page.locator("#progressText")).toContainText("/ 10");
+  // 사양 변경: 문항 수를 고르지 않는다 — 제품의 전 세트를 섞어 끝까지 낸다.
+  // 그래서 '몇 개인가'가 아니라 '어디에서 왔는가'를 본다(전 세트 출제·출처 보존).
+  test("제품의 전 세트에서, 출처를 남기고 뽑는다", async ({ page }) => {
+    await enterQuick(page, "CSTS");
 
     const ui = await readUi(page, "csts");
     expect(ui.mode).toBe("quick");
     const items: { id: string; setId: string }[] = ui.quickDraw.items;
-    expect(items).toHaveLength(10);
-    // 한 세트에서만 뽑혔다면 '전 세트 출제'가 성립하지 않는다(CSTS는 7세트 440문항이라
-    // 10문항이 우연히 한 세트에 몰릴 확률은 무시할 수 있다).
+    // 한 세트 분량(70문항)을 넘어야 '전 세트를 섞었다'가 성립한다 — 개수를 못 박지 않는
+    // 이유는 재수록 제거로 총계가 데이터에 따라 달라지기 때문이다.
+    expect(items.length, "전 세트 출제인데 한 세트 분량도 안 된다").toBeGreaterThan(70);
     expect(new Set(items.map((i) => i.setId)).size).toBeGreaterThan(1);
     // 출처 세트가 비면 오답 귀속과 복원이 성립하지 않는다.
     expect(items.every((i) => !!i.setId)).toBe(true);
   });
 
-  // QuestionCard가 답안 키를 독립 조립하던 시절이라면 여기서 진행률이 오르지 않는다.
-  test("답을 고르면 진행률이 오른다", async ({ page }) => {
-    await startQuick(page, "ISTQB", "10");
-    await expect(page.locator("#progressText")).toContainText("0 / 10");
+  // QuestionCard가 답안 키를 독립 조립하던 시절이라면 여기서 집계가 오르지 않는다.
+  // 퀵에는 진행률(#progressText)이 없다 — 끝이 정해지지 않아 분모가 없다. 헤더 점수판이
+  // 그 자리를 맡으므로 '답했다'의 증거도 거기서 읽는다.
+  test("답을 고르면 헤더 점수판의 진행이 오른다", async ({ page }) => {
+    await enterQuick(page, "ISTQB");
+    await expect(quickStat(page, "solved")).toHaveText("0");
     await answerCurrent(page);
-    await expect(page.locator("#progressText")).toContainText("1 / 10");
+    await expect(quickStat(page, "solved")).toHaveText("1");
   });
 
   test("새로고침해도 같은 문항으로 이어 푼다", async ({ page }) => {
-    await startQuick(page, "CSTS", "10");
+    await enterQuick(page, "CSTS");
     const before = await readQuickDrawIds(page, "csts");
     await answerCurrent(page);
-    await expect(page.locator("#progressText")).toContainText("1 / 10");
+    await expect(quickStat(page, "solved")).toHaveText("1");
 
     await page.reload();
     // 진입 시 항상 제품 게이트를 먼저 보여주는 것이 이 앱의 사양(#5)이라 다시 고른다 —
@@ -94,16 +70,16 @@ test.describe("퀵 랜덤", () => {
     await openProduct(page, "CSTS");
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
     // 답안이 유지된다 = 같은 문항을 같은 키로 보고 있다.
-    await expect(page.locator("#progressText")).toContainText("1 / 10");
+    await expect(quickStat(page, "solved")).toHaveText("1");
     const after = await readQuickDrawIds(page, "csts");
     expect(after).toEqual(before);
   });
 
   // 사양 변경(B5): 서답형도 퀵에 나온다. 다만 한 회차를 점령하면 '퀵'이 아니므로 30% 상한을 둔다.
-  // 종전 검사는 존재하지 않는 셀렉터([data-testid="next-btn"])로 첫 문항에서 바로 빠져나가
-  // 20문항을 한 번도 보지 않았다 — 헛돌던 검사를 실제로 도는 것으로 바꾼다.
-  test("서답형이 섞이되 30%를 넘지 않는다", async ({ page }) => {
-    await startQuick(page, "CSTS", "20");
+  // 상한은 총량이 아니라 접두 성질이다(drawQuick 주석) — 끝이 정해지지 않은 모드에서
+  // '총량 30%'는 아무것도 막지 못하기 때문이다. 그래서 앞 20문항을 실제로 밟아 확인한다.
+  test("서답형이 섞이되 앞 20문항에서 30%를 넘지 않는다", async ({ page }) => {
+    await enterQuick(page, "CSTS");
     let shortAnswers = 0;
     let visited = 0;
     for (let i = 0; i < 20; i += 1) {
@@ -119,8 +95,8 @@ test.describe("퀵 랜덤", () => {
     expect(shortAnswers, `20문항 중 서답형 ${shortAnswers}개`).toBeLessThanOrEqual(6);
   });
 
-  test("채점 결과에 합격 판정이 없다 — 10문항에 '기준 미달'은 오해를 만든다", async ({ page }) => {
-    await startQuick(page, "ISTQB", "10");
+  test("채점 결과에 합격 판정이 없다 — 퀵에 '기준 미달'은 오해를 만든다", async ({ page }) => {
+    await enterQuick(page, "ISTQB");
     await answerCurrent(page);
     await page.getByTestId("grade-button").click();
     const confirm = page.getByTestId("confirm-grade");
@@ -131,12 +107,14 @@ test.describe("퀵 랜덤", () => {
     await expect(result).toContainText("퀵 랜덤");
     await expect(result).not.toContainText("합격 기준 미달");
     await expect(result).not.toContainText("합격 기준 충족");
-    // %가 아니라 맞힌 개수로 보여준다.
-    await expect(page.getByTestId("result-rate")).toContainText("/ 10문항");
+    // %가 아니라 맞힌 개수로 보여준다. 총계는 못 박지 않는다 — 문항 수를 고르지 않는
+    // 모드라 회차 크기가 데이터(재수록 제거 후 풀 크기)에 달려 있다.
+    await expect(page.getByTestId("result-rate")).toContainText("문항");
+    await expect(page.getByTestId("result-rate")).not.toContainText("%");
   });
 
   test("퀵 회차는 요약(응시 횟수·최고 정답률)을 부풀리지 않는다", async ({ page }) => {
-    await startQuick(page, "ISTQB", "10");
+    await enterQuick(page, "ISTQB");
     // 전 문항 정답을 고를 수 없으므로 한 문항만 답하고 채점한다 — 요약에 섞이는지만 본다.
     await answerCurrent(page);
     await page.getByTestId("grade-button").click();
@@ -167,7 +145,7 @@ test.describe("퀵 랜덤", () => {
   // 사양 변경(B1): 퀵 오답은 세트별 오답 버킷에 넣지 않는다 — 세트를 다 풀지도 않았는데
   // 그 세트의 오답 모드가 퀵 결과로 오염된다. 퀵만 푼 상태에서는 재풀이 대상이 없어야 한다.
   test("퀵은 세트의 '오답 다시 풀기' 대상을 만들지 않는다", async ({ page }) => {
-    await startQuick(page, "ISTQB", "10");
+    await enterQuick(page, "ISTQB");
     for (let i = 0; i < 10; i += 1) {
       const o = page.locator("#options .option").first();
       if (await o.count()) await o.click();
