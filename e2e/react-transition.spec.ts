@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { completeAttempt, enterExam, enterFullRandom, modeBtn, openProduct, openSet, submitGrade } from "./helpers";
+import { completeAttempt, enterExam, enterMiniTest, modeBtn, openProduct, openSet, submitGrade } from "./helpers";
 
 // 상태 전이(State Transition) 전수조사 — 상태 × 이벤트 매트릭스를 경로 단위로 검증.
 // 상태: S0 게이트 / S1 연습 / S2E-gate 시험(시작 전) / S2E-run 응시 중(잠금) /
@@ -183,16 +183,17 @@ test.describe("전이 — S2E 시험(게이트→응시중→채점후)", () => 
 
 test.describe("전이 — S3 랜덤 / S4 오답", () => {
   /**
-   * 세트 전체 랜덤(≤40). 세그먼트의 '랜덤' 탭은 사라졌지만 기능은 살아 있다 — 미니 시험으로
-   * 들어가 배너의 '전체 보기'로 챕터 제한을 풀면 닿는다(helpers의 enterFullRandom).
+   * 랜덤(챕터 미니 시험, ≤10). 세그먼트의 '랜덤' 탭이 사라진 뒤 이것이 유일한 랜덤이다 —
+   * 세트 전체 40문항 랜덤은 배너의 '전체 보기'로 닿을 수 있었으나, 그 버튼이 이제 연습으로
+   * 나가므로 도달 경로가 없다(제거 확정).
    * 'T31 재클릭 무변화'는 누를 탭이 없어졌으므로 뺀다 — 그 자리를 대신할 조작이 없다.
    */
-  test("T5/T32: 랜덤 진입(≤40) → 채점 → 점수", async ({ page }) => {
+  test("T5/T32: 랜덤(미니 시험) 진입(≤10) → 채점 → 점수", async ({ page }) => {
     await openSet(page, "ISTQB", A);
     await completeAttempt(page); // 챕터 통계 생성 — 미니 시험이 랜덤의 진입로다
-    await enterFullRandom(page);
+    await enterMiniTest(page);
     const n = await page.locator("#questionNav button").count();
-    expect(n).toBeLessThanOrEqual(40);
+    expect(n).toBeLessThanOrEqual(10);
     await page.locator("#options .option").first().click();
     await expect(page.locator("#progressText")).toContainText("1 /");
     await submitGrade(page);
@@ -202,12 +203,12 @@ test.describe("전이 — S3 랜덤 / S4 오답", () => {
   test("T33/T35: 채점된 랜덤 재진입 → 재추첨·초기화 / 진행 중 리로드 → 이어풀기(진행 유지)", async ({ page }) => {
     await openSet(page, "ISTQB", A);
     await completeAttempt(page); // 챕터 통계 생성 — 미니 시험이 랜덤의 진입로다
-    await enterFullRandom(page);
+    await enterMiniTest(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
     await modeBtn(page, "연습").click();
-    await enterFullRandom(page); // 재진입 → 초기화(T33)
+    await enterMiniTest(page); // 재진입 → 초기화(T33)
     await expect(page.locator("#progressText")).toContainText("0 /");
     // 진행 중(미채점) 랜덤: 2문항 응답 후 리로드 → 같은 추첨으로 이어푼다(T35, 진행 유지).
     await page.locator("#options .option").first().click();

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { completeAttempt, enterExam, enterFullRandom, modeBtn, openSet, submitGrade, closeResult } from "./helpers";
+import { completeAttempt, enterExam, modeBtn, openSet, submitGrade, closeResult } from "./helpers";
 
 // 흐름·기획 개선(S1~S6) — 응시 포기, 채점 완료 회차 새로고침 가드, 챕터 미니 시험,
 // 랜덤 초기화 안내·새 문제 뽑기, 오답 극복 배지.
@@ -118,28 +118,6 @@ test.describe("챕터 미니 시험(S3)", () => {
     await expect(page.getByTestId("chapter-filter-banner")).toBeVisible();
     await expect(page.getByTestId("chapter-filter-banner").locator("strong")).toHaveText(chapterBefore);
     await expect(page.locator("#progressText")).toHaveText(`1 / ${totalBefore}`);
-  });
-});
-
-test.describe("랜덤 UX(S1·S5)", () => {
-  // 세트 전체 랜덤(40문항)의 이어풀기. 미니 시험(챕터 10문항) 이어풀기는 위 describe가
-  // 따로 덮는다 — 둘은 추첨 크기와 스코프가 달라 같은 검사가 아니다.
-  test("랜덤 진행 중 새로고침 → 같은 추첨으로 진행이 유지된다(S1)", async ({ page }) => {
-    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await completeAttempt(page); // 챕터 통계 생성 — 미니 시험이 랜덤의 진입로다
-    await enterFullRandom(page);
-    await page.waitForSelector("#options .option");
-    const before = (await page.locator("#questionTitle").textContent()) || "";
-    await page.locator("#options .option").first().click();
-    await expect(page.locator("#progressText")).toHaveText("1 / 40");
-    await page.waitForTimeout(900); // debounce 저장 대기(추첨·답안)
-
-    await page.reload();
-    await page.getByRole("button", { name: "ISTQB" }).click();
-    await page.waitForSelector("#options .option");
-    // 우발적 새로고침이라도 재추첨하지 않고 같은 문항·답안·위치로 이어푼다.
-    await expect(page.locator("#progressText")).toHaveText("1 / 40");
-    await expect(page.locator("#questionTitle")).toHaveText(before);
   });
 });
 

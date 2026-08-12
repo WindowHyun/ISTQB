@@ -19,13 +19,13 @@ import { ErrorState } from '../common/ErrorState';
 export const QuestionWorkspace = () => {
   // 슬라이스 구독(O1) — elapsedSeconds를 구독하지 않으므로 타이머 틱에 리렌더되지 않는다.
   const {
-    index, setId, mode, setIndex, tickTimer, startTimer, beginSession,
+    index, setId, mode, setMode, setIndex, tickTimer, startTimer, beginSession,
     navCollapsed, setNavCollapsed, setPaletteOpen, setResultOpen,
     resumeNotice, setResumeNotice, chapterFilter, setChapterFilter,
     setExamStarted, setDrawerOpen, activeProduct, setExamStartedAt, examStartedAtForSet,
     setConfirmExitExam, setPendingRestart,
   } = useQuizStore(useShallow((s) => ({
-    index: s.index, setId: s.setId, mode: s.mode, setIndex: s.setIndex,
+    index: s.index, setId: s.setId, mode: s.mode, setMode: s.setMode, setIndex: s.setIndex,
     tickTimer: s.tickTimer, startTimer: s.startTimer, beginSession: s.beginSession,
     navCollapsed: s.navCollapsed, setNavCollapsed: s.setNavCollapsed,
     setPaletteOpen: s.setPaletteOpen, setResultOpen: s.setResultOpen,
@@ -326,13 +326,29 @@ export const QuestionWorkspace = () => {
               <small className="cf-hint">연습은 통계에 기록되지 않아요 — 미니 시험·시험 채점으로 정답률을 갱신하세요.</small>
             </span>
           )}
+          {/* 챕터 제한 해제.
+              연습에서는 말 그대로 필터만 푼다(같은 모드로 세트 전체를 순서대로 본다).
+
+              미니 시험에서는 **연습으로 나간다.** 종전에는 여기서도 필터만 풀었는데, 모드가
+              'random'으로 남아 같은 버튼이 세트 전체 40문항 무작위 회차를 새로 시작했다 —
+              모드 세그먼트에서 '랜덤'을 없앤 결정을 이 버튼 하나가 우회하고 있었던 셈이다.
+              게다가 이름이 그 결과를 예고하지 않아(필터 해제로 읽힌다) 풀던 미니 시험이
+              말없이 버려지고, 세그먼트는 어느 모드도 가리키지 않는 상태가 됐다.
+              '전체 보기'가 뜻하는 것은 "이 챕터 말고 세트 전체를 보겠다"이므로 연습이 맞다. */}
           <button
             type="button"
             className="cf-clear"
             data-testid="chapter-filter-clear"
-            onClick={() => setChapterFilter(null)}
+            onClick={() => {
+              if (mode === 'random') {
+                setMode('practice'); // setMode가 챕터 필터도 함께 해제한다
+                beginSession();
+                return;
+              }
+              setChapterFilter(null);
+            }}
           >
-            전체 보기
+            {mode === 'random' ? '연습으로 전체 보기' : '전체 보기'}
           </button>
         </div>
       )}
