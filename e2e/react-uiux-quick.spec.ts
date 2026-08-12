@@ -284,35 +284,50 @@ test("UI: 퀵 결과의 중립 표면이 라이트·다크 모두에서 읽을 �
 });
 
 // ─────────────────────────────────────────────────────────────
-test("UX: 퀵 안내 문구가 잘리지 않고 출제 범위를 알린다", async ({ page }) => {
+/**
+ * 안내 문구는 네 가지를 말해야 한다 — 출제 범위 · 제한시간 · 회차 기록, 그리고 **그 제품에
+ * 서답형이 있을 때만** 출제 유형. 마지막 조건이 중요하다: 서답형 문장을 자격증과 무관하게
+ * 늘 붙이면, 서답형이 한 문항도 없는 ISTQB 사용자에게 나오지도 않을 유형을 예고하게 된다.
+ * 그래서 두 제품을 모두 밟는다 — 종전에는 CSTS만 봐서 이 어긋남이 검사를 통과했다.
+ */
+test("UX: 퀵 안내 문구가 잘리지 않고, 그 제품에 맞는 출제 범위를 알린다", async ({ page }) => {
   test.setTimeout(300_000);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
-  // 퀵 패널은 퀵 안에서만 렌더된다(진입로는 모드 세그먼트) — 밖에서 찾으면 늘 null이다.
-  await enterQuick(page, "CSTS");
-  await page.getByTestId("drawer-open").click();
-  await page.waitForTimeout(400);
 
-  const hint = await page.evaluate(() => {
-    const panel = document.querySelector(".quick-panel") as HTMLElement | null;
-    const p = panel?.querySelector(".action-hint") as HTMLElement | null;
-    if (!p) return null;
-    return {
-      text: p.textContent ?? "",
-      clipped: p.scrollHeight > p.clientHeight + 1,
-    };
-  });
-  if (!hint) { bad("퀵 안내 문구가 없다"); }
-  else {
-    note(`안내: ${hint.text}`);
-    // 출제 범위를 명시하지 않으면 "서답형이 왜 나오냐"가 결함 신고로 돌아온다.
-    if (!/전 세트/.test(hint.text)) bad("안내에 '전 세트 출제'가 없다");
-    if (!/서답형/.test(hint.text)) bad("안내에 출제 유형 범위가 없다");
-    if (!/제한시간/.test(hint.text)) bad("안내에 제한시간 여부가 없다");
+  for (const product of ["CSTS", "ISTQB"] as const) {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    // 퀵 패널은 퀵 안에서만 렌더된다(진입로는 모드 세그먼트) — 밖에서 찾으면 늘 null이다.
+    await enterQuick(page, product);
+    await page.getByTestId("drawer-open").click();
+    await page.waitForTimeout(400);
+
+    // 기대값의 근거는 데이터다(scripts로 실측: CSTS 440문항 중 서답형 63, ISTQB 186 중 0).
+    // 문구가 이 사실을 따라오는지가 요점이므로, 기대는 여기서 못 박고 화면을 대조한다.
+    // 데이터가 바뀌어 ISTQB에 서답형이 생기면 이 줄이 먼저 틀려 갱신 지점을 알려 준다.
+    const expectShort = product === "CSTS";
+
+    const hint = await page.evaluate(() => {
+      const panel = document.querySelector(".quick-panel") as HTMLElement | null;
+      const p = panel?.querySelector(".action-hint") as HTMLElement | null;
+      if (!p) return null;
+      return { text: p.textContent ?? "", clipped: p.scrollHeight > p.clientHeight + 1 };
+    });
+    if (!hint) { bad(`${product}: 퀵 안내 문구가 없다`); continue; }
+
+    note(`${product} 안내: ${hint.text}`);
+    if (!new RegExp(product).test(hint.text)) bad(`${product}: 안내가 다른 자격증을 말한다`);
+    if (!/전 세트/.test(hint.text)) bad(`${product}: 안내에 '전 세트 출제'가 없다`);
+    if (!/제한시간/.test(hint.text)) bad(`${product}: 안내에 제한시간 여부가 없다`);
     // 퀵은 회차 이력을 남기지 않는다 — 이 사실을 안내에서 알 수 있어야 한다.
-    if (!/기록/.test(hint.text)) bad("안내에 회차 기록 여부가 없다");
-    if (hint.clipped) bad("안내 문구가 세로로 잘렸다");
+    if (!/기록/.test(hint.text)) bad(`${product}: 안내에 회차 기록 여부가 없다`);
+    if (hint.clipped) bad(`${product}: 안내 문구가 세로로 잘렸다`);
+
+    const saysShort = /서답형/.test(hint.text);
+    if (expectShort && !saysShort) bad(`${product}: 서답형이 나오는데 안내가 알리지 않는다`);
+    if (!expectShort && saysShort) {
+      bad(`${product}: 서답형이 한 문항도 없는데 안내가 예고한다`);
+    }
   }
   expect(problems, problems.join("\n")).toEqual([]);
 });

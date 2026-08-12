@@ -70,7 +70,7 @@ export const Sidebar = () => {
     };
   }, [drawerOpen]);
   const {
-    appData, total, answered, correctCount, isGraded, canGrade, progressPercent,
+    appData, currentQuestions, total, answered, correctCount, isGraded, canGrade, progressPercent,
     examLocked, // 응시 중 잠금 — useQuizSession이 단일 원천(게이트와 동일 규칙 집합)
     requestGrade, reviewedCount, completeReview,
   } = useQuizSession();
@@ -179,6 +179,8 @@ export const Sidebar = () => {
     return `${sets.length}세트 ${totalQuestions}문항`;
   })();
   const showGradeSection = isGradedMode(mode);
+  // 이번 퀵 회차에 서답형이 실제로 섞였는가 — 안내 문구가 이 값으로 갈린다(그 자리 주석 참고).
+  const hasShortAnswer = currentQuestions.some((q) => q.type === 'short_answer');
 
   // 오답 모드 '복습 완료' — 맞힌 문항을 재풀이 대상에서 빼 목록이 실제로 줄어들게 한다.
   // 종전에는 오답을 전부 맞혀도 다음에 같은 목록이 그대로 나와 루프가 닫히지 않았다.
@@ -372,10 +374,18 @@ export const Sidebar = () => {
           </div>
           {/* 네 가지를 반드시 말한다 — 출제 범위(전 세트) · 출제 유형(서답형이 섞인다) ·
               제한시간 없음 · 회차 기록 없음. 앞의 둘이 빠지면 "왜 모르는 세트가 나오냐",
-              "서답형이 왜 나오냐"가 그대로 결함 신고로 돌아온다(react-uiux-quick이 고정). */}
+              "서답형이 왜 나오냐"가 그대로 결함 신고로 돌아온다(react-uiux-quick이 고정).
+
+              서답형 문장은 이번 회차에 실제로 서답형이 있을 때만 붙인다. 자격증 이름으로
+              가르지 않고 뽑힌 문항을 세는 이유는, 그래야 데이터가 바뀌어도 문구가 따라오기
+              때문이다 — 현재 ISTQB에는 서답형이 한 문항도 없어(186문항 중 0) 안내만 하면
+              나오지도 않을 유형을 예고하게 된다. 퀵은 전 세트를 뽑으므로 이 표본이 곧
+              그 제품 전체다. */}
           <p className="action-hint">
-            퀵 진행 중 — {certLabel} 전 세트를 섞어 한 문항씩 냅니다(서답형도 최대 30% 섞여요).
-            제한시간은 없고, 풀면 바로 정답·해설이 보입니다. 회차 기록은 남지 않습니다.
+            퀵 진행 중 — {certLabel} 전 세트를 섞어 한 문항씩 냅니다
+            {hasShortAnswer ? '(서답형도 섞이되, 어디서 끊어 봐도 30%를 넘지 않아요)' : ''}.
+            제한시간은 없고, 풀면 바로 정답·해설이 보입니다. 채점하면 그때까지 푼 문항만
+            집계되고, 회차 기록은 남지 않습니다.
           </p>
         </section>}
 
