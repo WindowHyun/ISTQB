@@ -118,7 +118,9 @@ for (const product of ["ISTQB", "CSTS"] as const) {
     // 그대로 떠 있는 것만으로 통과했다 — 재풀이에 진입하지 못해도 초록불이었다.
     // 이제 (a) 세트 모드로 돌아온 뒤 눌러 흐름의 전제를 맞추고,
     //     (b) 실제로 '오답' 모드에 들어갔는지를 단언한다.
-    await pickMode(page, "random"); // 퀵을 빠져나와 세트 스코프로 복귀
+    // 퀵을 빠져나와 세트 스코프로 복귀한다. 종전에는 랜덤으로 나왔는데 그 세그먼트 탭이
+    // 사라졌다(퀵에 흡수) — 여기서 필요한 것은 '세트 스코프인 모드'이지 랜덤 자체가 아니다.
+    await pickMode(page, "practice");
     await openSidebar(page);
     await page.getByRole("button", { name: "오답 다시 풀기" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
