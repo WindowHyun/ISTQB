@@ -174,6 +174,9 @@ test("퀵을 반복해도 챕터 분모가 계속 부풀지 않는다", async ({
     await openSidebar(page);
     await page.getByTestId("stats-open").click();
     await expect(page.getByTestId("stats-dashboard")).toBeVisible();
+    // 대시보드 가시성과 챕터 표 렌더 사이의 한 프레임을 기다린다 — evaluateAll은
+    // 재시도하지 않아 그 사이에 읽으면 0이 나온다(react-quick에서 실제로 났던 실패).
+    await expect(page.locator(".sc-rate")).not.toHaveCount(0);
     denoms.push(await page.locator(".sc-rate").evaluateAll((els) =>
       els.reduce((sum, el) => {
         const m = (el.textContent || "").match(/\d+\s*\/\s*(\d+)/);

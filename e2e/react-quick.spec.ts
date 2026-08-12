@@ -125,14 +125,22 @@ test.describe("퀵 랜덤", () => {
 
     await page.getByTestId("stats-open").click();
     await expect(page.getByTestId("stats-dashboard")).toBeVisible();
+
+    // '있어야 할 것'을 먼저 기다린다. 대시보드가 보이는 것과 챕터 표가 그려지는 것 사이에
+    // 한 프레임이 있어, 그 전에 부재를 단언하면 아직 안 그려진 것을 '없다'고 통과시킨다.
+    // count()는 재시도하지 않으므로 부재 단언에는 특히 위험하다(실제로 이 순서 때문에
+    // 전수 실행에서 한 번 실패했다 — 단독 실행에서는 늘 통과해 원인이 안 보였다).
+    //
+    // 한 문항만 답했으므로 그 챕터의 표본은 1이다 — 순위표(MIN_CHAPTER_SAMPLE=5)가 아니라
+    // '표본이 적은 챕터' 구간에 실린다. 둘 다 .sc-rate를 쓰므로 이 단언은 양쪽을 덮는다.
+    await expect(page.locator(".sc-rate"),
+      "퀵만 풀었더니 챕터 분석이 비었다").not.toHaveCount(0);
+
     // 실전 회차가 하나도 없으므로 요약 블록 자체가 뜨지 않아야 한다.
-    expect(await page.locator(".stats-summary").count()).toBe(0);
+    await expect(page.locator(".stats-summary")).toHaveCount(0);
     // 사양 변경: 퀵은 회차 기록을 남기지 않는다 — 짧은 세션 목록에도 나오지 않는다.
     // (오답만 24시간 임시로 오답노트의 퀵 섹션에 남는다: react-quick-wrongnote.spec.ts)
     await expect(page.getByTestId("stats-mini-rounds")).toHaveCount(0);
-    // 그래도 챕터 분석에는 기여한다 — "기록 없음"으로 화면을 통째로 가리면 안 된다.
-    expect(await page.locator(".sc-rate").count(),
-      "퀵만 풀었더니 챕터 분석이 비었다").toBeGreaterThan(0);
   });
 
     // 영속 계약 — 퀵 회차가 IndexedDB에 어떤 모양으로 남는지. 여기서 하나라도 빠지면
