@@ -156,7 +156,9 @@ test.describe("비기능 · 부하/스트레스·메모리", () => {
     await openSet(page, "ISTQB", A);
     const t0 = Date.now();
     for (let r = 0; r < 5; r++) {
-      for (const m of ["연습", "랜덤", "오답", "연습"] as const) {
+      // 세그먼트에 '랜덤'은 없다(퀵에 흡수) — 남아 있는 모드로 순환한다.
+      // 시험은 시작 게이트가 끼어 순수한 '고속 전환'이 아니게 되므로 뺀다.
+      for (const m of ["연습", "퀵", "오답", "연습"] as const) {
         await modeBtn(page, m).click();
         await page.waitForTimeout(30);
       }
@@ -279,10 +281,12 @@ test.describe("비기능 · 정확도/복원력", () => {
         const answerable = await page.locator("#options .option, .short-answer-input").count();
         expect(answerable, "지문은 떴는데 답할 자리가 없다").toBeGreaterThan(0);
       }).toPass({ timeout: 10_000 });
-      await expect(page.locator("#progressText")).toContainText("/ 20");
+      // 퀵에는 진행률(#progressText)이 없다 — 끝을 정해 두지 않아 분모가 없다.
+      // 헤더 점수판이 그 자리를 맡으므로 '풀 수 있는 상태'는 거기서 확인한다.
+      await expect(page.locator(".quick-scoreboard .qs-item")).toHaveCount(4);
 
-      // 오프라인에서 뽑힌 20문항이 실제로 여러 세트에서 왔는지 — 한 세트만 캐시돼도
-      // 문항 수는 20으로 채워질 수 있어(같은 세트에서 20개) 개수만으로는 못 잡는다.
+      // 오프라인에서 뽑힌 문항이 실제로 여러 세트에서 왔는지 — 한 세트만 캐시돼도
+      // 문항 수는 채워질 수 있어(같은 세트에서만) 개수만으로는 못 잡는다.
       // UI 상태 키는 제품별로 갈리므로 이름을 박지 않고 *-ui-state를 훑는다.
       // 저장은 debounce(500ms)라 poll로 기다린다.
       const sourceSetCount = async () => page.evaluate(() => {
