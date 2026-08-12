@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../store/useQuizStore';
 import { useQuestions, Question } from './useQuestions';
 import { isQuestionCorrect, isAnswered } from '../utils/answer';
+import { isQuickCommitted } from '../utils/quickStats';
 import { answerKeyFor, gradeKeyFor } from '../utils/answerKey';
 import { buildRoundHistory, makeRoundId } from '../utils/roundHistory';
 import { questionKey } from '../utils/chapterStats';
@@ -33,6 +34,25 @@ export function useQuizSession() {
     [setId, mode],
   );
 
+  /**
+   * 채점 대상 문항.
+   *
+   * 퀵만 다르다 — **실제로 답을 확정한 문항까지만** 회차로 남긴다. 다른 모드는 회차가 곧
+   * 세트(또는 추첨분) 전체라 미응답을 오답으로 세는 것이 맞지만, 퀵은 끝을 정해 놓지 않고
+   * 전 세트를 뽑아 두는 모드다. 그대로 채점하면 한 문항만 풀고 눌러도 **뽑아 둔 390문항이
+   * 통째로 회차에 들어가고 389개가 오답으로 기록된다** — 챕터 분모가 첫 채점에 제품 전체로
+   * 뛰고(약점 분석이 무의미해진다) 24시간 퀵 오답 목록에는 본 적도 없는 문항이 쌓인다.
+   *
+   * 판정은 computeQuickStats와 같은 isQuickCommitted를 쓴다. 화면의 점수판이 "진행 5"라고
+   * 말했으면 회차도 5문항이어야 한다 — 두 곳이 각자 판정하면 그 둘이 어긋난다.
+   */
+  const gradableQuestions = useMemo(
+    () => (mode === 'quick'
+      ? currentQuestions.filter((q) => isQuickCommitted(q, answers[answerKeyOf(q)] || []))
+      : currentQuestions),
+    [mode, currentQuestions, answers, answerKeyOf],
+  );
+
   const total = currentQuestions.length;
   // 이 훅은 5개 컴포넌트(사이드바·워크스페이스·팔레트·상단바·모달)가 각각 호출하므로,
   // 메모 없이는 전 문항 순회(답함/정답/오답/가중점수)가 컴포넌트 수 × 렌더 수만큼 반복된다.
@@ -56,6 +76,18 @@ export function useQuizSession() {
     () => computeCstsWeightedScore(currentQuestions, answers, answerKeyOf),
     [currentQuestions, answers, answerKeyOf],
   );
+
+  /**
+   * 결과 요약이 쓰는 집계 — 회차로 기록되는 범위와 같아야 한다(gradableQuestions).
+   * 퀵이 아니면 currentQuestions와 동일하므로 total·correctCount와 값이 같다.
+   * 나누지 않으면 퀵 결과가 "3 / 390문항 · 오답 387"처럼, 보지도 않은 문항을 오답으로
+   * 세어 보여준다 — 기록에 남는 회차(3문항)와도 어긋난다.
+   */
+  const { gradedTotal, gradedCorrect } = useMemo(() => ({
+    gradedTotal: gradableQuestions.length,
+    gradedCorrect: gradableQuestions.filter((q) =>
+      isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts)).length,
+  }), [gradableQuestions, answers, answerKeyOf]);
 
   const gradeKey = gradeKeyFor(setId, mode);
   const isGraded = Boolean(graded[gradeKey]);
@@ -83,7 +115,10 @@ export function useQuizSession() {
     if (total === 0) return;
     // 오답 목록은 위 메모(wrongQuestions)와 같은 판정을 재사용한다 — 따로 계산하면
     // 판정 규칙이 갈라져 화면 표시와 기록이 어긋날 수 있다.
-    const wrongQs = wrongQuestions.map(({ q }) => q);
+    // 퀵은 확정한 문항까지만 회차로 남기므로(gradableQuestions) 오답도 그 범위로 좁힌다 —
+    // 아니면 아직 보지도 않은 문항이 전부 오답으로 기록된다.
+    const gradable = new Set(gradableQuestions);
+    const wrongQs = wrongQuestions.map(({ q }) => q).filter((q) => gradable.has(q));
     const wrongIds = wrongQs.map(questionKey);
     // 퀵은 세트 하나에 매이지 않아 index.json에서 제목을 찾을 수 없다 — 그대로 두면
     // 통계 목록에 센티넬 'QUICK'이 그대로 노출된다.
@@ -97,7 +132,7 @@ export function useQuizSession() {
     const history = buildRoundHistory({
       setId,
       mode,
-      questions: currentQuestions,
+      questions: gradableQuestions,
       answers,
       answerKeyOf,
       wrongQuestions: wrongQs,
@@ -174,6 +209,9 @@ export function useQuizSession() {
     total,
     answered,
     correctCount,
+    // 결과 요약용(회차로 기록되는 범위) — 퀵이 아니면 total·correctCount와 같다.
+    gradedTotal,
+    gradedCorrect,
     cstsWeighted,
     isGraded,
     canGrade,

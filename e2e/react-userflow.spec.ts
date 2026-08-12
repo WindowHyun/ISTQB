@@ -181,8 +181,12 @@ test("퀵을 반복해도 챕터 분모가 계속 부풀지 않는다", async ({
   // 퀵은 회차 기록을 남기지 않지만 챕터 분석에는 기여한다 — 0이면 통계 화면이
   // "기록 없음"으로 가려졌다는 뜻이고, 아래 단조 증가 검사가 통째로 무의미해진다.
   expect(denoms[0], "퀵만 풀었더니 챕터 통계가 비어 있다").toBeGreaterThan(0);
-  // 매 회차 20문항이지만 재수록·중복 제거로 60까지는 가지 않는다.
-  expect(denoms[2]).toBeLessThanOrEqual(60);
+  // 상한의 근거는 '회차 크기'가 아니라 '실제로 답한 문항 수'다. 퀵은 전 세트를 뽑아 두지만
+  // 채점에 잡히는 것은 확정한 문항뿐이므로(useQuizSession의 gradableQuestions) 회차당 최대
+  // 22문항 × 3회 = 66이 상한이다. 재수록·중복 제거로 그보다 줄 수는 있어도 넘을 수는 없다.
+  // 여기가 깨지면 뽑아 둔 전 문항이 회차로 들어갔다는 뜻이다 — 첫 채점에 챕터 분모가
+  // 제품 전체로 뛰고 약점 분석이 무의미해진다(실제로 390이 나왔다).
+  expect(denoms[2]).toBeLessThanOrEqual(66);
   // 그리고 단조 증가여야 한다(새 문항을 풀었으므로 줄어들면 집계가 깨진 것).
   expect(denoms[1]).toBeGreaterThanOrEqual(denoms[0]);
   expect(denoms[2]).toBeGreaterThanOrEqual(denoms[1]);

@@ -30,6 +30,10 @@ async function answerCurrent(page: Page) {
   const blanks = await short.count();
   if (blanks) {
     for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
+    // 퀵의 서답형은 '정답 확인'을 눌러야 확정된다(초안으로 들고 있다) — 누르지 않으면
+    // 답한 것으로 세지 않아 집계가 조용히 멈춘다. 다른 모드에는 없거나 무해하다.
+    const check = page.locator(".short-answer-check");
+    if (await check.count()) await check.first().click();
     return;
   }
   await page.locator("#options .option").first().click();
@@ -78,10 +82,12 @@ test.describe("퀵 — 복원력", () => {
     ).toBeVisible({ timeout: 20_000 });
     expect(blockedHits, "테스트가 아무 세트도 막지 못했다(가정 붕괴)").toBeGreaterThan(0);
 
-    // 진행률 분모가 정상적으로 잡혀 풀 수 있는 상태여야 한다.
-    await expect(page.locator("#progressText")).toContainText("/ 10");
+    // 풀 수 있는 상태여야 한다. 퀵에는 진행률(분모)이 없으므로 헤더 점수판에서 읽는다 —
+    // 한 세트가 빠져도 나머지로 출제가 이어지는지가 요점이고, 회차 크기는 데이터가 정한다.
+    const solved = page.locator(".quick-scoreboard .qs-item").first().locator("b");
+    await expect(solved).toHaveText("0");
     await answerCurrent(page);
-    await expect(page.locator("#progressText")).toContainText("1 / 10");
+    await expect(solved).toHaveText("1");
   });
 
   test("퀵 채점 직후 새로고침해도 회차와 퀵 오답이 남는다(왕복 가드)", async ({ page }) => {

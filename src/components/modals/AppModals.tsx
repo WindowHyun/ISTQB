@@ -102,7 +102,7 @@ export const AppModals = () => {
     redrawRandom: s.redrawRandom, resetToGate: s.resetToGate,
   })));
   // examLocked — useQuizSession이 단일 원천(게이트·사이드바 잠금과 동일 규칙 집합).
-  const { appData, total, answered, correctCount, cstsWeighted, gradeAndShow, examLocked } = useQuizSession();
+  const { appData, total, answered, gradedTotal, gradedCorrect, cstsWeighted, gradeAndShow, examLocked } = useQuizSession();
   const { pref: themePref, setPref: setThemePref } = useTheme();
   // 저장값을 단언하지 않고 검증한다 — 손상된 값이 그대로 body[data-qfont]에 실리면
   // 어느 글자크기 규칙도 걸리지 않는다(useTheme의 readThemePref와 같은 이유).
@@ -1040,8 +1040,8 @@ export const AppModals = () => {
         <ResultSummary
           setTitle={mode === 'quick' ? '퀵 랜덤' : (currentSet?.title || '')}
           certification={activeProduct}
-          correct={correctCount}
-          total={total}
+          correct={gradedCorrect}
+          total={gradedTotal}
           cstsWeighted={cstsWeighted}
           elapsedSeconds={resultElapsedSeconds}
           attemptRound={attemptCompare.round}

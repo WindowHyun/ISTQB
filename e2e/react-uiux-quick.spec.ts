@@ -289,7 +289,8 @@ test("UX: 퀵 안내 문구가 잘리지 않고 출제 범위를 알린다", asy
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
-  await openProduct(page, "CSTS");
+  // 퀵 패널은 퀵 안에서만 렌더된다(진입로는 모드 세그먼트) — 밖에서 찾으면 늘 null이다.
+  await enterQuick(page, "CSTS");
   await page.getByTestId("drawer-open").click();
   await page.waitForTimeout(400);
 

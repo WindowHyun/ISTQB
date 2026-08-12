@@ -121,6 +121,12 @@ export async function answerCurrent(page: Page) {
   const blanks = await short.count();
   if (blanks) {
     for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
+    // 퀵의 서답형은 타이핑만으로는 저장되지 않는다 — 한 글자에 정답이 펼쳐지지 않도록
+    // 초안으로 들고 있다가 '정답 확인'에서 한 번에 넘긴다(QuestionCard의 draft). 이걸
+    // 누르지 않으면 답한 것으로 세지 않아 집계가 조용히 멈춘다. 다른 모드에는 이 버튼이
+    // 없거나(채점형) 눌러도 무해하므로 있을 때만 누른다.
+    const check = page.locator(".short-answer-check");
+    if (await check.count()) await check.first().click();
     return;
   }
   await page.locator("#options .option").first().click();
