@@ -140,9 +140,10 @@ export function quickStat(page: Page, cell: "solved" | "correct" | "wrong" | "st
  * 문항을 앞쪽에 놓는 회차에서만 퀵 점수판이 늘지 않아 `react-quick-ux`가 3회 중 1회꼴로
  * 실패했다 — 타이밍처럼 보이지만 원인은 문항 유형이었다.
  *
- * 정답이 몇 개인지는 화면에 없으므로 보기를 순서대로 전부 누른다. 상한(cap)이 정답
- * 개수에서 스스로 멈추고 초과 클릭은 무시되므로(react-edge-grade의 cap 검사) 결과는
- * '앞에서부터 정답 개수만큼 선택'으로 결정된다.
+ * 정답이 몇 개인지는 화면에 없다. 그래서 '보기를 순서대로 전부 누른다'로는 안 된다 —
+ * 확정되는 순간 나머지 보기가 `disabled`가 되어 그 다음 클릭이 30초를 기다리다 죽는다
+ * (연습 모드는 확정 후에도 눌리므로 cap 검사만 보고 짐작하면 이 차이를 놓친다).
+ * **잠김을 종료 신호로 삼아** 하나씩 늘려 가며 누른다.
  */
 export async function answerCurrent(page: Page) {
   const short = page.locator(".short-answer-input");
@@ -151,21 +152,28 @@ export async function answerCurrent(page: Page) {
     for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
     // 퀵의 서답형은 타이핑만으로는 저장되지 않는다 — 한 글자에 정답이 펼쳐지지 않도록
     // 초안으로 들고 있다가 '정답 확인'에서 한 번에 넘긴다(QuestionCard의 draft). 이걸
-    // 누르지 않으면 답한 것으로 세지 않아 집계가 조용히 멈춘다. 다른 모드에는 이 버튼이
-    // 없거나(채점형) 눌러도 무해하므로 있을 때만 누른다.
+    // 누르지 않으면 답한 것으로 세지 않아 집계가 조용히 멈춘다.
+    //
+    // 버튼이 초안 입력에 반응해 나타나므로 fill 직후에는 아직 없을 수 있다. `count()`는
+    // 재시도하지 않아 그 한 순간을 '이 모드엔 버튼이 없다'로 읽고 조용히 지나가 버린다 —
+    // 답하지 않은 채로 다음 단언에 부딪히는 간헐 실패의 정체가 이것이다. 잠깐 기다린 뒤
+    // 판단한다(다른 모드에는 정말로 없으므로 없으면 그대로 넘어간다).
     const check = page.locator(".short-answer-check");
+    await check.first().waitFor({ state: "visible", timeout: 2000 }).catch(() => {});
     if (await check.count()) await check.first().click();
     return;
   }
   const options = page.locator("#options .option");
+  await options.first().click();
   // 복수정답 표기는 문제 제목이 단다("문제 4 · 복수정답" — QuestionWorkspace).
   const title = (await page.locator("#questionTitle").textContent()) || "";
-  if (title.includes("복수정답")) {
-    const total = await options.count();
-    for (let i = 0; i < total; i += 1) await options.nth(i).click();
-    return;
+  if (!title.includes("복수정답")) return;
+  const total = await options.count();
+  for (let i = 1; i < total; i += 1) {
+    const opt = options.nth(i);
+    if (await opt.isDisabled()) return; // 확정돼 잠겼다 — 더 고를 것이 없다
+    await opt.click();
   }
-  await options.first().click();
 }
 
 // 채점: 채점 버튼 클릭 후 미응답 경고 모달이 뜨면 확인까지 처리한다.
