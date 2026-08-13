@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { openProduct } from "./helpers";
+import { answerCurrent, openProduct } from "./helpers";
 
 /**
  * 퀵의 취약 지점 두 가지를 실제 브라우저에서 고정한다.
@@ -23,20 +23,6 @@ async function startQuick(page: Page) {
   const btn = page.locator('.segmented button[data-mode="quick"]');
   if (!(await btn.isVisible())) await page.getByTestId("drawer-open").click();
   await btn.click();
-}
-
-async function answerCurrent(page: Page) {
-  const short = page.locator(".short-answer-input");
-  const blanks = await short.count();
-  if (blanks) {
-    for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
-    // 퀵의 서답형은 '정답 확인'을 눌러야 확정된다(초안으로 들고 있다) — 누르지 않으면
-    // 답한 것으로 세지 않아 집계가 조용히 멈춘다. 다른 모드에는 없거나 무해하다.
-    const check = page.locator(".short-answer-check");
-    if (await check.count()) await check.first().click();
-    return;
-  }
-  await page.locator("#options .option").first().click();
 }
 
 async function gradeAll(page: Page, size: number) {

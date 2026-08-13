@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { openProduct } from "./helpers";
+import { answerCurrent, openProduct } from "./helpers";
 
 /**
  * 정합성 테스트 — 같은 사실이 화면마다 같은 값으로 보이는가.
@@ -15,34 +15,6 @@ const bad = (s: string) => { problems.push(s); console.log("  ✗ " + s); };
 
 async function openBar(page: Page) {
   if (!(await page.locator(".segmented").isVisible())) await page.getByTestId("drawer-open").click();
-}
-
-/**
- * 현재 문항에 답한다 — 유형을 가리지 않고, 렌더 경합에도 걸리지 않는다.
- *
- * 종전 코드는 `if (await o.count()) await o.click()`이었다. 두 호출은 원자적이지 않아,
- * 그 사이에 문항이 다시 그려지면 count는 이전 렌더(선택형)를 보고 click은 새 렌더를
- * 기다리다 죽는다. 실제로 전수 실행에서 이 자리가 300초 타임아웃으로 실패했고, 그때
- * 화면은 서답형(단답형 정답 입력)이었는데 진행률은 0/15로 첫 문항에 머물러 있었다.
- * 퀵에는 서답형이 최대 30%까지 섞이므로(B5) 이 경합은 드물게 오는 것이 아니다.
- *
- * 그래서 '둘 중 먼저 보이는 쪽'을 기다린 뒤 그 유형에 맞춰 답한다.
- */
-async function answerCurrent(page: Page): Promise<void> {
-  const opt = page.locator("#options .option").first();
-  const short = page.locator(".short-answer-input");
-  await expect(opt.or(short.first())).toBeVisible({ timeout: 15_000 });
-  const blanks = await short.count();
-  if (blanks) {
-    // 빈칸이 여러 개인 다답형은 '모든 칸'이 차야 답한 것으로 센다(isAnswered).
-    for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
-    // 퀵의 서답형은 '정답 확인'을 눌러야 확정된다(초안으로 들고 있다) — 누르지 않으면
-    // 답한 것으로 세지 않아 집계가 조용히 멈춘다. 다른 모드에는 없거나 무해하다.
-    const check = page.locator(".short-answer-check");
-    if (await check.count()) await check.first().click();
-    return;
-  }
-  await opt.click({ timeout: 15_000 });
 }
 
 async function answerAll(page: Page, max: number) {

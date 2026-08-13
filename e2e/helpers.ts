@@ -144,9 +144,21 @@ export function quickStat(page: Page, cell: "solved" | "correct" | "wrong" | "st
  * 확정되는 순간 나머지 보기가 `disabled`가 되어 그 다음 클릭이 30초를 기다리다 죽는다
  * (연습 모드는 확정 후에도 눌리므로 cap 검사만 보고 짐작하면 이 차이를 놓친다).
  * **잠김을 종료 신호로 삼아** 하나씩 늘려 가며 누른다.
+ *
+ * ── 이 헬퍼를 복사하지 말 것 ──────────────────────────────────────────────
+ * 종전에는 같은 이름의 사본이 `react-quick-resilience`·`react-consistency`에 하나씩 더
+ * 있었고, 셋이 서로 다른 교훈만 배운 채 갈라졌다. 사본 하나는 '유형이 뜰 때까지 기다린다'를,
+ * 원본은 '서답형은 확인 버튼을 눌러야 확정된다'를 배웠지만 **복수정답은 아무도 몰랐다.**
+ * 그래서 원본을 고쳐도 사본을 쓰는 스펙은 그대로 깨졌다(퀵 첫 문항이 복수정답으로 뽑히는
+ * 약 5%의 회차에서만 — ISTQB 복수정답은 186문항 중 9개다). 답하는 방법이 바뀌면 여기만
+ * 고치면 되도록 한 곳에 둔다.
  */
 export async function answerCurrent(page: Page) {
   const short = page.locator(".short-answer-input");
+  // 유형이 확정될 때까지 기다린다 — 퀵 진입 직후에는 이전 모드의 화면이 잠깐 남아 있고,
+  // 보기와 서답형 입력 중 무엇이 뜰지도 뽑기가 정한다. 한쪽만 기다리면 반대 유형이 뽑힌
+  // 회차에서 타임아웃한다(전수 실행에서 이 자리가 300초로 죽은 적이 있다).
+  await expect(page.locator("#options .option").first().or(short.first())).toBeVisible({ timeout: 15_000 });
   const blanks = await short.count();
   if (blanks) {
     for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
