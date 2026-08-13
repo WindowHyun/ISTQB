@@ -7,8 +7,6 @@ import { Question } from '../../hooks/useQuestions';
 interface QuickScoreboardProps {
   /** 이번 퀵 세션의 출제 순서. */
   questions: Question[];
-  /** 현재 문항의 인덱스 — 여기까지(포함)만 집계한다(아직 안 나온 문항은 밖). */
-  cursor: number;
 }
 
 /**
@@ -26,7 +24,7 @@ interface QuickScoreboardProps {
  *
  * 값은 스토어 카운터가 아니라 답안에서 파생한다(computeQuickStats) — 근거는 그쪽 주석 참고.
  */
-export const QuickScoreboard = ({ questions, cursor }: QuickScoreboardProps) => {
+export const QuickScoreboard = ({ questions }: QuickScoreboardProps) => {
   // answers는 여기서만 구독한다. 워크스페이스 슬라이스에 넣으면 보기를 누를 때마다
   // 헤더·팔레트·하단 액션바까지 통째로 다시 그려진다(O1 의도 유지) — 이 한 줄만 갱신되면 된다.
   const { answers, setId } = useQuizStore(useShallow((s) => ({
@@ -37,7 +35,6 @@ export const QuickScoreboard = ({ questions, cursor }: QuickScoreboardProps) => 
     questions,
     answers,
     (q) => answerKeyFor(setId, 'quick', q),
-    cursor,
   );
 
   return (

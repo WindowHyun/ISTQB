@@ -184,3 +184,44 @@ test("퀵에서는 세트 컨트롤이 사라지고, 나오면 들어가기 직�
   await expect(sel).toBeVisible();
   await expect(sel, "퀵을 들렀다고 풀던 세트를 잃었다").toHaveValue(chosen);
 });
+
+/**
+ * 점수판은 '지금 보고 있는 위치'가 아니라 '푼 것'을 센다.
+ *
+ * 종전에는 현재 문항 인덱스까지만 세어, ‹ 로 앞 문항에 돌아가면 점수판이 뒤로 감겼다
+ * (진행 3 → 1). 퀵에는 진행률이 없어 이 점수판이 유일한 진행 표시라 대조할 곳도 없다.
+ * 게다가 채점 대상은 커서와 무관해서, 그 상태로 채점하면 화면은 "진행 1"인데 회차는
+ * 3문항으로 기록됐다 — 화면과 기록이 갈리는 결함이다.
+ *
+ * 순수 계층은 quickStats.test.ts가 고정한다. 여기서는 실제 이동·채점으로 두 숫자가
+ * 같은 것을 본다(팔레트의 '답함'까지 셋이 함께 움직여야 한다).
+ */
+test("퀵: 앞 문항으로 돌아가도 점수판이 되감기지 않고, 채점 범위와 일치한다", async ({ page }) => {
+  await enterQuick(page, "ISTQB");
+
+  for (let i = 0; i < 3; i += 1) {
+    await answerCurrent(page);
+    await expect(quickStat(page, "solved")).toHaveText(String(i + 1));
+    if (i < 2) await page.locator("#nextBtn").click();
+  }
+
+  // 앞 문항으로 두 번 돌아간다 — 여기서 값이 줄면 종전 결함이다.
+  await page.locator("#prevBtn").click();
+  await page.locator("#prevBtn").click();
+  await expect(
+    quickStat(page, "solved"),
+    "앞 문항으로 돌아갔더니 '진행'이 줄었다 — 점수판이 보고 있는 위치를 세고 있다",
+  ).toHaveText("3");
+  // 같은 화면의 팔레트 요약도 같은 값을 말해야 한다(두 카운터가 갈리지 않는다).
+  await expect(page.locator(".palette-summary small")).toContainText("답함 3");
+
+  // 되돌아온 그 자리에서 채점한다 — 기록도 3문항이어야 화면과 맞는다.
+  await page.getByTestId("grade-button").click();
+  const confirm = page.getByTestId("confirm-grade");
+  await confirm.waitFor({ state: "visible", timeout: 2000 }).catch(() => {});
+  if (await confirm.count()) await confirm.click();
+  await expect(
+    page.getByTestId("result-summary"),
+    "점수판이 말한 진행 수와 회차에 기록된 문항 수가 다르다",
+  ).toContainText("/ 3문항");
+});

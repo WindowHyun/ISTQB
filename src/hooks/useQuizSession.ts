@@ -45,6 +45,11 @@ export function useQuizSession() {
    *
    * 판정은 computeQuickStats와 같은 isQuickCommitted를 쓴다. 화면의 점수판이 "진행 5"라고
    * 말했으면 회차도 5문항이어야 한다 — 두 곳이 각자 판정하면 그 둘이 어긋난다.
+   *
+   * 술어뿐 아니라 **세는 범위**도 같아야 한다. 종전 점수판은 현재 커서까지만 세어, ‹ 로 앞
+   * 문항에 돌아간 상태에서 채점하면 화면은 "진행 1"인데 회차는 3문항으로 기록됐다 — 술어를
+   * 공유하고도 범위가 갈려 같은 결함이 났다. 지금은 양쪽 다 '확정한 문항 전부'이며,
+   * 그 관계를 quickStats.test.ts의 교차 계약 검사가 고정한다.
    */
   const gradableQuestions = useMemo(
     () => (mode === 'quick'

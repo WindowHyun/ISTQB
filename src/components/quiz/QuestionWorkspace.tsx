@@ -321,7 +321,7 @@ export const QuestionWorkspace = () => {
             래퍼로 감싸지 않는 이유: .topbar은 space-between이라 감싸면 한 덩이가 더 생겨
             좁은 폭에서 점수판만 아래 줄로 흘리는 처리를 그 래퍼에 또 걸어야 한다. */}
         {mode === 'quick' && (
-          <QuickScoreboard questions={currentQuestions} cursor={safeIndex} />
+          <QuickScoreboard questions={currentQuestions} />
         )}
         <div className="topbar-actions">
           <button id="prevBtn" type="button" aria-label="이전 문제" disabled={safeIndex === 0} onClick={goPrev}>‹</button>
