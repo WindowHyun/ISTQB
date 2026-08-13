@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { answerCurrent, openProduct } from "./helpers";
+import { answerCurrent, openProduct, waitForList } from "./helpers";
 
 /**
  * 정합성 테스트 — 같은 사실이 화면마다 같은 값으로 보이는가.
@@ -190,6 +190,9 @@ test("정합성: 오답 수가 결과·오답노트·재풀이에서 어긋나�
   //    간다. 여기서 세트 그룹 합이 늘면 "기록을 남기지 않는다"는 약속이 깨진 것이다.
   await openBar(page);
   await page.locator('.segmented button[data-mode="quick"]').click();
+  // 퀵 추첨이 실릴 때까지 기다린다 — 세그먼트를 누르면 헤더는 곧바로 퀵이 되지만 문항은
+  // 뒤늦게 온다. 그 사이에 답하면 직전 세트의 문항을 퀵 회차로 착각한 채 세게 된다.
+  await waitForList(page, { mode: "quick" });
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   await answerAll(page, 12);
   await grade(page);
@@ -224,6 +227,7 @@ test("정합성: 진행률과 문항 팔레트의 '답함' 개수가 같다", as
 
   await openBar(page);
   await page.locator('.segmented button[data-mode="quick"]').click();
+  await waitForList(page, { mode: "quick" });
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 
   // 5문항만 답한다. 단계마다 진행률을 확인하고 넘어간다 — 렌더가 자리를 잡기 전에

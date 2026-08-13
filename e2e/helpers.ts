@@ -33,9 +33,42 @@ export async function expectMode(page: Page, label: "연습" | "시험" | "랜�
   ).toHaveAttribute("aria-pressed", "true");
 }
 
+/**
+ * ── 진입은 '출제 목록이 실린 뒤'가 끝이다 ─────────────────────────────────────
+ *
+ * 모드·세트·챕터는 클릭하는 즉시 스토어에서 바뀌지만 **문항은 비동기로 온다.** 그 사이
+ * 화면은 새 맥락의 머리에 **옛 목록**을 달고 떠 있다 — 퀵으로 들어가면 퀵 점수판이 먼저
+ * 뜨고 팔레트에는 방금까지 풀던 연습 세트의 40문항이 그대로 남아 있다(실측: 진입 40회 중
+ * 6회에서 이 구간이 관측됐다).
+ *
+ * 그래서 `#questionStem`도 점수판도 **진입이 끝났다는 증거가 못 된다.** 지문은 이전 모드의
+ * 것이어도 보이고, 점수판은 목록과 무관하게 모드만 보고 뜬다. 그 구간에 단언을 걸면 옛
+ * 목록을 재는 검사가 되고, 그 구간에 클릭하면 무엇에 답한 것인지 스펙이 통제하지 못한다.
+ *
+ * 워크스페이스가 지금 실린 목록의 출처를 `data-list-mode|set|chapter`에 적으므로
+ * (QuestionWorkspace) 진입 헬퍼는 그 값이 목표 맥락과 같아질 때까지 기다린다.
+ *
+ * 한계: **같은 맥락으로 다시 뽑는 경우는 구분하지 못한다**(퀵 안의 '다시 섞어 시작',
+ * 같은 챕터 미니 시험 재진입). 값이 처음부터 목표와 같아 곧바로 통과한다. 진입 헬퍼는
+ * 재추첨을 누르지 않으므로 여기서는 문제가 되지 않지만, 재추첨을 검사하는 스펙은 문항
+ * 자체의 변화를 봐야 한다.
+ */
+export async function waitForList(
+  page: Page,
+  want: { mode?: string; setId?: string; chapter?: string },
+) {
+  const ws = page.locator(".workspace");
+  const because = "출제 목록이 아직 이전 맥락 그대로다 — 지문이 보인다는 것은 출제가 끝났다는 뜻이 아니다";
+  if (want.mode) await expect(ws, because).toHaveAttribute("data-list-mode", want.mode, { timeout: 20_000 });
+  if (want.setId) await expect(ws, because).toHaveAttribute("data-list-set", want.setId, { timeout: 20_000 });
+  if (want.chapter) await expect(ws, because).toHaveAttribute("data-list-chapter", want.chapter, { timeout: 20_000 });
+}
+
 export async function openProduct(page: Page, name: "ISTQB" | "CSTS") {
   await page.goto("/");
   await page.getByRole("button", { name }).click();
+  // 여기서는 목록 맥락을 기다리지 않는다 — goto가 앱을 새로 띄우므로 이전 목록이라는 것이
+  // 없고(빈 목록에서 시작), 어느 세트가 기본으로 열릴지는 복원 상태가 정한다.
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 }
 
@@ -56,6 +89,9 @@ export async function openSet(page: Page, product: "ISTQB" | "CSTS", setId: stri
     await page.keyboard.press("Escape");
     await expect(page.locator(".app-shell")).toHaveAttribute("data-drawer", "closed");
   }
+  // 고른 세트의 문항이 실제로 실릴 때까지 기다린다 — 셀렉트 값은 즉시 바뀌지만 문항은
+  // 뒤늦게 오므로, 그 사이 화면에는 **직전 세트의 문항**이 그대로 떠 있다.
+  await waitForList(page, { setId });
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 15_000 });
 }
 
@@ -66,6 +102,9 @@ export async function enterExam(page: Page) {
   const start = page.getByTestId("exam-start-btn");
   await start.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
   if (await start.count()) await start.click();
+  // 시험 목록으로 갈린 뒤에 돌려준다. 같은 세트를 다시 읽는 경로라 화면은 대개 그대로지만,
+  // 목록의 주인이 연습에서 시험으로 넘어가야 답안 키·채점 대상이 이 회차의 것이 된다.
+  await waitForList(page, { mode: "exam" });
 }
 
 // 모바일(≤880px) 시험 진입 — 모드 세그먼트는 드로어 안에 있으므로 열고 탭한다
@@ -77,6 +116,7 @@ export async function enterExamMobile(page: Page) {
   const start = page.getByTestId("exam-start-btn");
   await start.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
   if (await start.count()) await start.tap();
+  await waitForList(page, { mode: "exam" });
 }
 
 /**
@@ -92,8 +132,14 @@ export async function enterExamMobile(page: Page) {
  */
 export async function enterMiniTest(page: Page) {
   await page.getByTestId("stats-open").click();
-  await page.getByTestId("chapter-minitest-btn").first().click();
+  const btn = page.getByTestId("chapter-minitest-btn").first();
+  // 어느 챕터를 누르는지 먼저 읽어 둔다(버튼 이름이 "<챕터> 미니 시험") — 출제 목록이
+  // 그 챕터로 갈렸는지까지 확인하려면 이름이 필요하다. 배너는 필터 상태만 보고 뜨므로
+  // 배너가 보인다고 해서 10문항 추첨이 끝난 것은 아니다(그 전까지는 세트 40문항 그대로다).
+  const chapter = ((await btn.getAttribute("aria-label")) || "").replace(/\s*미니 시험$/, "");
+  await btn.click();
   await expect(page.getByTestId("chapter-filter-banner")).toBeVisible({ timeout: 20_000 });
+  await waitForList(page, { mode: "random", chapter: chapter || undefined });
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 }
 
@@ -114,6 +160,10 @@ export async function enterQuick(page: Page, product?: "ISTQB" | "CSTS") {
   // 모바일/태블릿(≤880px)에서는 세그먼트가 드로어 안이라 숨어 있다 — 실사용자와 같이 연다.
   if (!(await btn.isVisible())) await page.getByTestId("drawer-open").click();
   await btn.click();
+  // 퀵 추첨이 실제로 실릴 때까지 기다린다. 세그먼트를 누르는 순간 점수판과 헤더는 퀵의
+  // 것으로 바뀌지만 문항은 전 세트를 다 연 뒤에야 온다 — 그 사이에 답을 누르면 스펙이
+  // 무엇에 답했는지 통제하지 못한다.
+  await waitForList(page, { mode: "quick" });
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 }
 

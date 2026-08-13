@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useQuizStore } from '../store/useQuizStore';
+import { useQuizStore, QuizMode, QUICK_SET_ID } from '../store/useQuizStore';
 import { loadIndex, loadSetQuestions, subscribeLoads } from '../utils/questionLoader';
 import { makeCanonicalIdResolver } from '../utils/chapterStats';
 import { gradeKeyFor } from '../utils/answerKey';
@@ -196,9 +196,37 @@ export function reviewTargetIds(
   ]);
 }
 
+/** 출제 목록을 만든 맥락. 스토어의 현재 mode/setId와 **다를 수 있다**(CurrentList 참고). */
+export interface ListContext {
+  /** 이 목록을 만든 모드. 아직 아무것도 싣지 않았으면 null. */
+  mode: QuizMode | null;
+  /** 이 목록을 만든 세트(퀵은 세트가 없으므로 센티넬 QUICK). */
+  setId: string | null;
+  /** 이 목록을 만든 챕터 필터(없으면 null) — 미니 시험·집중 연습이 여기서 갈린다. */
+  chapter: string | null;
+}
+
+/**
+ * 화면에 실린 출제 목록과 **그것을 만든 맥락**을 한 덩이로 들고 있는다.
+ *
+ * 모드·세트·챕터는 스토어에서 동기로 바뀌는데 목록은 비동기로 온다. 그 사이에는 새 맥락의
+ * 화면이 **이전 맥락의 문항을 그대로 달고** 떠 있다 — 퀵으로 들어가면 퀵 점수판이 먼저 뜨고
+ * 팔레트에는 방금까지 풀던 연습 세트의 40문항이 남아 있는 식이다(실측: 40회 진입 중 6회).
+ * 즉 **"점수판이 보인다 / 지문이 보인다"는 출제가 끝났다는 뜻이 아니다.**
+ *
+ * 목록과 맥락을 따로 들면 둘이 어긋난 렌더가 생기므로 한 state에 묶는다 — 목록을 갈아 끼우는
+ * 곳은 그것을 만든 맥락을 반드시 함께 적게 된다.
+ */
+interface CurrentList extends ListContext {
+  questions: Question[];
+}
+
+const EMPTY_LIST: CurrentList = { mode: null, setId: null, chapter: null, questions: [] };
+
 export function useQuestions() {
   const [appData, setAppData] = useState<AppData | null>(null);
-  const [currentQuestions, setCurrentQuestions] = useState<Question[]>([]);
+  const [list, setList] = useState<CurrentList>(EMPTY_LIST);
+  const currentQuestions = list.questions;
   // 로드 실패 사용자 노출용(무한 스켈레톤 방지). retryLoad로 재시도한다.
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -237,6 +265,9 @@ export function useQuestions() {
   useEffect(() => {
     if (!appData || mode !== 'quick' || !activeProduct) return;
     let cancelled = false;
+    // 퀵은 세트에 매이지 않고 챕터 필터도 걸리지 않는다 — 목록의 맥락은 모드 하나뿐이다.
+    const setQuickList = (questions: Question[]) =>
+      setList({ mode: 'quick', setId: QUICK_SET_ID, chapter: null, questions });
 
     const sets = appData.sets.filter((s) => s.certification.toLowerCase() === activeProduct);
     if (!sets.length) return;
@@ -261,7 +292,7 @@ export function useQuestions() {
         // 전부 실패했을 때만 에러로 전환한다(아래 catch와 같은 처리).
         if (!perSet.length) {
           setLoadError('문제 세트를 불러오지 못했습니다. 네트워크 상태를 확인해 주세요.');
-          setCurrentQuestions([]);
+          setQuickList([]);
           return;
         }
         setLoadError(null);
@@ -281,7 +312,7 @@ export function useQuestions() {
             .map((it) => withSource.get(it.id))
             .filter((q): q is Question => !!q);
           if (restored.length === saved.items.length) {
-            setCurrentQuestions(restored);
+            setQuickList(restored);
             return;
           }
           // id가 다 풀리지 않으면(데이터 변경 등) 아래에서 새로 추첨한다.
@@ -293,13 +324,13 @@ export function useQuestions() {
           certification: activeProduct,
           items: drawn.map((c) => ({ id: c.id, setId: c.setId })),
         });
-        setCurrentQuestions(drawn.map((c) => withSource.get(c.id)).filter((q): q is Question => !!q));
+        setQuickList(drawn.map((c) => withSource.get(c.id)).filter((q): q is Question => !!q));
       })
       .catch((err) => {
         console.error('Failed to load sets for quick', err);
         if (cancelled) return;
         setLoadError('문제 세트를 불러오지 못했습니다. 네트워크 상태를 확인해 주세요.');
-        setCurrentQuestions([]);
+        setQuickList([]);
       });
     return () => { cancelled = true; };
   }, [appData, mode, activeProduct, quickNonce, reloadKey]);
@@ -315,6 +346,10 @@ export function useQuestions() {
     // 세트를 빠르게 전환하면 이전 요청이 늦게 도착해 현재 세트의 문항을
     // 덮어쓸 수 있다 — cleanup으로 이전 effect의 응답 반영을 취소한다.
     let cancelled = false;
+    // 목록에 그것을 만든 맥락(모드·세트·챕터)을 붙여 싣는다 — 화면이 "새 맥락 + 옛 목록"으로
+    // 떠 있는 구간을 밖에서 구분할 수 있게 하는 단서다(CurrentList 주석 참고).
+    const setSetList = (questions: Question[], chapter: string | null = null) =>
+      setList({ mode, setId, chapter, questions });
 
     function applyMode(questions: Question[]) {
       if (mode === 'random') {
@@ -329,7 +364,7 @@ export function useQuestions() {
           const byId = new Map(questions.map((q) => [idOf(q), q]));
           const restored = saved.ids.map((id) => byId.get(id)).filter((q): q is Question => !!q);
           if (restored.length === saved.ids.length) {
-            setCurrentQuestions(restored);
+            setSetList(restored, chapter);
             return;
           }
           // id가 다 풀리지 않으면(데이터 변경 등) 아래에서 새로 추첨한다.
@@ -341,7 +376,7 @@ export function useQuestions() {
         // 추첨 결과를 스토어에 즉시 반영한다(동기) — 뒤이어 실행되는 다른 훅 인스턴스가
         // 위 복원 경로로 같은 문항을 쓰게 되어 화면 간 추첨이 어긋나지 않는다.
         useQuizStore.getState().setRandomDraw({ setId, chapter, ids: drawn.map(idOf) });
-        setCurrentQuestions(drawn);
+        setSetList(drawn, chapter);
       } else if (mode === 'review') {
         // 복습 대상 산정은 reviewTargetIds가 단일 원천이다(퀵 제외 사양은 그쪽 주석 참고).
         const ids = reviewTargetIds(reviewIds, setId);
@@ -351,7 +386,7 @@ export function useQuestions() {
         const reviews = questions.filter(
           (q) => ids.has(q.id || `legacy-${q.number}`) && !done.has(q.number),
         );
-        setCurrentQuestions(reviews);
+        setSetList(reviews);
       } else {
         // 챕터 집중 연습(Phase 3): 연습 모드에서 필터가 있으면 해당 챕터 문항만 노출.
         // 답안 키는 문항 id 기준이라 필터를 걸거나 풀어도 기존 답안이 오염되지 않는다.
@@ -359,7 +394,7 @@ export function useQuestions() {
           mode === 'practice' && chapterFilter
             ? questions.filter((q) => q.chapter === chapterFilter)
             : questions;
-        setCurrentQuestions(filtered);
+        setSetList(filtered, mode === 'practice' ? chapterFilter ?? null : null);
       }
     }
 
@@ -375,7 +410,7 @@ export function useQuestions() {
         setLoadError('문제 세트를 불러오지 못했습니다. 네트워크 상태를 확인해 주세요.');
         // 이전 세트의 문항을 남기면 새 setId 아래 옛 문항이 표시되고
         // 답안이 새 세트 키로 저장돼 데이터가 오염된다 — 비워서 에러 UI로 전환한다.
-        setCurrentQuestions([]);
+        setSetList([]);
       });
     return () => { cancelled = true; };
   }, [appData, setId, mode, reviewIds, chapterFilter, reloadKey, reviewedOk]);
@@ -386,5 +421,12 @@ export function useQuestions() {
     setReloadKey((k) => k + 1);
   };
 
-  return { appData, currentQuestions, loadError, retryLoad };
+  // 목록의 출처만 따로 낸다(문항 배열 제외) — 화면에 표기하는 쪽이 문항까지 들고 갈 이유가 없다.
+  // list가 바뀔 때만 새 객체가 되므로 이걸 의존성에 두는 쪽이 매 렌더 무효화되지 않는다.
+  const listContext = useMemo<ListContext>(
+    () => ({ mode: list.mode, setId: list.setId, chapter: list.chapter }),
+    [list],
+  );
+
+  return { appData, currentQuestions, listContext, loadError, retryLoad };
 }

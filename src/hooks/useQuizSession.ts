@@ -25,7 +25,7 @@ export function useQuizSession() {
       markReviewed: s.markReviewed, unmarkReviewed: s.unmarkReviewed,
       setResultOpen: s.setResultOpen, setConfirmGradeOpen: s.setConfirmGradeOpen,
     })));
-  const { appData, currentQuestions, loadError, retryLoad } = useQuestions();
+  const { appData, currentQuestions, listContext, loadError, retryLoad } = useQuestions();
 
   // 각 모드는 자체 답안 네임스페이스를 사용한다(오답 모드는 재풀이용 별도 기록).
   // useCallback: 아래 파생 메모들의 의존성이라 매 렌더 참조가 바뀌면 메모가 무효화된다.
@@ -203,6 +203,9 @@ export function useQuizSession() {
   return {
     appData,
     currentQuestions,
+    // 지금 실린 목록이 어느 맥락에서 만들어졌는지 — 스토어의 mode/setId와 다를 수 있다
+    // (비동기 출제가 끝나기 전 구간). 워크스페이스가 이 값을 DOM에 적는다.
+    listContext,
     loadError,
     retryLoad,
     answerKeyOf,

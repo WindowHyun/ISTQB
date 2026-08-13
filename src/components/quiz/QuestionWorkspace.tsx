@@ -38,7 +38,7 @@ export const QuestionWorkspace = () => {
     setDrawerOpen: s.setDrawerOpen, activeProduct: s.activeProduct,
   })));
   const {
-    appData, currentQuestions, answered, isGraded, canGrade, requestGrade, gradeAndShow,
+    appData, currentQuestions, listContext, answered, isGraded, canGrade, requestGrade, gradeAndShow,
     showExamGate, examLocked, // 시험 단계 파생은 useQuizSession이 단일 원천(잠금과 동일 규칙 집합)
     loadError, retryLoad,
   } = useQuizSession();
@@ -199,12 +199,30 @@ export const QuestionWorkspace = () => {
     return () => document.removeEventListener('keydown', handleKey);
   }, [setIndex, currentQuestions.length]);
 
+  /**
+   * 지금 실린 출제 목록이 **어느 맥락에서 만들어졌는지**를 DOM에 적는다.
+   *
+   * 모드·세트·챕터는 클릭 즉시 바뀌는데 목록은 비동기로 온다. 그 사이 화면은 새 맥락의
+   * 머리에 옛 목록을 달고 떠 있다 — 퀵 점수판 아래에 방금까지 풀던 연습 세트 40문항이
+   * 그대로 있는 식이다. 그래서 "지문이 보인다"도 "점수판이 보인다"도 출제가 끝났다는
+   * 뜻이 아닌데, 그 구간을 밖에서 구분할 단서가 화면에 하나도 없었다.
+   *
+   * 아래 세 갈래(스켈레톤·시험 게이트·본문)에 모두 단다 — 목록이 비어 있는 동안에도
+   * "누가 비웠는지"가 같은 자리에서 읽혀야 한다. E2E 진입 헬퍼가 이 값을 기다린다
+   * (e2e/helpers.ts의 waitForList).
+   */
+  const listAttrs = {
+    'data-list-mode': listContext.mode ?? undefined,
+    'data-list-set': listContext.setId ?? undefined,
+    'data-list-chapter': listContext.chapter ?? undefined,
+  };
+
   if (!currentQuestions.length) {
     // 로드 실패가 최우선(오답 모드보다 먼저) — 아니면 오답 모드의 fetch 실패가
     // "틀린 문항 없음"으로 오표시돼 재시도 경로가 사라진다. 그다음 오답 없음, 그 외 스켈레톤.
     const isEmptyReview = mode === 'review';
     return (
-      <section className="workspace" aria-label="문제 풀이 영역">
+      <section className="workspace" aria-label="문제 풀이 영역" {...listAttrs}>
         {loadError ? (
           <article className="question-card" data-testid="load-error">
             <ErrorState message={loadError} />
@@ -254,7 +272,7 @@ export const QuestionWorkspace = () => {
       setDrawerOpen(false);
     };
     return (
-      <section className="workspace" aria-label="문제 풀이 영역">
+      <section className="workspace" aria-label="문제 풀이 영역" {...listAttrs}>
         <article className="question-card exam-gate" data-testid="exam-start-gate">
           <h2 className="exam-gate-title">시험 모드</h2>
           <p className="exam-gate-set">
@@ -285,7 +303,7 @@ export const QuestionWorkspace = () => {
   const goNext = () => setIndex((i) => Math.min(total - 1, i + 1));
 
   return (
-    <section className="workspace" aria-label="문제 풀이 영역">
+    <section className="workspace" aria-label="문제 풀이 영역" {...listAttrs}>
       <header className="topbar">
         <div className="topbar-title">
           {/* 퀵에서는 세트명을 쓰지 않는다 — 전 세트를 섞어 내는 모드라 '현재 세트'가 없고,
