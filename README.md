@@ -284,7 +284,7 @@ npm run size        # 번들 크기 예산 검사 (build 후)
 
 > 운영 배포(Vercel)는 `buildCommand: npm run build` 후 `outputDirectory: dist`(React 앱)를 서빙합니다.
 
-실제로 사용자에게 내보내는 절차(Go/No-Go 체크리스트 · 버전·태그 · 웹/APK 배포 · 실기기 스모크 · 롤백 · 자주 틀리는 것): [`docs/release-playbook.md`](docs/release-playbook.md).
+실제로 사용자에게 내보내는 절차(Go/No-Go 체크리스트 · 버전·태그 · 웹/APK 배포 · 실기기 스모크 · **데이터를 고쳐 내보낼 때** · 롤백 · 자주 틀리는 것): [`docs/release-playbook.md`](docs/release-playbook.md).
 
 ### 접근 제한 (사이트 비밀번호)
 
