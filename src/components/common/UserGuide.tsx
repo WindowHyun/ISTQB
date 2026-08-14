@@ -13,9 +13,9 @@ export const UserGuide = ({ onClose }: { onClose: () => void }) => (
         <div className="guide-overview-list">
           <div className="guide-overview-row"><strong>연습</strong><span>즉시 정답·해설 · 기록 안 됨</span></div>
           <div className="guide-overview-row"><strong>시험</strong><span>채점 후 공개 · 응시 중 잠금</span></div>
-          <div className="guide-overview-row"><strong>랜덤</strong><span>세트 내 무작위 출제</span></div>
+          <div className="guide-overview-row"><strong>미니 시험</strong><span>통계에서 약한 챕터를 골라 재측정</span></div>
           <div className="guide-overview-row"><strong>오답</strong><span>틀린 문항만 즉시 피드백으로 재풀이</span></div>
-          <div className="guide-overview-row"><strong>퀵</strong><span>전 세트 10·15·20문항, 제한시간·기록 없음</span></div>
+          <div className="guide-overview-row"><strong>퀵</strong><span>전 세트를 섞어 한 문항씩 · 제한시간·기록 없음</span></div>
         </div>
       </section>
 
@@ -33,9 +33,9 @@ export const UserGuide = ({ onClose }: { onClose: () => void }) => (
         <ul>
           <li><strong>연습</strong> — 답을 고르면 <em>즉시</em> 정답·해설이 보입니다. 부담 없이 개념을 익히는 모드로, <strong>통계에는 기록되지 않습니다</strong>.</li>
           <li><strong>시험</strong> — "시험 시작"을 눌러야 응시가 시작되고 타이머가 0부터 갑니다. 응시 중에는 세트·모드 변경이 잠기며(🔒), <strong>채점하기</strong>를 눌러야 정답이 공개됩니다. 중단하려면 <strong>응시 포기</strong>(기록 없음)를 누르세요.</li>
-          <li><strong>랜덤</strong> — 세트에서 최대 40문항을 무작위로 뽑아 모의고사처럼 풉니다. <strong>🔀 새 문제 뽑기</strong>로 언제든 새 조합을 받을 수 있어요. 실수로 <strong>새로고침해도 풀던 문항·답안이 그대로 유지</strong>됩니다(새 조합은 ‘새 문제 뽑기’로).</li>
-          <li><strong>오답</strong> — 시험·랜덤에서 틀린 문항만 다시 풉니다(즉시 피드백). 퀵 오답은 회차 기록이 아니라 오답 노트의 임시 목록으로만 봅니다.</li>
-          <li><strong>⚡ 퀵 랜덤</strong> — 세트를 고르지 않고 <strong>해당 자격증의 전 세트</strong>에서 10·15·20문항을 뽑아 짧게 풉니다. 제한시간이 없고, 같은 문제가 여러 세트에 실려 있어도 한 세션에 두 번 나오지 않습니다. 서답형도 섞여 나오되 <strong>한 회차의 30%를 넘지 않습니다</strong>. 짧은 표본이라 <strong>합격 판정을 내리지 않고</strong> 맞힌 개수만 보여주며, <strong>회차 기록을 아예 남기지 않습니다</strong> — 응시 이력·요약·타임라인 어디에도 뜨지 않아요(챕터별 정답률에는 반영돼 약점 분석이 정확해집니다). 틀린 문항은 오답 노트 맨 위 <strong>퀵 전용 임시 목록</strong>에 실리고 <strong>24시간 뒤 자동으로 사라집니다</strong>.</li>
+          <li><strong>미니 시험</strong> — <strong>통계</strong>에서 약한 챕터의 <strong>미니 시험</strong>을 누르면 그 챕터 문항 <strong>최대 10개</strong>를 뽑아 짧게 재측정합니다. 채점하면 챕터 정답률에 반영되지만, 세트 전체 회차가 아니라 <strong>응시 횟수·평균·최고 정답률에는 섞이지 않습니다</strong>(짧은 표본이 실전 지표를 부풀리지 않도록). 문제 위 배너의 <strong>연습으로 전체 보기</strong>를 누르면 챕터 제한이 풀리면서 <strong>연습 모드</strong>로 나가 그 세트 전체를 순서대로 봅니다(미니 시험은 거기서 끝납니다). 실수로 <strong>새로고침해도 풀던 문항·답안이 그대로 유지</strong>됩니다.</li>
+          <li><strong>오답</strong> — 시험·미니 시험에서 틀린 문항만 다시 풉니다(즉시 피드백). 퀵 오답은 회차 기록이 아니라 오답 노트의 임시 목록으로만 봅니다.</li>
+          <li><strong>⚡ 퀵 랜덤</strong> — 세트를 고르지 않고 <strong>해당 자격증의 전 세트</strong>를 섞어 한 문항씩 냅니다. <strong>문항 수를 고르지 않습니다</strong> — 끝을 정해 두지 않고 원하는 만큼 풀다가 그만두면 되고, 진행·정답·오답·연속은 문제 위 <strong>점수판</strong>에 상시 표시됩니다. 제한시간이 없고, 같은 문제가 여러 세트에 실려 있어도 한 세션에 두 번 나오지 않습니다. 서답형이 있는 자격증에서는 섞여 나오되 <strong>어디서 끊어 봐도 30%를 넘지 않습니다</strong>. <strong>채점하면 그때까지 푼 문항만</strong> 집계되고(아직 안 본 문항은 오답으로 세지 않아요), 짧은 표본이라 <strong>합격 판정을 내리지 않고</strong> 맞힌 개수만 보여줍니다. <strong>회차 기록은 아예 남지 않습니다</strong> — 응시 이력·요약·타임라인 어디에도 뜨지 않아요(챕터별 정답률에는 반영돼 약점 분석이 정확해집니다). 틀린 문항은 오답 노트 맨 위 <strong>퀵 전용 임시 목록</strong>에 실리고 <strong>24시간 뒤 자동으로 사라집니다</strong>.</li>
         </ul>
       </section>
 
@@ -43,7 +43,7 @@ export const UserGuide = ({ onClose }: { onClose: () => void }) => (
         <h4>✅ 채점과 결과</h4>
         <ul>
           <li>미응답 문항이 있으면 채점 전에 <strong>확인 화면</strong>이 떠서 빈 문항으로 바로 이동해 마저 풀 수 있습니다(미응답은 오답 처리).</li>
-          <li>결과에는 점수·<strong>합격 여부</strong>(ISTQB 65% 이상 정답 / CSTS 검정방법별 배점 합산 75점 이상·100점 만점)·소요 시간과 <strong>직전 회차 대비 ▲/▼</strong> 변화가 표시됩니다.</li>
+          <li>결과에는 점수·<strong>합격 여부</strong>(ISTQB 65% 이상 정답 / CSTS 검정방법별 배점 합산 <strong>75% 이상</strong> — 4지선다·서답형 1.5점, 진위형 1.0점)·소요 시간과 <strong>직전 회차 대비 ▲/▼</strong> 변화가 표시됩니다. CSTS는 세트마다 문항 구성이 달라 만점도 다르므로, 필요 점수는 <strong>그 세트의 만점 기준으로 함께 표시</strong>됩니다.</li>
           <li><strong>다시 풀기</strong> 버튼(또는 활성 모드 탭 재클릭)으로 바로 재응시할 수 있습니다.</li>
         </ul>
       </section>

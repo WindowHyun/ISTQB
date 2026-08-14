@@ -99,3 +99,15 @@ describe('evaluatePass', () => {
     expect(evaluatePass('istqb', 46, 70).criterionLabel).toBe('46 / 70문항(65%) 이상 정답');
   });
 });
+
+// 배점표는 문항 유형에 붙는데, 유형은 데이터에서 온다 — 없거나 처음 보는 값일 수 있다.
+// 이때 0점으로 떨어지면 만점(maxScore)이 함께 줄어 합격선이 조용히 낮아진다.
+describe('computeCstsWeightedScore — 유형 폴백', () => {
+  it('유형이 없거나 배점표에 없는 유형은 주 유형과 같은 1.5점으로 센다', () => {
+    const noType = { number: 1, stem: '', options: [{ key: 'a', text: '' }], answer: ['a'] } as Question;
+    const unknown = cstsQuestion(2, 'matching');
+    const got = computeCstsWeightedScore([noType, unknown], { 1: ['a'], 2: ['b'] }, answerKeyOf);
+    expect(got.maxScore).toBe(3); // 1.5 + 1.5 — 0점으로 떨어지지 않는다
+    expect(got.score).toBe(1.5); // 맞힌 것은 1번뿐
+  });
+});

@@ -11,7 +11,10 @@ const note = (s: string) => console.log("· " + s);
 // 불변식은 "무슨 짓을 해도 참이어야 하는 것"만 넣는다 — 특정 화면의 기대값을 넣으면
 // 무작위 조작에서 거짓 실패가 난다.
 //
-// CI에서는 시드 하나만 돈다(시간 예산). 탐색할 때는 시드 배열을 늘려 로컬에서 돌린다 —
+// 시드 배열(아래 `[42, 1337, 20260730]`)은 **CI에서도 전부 돈다** — 환경 분기가 없다.
+// 종전 주석은 "CI에서는 시드 하나만"이라고 적어 두었는데 코드에 그런 분기가 없었고,
+// 시드를 늘릴 때 러너 예산을 잘못 가늠하게 만들었다. 하나만 돌리고 싶으면 분기를
+// 실제로 넣어야 한다. 탐색할 때는 배열을 늘려 로컬에서 돌린다 —
 // 시드 1·7·42 × 200스텝(683회 조작)에서 위반 0건을 확인했다.
 
 function rng(seed: number) {
@@ -98,7 +101,6 @@ const CLICKABLE = [
   "[data-testid='palette-toggle']",
   "[data-testid='grade-button']",
   "[data-testid='exam-start-btn']",
-  "[data-testid='random-redraw']",
   "[data-testid='stats-open']",
   "[data-testid='result-open']",
   ".modal-header button",
@@ -170,13 +172,19 @@ for (const seed of [42, 1337, 20260730]) {
           trail.push(`type:${junk.slice(0, 8)}`);
         }
       }
-      // 가끔 퀵 문항 수를 바꾼다 — CLICKABLE은 button만 훑어서 select가 통째로 빠져 있었다.
+      // 가끔 세트를 바꾼다 — CLICKABLE은 button만 훑어서 select가 통째로 빠져 있었다.
+      // (종전에는 퀵 문항 수 셀렉트를 흔들었는데 그 컨트롤은 없어졌다. 남은 select는
+      //  세트 셀렉트뿐이고, 세트 전환은 확인 모달·답안 이관이 얽혀 훨씬 값진 흔들기다.)
       if (rand() < 0.05) {
-        const sel = page.locator("#quickSize");
+        const sel = page.locator("#examSelect");
         if (await sel.count() && await sel.isVisible().catch(() => false)) {
-          const size = ["10", "15", "20"][Math.floor(rand() * 3)];
-          await sel.selectOption(size).catch(() => {});
-          trail.push(`quickSize:${size}`);
+          const opts = await sel.locator("option").evaluateAll(
+            (os) => os.map((o) => (o as HTMLOptionElement).value));
+          if (opts.length) {
+            const pick = opts[Math.floor(rand() * opts.length)];
+            await sel.selectOption(pick).catch(() => {});
+            trail.push(`setId:${pick}`);
+          }
         }
       }
       // 가끔 Esc를 누른다.

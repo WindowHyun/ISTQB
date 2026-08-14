@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { openProduct } from "./helpers";
+import { openProduct, waitForList } from "./helpers";
 
 /**
  * 퀵 오답의 새 사양 — 회차 기록은 남기지 않고, 오답만 24시간 임시로 보여준다.
@@ -7,15 +7,29 @@ import { openProduct } from "./helpers";
  */
 
 async function openBar(page: Page) {
-  if (!(await page.locator("#quickSize").isVisible())) await page.getByTestId("drawer-open").click();
+  if (!(await page.locator(".segmented").isVisible())) await page.getByTestId("drawer-open").click();
 }
 
-async function playQuick(page: Page, size: string) {
+/**
+ * 퀵을 한 회차 풀고 채점한다. `count`는 '몇 문항을 풀 것인가'다 — 종전의 size(회차 크기)와
+ * 다르다. 퀵은 문항 수를 고르지 않고 전 세트를 끝까지 내므로, 회차 크기는 데이터가 정하고
+ * 검사가 정하는 것은 "몇 개까지 풀고 채점할 것인가"뿐이다.
+ */
+async function playQuick(page: Page, count: string) {
   await openBar(page);
-  await page.locator("#quickSize").selectOption(size);
-  await page.getByTestId("quick-start-btn").click();
+  // 이미 퀵이면 재추첨 버튼으로, 아니면 세그먼트로 들어간다(회차마다 새로 섞기 위해).
+  const inQuick = await page.getByTestId("quick-start-btn").count();
+  if (inQuick) {
+    await page.getByTestId("quick-start-btn").click();
+  } else {
+    await page.locator('.segmented button[data-mode="quick"]').click();
+    // 진입은 목록이 실린 뒤가 끝이다(직전 세트의 문항이 남아 있는 구간이 있다).
+    // 재추첨(quick-start-btn)은 맥락이 그대로라 이 대기로 구분되지 않는다 — 그쪽은
+    // 아래 루프가 문항을 실제로 눌러 보며 진행한다.
+    await waitForList(page, { mode: "quick" });
+  }
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-  for (let i = 0; i < Number(size); i += 1) {
+  for (let i = 0; i < Number(count); i += 1) {
     const o = page.locator("#options .option").first();
     if (await o.count()) await o.click();
     const n = page.locator("#nextBtn");

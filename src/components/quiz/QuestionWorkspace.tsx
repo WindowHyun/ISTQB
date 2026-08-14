@@ -13,18 +13,19 @@ import { useBackDismiss } from '../../hooks/useBackDismiss';
 import { BACK_PRIORITY } from '../../utils/backGuard';
 import { QuestionCard } from './QuestionCard';
 import { QuestionPalette } from './QuestionPalette';
+import { QuickScoreboard } from './QuickScoreboard';
 import { ErrorState } from '../common/ErrorState';
 
 export const QuestionWorkspace = () => {
   // 슬라이스 구독(O1) — elapsedSeconds를 구독하지 않으므로 타이머 틱에 리렌더되지 않는다.
   const {
-    index, setId, mode, setIndex, tickTimer, startTimer, beginSession,
+    index, setId, mode, setMode, setIndex, tickTimer, startTimer, beginSession,
     navCollapsed, setNavCollapsed, setPaletteOpen, setResultOpen,
     resumeNotice, setResumeNotice, chapterFilter, setChapterFilter,
     setExamStarted, setDrawerOpen, activeProduct, setExamStartedAt, examStartedAtForSet,
     setConfirmExitExam, setPendingRestart,
   } = useQuizStore(useShallow((s) => ({
-    index: s.index, setId: s.setId, mode: s.mode, setIndex: s.setIndex,
+    index: s.index, setId: s.setId, mode: s.mode, setMode: s.setMode, setIndex: s.setIndex,
     tickTimer: s.tickTimer, startTimer: s.startTimer, beginSession: s.beginSession,
     navCollapsed: s.navCollapsed, setNavCollapsed: s.setNavCollapsed,
     setPaletteOpen: s.setPaletteOpen, setResultOpen: s.setResultOpen,
@@ -37,7 +38,7 @@ export const QuestionWorkspace = () => {
     setDrawerOpen: s.setDrawerOpen, activeProduct: s.activeProduct,
   })));
   const {
-    appData, currentQuestions, answered, isGraded, canGrade, requestGrade, gradeAndShow,
+    appData, currentQuestions, listContext, answered, isGraded, canGrade, requestGrade, gradeAndShow,
     showExamGate, examLocked, // 시험 단계 파생은 useQuizSession이 단일 원천(잠금과 동일 규칙 집합)
     loadError, retryLoad,
   } = useQuizSession();
@@ -198,12 +199,30 @@ export const QuestionWorkspace = () => {
     return () => document.removeEventListener('keydown', handleKey);
   }, [setIndex, currentQuestions.length]);
 
+  /**
+   * 지금 실린 출제 목록이 **어느 맥락에서 만들어졌는지**를 DOM에 적는다.
+   *
+   * 모드·세트·챕터는 클릭 즉시 바뀌는데 목록은 비동기로 온다. 그 사이 화면은 새 맥락의
+   * 머리에 옛 목록을 달고 떠 있다 — 퀵 점수판 아래에 방금까지 풀던 연습 세트 40문항이
+   * 그대로 있는 식이다. 그래서 "지문이 보인다"도 "점수판이 보인다"도 출제가 끝났다는
+   * 뜻이 아닌데, 그 구간을 밖에서 구분할 단서가 화면에 하나도 없었다.
+   *
+   * 아래 세 갈래(스켈레톤·시험 게이트·본문)에 모두 단다 — 목록이 비어 있는 동안에도
+   * "누가 비웠는지"가 같은 자리에서 읽혀야 한다. E2E 진입 헬퍼가 이 값을 기다린다
+   * (e2e/helpers.ts의 waitForList).
+   */
+  const listAttrs = {
+    'data-list-mode': listContext.mode ?? undefined,
+    'data-list-set': listContext.setId ?? undefined,
+    'data-list-chapter': listContext.chapter ?? undefined,
+  };
+
   if (!currentQuestions.length) {
     // 로드 실패가 최우선(오답 모드보다 먼저) — 아니면 오답 모드의 fetch 실패가
     // "틀린 문항 없음"으로 오표시돼 재시도 경로가 사라진다. 그다음 오답 없음, 그 외 스켈레톤.
     const isEmptyReview = mode === 'review';
     return (
-      <section className="workspace" aria-label="문제 풀이 영역">
+      <section className="workspace" aria-label="문제 풀이 영역" {...listAttrs}>
         {loadError ? (
           <article className="question-card" data-testid="load-error">
             <ErrorState message={loadError} />
@@ -253,7 +272,7 @@ export const QuestionWorkspace = () => {
       setDrawerOpen(false);
     };
     return (
-      <section className="workspace" aria-label="문제 풀이 영역">
+      <section className="workspace" aria-label="문제 풀이 영역" {...listAttrs}>
         <article className="question-card exam-gate" data-testid="exam-start-gate">
           <h2 className="exam-gate-title">시험 모드</h2>
           <p className="exam-gate-set">
@@ -284,10 +303,13 @@ export const QuestionWorkspace = () => {
   const goNext = () => setIndex((i) => Math.min(total - 1, i + 1));
 
   return (
-    <section className="workspace" aria-label="문제 풀이 영역">
+    <section className="workspace" aria-label="문제 풀이 영역" {...listAttrs}>
       <header className="topbar">
-        <div>
-          <p id="setMeta">{setTitle}</p>
+        <div className="topbar-title">
+          {/* 퀵에서는 세트명을 쓰지 않는다 — 전 세트를 섞어 내는 모드라 '현재 세트'가 없고,
+              setId도 어느 세트도 아닌 센티넬(QUICK)이라 여기서 조회하면 늘 빈 값이다.
+              빈 <p>를 남기면 제목 위에 원인 모를 여백만 생기므로 요소째 뺀다. */}
+          {mode !== 'quick' && <p id="setMeta">{setTitle}</p>}
           <div className="question-title-row">
             <h2 id="questionTitle">문제 {currentQuestion.number}{isMulti ? ' · 복수정답' : ''}</h2>
             {currentQuestion.chapter && (
@@ -295,6 +317,12 @@ export const QuestionWorkspace = () => {
             )}
           </div>
         </div>
+        {/* 퀵 현황은 헤더의 오른쪽 빈자리에 들어간다(CSS의 margin-left:auto가 밀어 붙인다).
+            래퍼로 감싸지 않는 이유: .topbar은 space-between이라 감싸면 한 덩이가 더 생겨
+            좁은 폭에서 점수판만 아래 줄로 흘리는 처리를 그 래퍼에 또 걸어야 한다. */}
+        {mode === 'quick' && (
+          <QuickScoreboard questions={currentQuestions} />
+        )}
         <div className="topbar-actions">
           <button id="prevBtn" type="button" aria-label="이전 문제" disabled={safeIndex === 0} onClick={goPrev}>‹</button>
           <button id="nextBtn" type="button" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
@@ -316,13 +344,29 @@ export const QuestionWorkspace = () => {
               <small className="cf-hint">연습은 통계에 기록되지 않아요 — 미니 시험·시험 채점으로 정답률을 갱신하세요.</small>
             </span>
           )}
+          {/* 챕터 제한 해제.
+              연습에서는 말 그대로 필터만 푼다(같은 모드로 세트 전체를 순서대로 본다).
+
+              미니 시험에서는 **연습으로 나간다.** 종전에는 여기서도 필터만 풀었는데, 모드가
+              'random'으로 남아 같은 버튼이 세트 전체 40문항 무작위 회차를 새로 시작했다 —
+              모드 세그먼트에서 '랜덤'을 없앤 결정을 이 버튼 하나가 우회하고 있었던 셈이다.
+              게다가 이름이 그 결과를 예고하지 않아(필터 해제로 읽힌다) 풀던 미니 시험이
+              말없이 버려지고, 세그먼트는 어느 모드도 가리키지 않는 상태가 됐다.
+              '전체 보기'가 뜻하는 것은 "이 챕터 말고 세트 전체를 보겠다"이므로 연습이 맞다. */}
           <button
             type="button"
             className="cf-clear"
             data-testid="chapter-filter-clear"
-            onClick={() => setChapterFilter(null)}
+            onClick={() => {
+              if (mode === 'random') {
+                setMode('practice'); // setMode가 챕터 필터도 함께 해제한다
+                beginSession();
+                return;
+              }
+              setChapterFilter(null);
+            }}
           >
-            전체 보기
+            {mode === 'random' ? '연습으로 전체 보기' : '전체 보기'}
           </button>
         </div>
       )}

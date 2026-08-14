@@ -592,6 +592,9 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
   box-shadow: var(--shadow-sm);
   padding: 16px 20px;
 }
+/* 제목 덩이는 줄어들 수 있어야 한다 — flex 자식의 기본 min-width는 auto라, 옆에 퀵
+   점수판이 들어오면 제목이 안 줄고 헤더가 카드 밖으로 넘친다. */
+.topbar-title { min-width: 0; }
 .topbar #setMeta { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: 0.02em; }
 .question-title-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .topbar #questionTitle { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
@@ -1081,6 +1084,10 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 .structured-list { display: flex; flex-direction: column; gap: 6px; padding-left: 4px; }
 .structured-line { display: flex; gap: 8px; align-items: baseline; }
 .structured-marker { flex: none; font-weight: 700; color: var(--primary); min-width: 1.4em; }
+/* 다크에서 --primary(#3b82f6)는 카드 배경 위 4.2:1로 AA 미달이다. 마커는 지문 본문의
+   일부(번호·글머리)라 못 읽으면 항목 구분이 사라진다 — 글자용 밝은 파랑으로 올린다.
+   퀵이 전 세트를 섞어 내면서 구조화 목록이 있는 문항이 자주 뜨게 돼 드러났다(axe serious). */
+body[data-theme="dark"] .structured-marker { color: var(--primary-700); }
 /* 하위 번호("1.1"·"2.3.1") 들여쓰기 — 요구사항 트리 등 계층 표기. */
 .text-line.indent-1, .structured-line.indent-1 { padding-left: 1.6em; }
 .text-line.indent-2, .structured-line.indent-2 { padding-left: 3.2em; }
@@ -1350,6 +1357,9 @@ body[data-theme="dark"] .table-image-frame {
     gap: 14px;
   }
   .topbar #questionTitle { font-size: 19px; }
+  /* 퀵 점수판이 아랫줄로 접힐 수 있게 한다(그 규칙은 .quick-scoreboard 쪽에 있다).
+     점수판이 없는 모드에서는 자식이 둘뿐이라 접힘이 일어나지 않는다. */
+  .topbar { flex-wrap: wrap; row-gap: 10px; }
 
   /* 사이드바 → 좌측 오프캔버스 드로어.
      닫힌 드로어는 transform으로 화면 밖일 뿐 DOM에 남아 Tab/스크린리더가 접근할 수 있다 —
@@ -1598,24 +1608,13 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
   color: var(--text-2);
 }
 .sc-practice:hover { color: var(--primary); border-color: var(--primary); }
-/* 미니 시험 — 통계에 반영되는 재측정 세션이라 연습보다 한 단계 강조. */
-.sc-minitest {
-  border: 1px solid var(--primary-100);
-  background: var(--primary-50, var(--surface-3));
-  border-radius: 8px;
-  padding: 5px 10px;
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--primary);
-}
-.sc-minitest:hover { border-color: var(--primary); }
-.sc-practice:disabled, .sc-minitest:disabled { opacity: 0.5; cursor: not-allowed; }
-/* 버튼 라벨은 절대 줄바꿈하지 않는다 — 좁은 그리드 셀에서 '미/니/시/험' 세로 꺾임 방지. */
-.sc-practice, .sc-minitest { white-space: nowrap; }
-/* 좁은 화면: 5열 그리드가 버튼 폭을 짓누르므로 막대를 생략하고
-   [이름(신축) · 정답률 · 연습 · 미니 시험] 한 줄 배치로 재배열한다. */
+.sc-practice:disabled { opacity: 0.5; cursor: not-allowed; }
+/* 버튼 라벨은 줄바꿈하지 않는다 — 좁은 그리드 셀에서 세로 꺾임 방지. */
+.sc-practice { white-space: nowrap; }
+/* 좁은 화면: 그리드가 버튼 폭을 짓누르므로 막대를 생략하고
+   [이름(신축) · 정답률 · 연습] 한 줄 배치로 재배열한다. */
 @media (max-width: 640px) {
-  .stats-chapters li { grid-template-columns: minmax(0, 1fr) auto auto auto; }
+  .stats-chapters li { grid-template-columns: minmax(0, 1fr) auto auto; }
   .stats-chapters .sc-bar { display: none; }
 }
 .stats-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
@@ -1708,9 +1707,7 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 /* "7 / 10문항"은 %(두 글자)보다 길어 44px에서 좁은 화면을 넘친다. */
 .result-score.neutral strong { font-size: 32px; }
 
-/* 퀵 랜덤 진입 — 문항 수 선택 + 시작을 한 줄에 둔다.
-   두 컨트롤 모두 min-height 44px — 손가락으로 누르는 크기다(모바일 드로어에서 나란히
-   놓이므로 좁으면 옆 컨트롤을 잘못 누른다). */
+/* 퀵 진입 — 라벨 + 시작 버튼 한 줄. 버튼은 min-height 44px(손가락으로 누르는 크기). */
 .quick-row { display: flex; gap: 8px; align-items: stretch; }
 /* 라벨을 줄 안에 두므로 .panel > label(대문자 회색)이 걸리지 않는다 — 본문 톤으로 맞춘다. */
 .quick-row .quick-label {
@@ -1723,7 +1720,7 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
   letter-spacing: normal;
   white-space: nowrap;
 }
-.quick-row select { flex: 1 1 auto; min-width: 0; min-height: 44px; }
+.quick-row .quick-start-btn { flex: 1 1 auto; min-width: 0; }
 .quick-start-btn {
   flex: 0 0 auto;
   min-height: 44px;
@@ -1913,29 +1910,112 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 .timer-warn { color: #b26a00; }
 .timer-danger { color: #c0392b; font-weight: 800; }
 
-/* ── 오답 노트의 퀵 섹션 ─────────────────────────────────────────────
-   세트 그룹과 시각적으로 갈라 둔다 — 퀵은 세트를 다 푼 기록이 아니고 만료가 있다. */
-.quick-wrong-note {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface-2, var(--surface));
-  padding: 14px 16px;
-  margin-bottom: 16px;
-}
-.quick-wrong-note h4 { margin: 0 0 4px; font-size: 15px; }
-.quick-wrong-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.quick-wrong-list li {
+
+
+/* ── 퀵 모드 ─────────────────────────────────────────────────────────
+   퀵에는 진행률(N/총계)도 타이머도 없다. 끝을 정해 놓지 않아 분모가 없고 기록도 남지
+   않는다. 대신 "얼마나 풀었고 얼마나 맞히고 있는가"를 상시 노출한다.
+
+   자리는 문제 헤더(.topbar) 안 오른쪽이다. 종전에는 헤더와 문제 사이에 폭을 가득 쓴
+   카드 네 장이었는데, 제목 → 지문으로 내려가는 동선을 가로막아 지문이 화면 아래로
+   밀렸다(매 문항 갱신되는 숫자라 시선도 그때마다 끌려갔다). 헤더 오른쪽은 ‹ › 두
+   버튼만 있던 빈자리라, 같은 정보를 세로 공간을 전혀 쓰지 않고 담는다.
+
+   생김새도 카드 네 장에서 칸 나뉜 알약 하나로 바꾼다 — 헤더 카드 안에 또 카드를 넣으면
+   테두리와 그림자가 두 겹으로 겹쳐 어느 것이 상자인지 읽히지 않는다. */
+.quick-scoreboard {
+  /* 오른쪽 끝으로 밀어 붙인다 — .topbar이 space-between이라 자식이 셋이 되면
+     이 규칙 없이는 가운데에 놓인다. */
+  margin-left: auto;
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px 10px;
-  padding: 8px 10px;
+  align-items: stretch;
+  flex: none;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--surface);
-  font-size: 14px;
+  background: var(--surface-2);
+  overflow: hidden;
 }
-.qw-src { color: var(--muted); font-size: 12.5px; }
-.qw-no { font-weight: 700; }
-.qw-ans { flex: 1 1 12ch; color: var(--muted); }
-.qw-ans b { color: var(--text); font-weight: 600; }
+.qs-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 62px;
+  padding: 6px 12px;
+}
+/* 칸 사이는 여백이 아니라 선으로 나눈다 — 네 값이 한 덩이(현황)라는 것을 형태로 말한다. */
+.qs-item + .qs-item { border-left: 1px solid var(--line); }
+.qs-item b { font-size: 18px; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.qs-item small { font-size: 10px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.qs-ok b { color: var(--success); }
+.qs-no b { color: var(--danger); }
+.qs-streak b { color: var(--primary); }
+
+/* '다음 문제' — 퀵의 유일한 진행 수단이라 폭을 가득 준다.
+   답을 확인하기 전에는 비활성이고, 그때는 버튼 문구가 이유를 대신 말한다. */
+.quick-next-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px 4px 0;
+  border-top: 1px solid var(--line);
+}
+.quick-next-btn {
+  width: auto;
+  min-width: 188px;
+  min-height: 46px;
+  padding: 0 20px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.quick-next-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+.quick-next-btn:disabled {
+  opacity: 1;              /* 흐리게 하면 안내 문구가 안 읽힌다 — 색으로 비활성을 알린다 */
+  background: var(--surface-3);
+  color: var(--muted);
+  border-color: var(--line);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+@media (max-width: 560px) {
+  .quick-next-bar {
+    align-items: stretch;
+    padding: 10px 0 0;
+  }
+  .quick-next-btn {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* 한 바퀴 완료 — 전 세트를 다 본 뒤의 종착 화면. */
+.quick-done { text-align: center; }
+.quick-done-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+.quick-done-body { color: var(--text-2); line-height: 1.7; margin-bottom: 16px; }
+
+/* 모바일: 제목 옆에 네 칸을 함께 두면 '문제 N'이 두 글자 폭으로 눌린다.
+   헤더를 접어(.topbar flex-wrap) 점수판만 아랫줄 전체를 쓰게 하고, 칸은 균등 분할한다.
+   하단 고정 액션바가 없는 모드이므로 본문 아래 여백도 되돌린다. */
+@media (max-width: 880px) {
+  .quick-scoreboard {
+    flex: 1 1 100%;
+    margin-left: 0;
+  }
+  .qs-item { flex: 1 1 0; min-width: 0; padding: 7px 4px; }
+  .qs-item b { font-size: 17px; }
+  .qs-item small { font-size: 10px; }
+  /* 퀵에는 하단 고정 액션바가 없으므로 그 자리를 비워 둘 이유도 없다.
+     안전영역만 남긴다 — 홈 인디케이터 위에 '다음 문제'가 깔리면 안 된다. */
+  .app-shell[data-mode="quick"] { padding-bottom: calc(16px + var(--safe-bottom)); }
+}

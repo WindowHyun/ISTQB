@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { openProduct } from "./helpers";
+import { answerCurrent, openProduct, waitForList } from "./helpers";
 
 /**
  * 정합성 테스트 — 같은 사실이 화면마다 같은 값으로 보이는가.
@@ -14,32 +14,7 @@ const problems: string[] = [];
 const bad = (s: string) => { problems.push(s); console.log("  ✗ " + s); };
 
 async function openBar(page: Page) {
-  const sel = page.locator("#quickSize");
-  if (!(await sel.isVisible())) await page.getByTestId("drawer-open").click();
-}
-
-/**
- * 현재 문항에 답한다 — 유형을 가리지 않고, 렌더 경합에도 걸리지 않는다.
- *
- * 종전 코드는 `if (await o.count()) await o.click()`이었다. 두 호출은 원자적이지 않아,
- * 그 사이에 문항이 다시 그려지면 count는 이전 렌더(선택형)를 보고 click은 새 렌더를
- * 기다리다 죽는다. 실제로 전수 실행에서 이 자리가 300초 타임아웃으로 실패했고, 그때
- * 화면은 서답형(단답형 정답 입력)이었는데 진행률은 0/15로 첫 문항에 머물러 있었다.
- * 퀵에는 서답형이 최대 30%까지 섞이므로(B5) 이 경합은 드물게 오는 것이 아니다.
- *
- * 그래서 '둘 중 먼저 보이는 쪽'을 기다린 뒤 그 유형에 맞춰 답한다.
- */
-async function answerCurrent(page: Page): Promise<void> {
-  const opt = page.locator("#options .option").first();
-  const short = page.locator(".short-answer-input");
-  await expect(opt.or(short.first())).toBeVisible({ timeout: 15_000 });
-  const blanks = await short.count();
-  if (blanks) {
-    // 빈칸이 여러 개인 다답형은 '모든 칸'이 차야 답한 것으로 센다(isAnswered).
-    for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
-    return;
-  }
-  await opt.click({ timeout: 15_000 });
+  if (!(await page.locator(".segmented").isVisible())) await page.getByTestId("drawer-open").click();
 }
 
 async function answerAll(page: Page, max: number) {
@@ -165,10 +140,14 @@ test("정합성: 오답 수가 결과·오답노트·재풀이에서 어긋나�
   await page.evaluate(() => localStorage.clear());
   await openProduct(page, "ISTQB");
 
-  // 세트 단위 회차(랜덤)로 대조한다 — 퀵은 회차를 남기지 않아 세트 오답노트·재풀이에
+  // 세트 단위 회차(시험)로 대조한다 — 퀵은 회차를 남기지 않아 세트 오답노트·재풀이에
   // 들어가지 않으므로, 이 삼자 대조의 재료가 될 수 없다(그 분리는 아래에서 따로 본다).
+  // 종전에는 랜덤으로 회차를 만들었는데 그 진입로가 사라졌다(퀵에 흡수) — 세트 전체를
+  // 채점하는 회차라는 점은 시험이 같으므로 재료를 시험으로 바꾼다.
   await openBar(page);
-  await page.locator('.segmented button[data-mode="random"]').click();
+  await page.locator('.segmented button[data-mode="exam"]').click();
+  const gate = page.getByTestId("exam-start-btn");
+  if (await gate.count()) await gate.click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   const roundTotal = num(await page.locator("#progressText").textContent(), /\/\s*(\d+)/);
   await answerAll(page, (roundTotal ?? 40) + 2);
@@ -210,8 +189,10 @@ test("정합성: 오답 수가 결과·오답노트·재풀이에서 어긋나�
   // 4) 퀵을 한 회차 더 풀어도 위 세 숫자는 그대로여야 한다 — 퀵 오답은 임시 목록으로만
   //    간다. 여기서 세트 그룹 합이 늘면 "기록을 남기지 않는다"는 약속이 깨진 것이다.
   await openBar(page);
-  await page.locator("#quickSize").selectOption("10");
-  await page.getByTestId("quick-start-btn").click();
+  await page.locator('.segmented button[data-mode="quick"]').click();
+  // 퀵 추첨이 실릴 때까지 기다린다 — 세그먼트를 누르면 헤더는 곧바로 퀵이 되지만 문항은
+  // 뒤늦게 온다. 그 사이에 답하면 직전 세트의 문항을 퀵 회차로 착각한 채 세게 된다.
+  await waitForList(page, { mode: "quick" });
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   await answerAll(page, 12);
   await grade(page);
@@ -245,20 +226,23 @@ test("정합성: 진행률과 문항 팔레트의 '답함' 개수가 같다", as
   await openProduct(page, "CSTS");
 
   await openBar(page);
-  await page.locator("#quickSize").selectOption("15");
-  await page.getByTestId("quick-start-btn").click();
+  await page.locator('.segmented button[data-mode="quick"]').click();
+  await waitForList(page, { mode: "quick" });
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 
   // 5문항만 답한다. 단계마다 진행률을 확인하고 넘어간다 — 렌더가 자리를 잡기 전에
   // '다음'을 누르면 이전 문항을 다시 답하게 되고, 그 어긋남이 아래 팔레트 대조를
   // 조용히 틀리게 만든다(경합이라 재현이 들쭉날쭉해 원인을 찾기 어렵다).
+  // 퀵에는 진행률(#progressText)이 없다 — 끝을 정해 놓지 않아 분모가 없다. 헤더 점수판의
+  // '진행'이 그 자리를 맡으므로 대조의 한쪽을 여기서 읽는다.
+  const solved = page.locator(".quick-scoreboard .qs-item").first().locator("b");
   for (let i = 0; i < 5; i += 1) {
     await answerCurrent(page);
-    await expect(page.locator("#progressText")).toContainText(`${i + 1} / 15`);
+    await expect(solved).toHaveText(String(i + 1));
     const n = page.locator("#nextBtn");
     if (await n.count() && !(await n.isDisabled())) await n.click();
   }
-  const answered = num(await page.locator("#progressText").textContent(), /^(\d+)/);
+  const answered = Number(await solved.textContent());
 
   // 데스크톱에서는 팔레트가 이미 펼쳐져 있고 palette-toggle은 '접기'다 —
   // 무턱대고 누르면 팔레트가 사라져 검사가 0건으로 무력해진다. 없을 때만 연다.
@@ -277,10 +261,15 @@ test("정합성: 진행률과 문항 팔레트의 '답함' 개수가 같다", as
   });
   const paletteAnswered = palette.answered;
   if (palette.total === 0) bad("팔레트 버튼을 찾지 못했다 — 셀렉터가 어긋나 검사가 무력하다");
-  if (palette.total !== 15) bad(`팔레트 버튼 수(${palette.total})가 출제 문항 수(15)와 다르다`);
-  console.log(`· 진행률 답함 ${answered} | 팔레트 답함 ${paletteAnswered}`);
+  // 회차 크기는 데이터가 정한다(문항 수를 고르지 않는다) — 저장된 추첨과 대조한다.
+  const drawn = await page.evaluate(() => {
+    const raw = localStorage.getItem("csts-fl-v1-sample-ui-state");
+    return raw ? JSON.parse(raw).quickDraw?.items?.length ?? 0 : 0;
+  });
+  if (palette.total !== drawn) bad(`팔레트 버튼 수(${palette.total})가 출제 문항 수(${drawn})와 다르다`);
+  console.log(`· 점수판 진행 ${answered} | 팔레트 답함 ${paletteAnswered} | 출제 ${drawn}`);
   if (answered !== paletteAnswered) {
-    bad(`진행률(${answered})과 팔레트 답함(${paletteAnswered})이 다르다`);
+    bad(`점수판 진행(${answered})과 팔레트 답함(${paletteAnswered})이 다르다`);
   }
   expect(problems, problems.join("\n")).toEqual([]);
 });

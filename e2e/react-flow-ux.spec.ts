@@ -1,8 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { completeAttempt, enterExam, modeBtn, openSet, submitGrade, closeResult } from "./helpers";
 
-// 흐름·기획 개선(S1~S6) — 응시 포기, 채점 완료 회차 새로고침 가드, 챕터 미니 시험,
-// 랜덤 초기화 안내·새 문제 뽑기, 오답 극복 배지.
+// 흐름·기획 개선(S1~S6) — 응시 포기, 채점 완료 회차 새로고침 가드, 챕터 미니 시험
+// (추첨·새로고침 이어풀기·'연습으로 전체 보기'로 이탈), 오답 극복 배지, 시험 제한시간.
+//
+// '새 문제 뽑기'와 랜덤 초기화 안내는 여기 있었으나 제품에서 사라졌다(랜덤 탭이 퀵에
+// 흡수되면서 재추첨 버튼도 함께 빠졌다) — 해당 검사도 함께 걷어냈다.
 
 test.describe("응시 포기(S2)", () => {
   test("응시 중 '응시 포기' → 확인 → 답안 삭제·게이트 복귀, 회차 기록 없음", async ({ page }) => {
@@ -119,37 +122,44 @@ test.describe("챕터 미니 시험(S3)", () => {
     await expect(page.getByTestId("chapter-filter-banner").locator("strong")).toHaveText(chapterBefore);
     await expect(page.locator("#progressText")).toHaveText(`1 / ${totalBefore}`);
   });
-});
 
-test.describe("랜덤 UX(S1·S5)", () => {
-  test("'새 문제 뽑기'로 답안 초기화 + 재추첨(S5)", async ({ page }) => {
+  /**
+   * 배너의 '연습으로 전체 보기'는 **미니 시험을 끝내고 연습으로 나가는** 버튼이다.
+   *
+   * 종전에는 여기서도 챕터 필터만 풀었다. 모드가 'random'으로 남아 같은 버튼이 세트 전체
+   * 40문항 무작위 회차를 새로 시작했고 — 모드 세그먼트에서 '랜덤'을 없앤 결정을 이 버튼
+   * 하나가 우회하고 있었다 — 세그먼트는 어느 모드도 가리키지 않는 상태가 됐다.
+   *
+   * 그래서 '문항이 40개가 됐다'로는 회귀를 못 잡는다. 세트 전체 랜덤도 40문항이기 때문이다.
+   * 구분되는 것은 **모드와 순서**다: 연습이면 세그먼트의 '연습'이 눌린 상태가 되고 1번
+   * 문항부터 순서대로 나온다. 랜덤이면 눌린 버튼이 없고 첫 문항도 1번이 아니다.
+   */
+  test("미니 시험 배너의 '연습으로 전체 보기' → 연습 모드로 나간다(랜덤 회차를 새로 뽑지 않는다)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await page.locator('.segmented button[data-mode="random"]').click();
-    await page.waitForSelector("#options .option");
-    await page.locator("#options .option").first().click();
-    await expect(page.locator("#progressText")).toHaveText("1 / 40");
+    await completeAttempt(page); // 챕터 통계 생성 — 미니 시험의 유일한 진입로
+    await page.getByTestId("stats-open").click();
+    await page.getByTestId("chapter-minitest-btn").first().click();
+    await expect(page.getByTestId("chapter-filter-banner")).toBeVisible();
+    // 미니 시험에서는 버튼 이름이 결과를 예고한다(연습에서는 그냥 '전체 보기' — react-weakness).
+    const clear = page.getByTestId("chapter-filter-clear");
+    await expect(clear).toHaveText("연습으로 전체 보기");
+    await page.locator("#options .option").first().click(); // 1문항 응답 후 나간다
 
-    await page.getByTestId("random-redraw").click();
-    // 진행이 있으면 세트 변경과 같은 규칙으로 확인을 거친다(B4).
-    await page.getByTestId("pending-redraw-confirm").click();
+    await clear.click();
+
+    // 모드가 실제로 연습이다 — 지문이 보인다는 것으로는 증명되지 않는다(helpers의 단언 규약).
+    await expect(page.locator('.segmented button[data-mode="practice"]')).toHaveAttribute("aria-pressed", "true");
+    // 챕터 제한이 풀리고 세트 전체가, 무작위가 아니라 순서대로 나온다.
+    // (#progressText는 '답한 수 / 총계'다 — 0은 미니 시험의 답이 연습으로 새지 않았다는 뜻이기도 하다.)
+    await expect(page.getByTestId("chapter-filter-banner")).toHaveCount(0);
     await expect(page.locator("#progressText")).toHaveText("0 / 40");
-  });
+    await expect(page.locator("#questionTitle")).toHaveText("문제 1");
 
-  test("랜덤 진행 중 새로고침 → 같은 추첨으로 진행이 유지된다(S1)", async ({ page }) => {
-    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await page.locator('.segmented button[data-mode="random"]').click();
-    await page.waitForSelector("#options .option");
-    const before = (await page.locator("#questionTitle").textContent()) || "";
-    await page.locator("#options .option").first().click();
-    await expect(page.locator("#progressText")).toHaveText("1 / 40");
-    await page.waitForTimeout(900); // debounce 저장 대기(추첨·답안)
-
-    await page.reload();
-    await page.getByRole("button", { name: "ISTQB" }).click();
-    await page.waitForSelector("#options .option");
-    // 우발적 새로고침이라도 재추첨하지 않고 같은 문항·답안·위치로 이어푼다.
-    await expect(page.locator("#progressText")).toHaveText("1 / 40");
-    await expect(page.locator("#questionTitle")).toHaveText(before);
+    // 저장 상태도 함께 넘어가야 한다 — 새로고침하면 미니 시험으로 되돌아가는 것을 막는다.
+    await page.waitForTimeout(900); // debounce 저장 대기
+    const ui = await page.evaluate(() => JSON.parse(localStorage.getItem("istqb-fl-v4-sample-ui-state") || "{}"));
+    expect(ui.mode).toBe("practice");
+    expect(ui.chapterFilter ?? null).toBeNull();
   });
 });
 

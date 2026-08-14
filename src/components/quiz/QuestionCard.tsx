@@ -3,7 +3,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../../store/useQuizStore';
 import { answerKeyFor, gradeKeyFor } from '../../utils/answerKey';
 import { Question } from '../../hooks/useQuestions';
-import { isQuestionCorrect } from '../../utils/answer';
+import { isAnswered, isQuestionCorrect } from '../../utils/answer';
+import { isQuickCommitted } from '../../utils/quickStats';
 import { formatAnswerList } from '../../utils/answerDisplay';
 import { RichText } from '../../utils/parser';
 import { openImageLightbox } from '../../utils/lightbox';
@@ -81,10 +82,17 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
 
   const isMulti = hasOptions && question.answer.length > 1;
   const isGraded = Boolean(graded[gradeKeyFor(setId, mode)]);
-  // 연습·오답 모드는 즉시 피드백, 시험·랜덤은 채점 후 공개.
-  const immediate = mode === 'practice' || mode === 'review';
-  const reveal = showFeedback || isGraded;
-  const locked = isGraded; // 채점 후 잠금(연습/오답은 잠그지 않음)
+  const isQuick = mode === 'quick';
+  // 연습·오답·퀵은 즉시 피드백, 시험만 채점 후 공개.
+  const immediate = mode === 'practice' || mode === 'review' || isQuick;
+  // 퀵의 공개·잠금은 로컬 상태가 아니라 저장된 답안에서 판정한다. showFeedback은 새로고침에
+  // 사라지는데, 퀵은 진행·연속 정답을 답안에서 파생하므로(quickStats) 화면만 되돌아가면
+  // "센 것은 그대로인데 다시 고를 수 있는" 상태가 된다 — 그 순간 수치가 흔들린다.
+  const quickCommitted = isQuick && isQuickCommitted(question, selected);
+  const reveal = showFeedback || isGraded || quickCommitted;
+  // 채점 후 잠금(시험) · 답을 확정한 뒤 잠금(퀵).
+  // 연습·오답은 집계 대상이 아니라 종전대로 몇 번이든 다시 고를 수 있다.
+  const locked = isGraded || quickCommitted;
 
   const handleSelect = useCallback((key: string) => {
     // 현재 선택·채점 상태는 이벤트 시점에 스토어에서 직접 읽는다 — selected를 의존성에
@@ -108,16 +116,35 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
     state.setAnswer(answerKey, newSelected);
   }, [isMulti, immediate, question.answer.length, answerKey]);
 
+  // 퀵의 서답형은 타이핑 중에 저장하지 않는다. 퀵에서는 "저장됨 = 확정됨"이라(위 quickCommitted)
+  // 한 글자만 쳐도 정답·해설이 펼쳐지고 입력칸이 잠겨 버린다. '정답 확인'을 누를 때 한 번에 넘긴다.
+  // 다른 모드는 종전대로 즉시 저장한다 — 새로고침에도 입력이 남아야 한다.
+  const [draft, setDraft] = useState<string[]>([]);
+  const shortValue = (i: number) => (isQuick && !quickCommitted ? (draft[i] || '') : (selected[i] || ''));
+  const shortCheckReady = !isQuick || isAnswered(draft, parts);
+
   const handleShortInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setAnswer(answerKey, e.target.value ? [e.target.value] : []);
+    const value = e.target.value;
+    if (isQuick) { setDraft(value ? [value] : []); return; }
+    setAnswer(answerKey, value ? [value] : []);
   };
 
   // 다답형: 파트 i의 입력만 바꾸고 나머지 칸 값은 보존한다(밀집 배열로 저장 — 구멍/undefined 방지).
   // 모든 칸이 비면 빈 배열로 저장해 '답함' 집계에서 빠지게 한다.
   const handlePartInput = (i: number, value: string) => {
     const len = parts?.length ?? 0;
-    const next = Array.from({ length: len }, (_, k) => (k === i ? value : (selected[k] || '')));
-    setAnswer(answerKey, next.every((v) => v === '') ? [] : next);
+    const base = isQuick ? draft : selected;
+    const next = Array.from({ length: len }, (_, k) => (k === i ? value : (base[k] || '')));
+    const cleaned = next.every((v) => v === '') ? [] : next;
+    if (isQuick) { setDraft(cleaned); return; }
+    setAnswer(answerKey, cleaned);
+  };
+
+  // '정답 확인' — 퀵에서는 이 순간이 곧 답 확정이므로 초안을 저장소에 넘긴 뒤 공개한다.
+  const handleCheck = () => {
+    if (isQuick && !isAnswered(draft, parts)) return;
+    if (isQuick) setAnswer(answerKey, draft);
+    setShowFeedback(true);
   };
 
   const correct = isQuestionCorrect(question.answer, selected, question.type, parts);
@@ -186,7 +213,7 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
                 <input
                   type="text"
                   className="short-answer-input"
-                  value={selected[i] || ''}
+                  value={shortValue(i)}
                   disabled={locked}
                   placeholder="정답 입력"
                   aria-label={`${p.label} 정답 입력`}
@@ -194,11 +221,11 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
                 />
               </label>
             ))}
-            {immediate && !reveal && (
+            {immediate && !reveal && shortCheckReady && (
               <button
                 type="button"
                 className="short-answer-check"
-                onClick={() => setShowFeedback(true)}
+                onClick={handleCheck}
               >
                 정답 확인
               </button>
@@ -211,17 +238,17 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
             <input
               type="text"
               className="short-answer-input"
-              value={selected[0] || ''}
+              value={shortValue(0)}
               disabled={locked}
               placeholder="정답을 입력하세요"
               aria-label="단답형 정답 입력"
               onChange={handleShortInput}
             />
-            {immediate && !reveal && (
+            {immediate && !reveal && shortCheckReady && (
               <button
                 type="button"
                 className="short-answer-check"
-                onClick={() => setShowFeedback(true)}
+                onClick={handleCheck}
               >
                 정답 확인
               </button>

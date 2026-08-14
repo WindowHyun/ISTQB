@@ -16,7 +16,7 @@
 | --- | --- | --- |
 | 문제 데이터, 정답, 선택지, 해설, 이미지 경로 | `data-harness.md` | `npm run verify` + `python3 scripts/verify-pdf-data.py` |
 | UI, CSS, 렌더링, 이미지, 표, 선택지, 반응형 레이아웃 | `ui-render-harness.md` | `npm run lint typecheck` + `npm run test:e2e`, 모바일 영향 시 `npm run test:apk` |
-| 앱 동작, 풀이 모드(연습·시험·랜덤·오답·**퀵**), 채점, 챕터 통계, 상태 저장, 가져오기/내보내기 | `app-logic-harness.md` | `npm test` + `npm run test:e2e`, 채점·통계·저장 키를 고쳤으면 `npm run test:mutation` |
+| 앱 동작, 풀이 모드(연습·시험·**퀵**·오답 + 통계에서만 들어가는 챕터 미니 시험), 채점, 챕터 통계, 상태 저장, 가져오기/내보내기 | `app-logic-harness.md` | `npm test` + `npm run test:e2e`, 채점·통계·저장 키를 고쳤으면 `npm run test:mutation` |
 | Android, Capacitor, 패키징되는 에셋, APK | `android-build-harness.md` | `npm run build` → `npm run cap:sync` + `npm run test:apk` |
 | 릴리스 또는 여러 영역에 걸친 전달 | `release-harness.md` | 관련 영역 점검 전체 |
 
@@ -53,8 +53,8 @@ npm run test:mutation:storage  # Stryker 영속화·상태 계층(break 65, ~12�
 
 | 설정 | 대상 | 실측 | break | 성격 |
 | --- | --- | --- | --- | --- |
-| `stryker.config.json` | 채점·통계 순수 로직 6파일 | 92.01% | 85 | 지켜야 할 높은 기준 |
-| `stryker.storage.config.json` | `storage.ts`·`useQuizStore.ts` | 69.86% | 65 | **래칫**(50 → 58 → 65) |
+| `stryker.config.json` | 채점·통계 순수 로직 7파일 | 92.30% | 85 | 지켜야 할 높은 기준 |
+| `stryker.storage.config.json` | `storage.ts`·`useQuizStore.ts` | 71.37% | 67 | **래칫**(50 → 58 → 65 → 67) |
 
 두 번째는 목표가 아니라 바닥이다. `storage.ts`는 커버리지 81%인데 뮤테이션이 50.91%였다 —
 "실행은 되지만 결과를 확인하지 않는" 검사가 많다는 뜻이고, 실제로 그 틈에서 결함이 나왔다
@@ -67,12 +67,17 @@ npm run test:mutation:storage  # Stryker 영속화·상태 계층(break 65, ~12�
 | --- | ---: | ---: | ---: | ---: |
 | 최초 | 53.82% | 222 | 394 | 50 |
 | 복원 분기 검사 20건 | 62.07% | 116 | 390 | 58 |
-| 오류·엣지 경로 53건 | **69.86%** | **60** | 343 | **65** |
+| 오류·엣지 경로 53건 | 69.86% | 60 | 343 | 65 |
+| 정제기 경계 14건 | **71.37%** | 65 | **331** | **67** |
 
-세 라운드 모두 같은 패턴이었다 — **no-coverage(유닛이 아예 안 지나가는 코드)를 줄인 것이
+앞의 세 라운드는 같은 패턴이었다 — **no-coverage(유닛이 아예 안 지나가는 코드)를 줄인 것이
 점수 상승의 주된 원인**이고 survived는 천천히 줄었다(394 → 390 → 343). 즉 '검사를 더
 강하게' 만드는 것보다 **'처음 닿게 하는'** 쪽이 훨씬 값이 싸다. 새 계층을 재기 시작할 때는
 여기부터 본다.
+
+네 번째 라운드는 처음으로 그 반대였다 — 닿는 것은 대체로 끝나 survived를 줄여 올렸다
+(343 → 331). 값이 비싸지는 구간에 들어섰다는 신호이므로, 다음은 점수를 밀어 올리기보다
+**아직 아무도 안 재는 계층**(hooks — 브랜치 커버리지 11.7%)을 재기 시작하는 편이 낫다.
 
 `useQuizStore.ts`는 이 과정에서 67.01 → **87.29%**가 되고 no-coverage가 0이 됐다. 남은
 60건은 전부 `storage.ts`이며, 이제부터는 survived 343건이 주된 과제다.

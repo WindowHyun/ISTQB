@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useQuizStore, QUICK_SIZES } from '../../store/useQuizStore';
+import { useQuizStore, QUICK_ALL } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { reviewTargetIds } from '../../hooks/useQuestions';
 import { answerKeyPrefix, gradeKeyFor } from '../../utils/answerKey';
@@ -12,10 +12,12 @@ import { FEEDBACK_SHEET_URL } from '../../utils/links';
 import { isGradedMode, MODE_CAPTION } from '../../utils/modeLabel';
 
 
-const MODE_LABELS: { mode: 'practice' | 'exam' | 'random' | 'review'; label: string }[] = [
+// 랜덤은 퀵에 흡수돼 빠졌다 — 세트 안 무작위 출제와 전 세트 무작위 출제를 둘 다 두면
+// 사용자에게는 "무엇이 다른가"를 설명할 수 없는 두 버튼이 나란히 있는 것이었다.
+const MODE_LABELS: { mode: 'practice' | 'exam' | 'quick' |'review'; label: string }[] = [
   { mode: 'practice', label: '연습' },
   { mode: 'exam', label: '시험' },
-  { mode: 'random', label: '랜덤' },
+  { mode: 'quick', label: '퀵' },
   { mode: 'review', label: '오답' },
 ];
 
@@ -26,9 +28,7 @@ export const Sidebar = () => {
     mode, setId, activeProduct, drawerOpen,
     setMode, setSetId, beginSession, clearAnswers,
     setStatsOpen, setSettingsOpen, setWrongNoteOpen, setResultOpen, setDrawerOpen,
-    setQuitExamOpen, redrawRandom, setRandomDraw,
-    setPendingSetChange, commitSetChange, setPendingRedraw,
-    quickSize, startQuick,
+    setQuitExamOpen, commitSetChange, setPendingSetChange, startQuick,
   } = useQuizStore(useShallow((s) => ({
     mode: s.mode, setId: s.setId, activeProduct: s.activeProduct, drawerOpen: s.drawerOpen,
     setMode: s.setMode, setSetId: s.setSetId, beginSession: s.beginSession,
@@ -37,17 +37,11 @@ export const Sidebar = () => {
     setWrongNoteOpen: s.setWrongNoteOpen, setResultOpen: s.setResultOpen,
     setDrawerOpen: s.setDrawerOpen,
     setQuitExamOpen: s.setQuitExamOpen,
-    redrawRandom: s.redrawRandom, setRandomDraw: s.setRandomDraw,
-    setPendingSetChange: s.setPendingSetChange, commitSetChange: s.commitSetChange,
-    setPendingRedraw: s.setPendingRedraw,
-    quickSize: s.quickSize, startQuick: s.startQuick,
+    commitSetChange: s.commitSetChange,
+    setPendingSetChange: s.setPendingSetChange,
+    startQuick: s.startQuick,
   })));
   const asideRef = React.useRef<HTMLElement>(null);
-  // 문항 수는 '시작'을 누를 때까지 로컬 상태로 둔다 — 고르는 즉시 스토어에 쓰면
-  // 진행 중인 세션과 무관한 값 변경이 영속화 구독을 계속 깨운다.
-  const [quickSizeLocal, setQuickSizeLocal] = React.useState<number>(quickSize);
-  // 스토어 값이 밖에서 바뀌면(퀵 시작으로 확정, 새로고침 복원) 화면도 따라간다.
-  React.useEffect(() => { setQuickSizeLocal(quickSize); }, [quickSize]);
   const certLabel = activeProduct === 'csts' ? 'CSTS' : 'ISTQB';
 
   // 모바일 드로어 포커스 관리(B1) — 열리면 첫 컨트롤로 포커스 이동 + Tab 순환 트랩,
@@ -77,7 +71,7 @@ export const Sidebar = () => {
     };
   }, [drawerOpen]);
   const {
-    appData, total, answered, correctCount, isGraded, canGrade, progressPercent,
+    appData, currentQuestions, total, answered, correctCount, isGraded, canGrade, progressPercent,
     examLocked, // 응시 중 잠금 — useQuizSession이 단일 원천(게이트와 동일 규칙 집합)
     requestGrade, reviewedCount, completeReview,
   } = useQuizSession();
@@ -103,25 +97,30 @@ export const Sidebar = () => {
   // 모바일 드로어 안에서 컨트롤을 조작하면 드로어를 닫아 문제로 복귀한다.
   const closeDrawer = () => setDrawerOpen(false);
 
-  const handleSetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    // 세트를 바꿔도 현재 모드는 유지한다(연습으로 초기화하지 않음, #2).
-    const newSetId = e.target.value;
-    // 랜덤은 세트별로 추첨을 보관하지 않아(F4) 세트를 바꾸면 지금 푸는 문항이 통째로
-    // 사라진다. 진행이 있는데 아직 채점 전이면 소리 없이 버리지 않고 한 번 묻는다.
-    // (select는 value={setId} 제어 컴포넌트라 여기서 반환하면 표시가 원래 세트로 되돌아간다)
-    if (mode === 'random' && hasRandomProgress()) {
-      setPendingSetChange(newSetId);
-      return;
-    }
-    commitSetChange(newSetId);
-  };
-
   // 랜덤 진행 중 판정 — 현재 세트에 답한 문항이 있고 아직 채점하지 않은 상태.
   // 채점 후에는 결과를 이미 봤으므로 세트 변경을 막을 이유가 없다.
   const hasRandomProgress = () => {
     const s = useQuizStore.getState();
     if (s.graded[gradeKeyFor(setId, 'random')]) return false;
     return Object.keys(s.answers).some((k) => k.startsWith(answerKeyPrefix(setId, 'random')));
+  };
+
+  const handleSetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    // 세트를 바꿔도 현재 모드는 유지한다(연습으로 초기화하지 않음, #2).
+    const newSetId = e.target.value;
+    // 랜덤은 세트별로 추첨을 보관하지 않아(F4) 세트를 바꾸면 지금 푸는 문항이 통째로
+    // 사라진다. 진행이 있는데 아직 채점 전이면 소리 없이 버리지 않고 한 번 묻는다.
+    // (select는 value={setId} 제어 컴포넌트라 여기서 반환하면 표시가 원래 세트로 되돌아간다)
+    //
+    // 이 가드는 147a9f0에서 사이드바를 줄이며 함께 빠졌었다. 확인 모달(pendingSetChange)은
+    // 남아 있었지만 띄우는 쪽이 없어져, 랜덤 진행 중 세트를 바꾸면 경고 없이 진행이
+    // 사라지는 상태였다. 랜덤 진입로가 통계의 챕터 미니 시험으로 옮겨졌을 뿐 이 손실
+    // 경로는 그대로 살아 있다(미니 시험/전체 보기 중에도 세트 셀렉트는 열려 있다).
+    if (mode === 'random' && hasRandomProgress()) {
+      setPendingSetChange(newSetId);
+      return;
+    }
+    commitSetChange(newSetId);
   };
 
   const handleModeChange = (newMode: typeof mode) => {
@@ -133,24 +132,18 @@ export const Sidebar = () => {
 
     if (newMode === mode) {
       // 같은 모드 재클릭: 응시 중(잠금)에는 무시해 setIndex/타이머 초기화로 잠금이
-      // 무력화되지 않게 한다. 단, "채점 완료" 상태의 시험/랜덤 재클릭은 원클릭
-      // 재응시(초기화)로 동작한다 — 모드 왕복 없이 다시 풀 수 있는 진입로(A5).
+      // 무력화되지 않게 한다. 단, "채점 완료" 상태의 시험 재클릭은 원클릭 재응시(초기화)로
+      // 동작한다 — 모드 왕복 없이 다시 풀 수 있는 진입로(A5).
       const gradedNow = useQuizStore.getState().graded[gradeKeyFor(setId, mode)];
-      if ((mode === 'exam' || mode === 'random') && gradedNow) {
-        // exam이면 examStarted도 해제돼 시작 게이트가 다시 뜬다.
-        // 랜덤은 같은 추첨을 다시 푼다 — 새 추첨은 '새 문제 뽑기' 버튼(명시 액션)으로.
+      if (mode === 'exam' && gradedNow) {
+        // examStarted도 해제돼 시작 게이트가 다시 뜬다.
         clearAnswers(setId, mode);
         beginSession();
       }
       closeDrawer();
       return;
     }
-    // 랜덤 모드 진입은 새 추첨으로 시작한다(이어풀기 없음, F4) — 저장된 추첨을 비워
-    // useQuestions가 새로 뽑게 한다. (새로고침 복원은 이 경로를 타지 않아 진행이 유지된다.)
-    if (newMode === 'random') {
-      clearAnswers(setId, 'random');
-      setRandomDraw(null);
-    } else if (newMode === 'exam' && useQuizStore.getState().graded[gradeKeyFor(setId, 'exam')]) {
+    if (newMode === 'exam' && useQuizStore.getState().graded[gradeKeyFor(setId, 'exam')]) {
       // 이미 채점한 시험으로 다시 들어오면 새로 풀 수 있게 초기화한다(#1).
       clearAnswers(setId, 'exam');
     }
@@ -163,10 +156,11 @@ export const Sidebar = () => {
     // 이 버튼은 모드 세그먼트 밖이라 disabled 하나에만 기대면 잠금을 우회할 수 있다
     // (핸들러 가드 이중 방어 — 오답 풀기 버튼과 같은 이유).
     if (examLocked) {
-      showToast('시험 응시 중에는 퀵 랜덤을 시작할 수 없습니다. 먼저 채점하세요.', 'info');
+      showToast('시험 응시 중에는 퀵을 시작할 수 없습니다. 먼저 채점하세요.', 'info');
       return;
     }
-    startQuick(quickSizeLocal);
+    // 문항 수를 묻지 않으므로 전 세트를 섞어 끝까지 낸다(QUICK_ALL 주석 참고).
+    startQuick(QUICK_ALL);
     beginSession();
     closeDrawer();
   };
@@ -186,7 +180,7 @@ export const Sidebar = () => {
     if (!hasWrong) {
       // 퀵을 빼고 안내한다 — 퀵 오답은 세트 버킷에 담기지 않는 사양이라, 넣어 두면
       // "퀵으로 채점했는데 왜 없냐"는 잘못된 기대를 이 문구가 직접 만들어 낸다.
-      showToast('현재 문제 세트에는 오답이 없습니다. 시험·랜덤 모드에서 채점하면 기록됩니다.', 'info');
+      showToast('현재 문제 세트에는 오답이 없습니다. 시험 모드에서 채점하면 기록됩니다.', 'info');
       return;
     }
     // 오답 다시 풀기: 이전 재풀이 답안을 비우고 오답(review) 모드로 전환해 틀린 문항만 새로 푼다.
@@ -207,8 +201,8 @@ export const Sidebar = () => {
     return `${sets.length}세트 ${totalQuestions}문항`;
   })();
   const showGradeSection = isGradedMode(mode);
-  // 퀵을 푸는 중(채점 전) — 시작 버튼을 감출지 판단한다.
-  const quickUnderway = mode === 'quick' && !isGraded;
+  // 이번 퀵 회차에 서답형이 실제로 섞였는가 — 안내 문구가 이 값으로 갈린다(그 자리 주석 참고).
+  const hasShortAnswer = currentQuestions.some((q) => q.type === 'short_answer');
 
   // 오답 모드 '복습 완료' — 맞힌 문항을 재풀이 대상에서 빼 목록이 실제로 줄어들게 한다.
   // 종전에는 오답을 전부 맞혀도 다음에 같은 목록이 그대로 나와 루프가 닫히지 않았다.
@@ -238,7 +232,12 @@ export const Sidebar = () => {
           <p id="productSubtitle">
             {certLabel}{productScope ? ` · ${productScope}` : ''}
           </p>
-          <h1 id="productTitle">{currentSet?.title || '문제 풀이'}</h1>
+          {/* 퀵에서는 세트명을 쓰지 않는다 — 세트 셀렉트를 감춘 것과 같은 이유이고,
+              여기가 실제로 세트명이 새어 나오던 자리다. 퀵 모드로 들어와도 setId는 직전에
+              고른 세트 그대로여서(모드 세그먼트는 mode만 바꾼다) 전 세트를 섞어 푸는 중에
+              "(공개답안) CSTS 2402FL"이 제목으로 떠 있었다 — 지금 푸는 문항의 출처도
+              아니어서 순전히 잘못된 정보다. */}
+          <h1 id="productTitle">{mode === 'quick' ? '퀵 랜덤' : (currentSet?.title || '문제 풀이')}</h1>
         </div>
         {/* 모바일 드로어 전용 닫기 버튼(CSS로 데스크톱 숨김) — 터치 스크린리더 사용자는
             백드롭(aria-hidden)·Esc 외의 명시적 탈출 UI가 필요하다. */}
@@ -295,26 +294,6 @@ export const Sidebar = () => {
                 결과 요약
               </button>
             )}
-            {mode === 'random' && (
-              // 새 추첨은 명시 액션으로 노출 — "같은 추첨 재사용" 규칙(재클릭·다시 풀기)이
-              // UI에 드러나지 않아 새 조합을 받을 방법을 학습할 수 없던 문제 해소.
-              <button
-                type="button"
-                className="subtle"
-                data-testid="random-redraw"
-                onClick={() => {
-                  // 세트 변경과 같은 손실(현재 추첨·답안 폐기)이므로 같은 규칙으로 묻는다.
-                  // 진행이 없으면 잃을 게 없어 바로 진행한다.
-                  if (hasRandomProgress()) { setPendingRedraw(true); return; }
-                  clearAnswers(setId, 'random');
-                  redrawRandom();
-                  beginSession();
-                  closeDrawer();
-                }}
-              >
-                🔀 새 문제 뽑기
-              </button>
-            )}
           </div>
           <p className="action-hint" aria-live="polite">
             {isGraded ? <span data-testid="score">점수 {correctCount} / {total}</span> : '답안 선택 후 채점하세요.'}
@@ -323,23 +302,25 @@ export const Sidebar = () => {
       )}
 
       <div className="sidebar-controls" data-exam-locked={examLocked ? 'true' : undefined}>
+        {/* 퀵에서는 세트 선택을 통째로 내린다.
+            퀵은 세트 개념이 없는 모드다(제품의 전 세트를 섞어 낸다). 종전에는 셀렉트를
+            남겨 두고 disabled로만 막았는데, 그러면 "지금 이 세트를 풀고 있다"는 잘못된
+            읽기를 화면이 계속 제공한다 — 퀵으로 들어오기 직전에 고른 세트 이름이 그대로
+            떠 있기 때문이다. 고를 수도 없고 뜻하는 바도 없는 컨트롤이라 자리를 비운다.
+            (열어 두면 안 되는 이유는 그대로다: 바꿔도 출제 목록은 퀵 추첨 그대로여서
+            화면상 아무 일도 안 일어나는 것처럼 보이지만, 실제로는 진행이 통째로 사라진다.
+            답안 키가 `${setId}-${mode}-${qid}`라 퀵의 센티넬(QUICK-quick-*)로 저장한 답을
+            그 세트 기준으로 찾게 돼 도달할 수 없게 된다.) */}
+        {mode !== 'quick' && (
         <section className="panel">
           {/* 라벨은 화면에서 감추고 보조기기에는 남긴다 — 셀렉트가 세트 제목을 그대로
               보여 주므로 위에 회색 대문자 라벨을 겹쳐 두면 같은 말을 두 번 하는 셈이다. */}
           <label className="sr-only" htmlFor="examSelect">문제 세트</label>
-          {/* 퀵도 잠근다. 퀵은 세트 개념이 없는 모드라(전 세트에서 뽑는다) 여기서 세트를
-              고르는 것 자체가 의미가 없는데, 종전에는 열려 있어 바꿀 수 있었다. 바꿔도
-              출제 목록은 퀵 추첨 그대로여서 화면상 아무 일도 안 일어나는 것처럼 보이지만,
-              실제로는 진행이 통째로 사라진다: 답안 키가 `${setId}-${mode}-${qid}`라
-              퀵의 센티넬(QUICK-quick-*)로 저장한 답을 그 세트 기준으로 찾게 돼 도달할 수
-              없게 된다(진행률 2/10 → 0/10, 새로고침해도 복구 안 됨).
-              같은 위험을 자동 선택 effect는 이미 알고 가드하고 있었는데(위 주석 참고)
-              사용자가 직접 바꾸는 이 경로만 비어 있었다. */}
           <select
             id="examSelect"
             value={setId}
             onChange={handleSetChange}
-            disabled={examLocked || quickUnderway}
+            disabled={examLocked}
             data-testid="set-select"
           >
             {sets.map((set) => (
@@ -348,14 +329,8 @@ export const Sidebar = () => {
               </option>
             ))}
           </select>
-          {/* 잠금 사유를 밝힌다 — 이유 없이 비활성만 되면 "왜 안 눌리지"가 된다.
-              시험 모드는 아래 exam-lock-hint가 따로 안내하므로 퀵일 때만 붙인다. */}
-          {quickUnderway && (
-            <p className="action-hint" data-testid="quick-set-lock-hint">
-              퀵은 전 세트에서 뽑아 풀어요 — 채점하면 세트를 다시 고를 수 있습니다.
-            </p>
-          )}
         </section>
+        )}
 
         <section className="panel">
           {/* 시각 라벨 없음 — 세그먼트 자체가 role=group + aria-label로 이름을 갖고 있고,
@@ -395,60 +370,52 @@ export const Sidebar = () => {
           )}
         </section>
 
-        {/* 퀵 랜덤 — 세트를 고르지 않고 제품 전체에서 짧게 푼다. 세그먼트(세트 안의 풀이 모드)와
-            성격이 달라 별도 섹션에 둔다: 세그먼트에 넣으면 위 세트 선택과 무관한데도
-            "선택한 세트를 퀵으로 푼다"로 읽힌다.
+        {/* 퀵 — 세트를 고르지 않고 제품 전 세트를 섞어 한 문항씩 푼다(끝을 정해 두지 않는다).
             위치: 세트 선택과 풀이 모드는 둘 다 "고른 세트를 어떻게 풀 것인가"라 붙어 있어야
-            읽히는데, 그 사이에 끼어 있으면 두 컨트롤을 갈라놓는다. 성격이 다른 별도 진입로이므로
-            세트 계열 컨트롤 뒤로 뺀다. */}
-        <section className="panel quick-panel">
+            읽히는데, 그 사이에 끼어 있으면 두 컨트롤을 갈라놓는다. 세트 계열 컨트롤 뒤로 뺀다.
+
+            문항 수 선택은 없앴다 — 끝이 정해져 있지 않은 모드에 '10문항'을 고르게 하는 것은
+            거짓말이다. 그래서 진입로도 이 패널이 아니라 모드 세그먼트의 '퀵'이다: 누르는
+            순간 전 세트에서 뽑아 첫 문항이 나온다.
+
+            즉 이 패널이 보인다는 것은 이미 회차가 돌고 있다는 뜻이라(퀵 안에서만 렌더된다)
+            버튼의 뜻은 '시작'이 아니라 '다시 섞기' 하나뿐이다. 종전에는 라벨·문구가
+            quickUnderway로 갈렸는데 그 값이 곧 `mode === 'quick'`이라 패널 안에서는 항상
+            참이었다 — 죽은 분기였다. */}
+        {mode === 'quick' && <section className="panel quick-panel">
           <div className="quick-row">
-            {/* 라벨을 줄 안으로 들여 문항 수·시작과 한 줄에 놓는다(위에 라벨 줄을 따로
-                두면 컨트롤 두 개짜리 진입로가 세 줄을 쓴다). htmlFor는 그대로 유지. */}
-            <label className="quick-label" htmlFor="quickSize">⚡ 퀵</label>
-            <select
-              id="quickSize"
-              // 표시 값은 로컬 상태를 따라야 한다. 스토어 값에 묶어 두면 onChange가
-              // 로컬만 바꾸므로 다시 그릴 때 원래 값으로 튕겨, 사용자에게는
-              // "골라도 안 바뀐다"로 보인다(실제로 그 상태였다).
-              value={quickSizeLocal}
-              onChange={(e) => setQuickSizeLocal(Number(e.target.value))}
+            <button
+              type="button"
+              className="quick-start-btn"
+              data-testid="quick-start-btn"
               disabled={examLocked}
-              aria-label="퀵 랜덤 문항 수"
+              onClick={handleStartQuick}
             >
-              {QUICK_SIZES.map((n) => (
-                <option key={n} value={n}>{n}문항</option>
-              ))}
-            </select>
-            {/* 퀵을 푸는 중에는 시작 버튼을 감춘다 — 남겨 두면 그 자리에서 누르는 순간
-                진행 중이던 답안이 경고 없이 버려지고 새 추첨으로 갈아탄다.
-                채점을 마치면 다시 나타나 다음 회차로 갈 수 있다.
-                예외: 진행 중에 문항 수를 바꾼 경우에는 다시 띄운다. 감춘 채로 두면 값을
-                골라도 아무 일이 없어 "골라도 안 바뀐다"가 된다 — 바꾼 의도는 새로 시작하려는
-                것이므로 그 길을 열어 주되, 라벨로 결과(새 추첨)를 밝힌다. */}
-            {(!quickUnderway || quickSizeLocal !== quickSize) && (
-              <button
-                type="button"
-                className="quick-start-btn"
-                data-testid="quick-start-btn"
-                disabled={examLocked}
-                onClick={handleStartQuick}
-              >
-                {quickUnderway ? '새로 시작' : '시작'}
-              </button>
-            )}
+              다시 섞어 시작
+            </button>
           </div>
+          {/* 네 가지를 반드시 말한다 — 출제 범위(전 세트) · 출제 유형(서답형이 섞인다) ·
+              제한시간 없음 · 회차 기록 없음. 앞의 둘이 빠지면 "왜 모르는 세트가 나오냐",
+              "서답형이 왜 나오냐"가 그대로 결함 신고로 돌아온다(react-uiux-quick이 고정).
+
+              서답형 문장은 이번 회차에 실제로 서답형이 있을 때만 붙인다. 자격증 이름으로
+              가르지 않고 뽑힌 문항을 세는 이유는, 그래야 데이터가 바뀌어도 문구가 따라오기
+              때문이다 — 현재 ISTQB에는 서답형이 한 문항도 없어(186문항 중 0) 안내만 하면
+              나오지도 않을 유형을 예고하게 된다. 퀵은 전 세트를 뽑으므로 이 표본이 곧
+              그 제품 전체다. */}
           <p className="action-hint">
-            {quickUnderway
-              ? (quickSizeLocal !== quickSize
-                  ? `퀵 진행 중 — '새로 시작'을 누르면 ${quickSizeLocal}문항으로 다시 뽑습니다(현재 답안은 사라집니다).`
-                  : '퀵 진행 중 — 채점하면 다시 시작할 수 있습니다.')
-              : `${certLabel} 전 세트에서 뽑습니다(서답형 포함, 최대 30%). 제한시간 없음 · 회차 기록을 남기지 않습니다.`}
+            퀵 진행 중 — {certLabel} 전 세트를 섞어 한 문항씩 냅니다
+            {hasShortAnswer ? '(서답형도 섞이되, 어디서 끊어 봐도 30%를 넘지 않아요)' : ''}.
+            제한시간은 없고, 풀면 바로 정답·해설이 보입니다. 채점하면 그때까지 푼 문항만
+            집계되고, 회차 기록은 남지 않습니다.
           </p>
-        </section>
+        </section>}
 
         {/* 진행·시간은 값 두 개뿐이라 박스 카드를 두르면 사이드바에 상자가 하나 더 늘어난다.
-            구분선 위 한 줄 + 얇은 막대로 같은 정보를 절반 높이에 담는다. */}
+            구분선 위 한 줄 + 얇은 막대로 같은 정보를 절반 높이에 담는다.
+            퀵에서는 통째로 감춘다 — 무한 모드라 진행률의 분모가 없고, 기록을 남기지 않으니
+            시간을 잴 이유도 없다. 그 자리의 값(진행·정답·오답·연속)은 문제 화면의 점수판이 맡는다. */}
+        {mode !== 'quick' && (
         <section className="stats">
           <div className="stats-line">
             {/* 라이브 영역을 진행률에만 둔다 — 타이머를 포함하면 스크린리더가 매초 시간을 낭독한다. */}
@@ -461,6 +428,7 @@ export const Sidebar = () => {
             <div id="progressFill" className="progress-fill" style={{ width: `${progressPercent}%` }} />
           </div>
         </section>
+        )}
 
         <section className="action-section">
           {/* 버튼 두 개가 이미 '오답'을 말하고 있어 머리글은 화면에서 감춘다(보조기기엔 남김). */}
@@ -481,9 +449,11 @@ export const Sidebar = () => {
             </button>
           </div>
           {mode === 'quick' && (
+            // 퀵에서 틀린 문항이 어디에도 남지 않는다는 것은 화면만 봐서는 알 수 없다.
+            // 밝혀 두지 않으면 "방금 틀렸는데 오답 노트에 왜 없냐"가 결함 신고로 돌아온다.
             <p className="action-hint" data-testid="quick-review-hint">
-              퀵 오답은 <strong>오답 노트</strong>에서 24시간 동안 볼 수 있어요.
-              다시 재려면 <strong>학습 통계</strong>의 챕터 미니 시험을 쓰세요.
+              퀵에서 틀린 문항은 <strong>기록되지 않습니다</strong> — 그 자리에서 해설로 확인하세요.
+              오답을 남기려면 <strong>시험</strong> 모드로 채점하면 됩니다.
             </p>
           )}
         </section>

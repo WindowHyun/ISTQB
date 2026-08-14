@@ -307,3 +307,73 @@ describe('퀵 회차 분리', () => {
     expect(rounds.map((r) => r.kind)).toEqual(['mini', 'quick']);
   });
 });
+
+/**
+ * 정렬 결정성과 결측 필드 — 통계 화면이 렌더마다 다른 순서를 보여주지 않게 한다.
+ *
+ * 같은 ms에 두 회차가 만들어지는 일은 실제로 있다(채점 직후 재응시, 백업 병합).
+ * 시각만으로 정렬하면 그때 순서가 입력 순서에 좌우되고, 회차 번호·'직전 회차'·극복
+ * 판정이 함께 흔들린다 — 속성 테스트가 실제로 잡아낸 반례가 이 형태였다.
+ */
+describe('동률·결측에서도 결정적이다', () => {
+  it('같은 시각의 회차는 id로 순서를 정한다(회차 번호가 흔들리지 않는다)', () => {
+    const forward = buildSetTimelines([
+      h({ id: 'b', setId: 'A', correct: 8, total: 10, createdAt: 100 }),
+      h({ id: 'a', setId: 'A', correct: 5, total: 10, createdAt: 100 }),
+    ], titleOf);
+    const reversed = buildSetTimelines([
+      h({ id: 'a', setId: 'A', correct: 5, total: 10, createdAt: 100 }),
+      h({ id: 'b', setId: 'A', correct: 8, total: 10, createdAt: 100 }),
+    ], titleOf);
+    expect(forward[0].attempts.map((x) => x.id)).toEqual(['a', 'b']);
+    expect(reversed[0].attempts.map((x) => x.id)).toEqual(['a', 'b']);
+    expect(forward[0].attempts[1].deltaFromPrev).toBe(30); // 50% → 80%
+  });
+
+  it('세트 목록도 최근 응시 시각이 같으면 setId로 정한다', () => {
+    const got = buildSetTimelines([
+      h({ id: 'r2', setId: 'B', correct: 5, total: 10, createdAt: 100 }),
+      h({ id: 'r1', setId: 'A', correct: 5, total: 10, createdAt: 100 }),
+    ], titleOf);
+    expect(got.map((t) => t.setId)).toEqual(['A', 'B']);
+  });
+
+  it('짧은 세션 목록도 같은 시각이면 id로 정한다', () => {
+    const got = buildMiniTestRounds([
+      h({ id: 'm2', setId: 'A', correct: 5, total: 10, createdAt: 100, mode: 'random', chapter: '테스트 기초' }),
+      h({ id: 'm1', setId: 'A', correct: 7, total: 10, createdAt: 100, mode: 'random', chapter: '정적 테스트' }),
+    ], titleOf);
+    expect(got.map((r) => r.id)).toEqual(['m1', 'm2']);
+  });
+
+  it('시각이 없는 회차도 타임라인에 실린다(createdAt 0으로 취급)', () => {
+    const legacy = { id: 'old', setId: 'A', mode: 'exam', answers: {}, correct: 4, total: 10 } as ExamHistory;
+    const got = buildSetTimelines([legacy, h({ id: 'new', setId: 'A', correct: 9, total: 10, createdAt: 10 })], titleOf);
+    expect(got[0].attempts.map((x) => x.id)).toEqual(['old', 'new']);
+    expect(got[0].attempts[0].createdAt).toBe(0);
+  });
+
+  it('극복 판정도 같은 시각이면 id로 최근 2회를 고른다', () => {
+    const wrong = (n: number) => ({ number: n, myAnswer: ['x'], correctAnswer: ['a'] });
+    const got = overcomeNumbers([
+      h({ id: 'e1', setId: 'A', correct: 9, total: 10, createdAt: 100, wrongItems: [wrong(7)] }),
+      h({ id: 'e2', setId: 'A', correct: 9, total: 10, createdAt: 100, wrongItems: [] }),
+      h({ id: 'e3', setId: 'A', correct: 9, total: 10, createdAt: 100, wrongItems: [] }),
+    ], 'A', [7]);
+    // 최신 2회(e3·e2)에 7번이 없으므로 극복이다 — 어느 순서로 넣어도 같아야 한다.
+    expect([...got]).toEqual([7]);
+  });
+
+  it('점수 필드가 없는 이력의 %는 0으로 본다(화면이 NaN을 띄우지 않게)', () => {
+    expect(attemptRatePercent({ id: 'x', setId: 'A', mode: 'exam', answers: {} } as ExamHistory)).toBe(0);
+  });
+
+  it('챕터 표식이 없는 회차는 일반 회차끼리만 비교한다', () => {
+    const got = latestAttemptComparison([
+      h({ id: 'r1', setId: 'A', correct: 5, total: 10, createdAt: 1 }),
+      h({ id: 'r2', setId: 'A', correct: 8, total: 10, createdAt: 2 }),
+      h({ id: 'm1', setId: 'A', correct: 10, total: 10, createdAt: 3, chapter: '테스트 기초' }),
+    ], 'A', 'exam');
+    expect(got).toEqual({ round: 2, previousRate: 50 });
+  });
+});

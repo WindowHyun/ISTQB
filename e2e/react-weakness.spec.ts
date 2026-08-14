@@ -60,8 +60,15 @@ test.describe("약점 분석(Phase 3)", () => {
     await enterExam(page);
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
-    // 2회차(랜덤, 같은 세트): 첫 문항만 정답 → 최신 회차 오답 39.
-    await modeBtn(page, "랜덤").click();
+    // 2회차(같은 세트 시험 재응시): 첫 문항만 정답 → 최신 회차 오답 39.
+    // 종전에는 랜덤으로 2회차를 만들었는데 그 진입로가 사라졌다(퀵에 흡수). 이 검사가 재는
+    // 것은 '세트 단위 회차가 둘일 때 오답이 합산되는가'이므로, 회차를 만드는 모드가
+    // 무엇인지는 본질이 아니다 — 활성 탭 재클릭 = 원클릭 재응시로 같은 세트 2회차를 만든다.
+    await modeBtn(page, "시험").click();
+    // 재응시는 examStarted도 함께 해제해 시작 게이트를 다시 띄운다(Sidebar의 handleModeChange).
+    // 게이트를 통과하지 않으면 워크스페이스가 가려져 지문이 뜨지 않는다.
+    const gate2 = page.getByTestId("exam-start-btn");
+    if (await gate2.count()) await gate2.click();
     await expect(page.locator("#questionStem")).toBeVisible();
     await answerCurrentCorrectly(page, "istqb/sample-a.json");
     await submitGrade(page);

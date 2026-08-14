@@ -42,10 +42,19 @@ export const MobileTopBar = () => {
         <span className="mtb-chip">
           {mode === 'random' && chapterFilter ? '미니 시험' : (MODE_LABEL[mode] || mode)}
         </span>
-        {/* 라이브 영역을 진행률에만 둔다 — 타이머를 포함하면 스크린리더가 매초 시간을 낭독한다. */}
-        <span className="mtb-meta" aria-live="polite">{answered} / {total}</span>
-        <span className="mtb-meta">⏱ <TimerClock /></span>
-        <span className="mtb-bar" aria-hidden="true"><i style={{ width: `${progressPercent}%` }} /></span>
+        {/* 퀵에서는 진행률·시간·막대를 함께 내린다 — 사이드바가 같은 자리를 비우는 것과 같은
+            이유다(끝을 정해 놓지 않아 분모가 없고, 기록을 남기지 않으니 시간을 잴 이유도 없다).
+            여기만 남겨 두면 모바일에서는 "0 / 186"처럼 전 세트 크기가 분모로 떠서, 끝이 없다는
+            모드의 성격과 정면으로 어긋나는 숫자를 보게 된다. 그 값은 문제 헤더의 퀵 점수판이
+            맡는다(모바일에서도 렌더된다). */}
+        {mode !== 'quick' && (
+          <>
+            {/* 라이브 영역을 진행률에만 둔다 — 타이머를 포함하면 스크린리더가 매초 시간을 낭독한다. */}
+            <span className="mtb-meta" aria-live="polite">{answered} / {total}</span>
+            <span className="mtb-meta">⏱ <TimerClock /></span>
+            <span className="mtb-bar" aria-hidden="true"><i style={{ width: `${progressPercent}%` }} /></span>
+          </>
+        )}
       </div>
     </header>
   );

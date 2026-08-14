@@ -108,3 +108,37 @@ describe('buildWrongNoteBySet — 제목', () => {
     expect(out[0].setTitle).toBe('사라진 세트');
   });
 });
+
+/**
+ * 이력에는 시각(createdAt)이 없던 시절의 회차와, 오답이 하나도 없는 만점 회차가 섞여 있다.
+ * 정렬·집계가 그것들을 만나 흔들리면 오답노트의 세트 순서와 '응시 N회'가 새로고침마다 달라진다.
+ */
+describe('buildWrongNoteBySet — 결측 필드', () => {
+  it('시각이 없는 회차가 섞여도 목록이 만들어지고 최근 시각은 있는 것만 본다', () => {
+    const got = buildWrongNoteBySet([
+      round({ id: 'r1', wrongItems: [W(3)] }), // createdAt 없음
+      round({ id: 'r2', createdAt: 500, wrongItems: [W(1)] }),
+    ], titleOf);
+    expect(got).toHaveLength(1);
+    expect(got[0].latestCreatedAt).toBe(500);
+    expect(got[0].attemptCount).toBe(2); // 시각이 없어도 응시는 응시다
+    expect(got[0].wrongItems.map((w) => w.number)).toEqual([1, 3]);
+  });
+
+  it('시각이 아무 회차에도 없으면 최근 시각은 비고, 그래도 그룹은 남는다', () => {
+    const got = buildWrongNoteBySet([round({ id: 'r1', wrongItems: [W(2)] })], titleOf);
+    expect(got[0].latestCreatedAt).toBeUndefined();
+    expect(got[0].setId).toBe('S1');
+  });
+
+  // 퀵 회차는 setId가 센티넬이라, 오답이 없으면 어느 세트에서 뽑았는지 기록이 남지 않는다.
+  // 그 회차가 다른 세트의 응시 수를 늘리지 않아야 한다.
+  it('오답이 없는 퀵 회차는 어느 세트의 응시 수도 늘리지 않는다', () => {
+    const got = buildWrongNoteBySet([
+      round({ id: 'r1', setId: 'S1', createdAt: 100, wrongItems: [W(1)] }),
+      round({ id: 'r2', setId: 'QUICK', mode: 'quick', createdAt: 200, wrongItems: [] }),
+    ], titleOf);
+    expect(got[0].attemptCount).toBe(1);
+    expect(got[0].latestCreatedAt).toBe(100);
+  });
+});

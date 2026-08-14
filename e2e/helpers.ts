@@ -33,9 +33,42 @@ export async function expectMode(page: Page, label: "연습" | "시험" | "랜�
   ).toHaveAttribute("aria-pressed", "true");
 }
 
+/**
+ * ── 진입은 '출제 목록이 실린 뒤'가 끝이다 ─────────────────────────────────────
+ *
+ * 모드·세트·챕터는 클릭하는 즉시 스토어에서 바뀌지만 **문항은 비동기로 온다.** 그 사이
+ * 화면은 새 맥락의 머리에 **옛 목록**을 달고 떠 있다 — 퀵으로 들어가면 퀵 점수판이 먼저
+ * 뜨고 팔레트에는 방금까지 풀던 연습 세트의 40문항이 그대로 남아 있다(실측: 진입 40회 중
+ * 6회에서 이 구간이 관측됐다).
+ *
+ * 그래서 `#questionStem`도 점수판도 **진입이 끝났다는 증거가 못 된다.** 지문은 이전 모드의
+ * 것이어도 보이고, 점수판은 목록과 무관하게 모드만 보고 뜬다. 그 구간에 단언을 걸면 옛
+ * 목록을 재는 검사가 되고, 그 구간에 클릭하면 무엇에 답한 것인지 스펙이 통제하지 못한다.
+ *
+ * 워크스페이스가 지금 실린 목록의 출처를 `data-list-mode|set|chapter`에 적으므로
+ * (QuestionWorkspace) 진입 헬퍼는 그 값이 목표 맥락과 같아질 때까지 기다린다.
+ *
+ * 한계: **같은 맥락으로 다시 뽑는 경우는 구분하지 못한다**(퀵 안의 '다시 섞어 시작',
+ * 같은 챕터 미니 시험 재진입). 값이 처음부터 목표와 같아 곧바로 통과한다. 진입 헬퍼는
+ * 재추첨을 누르지 않으므로 여기서는 문제가 되지 않지만, 재추첨을 검사하는 스펙은 문항
+ * 자체의 변화를 봐야 한다.
+ */
+export async function waitForList(
+  page: Page,
+  want: { mode?: string; setId?: string; chapter?: string },
+) {
+  const ws = page.locator(".workspace");
+  const because = "출제 목록이 아직 이전 맥락 그대로다 — 지문이 보인다는 것은 출제가 끝났다는 뜻이 아니다";
+  if (want.mode) await expect(ws, because).toHaveAttribute("data-list-mode", want.mode, { timeout: 20_000 });
+  if (want.setId) await expect(ws, because).toHaveAttribute("data-list-set", want.setId, { timeout: 20_000 });
+  if (want.chapter) await expect(ws, because).toHaveAttribute("data-list-chapter", want.chapter, { timeout: 20_000 });
+}
+
 export async function openProduct(page: Page, name: "ISTQB" | "CSTS") {
   await page.goto("/");
   await page.getByRole("button", { name }).click();
+  // 여기서는 목록 맥락을 기다리지 않는다 — goto가 앱을 새로 띄우므로 이전 목록이라는 것이
+  // 없고(빈 목록에서 시작), 어느 세트가 기본으로 열릴지는 복원 상태가 정한다.
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 }
 
@@ -56,6 +89,9 @@ export async function openSet(page: Page, product: "ISTQB" | "CSTS", setId: stri
     await page.keyboard.press("Escape");
     await expect(page.locator(".app-shell")).toHaveAttribute("data-drawer", "closed");
   }
+  // 고른 세트의 문항이 실제로 실릴 때까지 기다린다 — 셀렉트 값은 즉시 바뀌지만 문항은
+  // 뒤늦게 오므로, 그 사이 화면에는 **직전 세트의 문항**이 그대로 떠 있다.
+  await waitForList(page, { setId });
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 15_000 });
 }
 
@@ -66,6 +102,9 @@ export async function enterExam(page: Page) {
   const start = page.getByTestId("exam-start-btn");
   await start.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
   if (await start.count()) await start.click();
+  // 시험 목록으로 갈린 뒤에 돌려준다. 같은 세트를 다시 읽는 경로라 화면은 대개 그대로지만,
+  // 목록의 주인이 연습에서 시험으로 넘어가야 답안 키·채점 대상이 이 회차의 것이 된다.
+  await waitForList(page, { mode: "exam" });
 }
 
 // 모바일(≤880px) 시험 진입 — 모드 세그먼트는 드로어 안에 있으므로 열고 탭한다
@@ -77,6 +116,126 @@ export async function enterExamMobile(page: Page) {
   const start = page.getByTestId("exam-start-btn");
   await start.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
   if (await start.count()) await start.tap();
+  await waitForList(page, { mode: "exam" });
+}
+
+/**
+ * 랜덤 진입 — 통계의 챕터 '미니 시험'이 유일한 진입로다.
+ *
+ * 모드 세그먼트의 '랜덤'은 빠졌다(147a9f0 — "세트 안 무작위와 전 세트 무작위를 둘 다 두면
+ * 무엇이 다른지 설명할 수 없는 두 버튼이 나란히 있는 것"이라 퀵에 흡수). 랜덤 **모드**는
+ * 그대로 살아 있고, 이제 챕터 필터가 걸린 최대 10문항 회차로만 도달한다.
+ *
+ * 그래서 이 헬퍼에는 '세트 전체 40문항'이 없다 — 종전 스펙들이 기대하던 그 형태의 랜덤은
+ * 제품에서 사라졌다. 챕터 목록은 채점 이력에서 만들어지므로 회차 하나가 선행돼야 한다
+ * (completeAttempt 등).
+ */
+export async function enterMiniTest(page: Page) {
+  await page.getByTestId("stats-open").click();
+  const btn = page.getByTestId("chapter-minitest-btn").first();
+  // 어느 챕터를 누르는지 먼저 읽어 둔다(버튼 이름이 "<챕터> 미니 시험") — 출제 목록이
+  // 그 챕터로 갈렸는지까지 확인하려면 이름이 필요하다. 배너는 필터 상태만 보고 뜨므로
+  // 배너가 보인다고 해서 10문항 추첨이 끝난 것은 아니다(그 전까지는 세트 40문항 그대로다).
+  const chapter = ((await btn.getAttribute("aria-label")) || "").replace(/\s*미니 시험$/, "");
+  await btn.click();
+  await expect(page.getByTestId("chapter-filter-banner")).toBeVisible({ timeout: 20_000 });
+  await waitForList(page, { mode: "random", chapter: chapter || undefined });
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+}
+
+/**
+ * 퀵 진입 — 모드 세그먼트가 유일한 진입로다.
+ *
+ * 종전에는 문항 수 콤보(#quickSize)에서 10·15·20을 고르고 '시작'을 누르는 두 단계였다.
+ * 그 콤보는 사라졌다 — 끝을 정해 놓지 않은 모드에 문항 수를 고르게 하는 것이 거짓말이라,
+ * 이제 세그먼트를 누르는 순간 제품의 전 세트를 섞어 첫 문항을 낸다. 그래서 이 헬퍼에는
+ * size 인자가 없다(있던 자리에 무엇을 넣어야 할지 답할 수 없으면 그 인자는 없는 것이다).
+ *
+ * 퀵 안의 '다시 섞어 시작'(quick-start-btn)은 진입이 아니라 재추첨이므로 여기서 누르지
+ * 않는다 — 누르면 방금 들어와 뽑힌 회차를 버리고 다시 뽑는 셈이라 의도가 흐려진다.
+ */
+export async function enterQuick(page: Page, product?: "ISTQB" | "CSTS") {
+  if (product) await openProduct(page, product);
+  const btn = page.locator('.segmented button[data-mode="quick"]');
+  // 모바일/태블릿(≤880px)에서는 세그먼트가 드로어 안이라 숨어 있다 — 실사용자와 같이 연다.
+  if (!(await btn.isVisible())) await page.getByTestId("drawer-open").click();
+  await btn.click();
+  // 퀵 추첨이 실제로 실릴 때까지 기다린다. 세그먼트를 누르는 순간 점수판과 헤더는 퀵의
+  // 것으로 바뀌지만 문항은 전 세트를 다 연 뒤에야 온다 — 그 사이에 답을 누르면 스펙이
+  // 무엇에 답했는지 통제하지 못한다.
+  await waitForList(page, { mode: "quick" });
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+}
+
+/**
+ * 퀵 점수판의 한 칸 값. 퀵에는 진행률(#progressText)이 없다 — 끝이 정해지지 않아 분모가
+ * 없기 때문이다. 그 자리를 문제 헤더의 점수판이 대신하므로, 퀵의 '얼마나 풀었나'는
+ * 여기서 읽는다.
+ */
+export function quickStat(page: Page, cell: "solved" | "correct" | "wrong" | "streak") {
+  const index = { solved: 0, correct: 1, wrong: 2, streak: 3 }[cell];
+  return page.locator(".quick-scoreboard .qs-item").nth(index).locator("b");
+}
+
+/**
+ * 유형을 가리지 않고 현재 문항에 답한다.
+ *
+ * 퀵에는 서답형이 최대 30%까지 섞이므로(B5) `#options .option` 클릭만 쓰면 뽑기 결과에
+ * 따라 그 셀렉터가 아예 없어 타임아웃한다 — '가끔 깨지는 테스트'로 보이지만 원인은
+ * 타이밍이 아니라 문항 유형이다.
+ *
+ * **복수정답은 정답 개수만큼 다 골라야 '답함'으로 확정된다**(`isQuickCommitted` — 하나만
+ * 누르면 3개짜리 문항이 첫 클릭에 오답으로 굳어 버리므로 일부러 그렇게 뒀다). 종전 이
+ * 헬퍼는 주석으로만 그 사실을 적어 두고 첫 보기 하나만 눌렀다. 그래서 뽑기가 복수정답
+ * 문항을 앞쪽에 놓는 회차에서만 퀵 점수판이 늘지 않아 `react-quick-ux`가 3회 중 1회꼴로
+ * 실패했다 — 타이밍처럼 보이지만 원인은 문항 유형이었다.
+ *
+ * 정답이 몇 개인지는 화면에 없다. 그래서 '보기를 순서대로 전부 누른다'로는 안 된다 —
+ * 확정되는 순간 나머지 보기가 `disabled`가 되어 그 다음 클릭이 30초를 기다리다 죽는다
+ * (연습 모드는 확정 후에도 눌리므로 cap 검사만 보고 짐작하면 이 차이를 놓친다).
+ * **잠김을 종료 신호로 삼아** 하나씩 늘려 가며 누른다.
+ *
+ * ── 이 헬퍼를 복사하지 말 것 ──────────────────────────────────────────────
+ * 종전에는 같은 이름의 사본이 `react-quick-resilience`·`react-consistency`에 하나씩 더
+ * 있었고, 셋이 서로 다른 교훈만 배운 채 갈라졌다. 사본 하나는 '유형이 뜰 때까지 기다린다'를,
+ * 원본은 '서답형은 확인 버튼을 눌러야 확정된다'를 배웠지만 **복수정답은 아무도 몰랐다.**
+ * 그래서 원본을 고쳐도 사본을 쓰는 스펙은 그대로 깨졌다(퀵 첫 문항이 복수정답으로 뽑히는
+ * 약 5%의 회차에서만 — ISTQB 복수정답은 186문항 중 9개다). 답하는 방법이 바뀌면 여기만
+ * 고치면 되도록 한 곳에 둔다.
+ */
+export async function answerCurrent(page: Page) {
+  const short = page.locator(".short-answer-input");
+  // 유형이 확정될 때까지 기다린다 — 퀵 진입 직후에는 이전 모드의 화면이 잠깐 남아 있고,
+  // 보기와 서답형 입력 중 무엇이 뜰지도 뽑기가 정한다. 한쪽만 기다리면 반대 유형이 뽑힌
+  // 회차에서 타임아웃한다(전수 실행에서 이 자리가 300초로 죽은 적이 있다).
+  await expect(page.locator("#options .option").first().or(short.first())).toBeVisible({ timeout: 15_000 });
+  const blanks = await short.count();
+  if (blanks) {
+    for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
+    // 퀵의 서답형은 타이핑만으로는 저장되지 않는다 — 한 글자에 정답이 펼쳐지지 않도록
+    // 초안으로 들고 있다가 '정답 확인'에서 한 번에 넘긴다(QuestionCard의 draft). 이걸
+    // 누르지 않으면 답한 것으로 세지 않아 집계가 조용히 멈춘다.
+    //
+    // 버튼이 초안 입력에 반응해 나타나므로 fill 직후에는 아직 없을 수 있다. `count()`는
+    // 재시도하지 않아 그 한 순간을 '이 모드엔 버튼이 없다'로 읽고 조용히 지나가 버린다 —
+    // 답하지 않은 채로 다음 단언에 부딪히는 간헐 실패의 정체가 이것이다. 잠깐 기다린 뒤
+    // 판단한다(다른 모드에는 정말로 없으므로 없으면 그대로 넘어간다).
+    const check = page.locator(".short-answer-check");
+    await check.first().waitFor({ state: "visible", timeout: 2000 }).catch(() => {});
+    if (await check.count()) await check.first().click();
+    return;
+  }
+  const options = page.locator("#options .option");
+  await options.first().click();
+  // 복수정답 표기는 문제 제목이 단다("문제 4 · 복수정답" — QuestionWorkspace).
+  const title = (await page.locator("#questionTitle").textContent()) || "";
+  if (!title.includes("복수정답")) return;
+  const total = await options.count();
+  for (let i = 1; i < total; i += 1) {
+    const opt = options.nth(i);
+    if (await opt.isDisabled()) return; // 확정돼 잠겼다 — 더 고를 것이 없다
+    await opt.click();
+  }
 }
 
 // 채점: 채점 버튼 클릭 후 미응답 경고 모달이 뜨면 확인까지 처리한다.

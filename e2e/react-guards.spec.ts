@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { enterExam, modeBtn, openProduct, openSet } from "./helpers";
+import { completeAttempt, enterExam, enterMiniTest, openProduct, openSet } from "./helpers";
 
 const SET = "ISTQB-FL-V4-A";
 
@@ -33,31 +33,6 @@ test.describe("확인 가드", () => {
   });
 
   // B4: 세트 변경과 같은 손실인데 이 경로만 확인 없이 즉시 실행됐다.
-  test("'새 문제 뽑기'는 진행이 있으면 확인을 거친다", async ({ page }) => {
-    await openSet(page, "ISTQB", SET);
-    await modeBtn(page, "랜덤").click();
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
-    await page.locator("#options .option").first().click();
-    await expect(page.locator("#progressText")).toHaveText("1 / 40");
-
-    await page.getByTestId("random-redraw").click();
-    await expect(page.getByTestId("pending-redraw-modal")).toBeVisible();
-    await page.getByTestId("pending-redraw-cancel").click();
-    await expect(page.locator("#progressText")).toHaveText("1 / 40"); // 취소하면 그대로
-
-    await page.getByTestId("random-redraw").click();
-    await page.getByTestId("pending-redraw-confirm").click();
-    await expect(page.locator("#progressText")).toHaveText("0 / 40");
-  });
-
-  test("'새 문제 뽑기'는 진행이 없으면 묻지 않는다", async ({ page }) => {
-    await openSet(page, "ISTQB", SET);
-    await modeBtn(page, "랜덤").click();
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
-    await page.getByTestId("random-redraw").click();
-    await expect(page.getByTestId("pending-redraw-modal")).toHaveCount(0);
-  });
-
   // B5: 0문항 채점은 0점 회차가 영구 기록된다 — 무엇이 남는지 알려야 한다.
   test("한 문항도 안 풀고 채점하면 0점 회차로 기록된다고 알린다", async ({ page }) => {
     await openSet(page, "ISTQB", SET);
@@ -90,10 +65,10 @@ test.describe("확인 가드", () => {
 
 // C3: 헤더는 원본 번호, 팔레트는 순번이라 랜덤·오답 모드에서 서로 달랐다.
 test.describe("문항 번호 일관성", () => {
-  test("랜덤 모드에서 팔레트 번호가 헤더 문항 번호와 일치한다", async ({ page }) => {
+  test("랜덤(미니 시험)에서 팔레트 번호가 헤더 문항 번호와 일치한다", async ({ page }) => {
     await openSet(page, "ISTQB", SET);
-    await modeBtn(page, "랜덤").click();
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
+    await completeAttempt(page); // 챕터 통계 생성 — 미니 시험 진입로
+    await enterMiniTest(page);
     const header = (await page.locator("#questionTitle").textContent()) || "";
     const num = header.match(/문제 (\d+)/)?.[1];
     expect(num).toBeTruthy();

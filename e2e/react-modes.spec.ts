@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { enterExam, gotoQuestion, modeBtn, openSet, submitGrade } from "./helpers";
+import { completeAttempt, enterExam, enterMiniTest, gotoQuestion, modeBtn, openSet, submitGrade } from "./helpers";
 
 // 풀이 모드(연습/시험/랜덤/오답) 상세 동작.
 test.describe("모드", () => {
@@ -38,10 +38,10 @@ test.describe("모드", () => {
     expect(correct + missed).toBeGreaterThan(0);
   });
 
-  test("랜덤: 채점하면 점수가 표시된다", async ({ page }) => {
+  test("랜덤(미니 시험): 채점하면 점수가 표시된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "랜덤").click();
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
+    await completeAttempt(page); // 챕터 통계 생성 — 미니 시험 진입로
+    await enterMiniTest(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await expect(page.getByTestId("score")).toContainText("점수", { timeout: 8_000 });

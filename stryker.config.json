@@ -2,20 +2,31 @@
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
   "_comment": "뮤테이션 테스팅 — 테스트 스위트의 결함 검출력(효력)을 실측한다(살충제 패러독스 대응). 코드에 인위적 결함(뮤턴트)을 심고 테스트가 죽이는지 측정. 대상은 채점·통계 핵심 순수 로직으로 스코프(전체 대상은 실행 시간 과다).",
   "testRunner": "vitest",
-  "vitest": { "configFile": "vitest.stryker.config.ts" },
+  "vitest": {
+    "configFile": "vitest.stryker.config.ts"
+  },
   "coverageAnalysis": "perTest",
-  "_comment_mutate": "answerKey/modeLabel은 코드량은 작지만 틀리면 손실이 크다 — answerKey는 저장 키의 단일 원천이라 문자열 하나만 어긋나도 사용자의 풀이 진행이 통째로 사라지고, modeLabel의 GRADED_MODES는 '채점하기' 노출과 실제 채점 가능 여부를 함께 결정한다.",
+  "_comment_mutate": "answerKey/modeLabel은 코드량은 작지만 틀리면 손실이 크다 — answerKey는 저장 키의 단일 원천이라 문자열 하나만 어긋나도 사용자의 풀이 진행이 통째로 사라지고, modeLabel의 GRADED_MODES는 '채점하기' 노출과 실제 채점 가능 여부를 함께 결정한다. quickStats는 퀵에서 '무엇이 답한 것으로 확정됐는가'를 정하고, 그 판정이 점수판과 회차 기록 양쪽을 동시에 좌우한다 — 유닛이 0%였던 동안 이 파일에서 결함이 두 번 나왔다(복수정답 확정 규칙, 점수판 되감김).",
   "mutate": [
     "src/utils/answer.ts",
+    "src/utils/quickStats.ts",
     "src/utils/scoring.ts",
     "src/utils/chapterStats.ts",
     "src/utils/attemptStats.ts",
     "src/utils/answerKey.ts",
     "src/utils/modeLabel.ts"
   ],
-  "reporters": ["clear-text", "progress", "html"],
-  "_comment_break": "break 85: 현재 스코어 93.5% 대비 여유를 두되, 테스트 효력이 유의미하게 무뎌지면 CI가 실패한다.",
-  "thresholds": { "high": 90, "low": 75, "break": 85 },
+  "reporters": [
+    "clear-text",
+    "progress",
+    "html"
+  ],
+  "_comment_break": "break 85: 스코프에 quickStats를 넣은 뒤 실측 92.30%(quickStats 97.62%, no-coverage 0). 여유를 두되 테스트 효력이 유의미하게 무뎌지면 CI가 실패한다 — 이쪽은 래칫이 아니라 '지켜야 할 높은 기준'이라 break를 실측에 붙여 올리지 않는다.",
+  "thresholds": {
+    "high": 90,
+    "low": 75,
+    "break": 85
+  },
   "tempDirName": ".stryker-tmp",
   "cleanTempDir": true
 }

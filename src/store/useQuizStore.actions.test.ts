@@ -104,27 +104,6 @@ describe('markReviewed / unmarkReviewed — 오답 재풀이 진척', () => {
   });
 });
 
-describe('redrawRandom — 새 문제 뽑기', () => {
-  it('세대를 올리고 저장된 추첨을 비운다', () => {
-    useQuizStore.setState({
-      randomNonce: 3,
-      randomDraw: { setId: S, chapter: null, ids: ['Q1', 'Q2'] },
-    });
-    useQuizStore.getState().redrawRandom();
-    const s = useQuizStore.getState();
-    // 둘 중 하나만 해서는 안 된다: nonce만 올리면 저장된 추첨이 그대로 복원돼 같은 문항이
-    // 다시 나오고, 추첨만 비우면 effect가 다시 돌 신호가 없다.
-    expect(s.randomNonce).toBe(4);
-    expect(s.randomDraw).toBeNull();
-  });
-
-  it('답안은 지우지 않는다(지우는 것은 호출부의 clearAnswers 몫)', () => {
-    useQuizStore.setState({ answers: { [`${S}-random-Q1`]: ['a'] } });
-    useQuizStore.getState().redrawRandom();
-    expect(useQuizStore.getState().answers[`${S}-random-Q1`]).toEqual(['a']);
-  });
-});
-
 describe('오버레이 토글 — 인자를 그대로 반영한다', () => {
   // 단순해 보이지만 뮤테이션이 가장 잘 살아남는 자리다: 인자를 무시하고 상수를 넣어도
   // 여는 경로만 밟는 검사는 통과한다. 켜고 끄기를 모두 본다.
@@ -139,7 +118,6 @@ describe('오버레이 토글 — 인자를 그대로 반영한다', () => {
     ['setResumeNotice', 'resumeNotice'],
     ['setResumePrompt', 'resumePrompt'],
     ['setQuitExamOpen', 'quitExamOpen'],
-    ['setPendingRedraw', 'pendingRedraw'],
     ['setPendingRestart', 'pendingRestart'],
     ['setConfirmExitExam', 'confirmExitExam'],
     ['setNavCollapsed', 'navCollapsed'],

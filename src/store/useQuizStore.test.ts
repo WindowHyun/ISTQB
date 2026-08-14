@@ -249,6 +249,54 @@ describe('startQuick — 이전 회차 잔재 정리', () => {
   });
 });
 
+// 불변식: mode === 'quick' ⇒ setId === QUICK_SET_ID.
+//
+// 답안·채점 키가 `${setId}-${mode}-...`라, 퀵에서 setId가 실재 세트로 남으면 퀵 답안이
+// 그 세트의 네임스페이스에 쌓인다. 그러면 startQuick의 잔재 정리(QUICK-quick-* 삭제)가
+// 통째로 빗나가 위 describe의 보장이 그 경로에서만 조용히 무너진다.
+// 종전에는 startQuick만 이 못을 박았고, 모드 세그먼트(setMode)로 들어온 퀵은 직전 세트
+// id를 그대로 달고 있었다 — 사이드바 제목이 풀지도 않는 세트명을 말한 것도 같은 원인이다.
+describe('퀵의 setId 불변식', () => {
+  beforeEach(reset);
+
+  it('setMode로 퀵에 들어가도 setId가 센티넬로 바뀐다', () => {
+    useQuizStore.setState({ mode: 'practice', setId: 'CSTS-2402FL' });
+    useQuizStore.getState().setMode('quick');
+    expect(useQuizStore.getState().setId).toBe('QUICK');
+  });
+
+  it('퀵에서 나오면 들어가기 직전 세트로 돌아간다', () => {
+    useQuizStore.setState({ mode: 'practice', setId: 'CSTS-2402FL', preQuickSetId: null });
+    useQuizStore.getState().setMode('quick');
+    useQuizStore.getState().setMode('exam');
+    const s = useQuizStore.getState();
+    expect(s.setId).toBe('CSTS-2402FL');
+    // 돌아왔으면 기억은 비운다 — 남겨 두면 다음 이탈이 옛 세트로 되돌린다.
+    expect(s.preQuickSetId).toBeNull();
+  });
+
+  it("퀵 안에서 '다시 섞어 시작'을 눌러도 돌아갈 세트를 잊지 않는다", () => {
+    useQuizStore.setState({ mode: 'practice', setId: 'CSTS-2402FL', preQuickSetId: null });
+    useQuizStore.getState().setMode('quick');
+    useQuizStore.getState().startQuick(10); // setId가 이미 센티넬 — 기억을 덮어쓰면 안 된다
+    expect(useQuizStore.getState().preQuickSetId).toBe('CSTS-2402FL');
+    useQuizStore.getState().setMode('practice');
+    expect(useQuizStore.getState().setId).toBe('CSTS-2402FL');
+  });
+
+  it('복원(hydrate)이 mode·setId 조합을 깨뜨려도 불변식이 선다', () => {
+    // 저장소는 mode와 setId를 각각 담으므로, 이 규칙이 서기 전에 퀵으로 종료한 세션은
+    // 실재 세트 id를 달고 돌아온다.
+    useQuizStore.getState().hydrate({ mode: 'quick', setId: 'CSTS-2402FL' });
+    expect(useQuizStore.getState().setId).toBe('QUICK');
+  });
+
+  it('퀵이 아닌 모드의 복원은 저장된 세트를 그대로 쓴다', () => {
+    useQuizStore.getState().hydrate({ mode: 'exam', setId: 'CSTS-2402FL' });
+    expect(useQuizStore.getState().setId).toBe('CSTS-2402FL');
+  });
+});
+
 // 이력만 지우고 답안·채점 상태·오답 대상을 남기면, 오답노트에는 없는 오답이 오답 모드에
 // 계속 출제되고 그 세트를 다시 채점하면 같은 기록이 되살아난다("초기화했는데 이전 기록이
 // 재생성됨"). 실제로 '이력 비우기'가 그 상태였다.

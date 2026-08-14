@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { enterExam, modeBtn, openProduct, openSet, submitGrade } from "./helpers";
+import { completeAttempt, enterExam, enterMiniTest, modeBtn, openProduct, openSet, submitGrade } from "./helpers";
 
 // 상태 전이(State Transition) 전수조사 — 상태 × 이벤트 매트릭스를 경로 단위로 검증.
 // 상태: S0 게이트 / S1 연습 / S2E-gate 시험(시작 전) / S2E-run 응시 중(잠금) /
@@ -96,7 +96,8 @@ test.describe("전이 — S2E 시험(게이트→응시중→채점후)", () => 
     await page.locator("#options .option").first().click();
     await expect(page.locator("#feedback")).toHaveCount(0); // 시험은 즉시 피드백 없음
     await expect(page.getByTestId("set-select")).toBeDisabled(); // 잠금
-    await expect(page.locator('.segmented button[data-mode="random"]')).toBeDisabled();
+    // 세그먼트에 '랜덤'은 없다(퀵에 흡수) — 남아 있는 다른 모드로 잠금을 확인한다.
+    await expect(page.locator('.segmented button[data-mode="quick"]')).toBeDisabled();
   });
 
   test("T19/T20: 응시 중 '오답 다시 풀기'·통계 '연습' 진입 차단(잠금 우회 방지)", async ({ page }) => {
@@ -181,14 +182,19 @@ test.describe("전이 — S2E 시험(게이트→응시중→채점후)", () => 
 });
 
 test.describe("전이 — S3 랜덤 / S4 오답", () => {
-  test("T5/T31/T32: 랜덤 진입(≤40) → 재클릭 무변화 → 채점 → 점수", async ({ page }) => {
+  /**
+   * 랜덤(챕터 미니 시험, ≤10). 세그먼트의 '랜덤' 탭이 사라진 뒤 이것이 유일한 랜덤이다 —
+   * 세트 전체 40문항 랜덤은 배너의 '전체 보기'로 닿을 수 있었으나, 그 버튼이 이제 연습으로
+   * 나가므로 도달 경로가 없다(제거 확정).
+   * 'T31 재클릭 무변화'는 누를 탭이 없어졌으므로 뺀다 — 그 자리를 대신할 조작이 없다.
+   */
+  test("T5/T32: 랜덤(미니 시험) 진입(≤10) → 채점 → 점수", async ({ page }) => {
     await openSet(page, "ISTQB", A);
-    await modeBtn(page, "랜덤").click();
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
+    await completeAttempt(page); // 챕터 통계 생성 — 미니 시험이 랜덤의 진입로다
+    await enterMiniTest(page);
     const n = await page.locator("#questionNav button").count();
-    expect(n).toBeLessThanOrEqual(40);
+    expect(n).toBeLessThanOrEqual(10);
     await page.locator("#options .option").first().click();
-    await modeBtn(page, "랜덤").click(); // 재클릭 no-op — 답안 유지
     await expect(page.locator("#progressText")).toContainText("1 /");
     await submitGrade(page);
     await expect(page.getByTestId("score")).toContainText("점수", { timeout: 8_000 });
@@ -196,14 +202,13 @@ test.describe("전이 — S3 랜덤 / S4 오답", () => {
 
   test("T33/T35: 채점된 랜덤 재진입 → 재추첨·초기화 / 진행 중 리로드 → 이어풀기(진행 유지)", async ({ page }) => {
     await openSet(page, "ISTQB", A);
-    await modeBtn(page, "랜덤").click();
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
+    await completeAttempt(page); // 챕터 통계 생성 — 미니 시험이 랜덤의 진입로다
+    await enterMiniTest(page);
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
     await modeBtn(page, "연습").click();
-    await modeBtn(page, "랜덤").click(); // 재진입 → 초기화(T33)
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
+    await enterMiniTest(page); // 재진입 → 초기화(T33)
     await expect(page.locator("#progressText")).toContainText("0 /");
     // 진행 중(미채점) 랜덤: 2문항 응답 후 리로드 → 같은 추첨으로 이어푼다(T35, 진행 유지).
     await page.locator("#options .option").first().click();
@@ -215,7 +220,12 @@ test.describe("전이 — S3 랜덤 / S4 오답", () => {
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-    await expect(page.locator('.segmented button[data-mode="random"]')).toHaveAttribute("aria-pressed", "true");
+    // 모드는 세그먼트가 아니라 저장된 상태에서 읽는다 — '랜덤' 탭이 사라져 물어볼 곳이 없다.
+    const restoredMode = await page.evaluate(() => {
+      const raw = localStorage.getItem("istqb-fl-v4-sample-ui-state");
+      return raw ? JSON.parse(raw).mode : null;
+    });
+    expect(restoredMode, "새로고침 후 랜덤 모드가 유지되지 않았다").toBe("random");
     await expect(page.getByTestId("resume-prompt-modal")).toHaveCount(0);
     await expect(page.locator("#progressText")).toContainText("2 /");
     await expect(page.locator("#questionTitle")).toHaveText(titleBefore || "");

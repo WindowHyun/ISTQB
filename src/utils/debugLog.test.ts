@@ -43,3 +43,49 @@ describe('debugLog 화면 콘솔 버스', () => {
     expect(getLogs().some((l) => l.text.includes('captured-while-on'))).toBe(true);
   });
 });
+
+/**
+ * 실기기 진단용 화면 콘솔 — 여기서 죽으면 "원인을 보려던 도구가 원인을 만든다".
+ * 문자열화와 전역 오류 포착이 어떤 입력에도 견디는지 고정한다.
+ */
+describe('debugLog 문자열화·전역 오류 포착', () => {
+  beforeEach(() => { setDebugEnabled(true); clearLogs(); });
+
+  it('Error는 이름과 메시지로 남긴다(빈 객체 {}가 되지 않게)', () => {
+    console.error(new TypeError('없는 속성'));
+    expect(getLogs()[0].text).toBe('TypeError: 없는 속성');
+  });
+
+  it('순환 참조 객체도 문자열화한다(JSON.stringify가 던지는 입력)', () => {
+    const cyclic: Record<string, unknown> = { name: 'a' };
+    cyclic.self = cyclic;
+    console.log(cyclic);
+    expect(getLogs()).toHaveLength(1);
+    expect(getLogs()[0].text).toContain('object');
+  });
+
+  it('중첩된 Error도 문자열로 풀어 남긴다', () => {
+    console.warn({ cause: new RangeError('범위 밖') });
+    expect(getLogs()[0].text).toContain('RangeError: 범위 밖');
+  });
+
+  it('처리되지 않은 전역 오류를 잡아 남긴다', () => {
+    window.dispatchEvent(new ErrorEvent('error', {
+      message: '터짐', filename: 'app.js', lineno: 12, colno: 3,
+    }));
+    expect(getLogs().some((l) => l.level === 'error' && l.text.includes('터짐 @ app.js:12:3'))).toBe(true);
+  });
+
+  it('처리되지 않은 Promise 거부도 잡는다(Error가 아닌 이유까지)', () => {
+    const withReason = (reason: unknown) => {
+      const e = new Event('unhandledrejection') as Event & { reason?: unknown };
+      e.reason = reason;
+      window.dispatchEvent(e);
+    };
+    withReason(new Error('거부됨'));
+    withReason('문자열 거부');
+    const texts = getLogs().map((l) => l.text);
+    expect(texts.some((t) => t.includes('Unhandled rejection: 거부됨'))).toBe(true);
+    expect(texts.some((t) => t.includes('Unhandled rejection: 문자열 거부'))).toBe(true);
+  });
+});

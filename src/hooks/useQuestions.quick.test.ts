@@ -80,6 +80,35 @@ describe('buildQuickPool', () => {
       '서답형이 상한(3)만큼 들어가지 않았다 — 0이면 유형이 통째로 빠진 것이다').toBe(3);
   });
 
+  // 퀵이 문항 수를 묻지 않게 되면서 size는 풀 전체가 됐다. 그 순간 '총량 30%'는 아무것도
+  // 막지 못한다 — 실제 데이터(CSTS 440문항 중 서답형 63개)는 floor(440*0.3)=132에 절대
+  // 닿지 않아, 검사는 통과하는데 정렬은 순수 셔플이 된다. 상한이 뜻을 가지려면 **어디서
+  // 끊어 보든** 성립해야 한다. 이 검사가 그 성질을 직접 못 박는다.
+  it('상한은 접두 성질이다 — 앞에서 몇 개를 끊어 보든 30%를 넘지 않는다', () => {
+    vi.spyOn(Math, 'random').mockImplementation(seeded(3));
+    // 서답형이 절반인 풀. 총량 상한만 있으면 셔플 순서에 따라 앞쪽이 서답형으로 몰린다.
+    const questions = [
+      ...Array.from({ length: 30 }, (_, i) => q(`S-${i}`, { type: 'short_answer' })),
+      ...Array.from({ length: 30 }, (_, i) => q(`M-${i}`)),
+    ];
+    const pool = buildQuickPool([{ setId: 'S1', questions }], identity);
+    const drawn = drawQuick(pool, pool.length); // 문항 수를 고르지 않는 퀵 = 전 세트 출제
+    expect(drawn).toHaveLength(60);
+
+    let shorts = 0;
+    for (let i = 0; i < drawn.length; i += 1) {
+      if (drawn[i].question.type === 'short_answer') shorts += 1;
+      // 선택형이 떨어진 뒤(뒤쪽 꼬리)는 넘길 수밖에 없다 — 그 전까지를 본다.
+      const othersLeft = drawn.slice(i + 1).some((c) => c.question.type !== 'short_answer');
+      if (othersLeft) {
+        expect(shorts, `앞 ${i + 1}문항 중 서답형 ${shorts}개 — 접두 상한을 넘었다`)
+          .toBeLessThanOrEqual(Math.floor((i + 1) * 0.3));
+      }
+    }
+    // 첫 문항이 서답형이면 퀵의 첫인상이 '타이핑'이 된다 — 예산 계산상 나올 수 없다.
+    expect(drawn[0].question.type).not.toBe('short_answer');
+  });
+
   // 선택형이 모자라면 문항 수를 줄이는 것보다 서답형으로 채우는 편이 낫다.
   it('선택형이 모자라면 상한을 넘겨서라도 문항 수를 채운다', () => {
     const questions = [
