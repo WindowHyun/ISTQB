@@ -2,8 +2,8 @@ import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../store/useQuizStore';
 import { useQuestions, Question } from './useQuestions';
-import { isQuestionCorrect, isAnswered } from '../utils/answer';
-import { isQuickCommitted } from '../utils/quickStats';
+import { isQuestionCorrect } from '../utils/answer';
+import { isQuickCommitted, isAnsweredInMode } from '../utils/quickStats';
 import { answerKeyFor, gradeKeyFor } from '../utils/answerKey';
 import { buildRoundHistory, makeRoundId } from '../utils/roundHistory';
 import { questionKey } from '../utils/chapterStats';
@@ -68,13 +68,15 @@ export function useQuizSession() {
     const wrong: { q: Question; i: number }[] = [];
     currentQuestions.forEach((q, i) => {
       const selected = answers[answerKeyOf(q)] || [];
-      if (isAnswered(selected, q.answerParts)) answeredCount += 1;
+      // '답함'의 기준은 모드가 정한다 — 퀵은 확정(복수정답은 다 골라야)이라야 답함이다.
+      // 팔레트 색도 같은 함수를 쓴다(isAnsweredInMode가 단일 원천).
+      if (isAnsweredInMode(mode, q, selected)) answeredCount += 1;
       if (isQuestionCorrect(q.answer, selected, q.type, q.answerParts)) correct += 1;
       // 채점된 시험/랜덤 또는 오답 모드에서 틀린 문항 목록(오답노트·네비 표시용).
       else wrong.push({ q, i });
     });
     return { answered: answeredCount, correctCount: correct, wrongQuestions: wrong };
-  }, [currentQuestions, answers, answerKeyOf]);
+  }, [mode, currentQuestions, answers, answerKeyOf]);
   // CSTS 합격 판정용 가중 점수(4지선다·서답형 1.5점/진위형 1.0점) — evaluatePass가 소비한다.
   // ISTQB는 전 문항이 동일 배점이라 결과가 단순 정답률과 같아 무해하지만, 실제로 쓰는 건 CSTS뿐이다.
   const cstsWeighted = useMemo(

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeQuickStats, isQuickCommitted, type QuickScorable } from './quickStats';
+import { computeQuickStats, isAnsweredInMode, isQuickCommitted, type QuickScorable } from './quickStats';
 
 /**
  * quickStats는 커버리지 0%였다 — 측정 대상(src/utils/**)에 들어 있는데 값이 0이라,
@@ -81,6 +81,38 @@ describe('isQuickCommitted', () => {
     expect(isQuickCommitted(q, ['4'])).toBe(false);
     expect(isQuickCommitted(q, ['4', ' '])).toBe(false); // 공백만 채운 칸은 답이 아니다
     expect(isQuickCommitted(q, ['4', '7'])).toBe(true);
+  });
+});
+
+describe('isAnsweredInMode', () => {
+  const multi = mc('m1', ['a', 'b']);
+
+  // 결함이었던 조합: 퀵에서 복수정답을 하나만 고르면 팔레트만 '답함'으로 칠해지고
+  // 점수판·회차에는 없었다. 이제 세 곳이 같은 답을 한다.
+  it('퀵에서는 확정된 문항만 답함이다', () => {
+    expect(isAnsweredInMode('quick', multi, ['a'])).toBe(false);
+    expect(isAnsweredInMode('quick', multi, ['a', 'b'])).toBe(true);
+    expect(isAnsweredInMode('quick', mc('s1', ['a']), ['b'])).toBe(true);
+    expect(isAnsweredInMode('quick', multi, [])).toBe(false);
+  });
+
+  // 다른 모드는 종전 그대로다. 시험에서 부분 선택을 '미응답'으로 세면 채점 전 경고가
+  // 사실과 달라지고(고른 것이 있는데 안 골랐다고 한다), 연습·오답은 집계 대상이 아니다.
+  it('퀵이 아니면 하나라도 고르면 답함이다', () => {
+    for (const mode of ['exam', 'practice', 'review', 'random']) {
+      expect(isAnsweredInMode(mode, multi, ['a']), mode).toBe(true);
+      expect(isAnsweredInMode(mode, multi, []), mode).toBe(false);
+    }
+  });
+
+  it('다답형 서답형은 어느 모드에서나 모든 칸이 채워져야 답함이다', () => {
+    const parts: QuickScorable = {
+      id: 'p1', number: 1, type: 'short_answer', answer: [], options: [],
+      answerParts: [{ label: 'A', answer: ['1'] }, { label: 'B', answer: ['2'] }],
+    };
+    expect(isAnsweredInMode('quick', parts, ['1'])).toBe(false);
+    expect(isAnsweredInMode('practice', parts, ['1'])).toBe(false);
+    expect(isAnsweredInMode('practice', parts, ['1', '2'])).toBe(true);
   });
 });
 

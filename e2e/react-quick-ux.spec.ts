@@ -225,3 +225,60 @@ test("퀵: 앞 문항으로 돌아가도 점수판이 되감기지 않고, 채�
     "점수판이 말한 진행 수와 회차에 기록된 문항 수가 다르다",
   ).toContainText("/ 3문항");
 });
+
+/**
+ * 퀵의 '답함'은 확정 기준이다 — 화면 세 곳이 같은 답을 해야 한다.
+ *
+ * 종전에는 팔레트만 isAnswered를 써서, 복수정답을 하나만 고른 문항이 팔레트에서는 답한
+ * 색으로 칠해지고 '답함'에도 세어졌다. 그런데 점수판(진행)과 채점 회차는 확정 기준이라
+ * 그 문항을 빼고 셌다 — 실측으로 팔레트 "답함 2" · 진행 "1" · 회차 "1문항"이었다.
+ * 답한 것으로 보이던 문항이 결과에서 사라지는 셈이다.
+ *
+ * 뽑기에 기대면 복수정답을 만나지 못하는 회차가 생기므로(ISTQB 186문항 중 9개),
+ * 저장된 추첨(quickDraw — 새로고침 이어풀기가 쓰는 그 경로)으로 두 문항짜리 회차를
+ * 못 박아 결정적으로 만든다: 단일 정답 1문항 + 복수정답(정답 2개) 1문항.
+ */
+test("퀵: 복수정답을 일부만 고르면 팔레트도 '답함'으로 세지 않는다", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem("istqb-fl-v4-sample-ui-state", JSON.stringify({
+      quickDraw: {
+        certification: "istqb",
+        items: [
+          { id: "ISTQB-FL-V4-A-001", setId: "ISTQB-FL-V4-A" }, // 정답 1개
+          { id: "ISTQB-FL-V4-A-006", setId: "ISTQB-FL-V4-A" }, // 정답 2개(복수정답)
+        ],
+      },
+    }));
+  });
+  await enterQuick(page, "ISTQB");
+
+  const summary = page.locator(".palette-summary small");
+  await expect(summary, "저장된 추첨 2문항으로 시작해야 한다").toHaveText(/\/\s*2\b/);
+
+  // 1) 단일 정답 문항을 답한다 — 여기서는 한 번 클릭이 곧 확정이다.
+  await page.locator("#options .option").first().click();
+  await expect(quickStat(page, "solved")).toHaveText("1");
+  await expect(summary).toContainText("답함 1");
+
+  // 2) 복수정답 문항으로 이동해 **하나만** 고른다.
+  await page.locator("#nextBtn").click();
+  await expect(page.locator("#questionTitle")).toContainText("복수정답");
+  await page.locator("#options .option").first().click();
+
+  const current = page.locator("#questionNav button.current");
+  await expect(
+    summary,
+    "복수정답을 하나만 골랐는데 팔레트가 '답함'으로 셌다 — 점수판·채점은 세지 않는다",
+  ).toContainText("답함 1");
+  // 'unanswered'가 'answered'를 포함하므로 경계를 함께 본다 — /answered/만 쓰면 미답 상태도 통과한다.
+  await expect(current, "미확정 문항이 답한 색으로 칠해졌다").toHaveClass(/(^|\s)unanswered(\s|$)/);
+  await expect(quickStat(page, "solved"), "점수판은 종전대로 확정만 센다").toHaveText("1");
+
+  // 3) 나머지 하나를 마저 고르면 세 곳이 함께 올라간다.
+  await page.locator("#options .option").nth(1).click();
+  await expect(quickStat(page, "solved")).toHaveText("2");
+  await expect(summary).toContainText("답함 2");
+  await expect(current).toHaveClass(/(^|\s)answered(\s|$)/);
+});

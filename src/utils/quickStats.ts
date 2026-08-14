@@ -39,6 +39,25 @@ export function isQuickCommitted(q: QuickScorable, selected: string[]): boolean 
   return isAnswered(selected, q.answerParts);
 }
 
+/**
+ * 이 모드에서 '답함'으로 셀 것인가 — 화면의 답함 표시(팔레트 색·'답함 N')와 진행 집계가
+ * 같은 답을 하게 하는 단일 원천.
+ *
+ * 퀵만 확정(isQuickCommitted) 기준이다. 종전에는 팔레트가 어느 모드에서나 isAnswered를 써서,
+ * **복수정답을 하나만 고른 문항이 팔레트에서는 '답함'으로 칠해지는데 점수판에도 채점 회차에도
+ * 들어가지 않았다**(실측: 정답 2개짜리를 하나만 고르면 팔레트 "답함 2" · 점수판 "진행 1" ·
+ * 회차 "1문항"). 사용자에게는 답한 것으로 보이던 문항이 결과에서 사라지는 셈이다.
+ *
+ * 다른 모드는 종전 그대로 isAnswered다. 연습·오답은 집계 대상이 아니고, 시험은 부분 선택도
+ * '답한 것'으로 세어 미응답 경고에서 빼는 편이 맞다 — 채점은 어차피 전 문항을 대상으로 한다.
+ *
+ * 부르는 곳이 둘(팔레트·useQuizSession)이라 각자 판정하게 두지 않는다. 이 저장소에서 같은
+ * 규칙의 사본이 갈려 난 결함이 이미 여러 건이다.
+ */
+export function isAnsweredInMode(mode: string, q: QuickScorable, selected: string[]): boolean {
+  return mode === 'quick' ? isQuickCommitted(q, selected) : isAnswered(selected, q.answerParts);
+}
+
 export interface QuickStats {
   /** 지금까지 답을 확정한 문항 수. */
   solved: number;
