@@ -1,24 +1,28 @@
 import { useEffect, useRef } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import { startUpdateChecks } from '../../utils/swUpdateCheck';
 
 // 새 버전(서비스워커) 감지 시 하단 배너로 알리고, 사용자가 1탭으로 갱신한다.
 // registerType: 'prompt' + injectRegister: false 와 함께 동작한다.
 export const UpdatePrompt = () => {
-  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+  const stopChecksRef = useRef<(() => void) | undefined>(undefined);
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({
     onRegisteredSW(_swUrl, registration) {
-      // 1시간마다 백그라운드로 새 버전 확인.
-      // 재등록(StrictMode 이중 실행 포함) 시 기존 인터벌을 먼저 지워 중복을 막는다.
+      // 확인 시점은 swUpdateCheck가 정한다(복귀·포커스·네트워크 복구·주기).
+      // 재등록(StrictMode 이중 실행 포함) 시 기존 감시를 먼저 걷어 중복을 막는다.
       if (registration) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = setInterval(() => { registration.update().catch(() => {}); }, 60 * 60 * 1000);
+        stopChecksRef.current?.();
+        stopChecksRef.current = startUpdateChecks(registration);
       }
     },
   });
-  useEffect(() => () => clearInterval(intervalRef.current), []);
+  useEffect(() => () => {
+    stopChecksRef.current?.();
+    stopChecksRef.current = undefined;
+  }, []);
 
   if (!needRefresh) return null;
 
