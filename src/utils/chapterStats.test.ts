@@ -259,3 +259,36 @@ describe('makeCanonicalChapterResolver — 재수록 챕터 통일', () => {
     expect(later.stats).toEqual(earlier.stats);
   });
 });
+
+/**
+ * 이력·표는 IndexedDB와 백업 파일에서 온다 — 필드가 없거나 형태가 어긋난 채로 들어올 수 있다.
+ * 여기서 죽거나 조용히 오집계하면 통계 화면 전체가 사실과 달라지므로 경계를 고정한다.
+ */
+describe('손상·구버전 데이터 방어', () => {
+  it('chapterQuestions도 chapterStats도 없는 회차는 legacy로도 세지 않는다', () => {
+    const { stats, legacyRounds } = aggregateLatestChapterStats([
+      { id: 'r1', setId: 'S', mode: 'exam', answers: {}, createdAt: 1 } as ExamHistory,
+    ]);
+    expect(legacyRounds).toBe(0); // 챕터 분석 대상이 아니었던 회차다
+    expect(Object.keys(stats)).toEqual([]);
+  });
+
+  it('ok/no 배열이 빠진 챕터 항목을 만나도 나머지를 집계한다', () => {
+    const { stats } = aggregateLatestChapterStats([
+      {
+        id: 'r1', setId: 'S', mode: 'exam', answers: {}, createdAt: 1,
+        // 한쪽 배열이 없는 형태(구버전 정제·손상 백업)
+        chapterQuestions: { A: { ok: ['Q1'] } as { ok: string[]; no: string[] }, B: { ok: ['Q2'], no: ['Q3'] } },
+      } as ExamHistory,
+    ]);
+    expect(stats.A).toEqual({ c: 1, t: 1 });
+    expect(stats.B).toEqual({ c: 1, t: 2 });
+  });
+
+  it('재수록 표에 문자열이 아닌 id가 섞여 있어도 나머지 매핑은 산다', () => {
+    const resolve = makeCanonicalIdResolver([['A-1', 'B-1', 42 as unknown as string], [7 as unknown as string, 'C-1']]);
+    expect(resolve('B-1')).toBe('A-1'); // 정상 그룹은 그대로 접힌다
+    expect(resolve('C-1')).toBe('C-1'); // 대표가 문자열이 아니면 그룹째 무시(자기 자신)
+    expect(resolve('없는id')).toBe('없는id');
+  });
+});

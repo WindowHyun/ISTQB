@@ -247,3 +247,90 @@ describe('sanitizeHistory — 필드 유실 가드(전 필드 왕복)', () => {
     expect(sanitizeHistory(full)).toEqual(full);
   });
 });
+
+/**
+ * 조작·손상 백업 방어 — 정제기는 앱과 사용자 데이터 사이의 유일한 관문이다.
+ *
+ * 여기를 통과한 값은 그대로 IndexedDB에 들어가 통계·오답노트·합격 판정의 입력이 된다.
+ * 그래서 "이상하면 버린다"가 규칙이고, 특히 프로토타입 오염 키와 모순 수치(정답>출제)는
+ * 통과하면 화면이 10000% 같은 값을 보여주거나 전역 객체가 오염된다.
+ */
+describe("sanitizeHistory — 챕터 집계 정제", () => {
+  const base = { id: "r1", setId: "S1", mode: "exam", answers: {} };
+
+  it("프로토타입 오염 키는 챕터 집계에서 버린다", () => {
+    const got = sanitizeHistory({
+      ...base,
+      chapterStats: { __proto__: { c: 1, t: 1 }, constructor: { c: 1, t: 1 }, 정상: { c: 1, t: 2 } },
+    });
+    expect(Object.keys(got!.chapterStats!)).toEqual(["정상"]);
+    expect(({} as Record<string, unknown>).c).toBeUndefined();
+  });
+
+  it("모순·빈 챕터 셀은 버리고 정답 수는 출제 수로 클램프한다", () => {
+    const got = sanitizeHistory({
+      ...base,
+      chapterStats: {
+        음수: { c: -1, t: 5 },
+        빈칸: { c: 0, t: 0 }, // t=0은 정보가 없다 — "0% (0/0)" 유령 행 방지
+        비객체: 3,
+        과다: { c: 100, t: 2 },
+      },
+    });
+    expect(got!.chapterStats).toEqual({ 과다: { c: 2, t: 2 } });
+  });
+
+  it("정답/오답 양쪽에 든 문항은 오답으로 본다(모순은 보수적으로)", () => {
+    const got = sanitizeHistory({
+      ...base,
+      chapterQuestions: {
+        A: { ok: ["Q1", "Q2"], no: ["Q2"] },
+        빈셀: { ok: [], no: [] },
+        비객체: "x",
+        __proto__: { ok: ["X"], no: [] },
+      },
+    });
+    expect(got!.chapterQuestions).toEqual({ A: { ok: ["Q1"], no: ["Q2"] } });
+  });
+
+  it("문항 id가 문자열이 아니면 걸러낸다", () => {
+    const got = sanitizeHistory({ ...base, chapterQuestions: { A: { ok: [1, "Q1", null], no: [] } } });
+    expect(got!.chapterQuestions).toEqual({ A: { ok: ["Q1"], no: [] } });
+  });
+});
+
+describe("sanitizeUiState — 누적 상태 정제", () => {
+  it("복습 진척은 유한 숫자 배열만 남긴다(빈 항목은 키째 버린다)", () => {
+    const got = sanitizeUiState({
+      reviewedOk: { S1: [1, "2", NaN, 3], S2: [], S3: "전부", S4: ["a"] },
+    });
+    expect(got.reviewedOk).toEqual({ S1: [1, 3] });
+  });
+
+  it("시험 기준 시각은 양수만 통과한다(0·음수는 제한시간을 무한히 늘린다)", () => {
+    const got = sanitizeUiState({ examStartedAt: { S1: 1700000000000, S2: 0, S3: -5, S4: "언제" } });
+    expect(got.examStartedAt).toEqual({ S1: 1700000000000 });
+  });
+
+  it("오답 대상 목록은 배열인 키만, 그 안의 문자열만 남긴다", () => {
+    const got = sanitizeUiState({ reviewIds: { "S1-exam": ["Q1", 2, null], "S2-exam": "Q3" } });
+    expect(got.reviewIds).toEqual({ "S1-exam": ["Q1"] });
+  });
+
+  it("퀵 임시 회차도 이력과 같은 정제기를 거쳐 손상분이 빠진다", () => {
+    const got = sanitizeUiState({
+      quickRounds: [
+        { id: "q1", setId: "QUICK", mode: "quick", answers: {}, createdAt: 10 },
+        { setId: "QUICK" }, // id 없음 — 버린다
+        "문자열",
+      ],
+    });
+    expect(got.quickRounds).toHaveLength(1);
+    expect(got.quickRounds![0].id).toBe("q1");
+  });
+
+  it("빈 챕터 필터는 통과시키지 않는다(빈 문자열로 필터가 걸리면 문항이 0개가 된다)", () => {
+    expect(sanitizeUiState({ chapterFilter: "" }).chapterFilter).toBeUndefined();
+    expect(sanitizeUiState({ chapterFilter: "테스트 기초" }).chapterFilter).toBe("테스트 기초");
+  });
+});

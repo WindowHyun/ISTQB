@@ -43,7 +43,12 @@
     "      useQuizStore.ts는 67.01 → 87.29%로 뛰고 no-coverage가 0이 됐다.",
     "      storage.ts는 60.69 → 65.01%. 남은 60건은 전부 storage.ts 쪽이다.",
     "",
-    "세 라운드 모두 같은 패턴이었다: no-coverage(유닛이 아예 안 지나가는 코드)를 줄인 것이",
+    "  2026-08-13 (4) 71.37%  killed 987 / survived 331 / no-coverage 65  → break 67",
+    "      정제기 경계 검사(프로토타입 오염 키·모순 수치·결측 필드) 14건. 이번엔 survived가",
+    "      줄어 오른 라운드다(343 → 331) — no-coverage는 오히려 늘었는데, 같은 코드에",
+    "      닿는 테스트가 늘면서 Stryker의 perTest 매핑이 갈라진 결과다.",
+    "",
+    "네 라운드 모두 같은 패턴이었다: no-coverage(유닛이 아예 안 지나가는 코드)를 줄인 것이",
     "점수 상승의 주된 원인이고, survived는 상대적으로 천천히 줄었다. 즉 '검사를 더 강하게'",
     "보다 '처음 닿게 하는' 쪽이 훨씬 값이 싸다 — 222 → 116 → 60.",
     "",
@@ -53,7 +58,7 @@
   "thresholds": {
     "high": 85,
     "low": 70,
-    "break": 65
+    "break": 67
   },
   "tempDirName": ".stryker-tmp-storage",
   "cleanTempDir": true

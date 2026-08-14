@@ -282,4 +282,65 @@ describe("RichText — 코드 블록 접근성", () => {
     const el = await renderRichTextEl([{ type: "code", lines: ["a", "b"] }]);
     expect(el.querySelector(".code-block")!.textContent).toBe("a\nb");
   });
+
+  /**
+   * 손상·비정형 블록 방어 — 지문은 PDF 추출본이라 형태가 어긋난 것이 섞여 들어온다.
+   * 한 블록 때문에 렌더 전체가 죽으면 그 문항은 화면에 아무것도 뜨지 않는다(원인도 안 보인다).
+   */
+  it("__TABLE__ 마커의 JSON이 깨져 있으면 표 대신 글자로 내려 렌더한다", async () => {
+    const el = await renderRichTextEl("__TABLE__:[[깨진");
+    expect(el.querySelector("table")).toBeNull();
+    expect(el.textContent).toContain("__TABLE__:[[깨진");
+  });
+
+  it("__TABLE__ 마커가 배열이 아니면 표로 만들지 않는다", async () => {
+    const el = await renderRichTextEl('__TABLE__:{"a":1}');
+    expect(el.querySelector("table")).toBeNull();
+    expect(el.textContent).toContain("__TABLE__:");
+  });
+
+  it("__CODE__ 마커의 JSON이 깨져 있어도 글자로 남는다", async () => {
+    const el = await renderRichTextEl("__CODE__:[불완전");
+    expect(el.querySelector("pre")).toBeNull();
+    expect(el.textContent).toContain("__CODE__:[불완전");
+  });
+
+  it("이미지 블록은 src 필드로도 렌더된다(마크다운이 아니어도)", async () => {
+    const el = await renderRichTextEl([{ type: "image", src: "/images/questions/a.png" }]);
+    expect(el.querySelector("img")?.getAttribute("src")).toBe("/images/questions/a.png");
+  });
+
+  it("코드 블록이 lines 없이 text로 와도 줄로 나눠 렌더한다", async () => {
+    const el = await renderRichTextEl([{ type: "code", text: "line1\nline2" }]);
+    const block = el.querySelector(".code-block");
+    expect(block, "lines 없이 온 코드 블록이 렌더되지 않았다").not.toBeNull();
+    expect(block!.textContent).toBe("line1\nline2");
+  });
+
+  it("표 블록에 rows가 없으면 표를 만들지 않는다(빈 표 대신 아무것도)", async () => {
+    const el = await renderRichTextEl([{ type: "table" }]);
+    expect(el.querySelector("table")).toBeNull();
+  });
+
+  it("list 항목이 객체면 marker를 그대로 쓰고, 없으면 순번을 준다", async () => {
+    const el = await renderRichTextEl([
+      { type: "list", items: [{ marker: "㉠", text: "첫째" }, { text: "둘째" }] },
+    ]);
+    const markers = Array.from(el.querySelectorAll(".structured-marker")).map((m) => m.textContent);
+    expect(markers).toEqual(["㉠", "2."]);
+    expect(el.textContent).toContain("첫째");
+  });
+
+  // PDF에서 불릿은 글꼴 전용 영역(PUA) 문자로 나오기도 한다 — 그대로 두면 네모(□)로 보인다.
+  it("불릿 마커는 PUA 문자여도 기호(•)로 통일해 렌더한다", async () => {
+    const el = await renderRichTextEl([{ type: "list", items: ["\u2022 첫째", "\uF0B7 둘째"] }]);
+    const markers = Array.from(el.querySelectorAll(".structured-marker")).map((m) => m.textContent);
+    expect(markers).toEqual(["\u2022", "\u2022"]);
+    expect(el.textContent).toContain("둘째");
+  });
+
+  it("빈 문자열·빈 블록은 아무것도 렌더하지 않는다", async () => {
+    const el = await renderRichTextEl([{ type: "paragraph", text: "   " }, { type: "paragraph" }]);
+    expect((el.textContent ?? "").trim()).toBe("");
+  });
 });

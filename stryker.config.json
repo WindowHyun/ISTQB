@@ -21,7 +21,7 @@
     "progress",
     "html"
   ],
-  "_comment_break": "break 85: 스코프에 quickStats를 넣은 뒤 실측 91.57%(quickStats 자체는 97.30%, 남은 1건은 `streak > best`를 `>=`로 바꾸는 등가 변이라 죽일 수 없다). 여유를 두되 테스트 효력이 유의미하게 무뎌지면 CI가 실패한다.",
+  "_comment_break": "break 85: 스코프에 quickStats를 넣은 뒤 실측 92.30%(quickStats 97.62%, no-coverage 0). 여유를 두되 테스트 효력이 유의미하게 무뎌지면 CI가 실패한다 — 이쪽은 래칫이 아니라 '지켜야 할 높은 기준'이라 break를 실측에 붙여 올리지 않는다.",
   "thresholds": {
     "high": 90,
     "low": 75,
