@@ -225,24 +225,25 @@ test("정합성: 진행률과 문항 팔레트의 '답함' 개수가 같다", as
   await page.evaluate(() => localStorage.clear());
   await openProduct(page, "CSTS");
 
-  await openBar(page);
-  await page.locator('.segmented button[data-mode="quick"]').click();
-  await waitForList(page, { mode: "quick" });
+  // 연습 모드에서 잰다. 종전에는 퀵에서 헤더 점수판과 팔레트를 대조했는데, 퀵은 이동을
+  // ‹ › 로 한정하면서 팔레트를 렌더하지 않는다 — 대조할 두 화면 중 한쪽이 사라졌다.
+  // 진행률(#progressText)과 팔레트는 연습·시험에 함께 있고, 이 검사가 원래 보던 짝이다.
+  await waitForList(page, { mode: "practice" });
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 
   // 5문항만 답한다. 단계마다 진행률을 확인하고 넘어간다 — 렌더가 자리를 잡기 전에
   // '다음'을 누르면 이전 문항을 다시 답하게 되고, 그 어긋남이 아래 팔레트 대조를
   // 조용히 틀리게 만든다(경합이라 재현이 들쭉날쭉해 원인을 찾기 어렵다).
-  // 퀵에는 진행률(#progressText)이 없다 — 끝을 정해 놓지 않아 분모가 없다. 헤더 점수판의
-  // '진행'이 그 자리를 맡으므로 대조의 한쪽을 여기서 읽는다.
-  const solved = page.locator(".quick-scoreboard .qs-item").first().locator("b");
+  const progress = page.locator("#progressText");
   for (let i = 0; i < 5; i += 1) {
     await answerCurrent(page);
-    await expect(solved).toHaveText(String(i + 1));
+    await expect(progress).toHaveText(new RegExp(`^${i + 1}\\s*/`));
     const n = page.locator("#nextBtn");
     if (await n.count() && !(await n.isDisabled())) await n.click();
   }
-  const answered = Number(await solved.textContent());
+  const [answered, listed] = ((await progress.textContent()) || "")
+    .split("/")
+    .map((s) => Number(s.trim()));
 
   // 데스크톱에서는 팔레트가 이미 펼쳐져 있고 palette-toggle은 '접기'다 —
   // 무턱대고 누르면 팔레트가 사라져 검사가 0건으로 무력해진다. 없을 때만 연다.
@@ -261,15 +262,11 @@ test("정합성: 진행률과 문항 팔레트의 '답함' 개수가 같다", as
   });
   const paletteAnswered = palette.answered;
   if (palette.total === 0) bad("팔레트 버튼을 찾지 못했다 — 셀렉터가 어긋나 검사가 무력하다");
-  // 회차 크기는 데이터가 정한다(문항 수를 고르지 않는다) — 저장된 추첨과 대조한다.
-  const drawn = await page.evaluate(() => {
-    const raw = localStorage.getItem("csts-fl-v1-sample-ui-state");
-    return raw ? JSON.parse(raw).quickDraw?.items?.length ?? 0 : 0;
-  });
-  if (palette.total !== drawn) bad(`팔레트 버튼 수(${palette.total})가 출제 문항 수(${drawn})와 다르다`);
-  console.log(`· 점수판 진행 ${answered} | 팔레트 답함 ${paletteAnswered} | 출제 ${drawn}`);
+  // 분모끼리도 맞춰 본다 — 진행률이 세는 목록과 팔레트가 그리는 목록이 같아야 한다.
+  if (palette.total !== listed) bad(`팔레트 버튼 수(${palette.total})가 진행률의 분모(${listed})와 다르다`);
+  console.log(`· 진행률 ${answered} / ${listed} | 팔레트 답함 ${paletteAnswered} / ${palette.total}`);
   if (answered !== paletteAnswered) {
-    bad(`점수판 진행(${answered})과 팔레트 답함(${paletteAnswered})이 다르다`);
+    bad(`진행률(${answered})과 팔레트 답함(${paletteAnswered})이 다르다`);
   }
   expect(problems, problems.join("\n")).toEqual([]);
 });
