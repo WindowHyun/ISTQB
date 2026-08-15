@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { expectMode, openProduct, enterQuick, enterMiniTest, quickStat, answerCurrent } from "./helpers";
+import { expectMode, openProduct, enterQuick, enterMiniTest, quickStat, answerCurrent, gradeQuickIfNeeded } from "./helpers";
 
 /**
  * 유저 관점 전수 시나리오 — "실제로 이 앱을 쓰는 사람이 겪는 흐름"을 끝까지 밟는다.
@@ -40,6 +40,8 @@ async function answerAll(page: Page, max = 80) {
   for (let i = 0; i < max; i += 1) {
     const opt = page.locator("#options .option").first();
     if (await opt.count()) await opt.click();
+    // 퀵은 한 문항씩 채점하고 넘어간다 — 답만 고르고 지나가면 집계도 기록도 남지 않는다.
+    await gradeQuickIfNeeded(page);
     const next = page.locator("#nextBtn");
     if (!(await next.count()) || (await next.isDisabled())) break;
     await next.click();
@@ -93,13 +95,13 @@ for (const product of ["ISTQB", "CSTS"] as const) {
     // 4) 퀵 — 세트를 고르지 않고 전 세트에서 낸다(문항 수도 고르지 않는다).
     await enterQuick(page);
     await expect(quickStat(page, "solved")).toHaveText("0");
-    await answerAll(page, 12);
-    await grade(page);
-    const quickResult = page.getByTestId("result-summary");
-    // 퀵은 합격 판정을 내리지 않는다.
-    await expect(quickResult).not.toContainText("합격 기준");
-    await expect(page.getByTestId("result-rate")).toContainText("문항");
-    await closeResult(page);
+    await answerAll(page, 12); // 문항마다 채점하며 넘어간다
+    // 퀵은 세션을 마감하지 않는다 — 결과 요약도, 합격 판정도 없다. 화면에 남는 것은
+    // 문항별 정답·해설과 점수판이고, 집계는 채점하는 그 순간 이미 끝났다.
+    await expect(page.getByTestId("result-summary")).toHaveCount(0);
+    await expect(page.locator(".workspace")).not.toContainText("합격 기준");
+    expect(Number(await quickStat(page, "solved").textContent()), "채점한 문항이 집계되지 않았다")
+      .toBeGreaterThan(0);
 
     // 5) 오답 노트 — 세트 오답(시험·랜덤)과 퀵 오답이 서로 다른 자리에 모인다.
     //    퀵은 회차를 남기지 않으므로 세트 그룹에 섞이면 안 되고, 대신 임시 목록으로 보인다.
@@ -167,9 +169,7 @@ test("퀵을 반복해도 챕터 분모가 계속 부풀지 않는다", async ({
       await page.getByTestId("quick-start-btn").click();
       await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
     }
-    await answerAll(page, 22);
-    await grade(page);
-    await closeResult(page);
+    await answerAll(page, 22); // 문항마다 채점하며 넘어간다
 
     await openSidebar(page);
     await page.getByTestId("stats-open").click();

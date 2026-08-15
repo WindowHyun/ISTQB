@@ -194,10 +194,21 @@ test("정합성: 오답 수가 결과·오답노트·재풀이에서 어긋나�
   // 뒤늦게 온다. 그 사이에 답하면 직전 세트의 문항을 퀵 회차로 착각한 채 세게 된다.
   await waitForList(page, { mode: "quick" });
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-  await answerAll(page, 12);
-  await grade(page);
-  const quickWrong = num(await page.getByTestId("result-summary").innerText(), /오답\s*(\d+)개/);
-  await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
+  await answerAll(page, 12); // 퀵은 문항마다 채점한다(answerAll이 그 흐름을 밟는다)
+  // 퀵 오답 수는 저장된 퀵 회차에서 읽는다 — 이 모드에는 결과 요약 모달이 없다.
+  // 저장은 500ms 디바운스라 잠깐 기다린 뒤 읽는다.
+  await page.waitForTimeout(900);
+  const quickWrong = await page.evaluate(() => {
+    for (const k of Object.keys(localStorage)) {
+      if (!k.endsWith("-ui-state")) continue;
+      const rounds = JSON.parse(localStorage.getItem(k) || "{}").quickRounds ?? [];
+      if (rounds.length) {
+        return rounds.reduce(
+          (n: number, r: { wrongItems?: unknown[] }) => n + (r.wrongItems?.length ?? 0), 0);
+      }
+    }
+    return null;
+  });
 
   await openBar(page);
   await page.getByRole("button", { name: /오답 노트/ }).first().click();

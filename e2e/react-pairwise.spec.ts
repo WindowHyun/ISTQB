@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { openProduct, gotoStable } from "./helpers";
+import { openProduct, gotoStable, gradeQuickIfNeeded } from "./helpers";
 
 /**
  * 페어와이즈(all-pairs) 조합 테스트.
@@ -166,6 +166,9 @@ test.describe("페어와이즈 조합", () => {
         const opt = page.locator("#options .option").first();
         if (await opt.count()) {
           await opt.click();
+          // 퀵은 한 문항씩 채점하고 넘어간다 — 고르는 것만으로는 진행이 오르지 않는다.
+          // (다른 모드에는 이 버튼이 없어 아무 일도 하지 않는다.)
+          await gradeQuickIfNeeded(page);
           await page.waitForTimeout(150);
           const after = await counter.textContent();
           if (before === after && /^0(\s|$)/.test((before ?? "").trim())) {
@@ -173,7 +176,9 @@ test.describe("페어와이즈 조합", () => {
           }
         }
 
-        if (c.graded === "yes") {
+        // 퀵에는 세션 채점이 없다 — 채점은 위에서 문항 단위로 이미 끝났고, 결과 모달도
+        // 합격 판정도 이 모드에는 존재하지 않는다(그 계약은 react-quick-ux가 고정한다).
+        if (c.graded === "yes" && c.mode !== "quick") {
           await openBar(page);
           const gradeBtn = page.getByTestId("grade-button");
           if (await gradeBtn.count()) {
@@ -183,12 +188,9 @@ test.describe("페어와이즈 조합", () => {
             const res = page.getByTestId("result-summary");
             if (!(await res.count())) problems.push(`${label}: 채점했는데 결과가 뜨지 않음`);
             else {
-              // 퀵은 합격 판정을 붙이지 않는다.
+              // 여기 오는 것은 실전 회차뿐이다(퀵은 위에서 걸러진다) — 합격 기준이 있어야 한다.
               const text = await res.innerText();
-              if (c.mode === "quick" && /합격 기준/.test(text)) {
-                problems.push(`${label}: 퀵인데 합격 판정이 표시됨`);
-              }
-              if (c.mode !== "quick" && !/합격 기준/.test(text)) {
+              if (!/합격 기준/.test(text)) {
                 problems.push(`${label}: 실전 회차인데 합격 기준이 없음`);
               }
             }

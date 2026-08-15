@@ -10,12 +10,11 @@ import { answerCurrent, enterQuick, openProduct, waitForList } from "./helpers";
  *    오프라인(서비스워커 캐시 부분 적중)에서 실재하는 조건이다.
  *
  * 2) 퀵 채점 후 새로고침 왕복 — 회귀 가드다(결함 재현 검사가 아니다).
- *    스토어 구독이 quickRounds를 감시하지 않는 문제(A)를 이 검사로 잡을 수는 없다:
- *    실측해 보니 구독 수정을 되돌려도 통과한다. 채점이 setGraded를 함께 호출하고,
- *    QuestionWorkspace의 타이머 effect가 isGraded를 의존성에 둬 그 cleanup의
- *    flushPersist()가 이미 동기로 저장하기 때문이다. A의 계약은 순수 상태 계층
- *    (storage.quickrounds.test.ts)에서 못 박고, 여기서는 브라우저 전체 왕복이
- *    실제로 성립하는지만 지킨다 — 두 저장 경로 중 무엇이 일하든 결과는 같아야 한다.
+ *    이제 퀵의 채점은 문항 단위라 setGraded를 부르지 않는다. 그래서 종전에 저장을
+ *    대신 촉발하던 경로(채점 → isGraded 변경 → 타이머 effect cleanup의 flushPersist)가
+ *    없어졌고, quickRounds를 감시하는 스토어 구독이 **유일한** 저장 경로다.
+ *    그 계약은 순수 상태 계층(storage.quickrounds.test.ts)에서 못 박고, 여기서는
+ *    브라우저 전체 왕복이 실제로 성립하는지를 지킨다.
  *
  * 3) 느린 출제(진입 경계) — 세그먼트를 누르는 순간 헤더·점수판은 퀵의 것이 되지만 문항은
  *    전 세트를 다 연 뒤에야 온다. 그 사이 화면에 남아 있는 것은 **직전 연습 세트의 목록**
@@ -23,22 +22,23 @@ import { answerCurrent, enterQuick, openProduct, waitForList } from "./helpers";
  *    출제까지 기다리는지를 여기서 고정한다.
  */
 
+/**
+ * 퀵에서 size 문항을 **채점까지** 마친다.
+ *
+ * 퀵은 한 문항씩 채점하고 넘어가는 모드라, 답만 고르고 지나가면 회차에도 오답 목록에도
+ * 아무것도 남지 않는다(answerCurrent가 채점까지 맡는다). 종전에는 문항을 훑어 답만 해
+ * 두고 마지막에 '채점하기'로 한 번에 마감했다.
+ */
 async function gradeAll(page: Page, size: number) {
   for (let i = 0; i < size; i += 1) {
-    await answerCurrent(page);
-    const next = page.locator("#nextBtn");
-    if (!(await next.count()) || (await next.isDisabled())) break;
+    await answerCurrent(page); // 헬퍼가 문항 채점까지 한다
+    const next = page.getByTestId("quick-next-btn");
+    if (!(await next.count())) break; // 마지막 문항 — 더 갈 곳이 없다
     await next.click();
   }
-  // 채점 전에 대기 중인 저장을 모두 흘려보낸다. 이게 없으면 마지막 문항 이동(index는
-  // 감시 대상)이 걸어 둔 500ms 디바운스가 채점 뒤에 발화해 quickRounds를 덤으로 실어
-  // 나른다 — 결함이 있어도 검사가 통과한다(실제로 그렇게 통과했다).
+  // 대기 중인 저장을 흘려보낸다. 이게 없으면 마지막 조작이 걸어 둔 500ms 디바운스가
+  // 검사의 읽기 뒤에 발화해, 저장되지 않은 상태를 '저장됐다'고 읽거나 그 반대가 된다.
   await page.waitForTimeout(900);
-  await page.getByTestId("grade-button").click();
-  const confirm = page.getByTestId("confirm-grade");
-  if (await confirm.count()) await confirm.click();
-  await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 15_000 });
-  await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
 }
 
 test.describe("퀵 — 복원력", () => {

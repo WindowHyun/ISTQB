@@ -206,17 +206,19 @@ test.describe("APK 기능 · 퀵 랜덤(터치)", () => {
     const errors = collectErrors(page);
     await startQuick(page);
 
+    // 퀵은 한 문항씩 채점하고 넘어간다 — 하단 바의 같은 자리 버튼이 '채점하기'와
+    // '다음 문제'를 번갈아 맡는다(모바일 프로파일이라 -m 접미 testid를 쓴다).
     for (let i = 0; i < 20; i += 1) {
       const opt = page.locator("#options .option").first();
       if (await opt.count()) await opt.tap();
-      const next = page.getByRole("button", { name: "다음 문제" });
-      if (!(await next.count()) || (await next.isDisabled())) break;
+      const grade = page.getByTestId("quick-grade-btn-m");
+      if ((await grade.count()) && !(await grade.isDisabled())) await grade.tap();
+      const next = page.getByTestId("quick-next-btn-m");
+      if (!(await next.count())) break; // 마지막 문항 — 더 갈 곳이 없다
       await next.tap();
     }
-    await submitGrade(page, "grade-button-m");
-    await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
-    // 퀵 결과 모달에는 '오답 노트 보기'가 없다 — 드로어의 상시 진입로로 연다.
-    await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).tap();
+    // 세션을 마감하는 채점이 없으므로 결과 모달도 없다 — 드로어의 상시 진입로로 연다.
+    await page.waitForTimeout(900); // 저장 디바운스(500ms)를 넘긴다
     await page.getByTestId("drawer-open").tap();
     await page.getByRole("button", { name: /오답 노트/ }).first().tap();
     await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 20_000 });
