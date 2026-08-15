@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { enterExamMobile, openSet, submitGrade, closeResult } from "./helpers";
+import { enterExamMobile, openSet, submitGrade, closeResult, answerCurrent, quickNext } from "./helpers";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // APK(WebView) 기능 테스트 — Android 폰 에뮬레이션 + MainActivity의 안전영역
@@ -209,13 +209,9 @@ test.describe("APK 기능 · 퀵 랜덤(터치)", () => {
     // 퀵은 한 문항씩 채점하고 넘어간다 — 하단 바의 같은 자리 버튼이 '채점하기'와
     // '다음 문제'를 번갈아 맡는다(모바일 프로파일이라 -m 접미 testid를 쓴다).
     for (let i = 0; i < 20; i += 1) {
-      const opt = page.locator("#options .option").first();
-      if (await opt.count()) await opt.tap();
-      const grade = page.getByTestId("quick-grade-btn-m");
-      if ((await grade.count()) && !(await grade.isDisabled())) await grade.tap();
-      const next = page.getByTestId("quick-next-btn-m");
-      if (!(await next.count())) break; // 마지막 문항 — 더 갈 곳이 없다
-      await next.tap();
+      // 헬퍼가 복수정답까지 고르고 채점한다(보이는 쪽 버튼을 집으므로 모바일에서도 같다).
+      await answerCurrent(page);
+      if (!(await quickNext(page))) break; // 마지막 문항 — 더 갈 곳이 없다
     }
     // 세션을 마감하는 채점이 없으므로 결과 모달도 없다 — 드로어의 상시 진입로로 연다.
     await page.waitForTimeout(900); // 저장 디바운스(500ms)를 넘긴다

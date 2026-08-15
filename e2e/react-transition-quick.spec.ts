@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { openProduct } from "./helpers";
+import { openProduct, answerCurrent } from "./helpers";
 
 /**
  * 전이 매트릭스 — 퀵을 포함한 4모드(연습·시험·오답·퀵).
@@ -138,9 +138,7 @@ test("전이: 퀵 → 퀵 (연속 재시작)에서 잠금·진행이 초기화�
     if (s.locked) bad(`퀵 ${round}회차: 시작하자마자 보기가 잠김(이전 채점 잔재)`);
 
     // 답하고 그 문항을 채점 — 다음 회차가 이 상태(답안·채점 표시·잠금)를 물려받으면 안 된다.
-    await page.locator("#options .option").first().click();
-    const grade = page.getByTestId("quick-grade-btn");
-    if ((await grade.count()) && !(await grade.isDisabled())) await grade.click();
+    await answerCurrent(page); // 복수정답도 다 고른 뒤 채점까지 한다
     await expect(page.locator("#feedback")).toBeVisible({ timeout: 20_000 });
   }
   console.log("· 퀵 연속 3회차 검사 완료");

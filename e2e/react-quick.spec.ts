@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { openProduct, enterQuick, quickStat, answerCurrent } from "./helpers";
+import { openProduct, enterQuick, quickStat, answerCurrent, quickNext } from "./helpers";
 
 // 퀵 랜덤 — 제품의 전 세트를 섞어 한 문항씩 내는 모드(끝을 정해 두지 않는다).
 // 세트 하나에 매이지 않아 setId가 센티넬(QUICK)이라, 세트를 전제하는 기존 경로들이
@@ -155,13 +155,8 @@ test.describe("퀵 랜덤", () => {
     await enterQuick(page, "ISTQB");
     // 열 문항을 채점한다 — 채점이 곧 집계이므로, 여기서 세트 오답 버킷이 오염되면 드러난다.
     for (let i = 0; i < 10; i += 1) {
-      const o = page.locator("#options .option").first();
-      if (await o.count()) await o.click();
-      const grade = page.getByTestId("quick-grade-btn");
-      if ((await grade.count()) && !(await grade.isDisabled())) await grade.click();
-      const next = page.getByTestId("quick-next-btn");
-      if (!(await next.count())) break;
-      await next.click();
+      await answerCurrent(page); // 복수정답도 다 고른 뒤 채점까지 한다
+      if (!(await quickNext(page))) break;
     }
 
     // 저장된 오답 버킷(reviewIds)이 비어 있어야 한다 — 퀵이 세트 오답을 만들지 않는다.

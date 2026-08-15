@@ -236,6 +236,21 @@ export async function answerCurrent(page: Page) {
 }
 
 /**
+ * 퀵의 주 액션 버튼을 **지금 화면에 보이는 쪽으로** 집는다.
+ *
+ * 같은 버튼이 두 벌 렌더된다 — 데스크톱은 문항 아래(.quick-actionbar), 모바일은 하단
+ * 고정 바(.mobile-actionbar). 둘 중 하나는 CSS로 감춰져 있고 DOM에는 남아 있으므로,
+ * testid만으로 집으면 뷰포트에 따라 '보이지 않는 버튼'을 눌러 타임아웃한다.
+ */
+async function quickButton(page: Page, name: "grade" | "next") {
+  const desktop = page.getByTestId(`quick-${name}-btn`);
+  if ((await desktop.count()) && (await desktop.isVisible())) return desktop;
+  const mobile = page.getByTestId(`quick-${name}-btn-m`);
+  if ((await mobile.count()) && (await mobile.isVisible())) return mobile;
+  return null;
+}
+
+/**
  * 퀵에서 '한 문항 풀기'는 **채점까지**다.
  *
  * 퀵은 한 문항씩 채점하고 넘어가는 모드다 — 보기를 고르는 것만으로는 정답도 열리지 않고
@@ -244,10 +259,21 @@ export async function answerCurrent(page: Page) {
  * 채점까지 맡는다. 다른 모드에는 이 버튼이 없어 아무 일도 하지 않는다.
  */
 export async function gradeQuickIfNeeded(page: Page) {
-  const grade = page.getByTestId("quick-grade-btn");
-  if (!(await grade.count())) return;
+  const grade = await quickButton(page, "grade");
+  if (!grade) return;
   if (await grade.isDisabled()) return; // 답이 덜 찼다(복수정답을 다 고르지 못한 경우)
   await grade.click();
+}
+
+/**
+ * 퀵에서 다음 문항으로. 채점을 마쳐야 이 버튼이 생기므로, 없으면 **아직 채점 전이거나
+ * 마지막 문항**이라는 뜻이다 — 그 구분은 부르는 쪽이 정한다(false를 돌려준다).
+ */
+export async function quickNext(page: Page): Promise<boolean> {
+  const next = await quickButton(page, "next");
+  if (!next) return false;
+  await next.click();
+  return true;
 }
 
 // 채점: 채점 버튼 클릭 후 미응답 경고 모달이 뜨면 확인까지 처리한다.

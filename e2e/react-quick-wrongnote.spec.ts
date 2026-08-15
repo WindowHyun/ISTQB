@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { openProduct, waitForList } from "./helpers";
+import { openProduct, waitForList, answerCurrent, quickNext} from "./helpers";
 
 /**
  * 퀵 오답의 새 사양 — 회차 기록은 남기지 않고, 오답만 24시간 임시로 보여준다.
@@ -32,12 +32,10 @@ async function playQuick(page: Page, count: string) {
   // 퀵은 한 문항씩 채점하고 넘어간다 — 채점이 곧 집계이고, 세션을 마감하는 절차는 없다.
   // (종전에는 여기서 문항을 훑어 답만 해 두고 마지막에 '채점하기'로 한 번에 마감했다.)
   for (let i = 0; i < Number(count); i += 1) {
-    const o = page.locator("#options .option").first();
-    if (await o.count()) await o.click();
-    const grade = page.getByTestId("quick-grade-btn");
-    if ((await grade.count()) && !(await grade.isDisabled())) await grade.click();
-    const next = page.getByTestId("quick-next-btn");
-    if (await next.count()) await next.click();
+    // answerCurrent는 복수정답이면 정답 개수만큼 고른 뒤 채점까지 한다. 보기를 하나만
+    // 누르는 루프로는 복수정답 문항에서 채점이 열리지 않아 그 자리에 멈춘다.
+    await answerCurrent(page);
+    if (!(await quickNext(page))) break; // 마지막 문항이거나 채점되지 않았다
   }
 }
 
