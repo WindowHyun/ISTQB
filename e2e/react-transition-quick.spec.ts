@@ -137,13 +137,11 @@ test("전이: 퀵 → 퀵 (연속 재시작)에서 잠금·진행이 초기화�
     if (s.solved !== "0") bad(`퀵 ${round}회차: 진행이 0이 아님 (${s.solved})`);
     if (s.locked) bad(`퀵 ${round}회차: 시작하자마자 보기가 잠김(이전 채점 잔재)`);
 
-    // 답하고 채점 — 다음 회차가 이 상태를 물려받으면 안 된다.
+    // 답하고 그 문항을 채점 — 다음 회차가 이 상태(답안·채점 표시·잠금)를 물려받으면 안 된다.
     await page.locator("#options .option").first().click();
-    await page.getByTestId("grade-button").click();
-    const c = page.getByTestId("confirm-grade");
-    if (await c.count()) await c.click();
-    await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
-    await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
+    const grade = page.getByTestId("quick-grade-btn");
+    if ((await grade.count()) && !(await grade.isDisabled())) await grade.click();
+    await expect(page.locator("#feedback")).toBeVisible({ timeout: 20_000 });
   }
   console.log("· 퀵 연속 3회차 검사 완료");
   expect(problems, problems.join("\n")).toEqual([]);
@@ -196,6 +194,8 @@ test("전이: 퀵 진행 중에는 세트 셀렉트가 사라져 추첨도 진�
   await toQuick(page);
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   await page.locator("#options .option").first().click();
+  // 퀵의 진행은 채점이 올린다 — 고르기만 해서는 0 그대로다(한 문항씩 채점하는 모드).
+  await page.getByTestId("quick-grade-btn").click();
   const solved = page.locator(".quick-scoreboard .qs-item").first().locator("b");
   await expect(solved).toHaveText("1");
 

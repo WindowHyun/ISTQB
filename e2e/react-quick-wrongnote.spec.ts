@@ -29,18 +29,16 @@ async function playQuick(page: Page, count: string) {
     await waitForList(page, { mode: "quick" });
   }
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  // 퀵은 한 문항씩 채점하고 넘어간다 — 채점이 곧 집계이고, 세션을 마감하는 절차는 없다.
+  // (종전에는 여기서 문항을 훑어 답만 해 두고 마지막에 '채점하기'로 한 번에 마감했다.)
   for (let i = 0; i < Number(count); i += 1) {
     const o = page.locator("#options .option").first();
     if (await o.count()) await o.click();
-    const n = page.locator("#nextBtn");
-    if ((await n.count()) && !(await n.isDisabled())) await n.click();
+    const grade = page.getByTestId("quick-grade-btn");
+    if ((await grade.count()) && !(await grade.isDisabled())) await grade.click();
+    const next = page.getByTestId("quick-next-btn");
+    if (await next.count()) await next.click();
   }
-  await openBar(page);
-  await page.getByTestId("grade-button").click();
-  const c = page.getByTestId("confirm-grade");
-  if (await c.count()) await c.click();
-  await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
-  await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
 }
 
 test("퀵 오답은 별도 목록으로 보이고 세트 그룹과 섞이지 않는다", async ({ page }) => {

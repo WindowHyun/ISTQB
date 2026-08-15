@@ -95,33 +95,32 @@ test.describe("퀵 랜덤", () => {
     expect(shortAnswers, `20문항 중 서답형 ${shortAnswers}개`).toBeLessThanOrEqual(6);
   });
 
-  test("채점 결과에 합격 판정이 없다 — 퀵에 '기준 미달'은 오해를 만든다", async ({ page }) => {
+  /**
+   * 퀵에는 합격 판정이 뜨는 자리 자체가 없다.
+   *
+   * 종전에는 세션을 마감하는 채점이 결과 요약 모달을 띄웠고, 그 모달에서 '합격 기준 미달'을
+   * 숨기는 것이 이 검사의 대상이었다. 지금은 채점이 문항 단위라 그 모달이 아예 없다 —
+   * 짧은 표본에 합격/불합격을 붙이지 않는다는 결정이 구조로 굳었다.
+   * 화면에 남는 것은 문항별 정답·해설과 헤더 점수판뿐이고, 둘 중 어디에도 판정어가 없어야 한다.
+   */
+  test("퀵에는 합격 판정이 없다 — 짧은 표본에 '기준 미달'은 오해를 만든다", async ({ page }) => {
     await enterQuick(page, "ISTQB");
-    await answerCurrent(page);
-    await page.getByTestId("grade-button").click();
-    const confirm = page.getByTestId("confirm-grade");
-    if (await confirm.count()) await confirm.click();
+    await answerCurrent(page); // 헬퍼가 문항 채점까지 한다
 
-    const result = page.getByTestId("result-summary");
-    await expect(result).toBeVisible({ timeout: 15_000 });
-    await expect(result).toContainText("퀵 랜덤");
-    await expect(result).not.toContainText("합격 기준 미달");
-    await expect(result).not.toContainText("합격 기준 충족");
-    // %가 아니라 맞힌 개수로 보여준다. 총계는 못 박지 않는다 — 문항 수를 고르지 않는
-    // 모드라 회차 크기가 데이터(재수록 제거 후 풀 크기)에 달려 있다.
-    await expect(page.getByTestId("result-rate")).toContainText("문항");
-    await expect(page.getByTestId("result-rate")).not.toContainText("%");
+    await expect(page.locator("#feedback")).toBeVisible();
+    await expect(page.getByTestId("result-summary"), "퀵에 세션 결과 모달이 떴다").toHaveCount(0);
+    const screen = page.locator(".workspace");
+    await expect(screen).not.toContainText("합격 기준 미달");
+    await expect(screen).not.toContainText("합격 기준 충족");
+    // 점수판은 %가 아니라 개수로 말한다 — 표본이 짧아 비율이 오해를 만든다.
+    await expect(page.locator(".quick-scoreboard")).not.toContainText("%");
   });
 
   test("퀵 회차는 요약(응시 횟수·최고 정답률)을 부풀리지 않는다", async ({ page }) => {
     await enterQuick(page, "ISTQB");
-    // 전 문항 정답을 고를 수 없으므로 한 문항만 답하고 채점한다 — 요약에 섞이는지만 본다.
-    await answerCurrent(page);
-    await page.getByTestId("grade-button").click();
-    const confirm = page.getByTestId("confirm-grade");
-    if (await confirm.count()) await confirm.click();
-    await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 15_000 });
-    await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
+    // 전 문항 정답을 고를 수 없으므로 한 문항만 채점한다 — 요약에 섞이는지만 본다.
+    await answerCurrent(page); // 헬퍼가 문항 채점까지 한다
+    await expect(page.locator("#feedback")).toBeVisible();
 
     await page.getByTestId("stats-open").click();
     await expect(page.getByTestId("stats-dashboard")).toBeVisible();
@@ -154,18 +153,16 @@ test.describe("퀵 랜덤", () => {
   // 그 세트의 오답 모드가 퀵 결과로 오염된다. 퀵만 푼 상태에서는 재풀이 대상이 없어야 한다.
   test("퀵은 세트의 '오답 다시 풀기' 대상을 만들지 않는다", async ({ page }) => {
     await enterQuick(page, "ISTQB");
+    // 열 문항을 채점한다 — 채점이 곧 집계이므로, 여기서 세트 오답 버킷이 오염되면 드러난다.
     for (let i = 0; i < 10; i += 1) {
       const o = page.locator("#options .option").first();
       if (await o.count()) await o.click();
-      const n = page.locator("#nextBtn");
-      if (!(await n.count()) || (await n.isDisabled())) break;
-      await n.click();
+      const grade = page.getByTestId("quick-grade-btn");
+      if ((await grade.count()) && !(await grade.isDisabled())) await grade.click();
+      const next = page.getByTestId("quick-next-btn");
+      if (!(await next.count())) break;
+      await next.click();
     }
-    await page.getByTestId("grade-button").click();
-    const confirm = page.getByTestId("confirm-grade");
-    if (await confirm.count()) await confirm.click();
-    await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 15_000 });
-    await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
 
     // 저장된 오답 버킷(reviewIds)이 비어 있어야 한다 — 퀵이 세트 오답을 만들지 않는다.
     const reviewCount = await page.evaluate(() => {

@@ -1005,9 +1005,13 @@ export const AppModals = () => {
 
       {guideOpen && <UserGuide onClose={() => setGuideOpen(false)} />}
 
+      {/* 퀵은 이 모달에 오지 않는다 — 문항마다 채점하고 넘어가는 모드라 세션을 마감하는
+          채점이 없다(useQuizSession.gradeCurrentQuestion). 종전에는 퀵 전용 분기가 셋
+          있었다: 제목 '퀵 랜덤', 합격 판정 숨김, 오답노트 진입로 숨김. 도달할 수 없는
+          분기를 남겨 두면 "퀵은 이렇게 보인다"는 거짓 설명이 코드에 남는다. */}
       {resultOpen && (
         <ResultSummary
-          setTitle={mode === 'quick' ? '퀵 랜덤' : (currentSet?.title || '')}
+          setTitle={currentSet?.title || ''}
           certification={activeProduct}
           correct={gradedCorrect}
           total={gradedTotal}
@@ -1018,12 +1022,6 @@ export const AppModals = () => {
           // 챕터 미니 시험(랜덤+필터)은 회차 라벨도 구분 — "랜덤 N회차"로 표기하면
           // 세트 전체 랜덤과 섞여 보인다(회차 번호는 같은 챕터 미니끼리만 센다).
           modeLabel={compareChapter ? `${compareChapter} 미니` : (MODE_LABEL[mode] ?? mode)}
-          // 퀵은 세트 전체를 푼 것이 아니라 합격 판정의 근거가 없다.
-          hidePassVerdict={mode === 'quick'}
-          // 퀵의 오답은 회차 단위로 모이지 않고 각 문항의 출처 세트별로 흩어져 노트에
-          // 들어간다. 결과 모달에서 바로 열면 방금 푼 회차의 오답만 보일 것이라
-          // 기대하게 되는데 실제로는 세트별 전 회차 합산이 뜬다 — 진입로를 두지 않는다.
-          hideWrongNote={mode === 'quick'}
           onClose={() => setResultOpen(false)}
           onOpenWrongNote={() => { setResultOpen(false); setWrongNoteOpen(true); }}
           onRetry={() => {

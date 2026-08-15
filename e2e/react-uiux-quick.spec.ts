@@ -49,14 +49,11 @@ test("UI: 퀵 화면 axe 스캔 — 라이트·다크·모바일", async ({ page
   await enterQuick(page, "ISTQB");
   await axeScan(page, "퀵 풀이 화면(라이트) — 패널·헤더 점수판 포함");
 
-  // 채점 결과 — 이번에 추가한 중립 표면(.result-score.neutral)이 여기서만 나온다.
-  await answerCurrent(page);
-  await page.getByTestId("grade-button").click();
-  const c = page.getByTestId("confirm-grade");
-  if (await c.count()) await c.click();
-  await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
-  await axeScan(page, "퀵 결과 모달(라이트)");
-  await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
+  // 채점 결과 — 퀵은 문항 단위로 채점하므로 결과가 뜨는 자리는 정답·해설 카드다
+  // (세션 결과 모달은 이 모드에 없다). 잠긴 보기와 해설이 함께 뜬 상태를 훑는다.
+  await answerCurrent(page); // 헬퍼가 문항 채점까지 한다
+  await expect(page.locator("#feedback")).toBeVisible({ timeout: 20_000 });
+  await axeScan(page, "퀵 채점 결과(라이트) — 정답·해설·잠긴 보기");
 
   // 다크
   await page.evaluate(() => localStorage.setItem("istqb-theme", "dark"));
@@ -110,18 +107,37 @@ test("UX: 키보드만으로 퀵을 시작하고 풀 수 있다", async ({ page 
   }
   // 진행은 헤더 점수판에서 읽는다 — 퀵에는 진행률(#progressText)이 없다(분모가 없는 모드).
   const solvedBefore = Number((await quickStat(page, "solved").textContent()) ?? "0");
+  const solved = async () => Number((await quickStat(page, "solved").textContent()) ?? "0");
   const opt = page.locator("#options .option").first();
   await opt.focus();
   await page.keyboard.press("Enter");
   await page.waitForTimeout(200);
-  const solved = async () => Number((await quickStat(page, "solved").textContent()) ?? "0");
-  let progressed = (await solved()) > solvedBefore;
-  if (!progressed) {
+  let picked = (await opt.getAttribute("aria-pressed")) === "true";
+  if (!picked) {
     await page.keyboard.press(" ");
     await page.waitForTimeout(200);
-    progressed = (await solved()) > solvedBefore;
+    picked = (await opt.getAttribute("aria-pressed")) === "true";
   }
-  if (!progressed) bad("보기를 키보드(Enter/Space)로 선택할 수 없다");
+  if (!picked) bad("보기를 키보드(Enter/Space)로 선택할 수 없다");
+
+  // 퀵은 한 문항씩 채점하고 넘어간다 — 고르는 것만으로는 진행이 오르지 않는다.
+  // 채점 버튼까지 키보드로 닿아야 이 모드의 흐름이 키보드만으로 닫힌다.
+  const grade = page.getByTestId("quick-grade-btn");
+  // 복수정답이면 정답 개수만큼 골라야 채점이 열린다 — 나머지도 키보드로 고른다.
+  const optionCount = await page.locator("#options .option").count();
+  for (let i = 1; i < optionCount && (await grade.isDisabled()); i += 1) {
+    await page.locator("#options .option").nth(i).focus();
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(150);
+  }
+  if (await grade.isDisabled()) {
+    bad("답을 다 골랐는데 채점 버튼이 열리지 않는다");
+  } else {
+    await grade.focus();
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(300);
+    if (!((await solved()) > solvedBefore)) bad("키보드로 채점했는데 진행이 오르지 않는다");
+  }
 
   // 문항 이동도 키보드로(← →) — 이미 다른 스펙이 보지만 퀵에서도 성립하는지 확인한다.
   await page.keyboard.press("ArrowRight");
@@ -224,7 +240,7 @@ test("UI: 테마 × 글자 크기 조합에서 퀵 화면이 넘치거나 잘리
 });
 
 // ─────────────────────────────────────────────────────────────
-test("UI: 퀵 결과의 중립 표면이 라이트·다크 모두에서 읽을 수 있는 대비를 갖는다", async ({ page }) => {
+test("UI: 퀵 채점 결과 카드가 라이트·다크 모두에서 읽을 수 있는 대비를 갖는다", async ({ page }) => {
   test.setTimeout(300_000);
 
   // 상대 휘도 → 대비비. axe가 놓치는 조합(동적 클래스)을 직접 잰다.
@@ -246,39 +262,36 @@ test("UI: 퀵 결과의 중립 표면이 라이트·다크 모두에서 읽을 �
     await page.goto("/");
     await page.evaluate((t) => { localStorage.clear(); localStorage.setItem("istqb-theme", t as string); }, theme);
     await enterQuick(page, "ISTQB");
-    await answerCurrent(page);
-    await page.getByTestId("grade-button").click();
-    const c = page.getByTestId("confirm-grade");
-    if (await c.count()) await c.click();
-    await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
+    await answerCurrent(page); // 헬퍼가 문항 채점까지 한다
+    await expect(page.locator("#feedback")).toBeVisible({ timeout: 20_000 });
 
+    // 퀵에서 결과가 뜨는 자리는 문항의 정답·해설 카드다(세션 결과 모달은 이 모드에 없다).
+    // 정오답에 따라 배경이 갈리므로 지금 뜬 그 표면을 그대로 잰다.
     const colors = await page.evaluate(() => {
-      const box = document.querySelector(".result-score") as HTMLElement | null;
+      const box = document.querySelector("#feedback") as HTMLElement | null;
       const strong = box?.querySelector("strong") as HTMLElement | null;
-      const badge = box?.querySelector(".result-badge") as HTMLElement | null;
-      if (!box || !strong || !badge) return null;
+      if (!box) return null;
       const cs = getComputedStyle(box);
+      const head = strong ?? box;
       return {
         cls: box.className,
         bg: cs.backgroundColor,
-        strongFg: getComputedStyle(strong).color,
-        strongSize: parseFloat(getComputedStyle(strong).fontSize),
-        badgeFg: getComputedStyle(badge).color,
-        badgeSize: parseFloat(getComputedStyle(badge).fontSize),
+        bodyFg: cs.color,
+        bodySize: parseFloat(cs.fontSize),
+        strongFg: getComputedStyle(head).color,
+        strongSize: parseFloat(getComputedStyle(head).fontSize),
       };
     });
-    if (!colors) { bad(`${theme}: 결과 점수 블록을 찾지 못함`); continue; }
-    if (!colors.cls.includes("neutral")) bad(`${theme}: 퀵 결과인데 중립 클래스가 아니다 (${colors.cls})`);
+    if (!colors) { bad(`${theme}: 채점 결과 카드를 찾지 못함`); continue; }
+    if (!/correct|wrong/.test(colors.cls)) bad(`${theme}: 정오답 표시가 없는 결과 카드 (${colors.cls})`);
 
     // 큰 글자(≥24px 굵게)는 3:1, 본문 크기는 4.5:1이 AA 기준이다.
-    const bigRatio = contrast(colors.strongFg, colors.bg);
-    const badgeRatio = contrast(colors.badgeFg, colors.bg);
-    note(`${theme}: 점수 ${colors.strongSize}px 대비 ${bigRatio.toFixed(2)}:1 · 배지 ${colors.badgeSize}px 대비 ${badgeRatio.toFixed(2)}:1`);
-    const bigNeed = colors.strongSize >= 24 ? 3 : 4.5;
-    if (bigRatio < bigNeed) bad(`${theme}: 퀵 결과 점수 대비 ${bigRatio.toFixed(2)}:1 < ${bigNeed}:1`);
-    if (badgeRatio < 4.5) bad(`${theme}: 퀵 결과 배지 대비 ${badgeRatio.toFixed(2)}:1 < 4.5:1`);
-
-    await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
+    const bodyRatio = contrast(colors.bodyFg, colors.bg);
+    const strongRatio = contrast(colors.strongFg, colors.bg);
+    note(`${theme}: 본문 ${colors.bodySize}px 대비 ${bodyRatio.toFixed(2)}:1 · 제목 ${colors.strongSize}px 대비 ${strongRatio.toFixed(2)}:1`);
+    if (bodyRatio < 4.5) bad(`${theme}: 채점 결과 본문 대비 ${bodyRatio.toFixed(2)}:1 < 4.5:1`);
+    const strongNeed = colors.strongSize >= 24 ? 3 : 4.5;
+    if (strongRatio < strongNeed) bad(`${theme}: 채점 결과 제목 대비 ${strongRatio.toFixed(2)}:1 < ${strongNeed}:1`);
   }
   expect(problems, problems.join("\n")).toEqual([]);
 });
