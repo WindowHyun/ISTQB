@@ -116,17 +116,23 @@ describe('isAnsweredInMode', () => {
   });
 });
 
+/**
+ * 이 파일 대부분은 '채점까지 끝낸 상태'를 전제로 세는 규칙을 검증한다 — 그 전제를 이름으로
+ * 남긴다. 채점 여부 자체가 값을 가르는 경우는 아래 '채점한 문항만 센다'가 따로 본다.
+ */
+const allGraded = () => true;
+
 describe('computeQuickStats', () => {
   const qs = [mc('q1', ['a']), mc('q2', ['a']), mc('q3', ['a']), mc('q4', ['a'])];
 
   it('아무것도 안 풀었으면 전부 0이다', () => {
-    expect(computeQuickStats(qs, {}, keyOf)).toEqual({
+    expect(computeQuickStats(qs, {}, keyOf, allGraded)).toEqual({
       solved: 0, correct: 0, wrong: 0, streak: 0, best: 0,
     });
   });
 
   it('확정한 문항만 세고 정오답을 가른다', () => {
-    const stats = computeQuickStats(qs, { q1: ['a'], q2: ['b'] }, keyOf);
+    const stats = computeQuickStats(qs, { q1: ['a'], q2: ['b'] }, keyOf, allGraded);
     expect(stats.solved).toBe(2);
     expect(stats.correct).toBe(1);
     expect(stats.wrong).toBe(1);
@@ -136,8 +142,8 @@ describe('computeQuickStats', () => {
   // 채점 회차에도 들어가지 않는다(두 곳이 같은 술어를 쓴다).
   it('미확정 복수정답은 진행에 세지 않는다', () => {
     const multi = [mc('m1', ['a', 'b'])];
-    expect(computeQuickStats(multi, { m1: ['a'] }, keyOf).solved).toBe(0);
-    expect(computeQuickStats(multi, { m1: ['a', 'b'] }, keyOf).solved).toBe(1);
+    expect(computeQuickStats(multi, { m1: ['a'] }, keyOf, allGraded).solved).toBe(0);
+    expect(computeQuickStats(multi, { m1: ['a', 'b'] }, keyOf, allGraded).solved).toBe(1);
   });
 
   it('연속은 틀리는 순간 끊기고, 최고 기록은 남는다', () => {
@@ -145,6 +151,7 @@ describe('computeQuickStats', () => {
       qs,
       { q1: ['a'], q2: ['a'], q3: ['b'], q4: ['a'] },
       keyOf,
+      allGraded,
     );
     expect(stats.correct).toBe(3);
     expect(stats.streak).toBe(1); // q3에서 끊기고 q4로 다시 1
@@ -160,20 +167,60 @@ describe('computeQuickStats', () => {
    */
   it('보고 있는 위치와 무관하게 같은 값을 낸다(점수판 되감김 방지)', () => {
     const answers = { q1: ['a'], q2: ['b'], q3: ['a'] };
-    const stats = computeQuickStats(qs, answers, keyOf);
+    const stats = computeQuickStats(qs, answers, keyOf, allGraded);
     expect(stats.solved).toBe(3);
     // 첫 문항으로 되돌아가든 마지막에 있든, 인자가 같으면 결과도 같다.
-    expect(computeQuickStats(qs, answers, keyOf)).toEqual(stats);
+    expect(computeQuickStats(qs, answers, keyOf, allGraded)).toEqual(stats);
     // 뒤쪽 문항을 먼저 풀고 앞으로 돌아온 경우에도 빠짐없이 센다.
-    expect(computeQuickStats(qs, { q4: ['a'] }, keyOf).solved).toBe(1);
+    expect(computeQuickStats(qs, { q4: ['a'] }, keyOf, allGraded).solved).toBe(1);
   });
 
   it('출제 목록에 없는 답안은 세지 않는다(이전 회차 잔재 방어)', () => {
-    expect(computeQuickStats(qs, { q1: ['a'], ghost: ['a'] }, keyOf).solved).toBe(1);
+    expect(computeQuickStats(qs, { q1: ['a'], ghost: ['a'] }, keyOf, allGraded).solved).toBe(1);
   });
 
   it('빈 출제 목록에서도 안전하다', () => {
-    expect(computeQuickStats([], { q1: ['a'] }, keyOf).solved).toBe(0);
+    expect(computeQuickStats([], { q1: ['a'] }, keyOf, allGraded).solved).toBe(0);
+  });
+
+  /**
+   * 퀵은 한 문항씩 채점하고 넘어가는 모드다 — 답을 골라 두기만 한 문항은 아직 정답을
+   * 보지 않았다. 그것까지 세면 사용자가 채점을 누르기도 전에 점수판이 '정답/오답'을
+   * 먼저 말해 버린다(그 순간 화면의 문항은 아직 답을 감추고 있다).
+   */
+  it('채점한 문항만 센다 — 골라 두기만 한 문항은 진행에 들어가지 않는다', () => {
+    const answers = { q1: ['a'], q2: ['b'], q3: ['a'] };
+    const graded = new Set(['q1', 'q2']);
+    const stats = computeQuickStats(qs, answers, keyOf, (key) => graded.has(key));
+    expect(stats.solved, 'q3는 골랐지만 채점 전이다').toBe(2);
+    expect(stats.correct).toBe(1);
+    expect(stats.wrong).toBe(1);
+  });
+
+  it('채점 표시가 하나도 없으면 답을 다 골랐어도 전부 0이다', () => {
+    const answers = { q1: ['a'], q2: ['a'], q3: ['a'], q4: ['a'] };
+    expect(computeQuickStats(qs, answers, keyOf, () => false)).toEqual({
+      solved: 0, correct: 0, wrong: 0, streak: 0, best: 0,
+    });
+  });
+
+  /**
+   * 채점 표시가 있어도 답이 덜 찬 문항은 세지 않는다 — 두 조건은 AND다.
+   * (복수정답을 하나만 고른 채로 채점 표시만 남은 손상 데이터 방어)
+   */
+  it('채점 표시가 있어도 답이 덜 찼으면 세지 않는다', () => {
+    const multi = [mc('m1', ['a', 'b'])];
+    expect(computeQuickStats(multi, { m1: ['a'] }, keyOf, allGraded).solved).toBe(0);
+  });
+
+  it('연속은 채점한 문항의 출제 순서로 이어진다', () => {
+    // q1 정답 · q2 오답 · q3 정답을 채점하고, q4는 골라만 뒀다.
+    const answers = { q1: ['a'], q2: ['b'], q3: ['a'], q4: ['a'] };
+    const graded = new Set(['q1', 'q2', 'q3']);
+    const stats = computeQuickStats(qs, answers, keyOf, (key) => graded.has(key));
+    expect(stats.streak, 'q3에서 다시 1').toBe(1);
+    expect(stats.best, 'q1 하나가 최고').toBe(1);
+    expect(stats.solved).toBe(3);
   });
 });
 
@@ -196,9 +243,13 @@ describe('점수판 × 채점 범위 교차 계약', () => {
       { q1: ['a'], q2: ['a', 'b'], q3: ['로그'], q4: ['b'] },
     ];
     for (const answers of cases) {
-      const gradable = qs.filter((q) => isQuickCommitted(q, answers[keyOf(q)] || []));
+      // 채점 대상 = 답을 다 골랐고 **채점까지 끝낸** 문항(useQuizSession의 gradableQuestions).
+      // 여기서는 답을 확정한 문항을 모두 채점했다고 두고 두 값이 같은지 본다.
+      const graded = new Set(Object.keys(answers));
+      const gradable = qs.filter((q) =>
+        isQuickCommitted(q, answers[keyOf(q)] || []) && graded.has(keyOf(q)));
       expect(
-        computeQuickStats(qs, answers, keyOf).solved,
+        computeQuickStats(qs, answers, keyOf, (key) => graded.has(key)).solved,
         `answers=${JSON.stringify(answers)}`,
       ).toBe(gradable.length);
     }

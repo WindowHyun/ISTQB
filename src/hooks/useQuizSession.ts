@@ -17,11 +17,14 @@ import { saveHistoryToDB } from '../utils/storage';
 export function useQuizSession() {
   // 슬라이스 구독(O1) — elapsedSeconds는 구독하지 않고 채점 시점에 getState()로 읽는다
   // (구독하면 이 훅을 쓰는 모든 컴포넌트가 타이머 틱마다 리렌더된다).
-  const { mode, setId, answers, graded, examStarted, addHistory, addQuickRound, setReviewIds, setGraded, setResultOpen, setConfirmGradeOpen, markReviewed, unmarkReviewed } =
+  const { mode, setId, answers, graded, quickGraded, index, examStarted, addHistory, addQuickRound, markQuickGraded, setIndex, setReviewIds, setGraded, setResultOpen, setConfirmGradeOpen, markReviewed, unmarkReviewed } =
     useQuizStore(useShallow((s) => ({
       mode: s.mode, setId: s.setId, answers: s.answers, graded: s.graded,
+      // 퀵의 채점은 문항 단위라 '지금 보고 있는 문항'과 그 채점 여부가 필요하다.
+      quickGraded: s.quickGraded, index: s.index,
       examStarted: s.examStarted[s.setId],
       addHistory: s.addHistory, addQuickRound: s.addQuickRound, setReviewIds: s.setReviewIds, setGraded: s.setGraded,
+      markQuickGraded: s.markQuickGraded, setIndex: s.setIndex,
       markReviewed: s.markReviewed, unmarkReviewed: s.unmarkReviewed,
       setResultOpen: s.setResultOpen, setConfirmGradeOpen: s.setConfirmGradeOpen,
     })));
@@ -53,9 +56,12 @@ export function useQuizSession() {
    */
   const gradableQuestions = useMemo(
     () => (mode === 'quick'
-      ? currentQuestions.filter((q) => isQuickCommitted(q, answers[answerKeyOf(q)] || []))
+      // 퀵은 **채점을 마친 문항**만 회차에 담는다. 채점이 문항 단위가 되면서 "답을 골라
+      // 두기만 한 문항"이 생겼는데, 그것까지 담으면 아직 정답을 보지도 않은 문항이
+      // 챕터 통계와 24시간 오답 목록에 먼저 들어간다.
+      ? currentQuestions.filter((q) => quickGraded[answerKeyOf(q)])
       : currentQuestions),
-    [mode, currentQuestions, answers, answerKeyOf],
+    [mode, currentQuestions, quickGraded, answerKeyOf],
   );
 
   const total = currentQuestions.length;
@@ -109,7 +115,21 @@ export function useQuizSession() {
   // 워크스페이스만 가리므로, 이 조건이 없으면 사이드바 '채점하기'로 응시한 적 없는
   // 시험이 0/N 유령 회차로 기록된다.
   const examUnderway = mode !== 'exam' || !!examStarted || answered > 0;
-  const canGrade = isGradedMode(mode) && !isGraded && total > 0 && examUnderway;
+  // ── 퀵: 한 문항씩 채점하고 넘어간다 ────────────────────────────────────────
+  // 지금 보고 있는 문항. 퀵의 채점·다음 이동이 전부 이 하나를 대상으로 한다.
+  const currentQuestion = currentQuestions[Math.min(Math.max(index, 0), Math.max(0, total - 1))];
+  const currentKey = currentQuestion ? answerKeyOf(currentQuestion) : '';
+  /** 이 문항을 채점했는가 — 정답·해설 공개와 집계의 기준(QuestionCard와 같은 값을 본다). */
+  const currentQuickGraded = mode === 'quick' && !!quickGraded[currentKey];
+  /** 채점 버튼을 열어도 되는가 — 답을 다 골랐고 아직 채점하지 않았다. */
+  const canGradeQuestion = mode === 'quick' && !!currentQuestion && !currentQuickGraded
+    && isQuickCommitted(currentQuestion, answers[currentKey] || []);
+  const hasNextQuestion = index < total - 1;
+
+  const canGrade = mode === 'quick'
+    // 퀵에는 '세션 채점'이 없다 — 이 값은 문항 단위 채점 버튼의 가용 여부다.
+    ? canGradeQuestion
+    : isGradedMode(mode) && !isGraded && total > 0 && examUnderway;
   const progressPercent = total ? Math.round((answered / total) * 100) : 0;
 
   const handleGrade = () => {
@@ -195,6 +215,47 @@ export function useQuizSession() {
     return done.length;
   };
 
+  /**
+   * 퀵의 채점 — **지금 이 문항 하나만** 채점한다.
+   *
+   * 정답·해설이 열리고(quickGraded), 점수판이 오르고, 그 문항이 이번 세션의 회차에
+   * 합류한다. 회차는 세션당 하나이고 채점할 때마다 자란다(addQuickRound가 같은 id를
+   * 갈아끼운다) — 문항마다 회차를 쌓으면 24시간 오답 목록이 한 문항짜리 덩어리 수십 개로
+   * 쪼개지고 저장소도 그만큼 부푼다.
+   *
+   * 세션을 마감하는 절차는 없다. 퀵은 끝을 정해 놓지 않은 모드이고, 챕터 통계·오답 목록은
+   * 여기서 이미 반영되므로 나중에 한 번 더 집계할 것이 남지 않는다.
+   */
+  const gradeCurrentQuestion = () => {
+    if (!canGradeQuestion || !currentQuestion) return;
+    markQuickGraded(currentKey);
+    // 방금 채점한 문항은 아직 메모(gradableQuestions)에 없다 — 상태 갱신은 다음 렌더다.
+    const gradedQs = [...gradableQuestions, currentQuestion];
+    const wrongQs = gradedQs.filter((q) =>
+      !isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts));
+    const snapshot = useQuizStore.getState();
+    addQuickRound(buildRoundHistory({
+      setId,
+      mode,
+      questions: gradedQs,
+      answers,
+      answerKeyOf,
+      wrongQuestions: wrongQs,
+      certification: snapshot.activeProduct ?? undefined,
+      setTitle: '퀵 랜덤',
+      elapsedSeconds: snapshot.elapsedSeconds,
+      cstsWeighted: snapshot.activeProduct === 'csts' ? cstsWeighted : undefined,
+      now: Date.now(),
+      // markQuickGraded가 방금 보장한 값이다(없으면 그 자리에서 만든다).
+      id: snapshot.quickRoundId ?? makeRoundId(),
+    }));
+  };
+
+  /** 퀵: 채점을 마친 문항에서 다음 문항으로. 마지막 문항에서는 아무 일도 하지 않는다. */
+  const goNextQuestion = () => {
+    if (hasNextQuestion) setIndex(index + 1);
+  };
+
   // 채점 후 결과 요약 모달을 자동으로 띄운다(사이드바·모바일 하단바 공용).
   const gradeAndShow = () => {
     handleGrade();
@@ -202,7 +263,9 @@ export function useQuizSession() {
   };
 
   // 채점 요청: 미응답이 있으면 확인 모달을 먼저 띄우고, 없으면 바로 채점한다.
+  // 퀵은 문항 단위라 확인도 요약 모달도 없다 — 누르는 즉시 그 문항이 채점된다.
   const requestGrade = () => {
+    if (mode === 'quick') { gradeCurrentQuestion(); return; }
     if (answered < total) setConfirmGradeOpen(true);
     else gradeAndShow();
   };
@@ -234,5 +297,10 @@ export function useQuizSession() {
     handleGrade,
     gradeAndShow,
     requestGrade,
+    // 퀵의 문항 단위 흐름 — 채점 버튼과 '다음 문제' 버튼이 쓴다.
+    currentQuickGraded,
+    hasNextQuestion,
+    gradeCurrentQuestion,
+    goNextQuestion,
   };
 }

@@ -24,14 +24,14 @@ export interface QuickScorable {
 }
 
 /**
- * 퀵에서 이 문항의 답이 확정됐는가.
+ * 퀵에서 이 문항의 답이 확정됐는가 = **채점 버튼을 열어도 되는가.**
  *
- * 확정은 세 가지를 동시에 뜻한다 — 보기가 잠기고, 집계(solved/정답/연속)에 들어가고,
- * '다음 문제'가 열린다. 세 곳이 각자 판정하면 "잠겼는데 다음이 안 열린다"처럼 서로
- * 어긋나는 상태가 생기므로 여기 하나로 모은다.
+ * 퀵은 한 문항씩 채점하고 넘어가는 모드다. 확정은 "답을 다 골랐다"까지만 뜻하고,
+ * 정답 공개·집계·다음 문항은 그다음 사건인 **채점**(quickGraded)이 연다. 둘을 갈라 둔
+ * 이유는 사용자가 고르자마자 답이 보이면 스스로 판단할 틈이 없기 때문이다.
  *
  * 복수정답만 예외적으로 '전부 고름'을 요구한다. isAnswered는 하나만 골라도 참이라
- * 그대로 쓰면 3개짜리 문항이 첫 클릭에 오답으로 확정돼 버린다.
+ * 그대로 쓰면 3개짜리 문항이 첫 클릭에 채점 가능해져 버린다.
  */
 export function isQuickCommitted(q: QuickScorable, selected: string[]): boolean {
   const isMulti = !!q.options?.length && q.answer.length > 1;
@@ -59,7 +59,7 @@ export function isAnsweredInMode(mode: string, q: QuickScorable, selected: strin
 }
 
 export interface QuickStats {
-  /** 지금까지 답을 확정한 문항 수. */
+  /** 지금까지 **채점을 끝낸** 문항 수. */
   solved: number;
   correct: number;
   wrong: number;
@@ -94,6 +94,13 @@ export function computeQuickStats(
   questions: QuickScorable[],
   answers: Record<string, string[]>,
   keyOf: (q: QuickScorable) => string,
+  /**
+   * 이 문항을 채점했는가(스토어의 quickGraded).
+   *
+   * 기본값을 두지 않는다. 기본을 "전부 채점됨"으로 두면 넘기기를 잊은 호출부가 옛 규칙
+   * 그대로 조용히 돌아간다 — 실제로 점수판이 그렇게 한 박자 어긋난 채 통과했다.
+   */
+  isGraded: (key: string) => boolean,
 ): QuickStats {
   let solved = 0;
   let correct = 0;
@@ -101,10 +108,11 @@ export function computeQuickStats(
   let streak = 0;
   let best = 0;
   for (const q of questions) {
-    const selected = answers[keyOf(q)] || [];
-    // 아직 확정하지 않은 문항은 세지 않는다 — 화면에 뜬 것만으로 '진행'이 오르면
-    // 답을 고르기도 전에 카운터가 먼저 움직인다.
-    if (!isQuickCommitted(q, selected)) continue;
+    const key = keyOf(q);
+    const selected = answers[key] || [];
+    // 채점하지 않은 문항은 세지 않는다 — 답을 골라 두기만 한 문항까지 세면, 정답을
+    // 아직 보지도 않은 문항이 '정답/오답'으로 먼저 분류된다.
+    if (!isQuickCommitted(q, selected) || !isGraded(key)) continue;
     solved += 1;
     if (isQuestionCorrect(q.answer, selected, q.type, q.answerParts)) {
       correct += 1;

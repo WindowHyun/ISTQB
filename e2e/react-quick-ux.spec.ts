@@ -63,24 +63,26 @@ test("퀵 패널의 버튼은 상시 '다시 섞어 시작'이고, 누르면 회
   await expect(quickStat(page, "solved"), "재추첨했는데 이전 회차 집계가 남아 있다").toHaveText("0");
 });
 
-test("퀵 채점 결과에는 오답노트 진입로가 없다", async ({ page }) => {
+/**
+ * 퀵에는 세션을 마감하는 채점이 없다 — 따라서 결과 요약 모달도, 그 안의 오답노트
+ * 진입로도 없다. 채점은 문항 단위이고 집계는 그때마다 이미 끝난다.
+ *
+ * 사이드바의 '채점하기'도 함께 본다. 그 버튼이 남아 있으면 드로어를 열어 누르는 순간
+ * 지금 보고 있는 문항 하나만 채점되는데, 이름과 자리(세션 액션)가 그 결과를 예고하지
+ * 않아 세션을 마감한 것으로 읽힌다.
+ */
+test("퀵에는 세션 채점도 결과 요약 모달도 없다", async ({ page }) => {
   test.setTimeout(300_000);
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await enterQuick(page, "ISTQB");
 
-  await answerCurrent(page);
-  await openBar(page);
-  await page.getByTestId("grade-button").click();
-  const c = page.getByTestId("confirm-grade");
-  if (await c.count()) await c.click();
-  await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
+  await answerCurrent(page); // 헬퍼가 문항 채점까지 한다
+  await expect(quickStat(page, "solved")).toHaveText("1");
+  await expect(page.getByTestId("result-summary"), "문항을 채점했더니 세션 결과가 떴다").toHaveCount(0);
 
-  // 퀵 오답은 출처 세트별로 흩어져 들어가, "방금 회차의 오답"을 기대하고 열면
-  // 세트별 전 회차 합산이 뜬다 — 그래서 이 모드에서만 진입로를 뺀다.
-  await expect(
-    page.getByTestId("result-summary").getByRole("button", { name: "오답 노트 보기" }),
-  ).toHaveCount(0);
+  await openBar(page);
+  await expect(page.getByTestId("grade-button"), "퀵에 세션 채점 버튼이 남아 있다").toHaveCount(0);
 });
 
 test("시험·랜덤 결과에는 오답노트 버튼이 그대로 있다(퀵만 예외)", async ({ page }) => {
@@ -163,18 +165,12 @@ test("퀵에서는 세트 컨트롤이 사라지고, 나오면 들어가기 직�
   await openBar(page);
   await expect(sel, "퀵인데 세트 컨트롤이 남아 있다").toHaveCount(0);
 
-  // 두 문항에 답해 진행을 만든 뒤에도 여전히 없어야 한다(채점 전후로 되살아나지 않는다).
+  // 두 문항을 채점하며 진행을 만든 뒤에도 여전히 없어야 한다(채점 전후로 되살아나지 않는다).
   for (let i = 0; i < 2; i += 1) {
-    await answerCurrent(page);
+    await answerCurrent(page); // 헬퍼가 문항 채점까지 한다
     await expect(quickStat(page, "solved")).toHaveText(String(i + 1));
-    if (i === 0) await page.locator("#nextBtn").click();
+    if (i === 0) await page.getByTestId("quick-next-btn").click();
   }
-  await openBar(page);
-  await page.getByTestId("grade-button").click();
-  const c = page.getByTestId("confirm-grade");
-  if (await c.count()) await c.click();
-  await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
-  await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
   await openBar(page);
   await expect(sel, "채점했다고 퀵에 세트 컨트롤이 생겼다").toHaveCount(0);
 
@@ -213,15 +209,24 @@ test("퀵: 앞 문항으로 돌아가도 점수판이 되감기지 않고, 채�
     "앞 문항으로 돌아갔더니 '진행'이 줄었다 — 점수판이 보고 있는 위치를 세고 있다",
   ).toHaveText("3");
 
-  // 되돌아온 그 자리에서 채점한다 — 기록도 3문항이어야 화면과 맞는다.
-  await page.getByTestId("grade-button").click();
-  const confirm = page.getByTestId("confirm-grade");
-  await confirm.waitFor({ state: "visible", timeout: 2000 }).catch(() => {});
-  if (await confirm.count()) await confirm.click();
-  await expect(
-    page.getByTestId("result-summary"),
-    "점수판이 말한 진행 수와 회차에 기록된 문항 수가 다르다",
-  ).toContainText("/ 3문항");
+  // 되돌아온 문항은 이미 채점한 것이므로 정답이 그대로 열려 있고, 다시 채점할 수 없다.
+  // (종전에는 이 자리에서 '세션 채점'을 눌러 회차 문항 수를 점수판과 대조했다. 지금은
+  //  채점이 문항 단위라 세션 채점 자체가 없고, 회차는 채점할 때마다 이미 자란다.)
+  await expect(page.locator("#feedback")).toBeVisible();
+  await expect(page.getByTestId("quick-grade-btn")).toHaveCount(0);
+
+  // 회차에 실제로 3문항이 담겼는지는 저장된 퀵 회차에서 확인한다 — 점수판이 말한 수와
+  // 기록이 어긋나면(종전 결함의 본체) 여기서 갈린다.
+  //
+  // 저장은 500ms 디바운스라 즉시 읽으면 비어 있다. 그리고 회차는 **하나**여야 한다 —
+  // 문항마다 새 회차를 쌓으면 24시간 오답 목록이 한 문항짜리 덩어리로 쪼개진다.
+  await expect
+    .poll(async () => page.evaluate(() => {
+      const raw = localStorage.getItem("istqb-fl-v4-sample-ui-state");
+      const rounds = raw ? JSON.parse(raw).quickRounds ?? [] : [];
+      return rounds.length === 1 ? rounds[0].total : `회차 ${rounds.length}개`;
+    }), { message: "점수판이 말한 진행 수와 회차에 기록된 문항 수가 다르다", timeout: 5000 })
+    .toBe(3);
 });
 
 /**
@@ -256,25 +261,30 @@ test("퀵: 복수정답을 일부만 고르면 점수판이 '답함'으로 세�
   // (팔레트를 렌더하지 않는다). 첫 문항에서 ‹ 는 잠겨 있고, 한 번 넘기면 › 가 잠긴다.
   await expect(page.locator("#prevBtn"), "첫 문항인데 ‹ 가 열려 있다").toBeDisabled();
 
-  // 1) 단일 정답 문항을 답한다 — 여기서는 한 번 클릭이 곧 확정이다.
+  // 1) 단일 정답 문항을 답하고 채점한다 — 한 번 클릭이 곧 확정이고, 채점이 집계를 올린다.
   await page.locator("#options .option").first().click();
+  await page.getByTestId("quick-grade-btn").click();
   await expect(quickStat(page, "solved")).toHaveText("1");
 
   // 2) 복수정답 문항으로 이동해 **하나만** 고른다.
-  await page.locator("#nextBtn").click();
+  await page.getByTestId("quick-next-btn").click();
   await expect(page.locator("#nextBtn"), "저장된 추첨 2문항으로 시작해야 한다").toBeDisabled();
   await expect(page.locator("#questionTitle")).toContainText("복수정답");
   await page.locator("#options .option").first().click();
 
   // 확정 규칙의 단일 원천은 computeQuickStats다(유닛이 규칙 자체를 덮는다). 여기서는
-  // 화면에 남은 유일한 표시자인 점수판이 그 규칙을 그대로 말하는지만 본다.
+  // 화면에 남은 표시자 둘 — 채점 버튼의 잠금과 점수판 — 이 그 규칙을 말하는지 본다.
   await expect(
-    quickStat(page, "solved"),
-    "복수정답을 하나만 골랐는데 '진행'이 늘었다 — 채점 회차는 세지 않는다",
-  ).toHaveText("1");
+    page.getByTestId("quick-grade-btn"),
+    "복수정답을 하나만 골랐는데 채점이 열렸다",
+  ).toBeDisabled();
+  await expect(quickStat(page, "solved")).toHaveText("1");
 
-  // 3) 나머지 하나를 마저 고르면 그때 확정으로 올라간다.
+  // 3) 나머지 하나를 마저 고르면 그때 채점이 열리고, 채점해야 집계가 오른다.
   await page.locator("#options .option").nth(1).click();
+  await expect(page.getByTestId("quick-grade-btn")).toBeEnabled();
+  await expect(quickStat(page, "solved"), "아직 채점 전이다").toHaveText("1");
+  await page.getByTestId("quick-grade-btn").click();
   await expect(quickStat(page, "solved")).toHaveText("2");
 });
 
@@ -311,4 +321,75 @@ test("퀵에서는 문항 이동(점프)과 팔레트가 사라지고 ‹ › �
   await expect(page.locator("#questionTitle")).not.toHaveText(first || "");
   await page.locator("#prevBtn").click();
   await expect(page.locator("#questionTitle")).toHaveText(first || "");
+});
+
+/**
+ * 퀵의 채점은 **문항 단위**다 — 한 문항 풀고 채점하면 그 자리에서 정답이 열리고,
+ * 같은 버튼이 '다음 문제'로 바뀐다.
+ *
+ * 종전에는 '채점하기'가 세션을 마감했다(확정한 문항을 한꺼번에 집계하고 결과 요약을 띄운
+ * 뒤 잠금). 그래서 "한 문항씩 무한히 푸는 모드"라는 사양과 달리, 계속 풀려면 매번
+ * '다시 섞어 시작'으로 회차를 새로 뽑아야 했다.
+ *
+ * 네 가지를 함께 본다 — 고르기만 해서는 안 열린다 / 채점이 열고 점수판을 올린다 /
+ * 버튼이 다음으로 바뀐다 / 다음 문항은 다시 미채점이다. 하나만 보면 "열리긴 하는데
+ * 집계가 안 되는" 반쪽 상태가 통과한다.
+ */
+test("퀵: 한 문항을 채점하면 그 자리에서 정답이 열리고 버튼이 '다음 문제'가 된다", async ({ page }) => {
+  test.setTimeout(300_000);
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await enterQuick(page, "ISTQB");
+
+  const grade = page.getByTestId("quick-grade-btn");
+  const feedback = page.locator("#feedback");
+
+  // 답을 고르기 전 — 채점은 잠겨 있고 정답도 없다.
+  await expect(grade, "답도 고르지 않았는데 채점이 열려 있다").toBeDisabled();
+  await expect(feedback).toHaveCount(0);
+
+  // 고르기만 해서는 아무것도 열리지 않는다(시험처럼) — 스스로 판단할 틈을 준다.
+  await page.locator("#options .option").first().click();
+  await expect(feedback, "고르자마자 정답이 열렸다 — 채점 전이다").toHaveCount(0);
+  await expect(grade).toBeEnabled();
+  await expect(quickStat(page, "solved"), "채점 전인데 점수판이 올랐다").toHaveText("0");
+
+  // 채점 — 정답·해설이 열리고 점수판이 오른다.
+  await grade.click();
+  await expect(feedback).toBeVisible();
+  await expect(quickStat(page, "solved")).toHaveText("1");
+  const correct = Number(await quickStat(page, "correct").textContent());
+  const wrong = Number(await quickStat(page, "wrong").textContent());
+  expect(correct + wrong, "진행은 올랐는데 정답·오답 어디에도 안 잡혔다").toBe(1);
+
+  // 같은 자리의 버튼이 '다음 문제'로 바뀐다(채점 버튼은 사라진다).
+  await expect(grade).toHaveCount(0);
+  const next = page.getByTestId("quick-next-btn");
+  await expect(next).toBeVisible();
+
+  // 다음 문항으로 넘어가면 처음 상태로 돌아간다 — 미채점, 정답 닫힘.
+  const before = (await page.locator("#questionTitle").textContent()) || "";
+  await next.click();
+  await expect(page.locator("#questionTitle")).not.toHaveText(before);
+  await expect(page.locator("#feedback")).toHaveCount(0);
+  await expect(page.getByTestId("quick-grade-btn")).toBeDisabled();
+  // 앞 문항의 채점 결과는 그대로 남는다(점수판은 되감기지 않는다).
+  await expect(quickStat(page, "solved")).toHaveText("1");
+});
+
+test("퀵: 채점한 문항으로 ‹ 돌아가면 정답이 그대로 열려 있고 다시 고를 수 없다", async ({ page }) => {
+  test.setTimeout(300_000);
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await enterQuick(page, "ISTQB");
+
+  await answerCurrent(page); // 헬퍼가 채점까지 한다
+  await expect(quickStat(page, "solved")).toHaveText("1");
+  await page.getByTestId("quick-next-btn").click();
+  await page.locator("#prevBtn").click();
+
+  // 채점 표시는 답안과 함께 저장되므로 되돌아와도 유지된다.
+  await expect(page.locator("#feedback")).toBeVisible();
+  await expect(page.locator("#options .option").first()).toBeDisabled();
+  await expect(page.getByTestId("quick-next-btn"), "이미 채점한 문항인데 채점 버튼이 다시 떴다").toBeVisible();
 });

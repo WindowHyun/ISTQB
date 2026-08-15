@@ -27,14 +27,16 @@ interface QuickScoreboardProps {
 export const QuickScoreboard = ({ questions }: QuickScoreboardProps) => {
   // answers는 여기서만 구독한다. 워크스페이스 슬라이스에 넣으면 보기를 누를 때마다
   // 헤더·팔레트·하단 액션바까지 통째로 다시 그려진다(O1 의도 유지) — 이 한 줄만 갱신되면 된다.
-  const { answers, setId } = useQuizStore(useShallow((s) => ({
-    answers: s.answers, setId: s.setId,
+  const { answers, setId, quickGraded } = useQuizStore(useShallow((s) => ({
+    answers: s.answers, setId: s.setId, quickGraded: s.quickGraded,
   })));
 
   const stats = computeQuickStats(
     questions,
     answers,
     (q) => answerKeyFor(setId, 'quick', q),
+    // 채점을 마친 문항만 센다 — 답을 골라 두기만 한 문항은 아직 정답을 보지 않았다.
+    (key) => !!quickGraded[key],
   );
 
   return (

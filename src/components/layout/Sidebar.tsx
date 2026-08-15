@@ -200,7 +200,10 @@ export const Sidebar = () => {
     const totalQuestions = counted.reduce((sum, s) => sum + setCounts[s.id], 0);
     return `${sets.length}세트 ${totalQuestions}문항`;
   })();
-  const showGradeSection = isGradedMode(mode);
+  // 퀵은 세션을 마감하는 채점이 없다 — 문항마다 워크스페이스의 버튼으로 채점하고 넘어간다.
+  // 여기 '채점하기'를 남기면 드로어를 열어 누르는 순간 지금 보고 있는 문항 하나만 채점되는데,
+  // 이름과 자리(세션 액션)가 그 결과를 예고하지 않아 세션을 마감한 것으로 읽힌다.
+  const showGradeSection = isGradedMode(mode) && mode !== 'quick';
   // 이번 퀵 회차에 서답형이 실제로 섞였는가 — 안내 문구가 이 값으로 갈린다(그 자리 주석 참고).
   const hasShortAnswer = currentQuestions.some((q) => q.type === 'short_answer');
 

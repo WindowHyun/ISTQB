@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { answerKeyPrefix, gradeKeyFor } from '../utils/answerKey';
+import { makeRoundId } from '../utils/roundHistory';
 
 // quick: 제품의 전 세트에서 10~20문항을 뽑아 짧게 푸는 모드. 세트 하나에 매이지 않으므로
 // setId는 QUICK_SET_ID 센티넬을 쓴다(실재하는 세트 id와 겹치지 않는다 — 계약은 단위 테스트로 고정).
@@ -150,6 +151,18 @@ export interface QuizState {
   preQuickSetId: string | null;
   quickSize: number;
   quickNonce: number;
+  /**
+   * 퀵에서 **채점을 마친 문항**(답안과 같은 키). 퀵은 한 문항씩 채점하고 넘어가는 모드라,
+   * "답을 골랐다"와 "채점했다"가 서로 다른 사건이다 — 정답·해설 공개도, 점수판 집계도
+   * 이쪽을 기준으로 삼는다. 답안과 같은 키를 쓰므로 회차를 새로 뽑을 때 함께 비워진다.
+   */
+  quickGraded: Record<string, true>;
+  /**
+   * 이번 퀵 세션의 회차 id. 문항을 채점할 때마다 **같은 회차를 갱신한다**(문항마다 새
+   * 회차를 쌓지 않는다) — 24시간 오답 목록이 한 세션당 한 덩어리로 남고, 챕터 통계도
+   * 종전과 같은 모양으로 합산된다.
+   */
+  quickRoundId: string | null;
 
   // Actions
   setActiveProduct: (product: 'istqb' | 'csts') => void;
@@ -158,9 +171,15 @@ export interface QuizState {
   setIndex: (index: number | ((prev: number) => number)) => void;
   setAnswer: (key: string, selected: string[]) => void;
   addHistory: (history: ExamHistory) => void;
-  /** 퀵 회차를 임시 보관에 넣는다(만료된 것은 이때 함께 청소한다). */
+  /**
+   * 퀵 회차를 임시 보관에 넣는다(만료된 것은 이때 함께 청소한다).
+   * 같은 id가 있으면 갈아끼운다 — 퀵 세션 하나가 회차 하나이고, 문항을 채점할 때마다
+   * 그 회차가 자란다.
+   */
   addQuickRound: (round: ExamHistory) => void;
   clearQuickRounds: (certification?: string | null) => void;
+  /** 퀵에서 이 문항의 채점을 끝냈다고 표시한다(정답·해설 공개와 집계의 기준). */
+  markQuickGraded: (key: string) => void;
   // 오답(review) 대상 문항 id 목록. 키는 `${setId}-${mode}`(과거 데이터는 setId 단독일 수 있음).
   setReviewIds: (key: string, ids: string[]) => void;
   setGraded: (key: string, value: boolean) => void;
@@ -238,6 +257,9 @@ export const sessionScopeDefaults = () => ({
   // 세션 스코프로 충분하다.
   quickSize: QUICK_ALL as number,
   quickNonce: 0,
+  // 채점 표시와 회차 id도 제품 스코프다 — 답안(quickDraw)과 같은 생애를 갖는다.
+  quickGraded: {} as Record<string, true>,
+  quickRoundId: null as string | null,
   // 제품이 바뀌면 돌아갈 세트도 남의 제품 것이 되므로 함께 비운다.
   preQuickSetId: null as string | null,
 });
@@ -278,6 +300,8 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   quickDraw: null,
   quickSize: QUICK_ALL,
   quickNonce: 0,
+  quickGraded: {},
+  quickRoundId: null,
   preQuickSetId: null,
 
   setActiveProduct: (activeProduct) => set({ activeProduct }),
@@ -323,7 +347,17 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   })),
   addQuickRound: (round) => set((state) => ({
     // 넣을 때 만료분을 함께 버린다 — 읽는 쪽에서도 거르지만, 저장소가 무한정 자라는 것은 막는다.
-    quickRounds: [...freshQuickRounds(state.quickRounds), round],
+    // 같은 id는 갈아끼운다: 퀵은 문항마다 채점하지만 회차는 세션당 하나이고, 채점할 때마다
+    // 그 회차가 자란다. 덧붙이기만 하면 한 세션이 문항 수만큼의 회차로 쪼개져 24시간
+    // 오답 목록이 파편화되고 저장소도 그만큼 부푼다.
+    quickRounds: [...freshQuickRounds(state.quickRounds).filter((r) => r.id !== round.id), round],
+  })),
+  markQuickGraded: (key) => set((state) => ({
+    quickGraded: { ...state.quickGraded, [key]: true },
+    // 퀵 진입로는 둘인데(모드 세그먼트, 퀵 패널의 재추첨) 세그먼트는 startQuick을 거치지
+    // 않는다 — 그쪽으로 들어온 세션은 회차 id가 없다. 첫 채점에서 만들어 준다.
+    // setId 불변식과 같은 모양의 어긋남이라, 여기 한 곳에서 못박는다.
+    quickRoundId: state.quickRoundId ?? makeRoundId(),
   })),
   clearQuickRounds: (certification) => set((state) => ({
     // 이력 비우기는 현재 제품만 지운다 — 퀵도 같은 범위를 따른다.
@@ -481,6 +515,11 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       mode: 'quick', setId: QUICK_SET_ID, quickSize, quickDraw: null, index: 0,
       chapterFilter: null, quickNonce: state.quickNonce + 1,
       answers: nextAnswers,
+      // 답안과 함께 채점 표시도 비운다 — 남으면 새 회차의 첫 문항이 이미 채점된 얼굴로
+      // 뜬다(재수록 문항이 다시 뽑히면 같은 키를 만난다).
+      quickGraded: {},
+      // 새 세션은 새 회차다. 이 id로 24시간 오답 목록의 한 덩어리가 정해진다.
+      quickRoundId: makeRoundId(),
       graded: { ...state.graded, [gradeKeyFor(QUICK_SET_ID, 'quick')]: false },
       // 세그먼트 진입(setMode)과 같은 규칙으로 돌아갈 세트를 기억한다. 퀵 안에서 '다시 섞어
       // 시작'을 누르면 setId가 이미 센티넬이므로 그때는 앞서 기억한 값을 그대로 둔다.

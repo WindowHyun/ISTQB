@@ -3,8 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../../store/useQuizStore';
 import { answerKeyFor, gradeKeyFor } from '../../utils/answerKey';
 import { Question } from '../../hooks/useQuestions';
-import { isAnswered, isQuestionCorrect } from '../../utils/answer';
-import { isQuickCommitted } from '../../utils/quickStats';
+import { isQuestionCorrect } from '../../utils/answer';
 import { formatAnswerList } from '../../utils/answerDisplay';
 import { RichText } from '../../utils/parser';
 import { openImageLightbox } from '../../utils/lightbox';
@@ -58,8 +57,9 @@ const TF_OPTIONS = [
 
 export const QuestionCard = React.memo(({ question }: { question: Question }) => {
   // 슬라이스 구독(O1) — 타이머 틱에 리렌더되지 않아 React.memo가 실효를 갖는다.
-  const { mode, setId, answers, setAnswer, graded } = useQuizStore(useShallow((s) => ({
+  const { mode, setId, answers, setAnswer, graded, quickGraded } = useQuizStore(useShallow((s) => ({
     mode: s.mode, setId: s.setId, answers: s.answers, setAnswer: s.setAnswer, graded: s.graded,
+    quickGraded: s.quickGraded,
   })));
   const [showFeedback, setShowFeedback] = useState(false);
 
@@ -83,16 +83,16 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
   const isMulti = hasOptions && question.answer.length > 1;
   const isGraded = Boolean(graded[gradeKeyFor(setId, mode)]);
   const isQuick = mode === 'quick';
-  // 연습·오답·퀵은 즉시 피드백, 시험만 채점 후 공개.
-  const immediate = mode === 'practice' || mode === 'review' || isQuick;
-  // 퀵의 공개·잠금은 로컬 상태가 아니라 저장된 답안에서 판정한다. showFeedback은 새로고침에
-  // 사라지는데, 퀵은 진행·연속 정답을 답안에서 파생하므로(quickStats) 화면만 되돌아가면
-  // "센 것은 그대로인데 다시 고를 수 있는" 상태가 된다 — 그 순간 수치가 흔들린다.
-  const quickCommitted = isQuick && isQuickCommitted(question, selected);
-  const reveal = showFeedback || isGraded || quickCommitted;
-  // 채점 후 잠금(시험) · 답을 확정한 뒤 잠금(퀵).
+  // 연습·오답은 즉시 피드백. 시험은 채점 후 공개, 퀵은 **그 문항을 채점한 뒤** 공개한다.
+  const immediate = mode === 'practice' || mode === 'review';
+  // 퀵의 공개·잠금은 로컬 상태가 아니라 저장된 채점 표시에서 판정한다. showFeedback은
+  // 새로고침에 사라지는데, 퀵의 진행·연속은 채점 표시에서 파생하므로(quickStats) 화면만
+  // 되돌아가면 "센 것은 그대로인데 다시 고를 수 있는" 상태가 된다 — 그 순간 수치가 흔들린다.
+  const quickGradedHere = isQuick && Boolean(quickGraded[answerKey]);
+  const reveal = showFeedback || isGraded || quickGradedHere;
+  // 채점 후 잠금(시험) · 그 문항을 채점한 뒤 잠금(퀵).
   // 연습·오답은 집계 대상이 아니라 종전대로 몇 번이든 다시 고를 수 있다.
-  const locked = isGraded || quickCommitted;
+  const locked = isGraded || quickGradedHere;
 
   const handleSelect = useCallback((key: string) => {
     // 현재 선택·채점 상태는 이벤트 시점에 스토어에서 직접 읽는다 — selected를 의존성에
@@ -116,16 +116,14 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
     state.setAnswer(answerKey, newSelected);
   }, [isMulti, immediate, question.answer.length, answerKey]);
 
-  // 퀵의 서답형은 타이핑 중에 저장하지 않는다. 퀵에서는 "저장됨 = 확정됨"이라(위 quickCommitted)
-  // 한 글자만 쳐도 정답·해설이 펼쳐지고 입력칸이 잠겨 버린다. '정답 확인'을 누를 때 한 번에 넘긴다.
-  // 다른 모드는 종전대로 즉시 저장한다 — 새로고침에도 입력이 남아야 한다.
-  const [draft, setDraft] = useState<string[]>([]);
-  const shortValue = (i: number) => (isQuick && !quickCommitted ? (draft[i] || '') : (selected[i] || ''));
-  const shortCheckReady = !isQuick || isAnswered(draft, parts);
+  // 서답형은 어느 모드에서나 타이핑하는 대로 저장한다 — 새로고침에도 입력이 남아야 한다.
+  // 퀵에도 종전에는 초안(draft) 버퍼가 있었다. "저장됨 = 확정됨 = 정답 공개"였던 시절,
+  // 한 글자만 쳐도 해설이 펼쳐지고 칸이 잠겼기 때문이다. 지금은 공개가 **채점**에 달려
+  // 있어(quickGraded) 저장은 아무것도 드러내지 않으므로 그 버퍼가 필요 없다.
+  const shortValue = (i: number) => selected[i] || '';
 
   const handleShortInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    if (isQuick) { setDraft(value ? [value] : []); return; }
     setAnswer(answerKey, value ? [value] : []);
   };
 
@@ -133,17 +131,13 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
   // 모든 칸이 비면 빈 배열로 저장해 '답함' 집계에서 빠지게 한다.
   const handlePartInput = (i: number, value: string) => {
     const len = parts?.length ?? 0;
-    const base = isQuick ? draft : selected;
-    const next = Array.from({ length: len }, (_, k) => (k === i ? value : (base[k] || '')));
+    const next = Array.from({ length: len }, (_, k) => (k === i ? value : (selected[k] || '')));
     const cleaned = next.every((v) => v === '') ? [] : next;
-    if (isQuick) { setDraft(cleaned); return; }
     setAnswer(answerKey, cleaned);
   };
 
-  // '정답 확인' — 퀵에서는 이 순간이 곧 답 확정이므로 초안을 저장소에 넘긴 뒤 공개한다.
+  // '정답 확인' — 연습·오답에서 서답형의 공개 시점을 사용자가 정한다(퀵은 채점 버튼이 맡는다).
   const handleCheck = () => {
-    if (isQuick && !isAnswered(draft, parts)) return;
-    if (isQuick) setAnswer(answerKey, draft);
     setShowFeedback(true);
   };
 
@@ -221,7 +215,7 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
                 />
               </label>
             ))}
-            {immediate && !reveal && shortCheckReady && (
+            {immediate && !reveal && (
               <button
                 type="button"
                 className="short-answer-check"
@@ -244,7 +238,7 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
               aria-label="단답형 정답 입력"
               onChange={handleShortInput}
             />
-            {immediate && !reveal && shortCheckReady && (
+            {immediate && !reveal && (
               <button
                 type="button"
                 className="short-answer-check"

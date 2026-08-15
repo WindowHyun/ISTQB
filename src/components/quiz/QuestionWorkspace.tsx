@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useQuizStore } from '../../store/useQuizStore';
+import { useQuizStore, QUICK_ALL } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { flushPersist } from '../../utils/storage';
 import { showToast } from '../../utils/toast';
@@ -23,7 +23,7 @@ export const QuestionWorkspace = () => {
     navCollapsed, setNavCollapsed, setPaletteOpen, setResultOpen,
     resumeNotice, setResumeNotice, chapterFilter, setChapterFilter,
     setExamStarted, setDrawerOpen, activeProduct, setExamStartedAt, examStartedAtForSet,
-    setConfirmExitExam, setPendingRestart,
+    setConfirmExitExam, setPendingRestart, startQuick,
   } = useQuizStore(useShallow((s) => ({
     index: s.index, setId: s.setId, mode: s.mode, setMode: s.setMode, setIndex: s.setIndex,
     tickTimer: s.tickTimer, startTimer: s.startTimer, beginSession: s.beginSession,
@@ -34,6 +34,7 @@ export const QuestionWorkspace = () => {
     setExamStarted: s.setExamStarted, setExamStartedAt: s.setExamStartedAt,
     setConfirmExitExam: s.setConfirmExitExam,
     setPendingRestart: s.setPendingRestart,
+    startQuick: s.startQuick,
     examStartedAtForSet: s.examStartedAt[s.setId],
     setDrawerOpen: s.setDrawerOpen, activeProduct: s.activeProduct,
   })));
@@ -41,6 +42,8 @@ export const QuestionWorkspace = () => {
     appData, currentQuestions, listContext, answered, isGraded, canGrade, requestGrade, gradeAndShow,
     showExamGate, examLocked, // 시험 단계 파생은 useQuizSession이 단일 원천(잠금과 동일 규칙 집합)
     loadError, retryLoad,
+    // 퀵은 문항 단위로 채점하고 넘어간다 — 채점/다음 두 상태를 한 버튼이 번갈아 맡는다.
+    currentQuickGraded, hasNextQuestion, goNextQuestion,
   } = useQuizSession();
   // 시험 제한시간(자격증별). null이면 제한 없음 — 종전처럼 경과 시간만 센다.
   const examLimit = mode === 'exam' ? examLimitSeconds(activeProduct) : null;
@@ -299,6 +302,52 @@ export const QuestionWorkspace = () => {
   // 보기 없는 단답형도 동의어 정답을 배열로 가질 수 있다 — 보기가 있을 때만 복수정답 표기(QuestionCard와 동일 기준).
   const isMulti = currentQuestion.options.length > 0 && currentQuestion.answer.length > 1;
 
+  /**
+   * 퀵의 주 액션 — 한 자리에서 **채점 → 다음 문제**를 번갈아 맡는다.
+   *
+   * 퀵은 한 문항씩 채점하고 넘어가는 모드다. 버튼을 둘로 나눠 나란히 두면 채점 전에도
+   * '다음'이 눌려 정답을 못 본 채 지나가고, 그 문항은 집계에도 들어가지 않는다 —
+   * 한 자리에서 상태에 따라 바뀌는 편이 흐름을 강제한다.
+   *
+   * 마지막 문항까지 채점하면 '다시 섞어 시작'이 된다. 끝을 정해 놓지 않은 모드라 마감
+   * 절차가 없어서, 여기서 막히면 회차를 새로 뽑을 길이 드로어 안에만 남는다.
+   *
+   * 데스크톱은 문항 아래, 모바일은 하단 고정 바에 같은 것을 둔다(엄지 동선).
+   */
+  const renderQuickMain = (className: string, suffix = '') => {
+    if (mode !== 'quick') return null;
+    if (!currentQuickGraded) {
+      return (
+        <button
+          type="button"
+          className={className}
+          data-testid={`quick-grade-btn${suffix}`}
+          disabled={!canGrade}
+          onClick={requestGrade}
+        >
+          채점하기
+        </button>
+      );
+    }
+    if (hasNextQuestion) {
+      return (
+        <button type="button" className={className} data-testid={`quick-next-btn${suffix}`} onClick={goNextQuestion}>
+          다음 문제 ›
+        </button>
+      );
+    }
+    return (
+      <button
+        type="button"
+        className={className}
+        data-testid={`quick-reshuffle-btn${suffix}`}
+        onClick={() => startQuick(QUICK_ALL)}
+      >
+        다시 섞어 시작
+      </button>
+    );
+  };
+
   const goPrev = () => setIndex((i) => Math.max(0, i - 1));
   const goNext = () => setIndex((i) => Math.min(total - 1, i + 1));
 
@@ -445,12 +494,23 @@ export const QuestionWorkspace = () => {
         </section>
       )}
 
+      {/* 퀵의 주 액션(데스크톱). 모바일에서는 CSS로 감추고 아래 하단바가 같은 것을 낸다 —
+          팔레트 블록과 같은 규칙이라 한 화면에 버튼이 둘로 보이지 않는다. */}
+      {mode === 'quick' && (
+        <section className="quick-actionbar">
+          {renderQuickMain('quick-main')}
+        </section>
+      )}
+
       {/* 모바일 전용: 하단 고정 액션바(CSS로 ≤880px만 노출).
           순차 이동(‹ ›)·채점·문항 점프를 한 줄에 모은다 — 점프 버튼을 본문 위에 떠 있는
           플로팅 핀으로 두면 해설을 읽는 동안 텍스트를 가려서(스크롤해도 따라옴) 학습을 방해한다. */}
       <nav className="mobile-actionbar" aria-label="문항 이동·채점">
         <button type="button" className="ab-nav" aria-label="이전 문제" disabled={safeIndex === 0} onClick={goPrev}>‹</button>
-        {canGrade ? (
+        {mode === 'quick' ? (
+          // 퀵은 세션 채점이 없다 — 이 자리는 '이 문항 채점 → 다음 문제'가 쓴다.
+          renderQuickMain('ab-main', '-m')
+        ) : canGrade ? (
           <button type="button" className="ab-main" data-testid="grade-button-m" onClick={requestGrade}>채점하기</button>
         ) : isGraded ? (
           <button type="button" className="ab-main subtle" onClick={() => setResultOpen(true)}>결과 요약</button>

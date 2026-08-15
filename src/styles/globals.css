@@ -1311,6 +1311,28 @@ body[data-theme="dark"] .table-image-frame {
 .pill.accent { background: var(--primary-50); border-color: var(--primary-100); color: var(--primary-700); }
 .palette-block .question-nav { margin-top: 14px; box-shadow: none; border: 0; padding: 0; background: transparent; }
 
+/* ── 퀵의 주 액션(데스크톱) ────────────────────────────────────────────
+   퀵은 한 문항씩 채점하고 넘어간다. 한 자리에서 '채점하기 → 다음 문제'가 번갈아 뜨므로
+   버튼은 하나뿐이고, 문항 바로 아래에 둔다(해설을 읽은 시선이 그대로 닿는 자리).
+   ≤880px에서는 감춘다 — 그 폭에서는 하단 고정 바가 같은 것을 낸다. */
+.quick-actionbar {
+  display: flex;
+  justify-content: flex-end;
+}
+.quick-main {
+  min-width: 200px;
+  height: 48px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--primary-solid);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+}
+.quick-main:disabled { opacity: 0.45; }
+.quick-main:not(:disabled):hover { filter: brightness(1.05); }
+
 /* ── 모바일 전용 요소(기본 숨김, ≤880px에서 노출) ───────────────────── */
 .mobile-topbar { display: none; }
 .drawer-backdrop { display: none; }
@@ -1440,6 +1462,8 @@ body[data-theme="dark"] .table-image-frame {
 
   /* B안: 모바일 순차 이동은 하단 액션바로 일원화 → 상단 카드의 ‹›는 숨긴다. */
   .topbar-actions { display: none; }
+  /* 퀵의 주 액션도 하단바가 맡는다 — 본문의 것을 남기면 같은 버튼이 둘로 보인다. */
+  .quick-actionbar { display: none; }
 
   .mobile-actionbar {
     display: flex;

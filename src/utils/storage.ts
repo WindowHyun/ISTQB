@@ -383,6 +383,18 @@ export function sanitizeUiState(value: unknown): Partial<QuizState> {
     const rounds = value.quickRounds.map(sanitizeHistory).filter((h): h is ExamHistory => h !== null);
     if (rounds.length) out.quickRounds = rounds;
   }
+  // 퀵의 문항별 채점 표시 — 값은 true만 통과시킨다(키는 답안 키와 같은 문자열).
+  // 손상·조작된 값이 들어와도 "채점됨"으로 오인되지 않게, 형태가 어긋나면 통째로 버린다.
+  if (isPlainObject(value.quickGraded)) {
+    const marks: Record<string, true> = {};
+    for (const [key, v] of Object.entries(value.quickGraded)) {
+      if (typeof key === 'string' && key && v === true) marks[key] = true;
+    }
+    if (Object.keys(marks).length) out.quickGraded = marks;
+  }
+  if (typeof value.quickRoundId === 'string' && value.quickRoundId) {
+    out.quickRoundId = value.quickRoundId;
+  }
   if (isPlainObject(value.quickDraw)) {
     const qd = value.quickDraw as UnknownRecord;
     const rawItems = Array.isArray(qd.items) ? qd.items : [];
@@ -635,6 +647,13 @@ export const saveUiState = debounce((state: Partial<QuizState>) => {
       randomDraw: state.randomDraw,
       // 퀵 추첨 — 없으면 새로고침 시 다시 뽑혀 풀던 문항과 답안이 사라진다.
       quickDraw: state.quickDraw,
+      // 퀵의 문항별 채점 표시. 없으면 새로고침 한 번에 이미 채점한 문항이 미채점으로
+      // 되돌아가 정답·해설이 닫히고 다시 고를 수 있게 된다 — 점수판은 그대로인데
+      // 화면만 되감기는 상태다(답안을 영속화하는 이유와 같다).
+      quickGraded: state.quickGraded,
+      // 이번 퀵 세션의 회차 id. 없으면 새로고침 뒤 첫 채점이 새 회차를 만들어,
+      // 한 세션의 오답이 24시간 목록에 두 덩어리로 갈린다.
+      quickRoundId: state.quickRoundId,
       // 챕터 집중 연습/미니 시험의 필터 — 영속화하지 않으면 새로고침 시 전체 세트로
       // 돌아가 랜덤(이어풀기)과 동작이 어긋난다. 배너의 '전체 보기'로 언제든 해제 가능.
       chapterFilter: state.chapterFilter,
@@ -907,6 +926,8 @@ export async function exportUserData() {
       navCollapsed: state.navCollapsed,
       randomDraw: state.randomDraw,
       quickDraw: state.quickDraw,
+      quickGraded: state.quickGraded,
+      quickRoundId: state.quickRoundId,
       chapterFilter: state.chapterFilter,
       // 시험 제한시간의 벽시계 기준점. 빠뜨리면 응시 중에 만든 백업을 복원했을 때
       // QuestionWorkspace의 syncExamElapsed가 기준점을 못 찾아 아무 일도 하지 않고,
