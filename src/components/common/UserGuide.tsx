@@ -77,7 +77,7 @@ export const UserGuide = ({ onClose }: { onClose: () => void }) => (
         <h4>⚙️ 편의 기능</h4>
         <ul>
           <li>설정에서 <strong>다크 모드</strong>·<strong>글자 크기</strong>(작게/기본/크게)를 바꿀 수 있습니다.</li>
-          <li>키보드 <strong>← →</strong>로 문항 이동, <strong>문항 목록</strong>(팔레트)에서 번호로 바로 점프 — 답한 문항/빈 문항이 색으로 구분됩니다.</li>
+          <li>키보드 <strong>← →</strong>로 문항 이동, <strong>문항 목록</strong>(팔레트)에서 번호로 바로 점프 — 답한 문항/빈 문항이 색으로 구분됩니다. <strong>퀵</strong>에서는 팔레트 없이 <strong>‹ ›</strong>로만 이동합니다(전 세트를 섞어 내는 모드라 번호가 순번이 아닙니다).</li>
           <li>그림 문항은 이미지를 누르면 <strong>확대</strong>됩니다(Esc로 닫기).</li>
           <li>한 번 접속해두면 <strong>오프라인</strong>에서도 동작합니다(PWA).</li>
         </ul>

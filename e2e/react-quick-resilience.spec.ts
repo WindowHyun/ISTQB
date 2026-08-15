@@ -129,12 +129,16 @@ test.describe("퀵 — 복원력", () => {
   test("출제가 느려도 진입은 목록이 실린 뒤에 끝난다(점수판이 먼저 뜬다)", async ({ page }) => {
     // 연습 세트가 실린 상태에서 시작한다 — 퀵이 덮기 전까지 화면에 남아 있을 목록이다.
     await openProduct(page, "ISTQB");
-    // 팔레트 요약("문항 목록 1 / 40 · 답함 0")의 분모를 읽는다. 퀵에는 진행률이 없고,
-    // 이 요약은 접혀 있어도 렌더되므로 두 모드를 같은 자로 잴 수 있다.
-    const listSize = async () =>
-      Number(((await page.locator(".palette-summary small").textContent()) || "").match(/\/\s*(\d+)/)?.[1] ?? 0);
-    const practiceSize = await listSize();
-    expect(practiceSize, "연습 세트의 문항 수를 읽지 못했다(가정 붕괴)").toBeGreaterThan(0);
+    // 지금 실린 목록의 주인을 워크스페이스의 data-list-* 로 읽는다.
+    // 종전에는 팔레트 요약("문항 목록 1 / 40")의 분모로 쟀는데, 퀵에서는 팔레트를 렌더하지
+    // 않으므로(이동 수단을 ‹ › 로 한정) 두 모드를 같은 자로 잴 수 없다. 세트 id까지 함께
+    // 보는 이유는 mode만으로는 "새 맥락 + 옛 목록"의 옛 쪽이 무엇이었는지 못 잡기 때문이다.
+    const listOwner = async () => {
+      const ws = page.locator(".workspace");
+      return { mode: await ws.getAttribute("data-list-mode"), set: await ws.getAttribute("data-list-set") };
+    };
+    const practiceOwner = await listOwner();
+    expect(practiceOwner.set, "연습 세트의 목록을 읽지 못했다(가정 붕괴)").toBeTruthy();
 
     // 아직 열지 않은 세트의 응답을 늦춰 그 구간을 넓힌다. 늦추지 않으면 이 검사는 진입
     // 6/40회에서만 결함을 만나 — 고쳐도 안 고쳐도 대체로 통과하는 무력한 검사가 된다.
@@ -147,14 +151,11 @@ test.describe("퀵 — 복원력", () => {
 
     // 헬퍼가 돌아온 **그 순간**을 잰다. 재시도하는 단언을 쓰면 기다리는 사이 목록이 도착해,
     // 일찍 돌려주는 헬퍼로도 통과해 버린다(getAttribute·textContent는 재시도하지 않는다).
-    const quickSize = await listSize();
+    const owner = await listOwner();
     expect(
-      quickSize,
-      `진입이 끝났는데 화면에는 아직 연습 세트의 목록이 있다(${quickSize}문항) — 헬퍼가 출제 전에 돌려줬다`,
-    ).toBeGreaterThan(practiceSize);
-    expect(
-      await page.locator(".workspace").getAttribute("data-list-mode"),
-      "목록의 주인이 아직 퀵이 아니다",
-    ).toBe("quick");
+      owner.set,
+      `진입이 끝났는데 화면에는 아직 연습 세트(${practiceOwner.set})의 목록이 있다 — 헬퍼가 출제 전에 돌려줬다`,
+    ).not.toBe(practiceOwner.set);
+    expect(owner.mode, "목록의 주인이 아직 퀵이 아니다").toBe("quick");
   });
 });

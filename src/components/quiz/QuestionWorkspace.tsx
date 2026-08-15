@@ -412,29 +412,38 @@ export const QuestionWorkspace = () => {
         />
       </article>
 
-      {/* 데스크톱 인라인 팔레트(접이식). 모바일에선 CSS로 숨기고 하단바/점프핀으로 대체. */}
-      <section className="palette-block">
-        <div className="palette-head">
-          <div className="palette-summary">
-            문항 목록 <small>{safeIndex + 1} / {total} · 답함 {answered}</small>
+      {/* 데스크톱 인라인 팔레트(접이식). 모바일에선 CSS로 숨기고 하단바/점프핀으로 대체.
+
+          퀵에서는 통째로 뺀다 — 이 모드의 이동 수단은 ‹ › 뿐이다.
+          번호로 건너뛰는 조작이 퀵에서는 뜻을 갖지 않는다: 칸에 찍히는 값은 순번이 아니라
+          **원본 세트의 문항 번호**인데, 퀵은 전 세트를 섞어 내므로 세트가 다르면 같은 번호가
+          여러 번 나온다. "32번으로 간다"가 어디로 가는 것인지 화면 어디에도 없다.
+          게다가 퀵의 추첨 규모는 늘 전부(QUICK_ALL)라 이 격자는 수백 칸이 된다.
+          진행 현황은 헤더의 QuickScoreboard가 맡는다(진행·정답·오답·연속). */}
+      {mode !== 'quick' && (
+        <section className="palette-block">
+          <div className="palette-head">
+            <div className="palette-summary">
+              문항 목록 <small>{safeIndex + 1} / {total} · 답함 {answered}</small>
+            </div>
+            <div className="palette-actions">
+              <button
+                type="button"
+                className="pill"
+                aria-expanded={!navCollapsed}
+                data-testid="palette-toggle"
+                onClick={() => setNavCollapsed(!navCollapsed)}
+              >
+                {navCollapsed ? '▸ 펼치기' : '▾ 접기'}
+              </button>
+              <button type="button" className="pill accent" data-testid="palette-jump-btn" onClick={() => setPaletteOpen(true)}>
+                ⤢ 문항 이동
+              </button>
+            </div>
           </div>
-          <div className="palette-actions">
-            <button
-              type="button"
-              className="pill"
-              aria-expanded={!navCollapsed}
-              data-testid="palette-toggle"
-              onClick={() => setNavCollapsed(!navCollapsed)}
-            >
-              {navCollapsed ? '▸ 펼치기' : '▾ 접기'}
-            </button>
-            <button type="button" className="pill accent" data-testid="palette-jump-btn" onClick={() => setPaletteOpen(true)}>
-              ⤢ 문항 이동
-            </button>
-          </div>
-        </div>
-        {!navCollapsed && <QuestionPalette withId />}
-      </section>
+          {!navCollapsed && <QuestionPalette withId />}
+        </section>
+      )}
 
       {/* 모바일 전용: 하단 고정 액션바(CSS로 ≤880px만 노출).
           순차 이동(‹ ›)·채점·문항 점프를 한 줄에 모은다 — 점프 버튼을 본문 위에 떠 있는
@@ -446,9 +455,14 @@ export const QuestionWorkspace = () => {
         ) : isGraded ? (
           <button type="button" className="ab-main subtle" onClick={() => setResultOpen(true)}>결과 요약</button>
         ) : null}
-        <button type="button" className="jump-pin" data-testid="jump-pin" aria-label="문항 이동" onClick={() => setPaletteOpen(true)}>
-          <span className="jp-dot" aria-hidden="true" />{safeIndex + 1} / {total}
-        </button>
+        {/* 데스크톱과 같은 이유로 퀵에서는 뺀다. 핀이 겸하던 'n / 총계' 표시도 함께
+            사라지지만, 퀵은 원래 분모를 보여주지 않는 모드다(진행 현황은 헤더의
+            QuickScoreboard가 맡는다). 빠진 자리는 ‹ 채점하기 › 가 1:2:1로 채운다. */}
+        {mode !== 'quick' && (
+          <button type="button" className="jump-pin" data-testid="jump-pin" aria-label="문항 이동" onClick={() => setPaletteOpen(true)}>
+            <span className="jp-dot" aria-hidden="true" />{safeIndex + 1} / {total}
+          </button>
+        )}
         <button type="button" className="ab-nav" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
       </nav>
     </section>

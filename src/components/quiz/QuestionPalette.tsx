@@ -40,6 +40,8 @@ export const QuestionPalette = ({ withId, onJump }: QuestionPaletteProps) => {
         // '답함' 색의 기준은 모드가 정한다 — 퀵에서 복수정답을 하나만 고른 문항은 아직
         // 확정이 아니라 점수판·채점 회차에 들어가지 않는다. 여기서만 답한 색으로 칠하면
         // 사용자는 답한 것으로 보이던 문항이 결과에서 사라지는 것을 겪는다(isAnsweredInMode).
+        // (현재 퀵에서는 이 팔레트가 렌더되지 않는다 — 이동을 ‹ › 로 한정했다. 기준은
+        //  그대로 둔다: 판정의 단일 원천은 모드이지 이 컴포넌트의 렌더 여부가 아니다.)
         else classes.push(isAnsweredInMode(mode, q, selected) ? 'answered' : 'unanswered');
         return (
           <button
