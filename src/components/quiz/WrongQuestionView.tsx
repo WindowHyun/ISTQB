@@ -16,15 +16,23 @@ export const WrongQuestionView = ({
   question,
   myAnswer,
   correctAnswer,
+  stemId,
 }: {
   question: Question;
   myAnswer: string[];
   correctAnswer: string[];
+  /**
+   * 지문에 붙일 id. 본문 화면으로 쓸 때만 'questionStem'을 넘긴다 — 앱 셸의 스킵 링크
+   * (본문 바로가기)가 그 id를 가리키기 때문이다. 모달 안에서는 비운다: 풀이 화면이 뒤에
+   * 살아 있어 같은 id가 둘이 되고, 스킵 링크가 어느 쪽으로 갈지 알 수 없어진다.
+   */
+  stemId?: string;
 }) => {
   const fmt = (arr: string[]) => formatAnswerList(arr, '미응답');
   return (
     <div className="wrong-note-view">
-      <div className="question-stem">
+      {/* tabIndex=-1: 스킵 링크의 포커스 이동 대상(풀이 화면의 지문과 같은 규칙). */}
+      <div id={stemId} className="question-stem" tabIndex={stemId ? -1 : undefined}>
         <RichText content={question.stem} />
       </div>
       {question.options.length > 0 ? (

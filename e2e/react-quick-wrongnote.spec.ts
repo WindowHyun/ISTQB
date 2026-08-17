@@ -157,7 +157,11 @@ test("퀵 오답의 '오답 보기'는 팝업이 아니라 본문 화면으로 �
   await expect(screen).toBeVisible({ timeout: 20_000 });
 
   // 지문과 해설이 실제로 실린다 — 내 답/정답만 보여 주던 종전 목록과의 차이가 여기다.
+  // 지문은 #questionStem을 이어받는다: 앱 셸의 스킵 링크('본문 바로가기')가 그 id를
+  // 가리키므로, 풀이 화면을 대신하는 이 화면에도 같은 목적지가 있어야 키보드 사용자가
+  // 본문으로 건너뛸 수 있다.
   await expect(screen.locator("#questionStem")).toBeVisible();
+  await expect(page.locator("#questionStem"), "스킵 링크 목적지가 둘이 됐다").toHaveCount(1);
   await expect(page.getByTestId("wrong-note-explain")).toBeVisible();
   await expect(screen, "내 답·정답 표기가 없다").toContainText("내 답");
   // 내 답과 정답이 보기에 색으로도 구분된다.

@@ -86,6 +86,8 @@ export const WrongViewScreen = () => {
             question={question}
             myAnswer={wrongView.myAnswer}
             correctAnswer={wrongView.correctAnswer}
+            // 풀이 화면을 대신하는 화면이므로 스킵 링크의 목적지도 이어받는다.
+            stemId="questionStem"
           />
         )}
       </article>
