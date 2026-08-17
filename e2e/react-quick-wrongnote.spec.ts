@@ -125,3 +125,49 @@ test("이력 비우기는 퀵 오답 임시 목록까지 지운다", async ({ pa
   await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId("quick-wrong-note"), "새로고침하니 퀵 오답이 되살아났다").toHaveCount(0);
 });
+
+/**
+ * 퀵 오답은 **본문 화면**에서 열린다 — 팝업 안이 아니다.
+ *
+ * 종전에는 이 목록이 보기 전용이었다(내 답·정답만). 퀵은 출처 세트가 문항마다 달라
+ * "세트를 고르고 번호를 찾는" 노트의 기존 3단계로는 닿을 수 없었기 때문이다. 지금은
+ * 줄마다 '오답 보기'가 있고, 누르면 노트가 닫히며 그 문항이 본문에 펼쳐진다.
+ *
+ * 세 가지를 함께 본다 — 노트가 닫히는가 / 지문·해설이 실제로 뜨는가 / 돌아갈 길이 있는가.
+ * 마지막이 빠지면 사용자는 오답 화면에 갇힌다(풀던 회차로 돌아갈 방법이 없다).
+ */
+test("퀵 오답의 '오답 보기'는 팝업이 아니라 본문 화면으로 연다", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await openProduct(page, "ISTQB");
+  await playQuick(page, "12");
+
+  await openBar(page);
+  await page.getByRole("button", { name: /오답 노트/ }).first().click();
+  await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 20_000 });
+  const items = page.getByTestId("quick-wrong-item");
+  expect(await items.count(), "퀵 오답이 하나도 없다(가정 붕괴)").toBeGreaterThan(0);
+
+  await page.getByTestId("quick-wrong-open").first().click();
+
+  // 팝업은 닫히고, 본문이 오답 화면으로 바뀐다.
+  await expect(page.getByTestId("wrong-note"), "오답 보기인데 팝업이 그대로 떠 있다").toHaveCount(0);
+  const screen = page.getByTestId("wrong-view-screen");
+  await expect(screen).toBeVisible({ timeout: 20_000 });
+
+  // 지문과 해설이 실제로 실린다 — 내 답/정답만 보여 주던 종전 목록과의 차이가 여기다.
+  await expect(screen.locator("#questionStem")).toBeVisible();
+  await expect(page.getByTestId("wrong-note-explain")).toBeVisible();
+  await expect(screen, "내 답·정답 표기가 없다").toContainText("내 답");
+  // 내 답과 정답이 보기에 색으로도 구분된다.
+  await expect(page.locator(".wrong-note-options .option.correct")).not.toHaveCount(0);
+
+  // 돌아갈 길 둘 — 노트로, 그리고 풀던 회차로.
+  await page.getByTestId("wrong-view-back").click();
+  await expect(page.getByTestId("wrong-note"), "'오답 노트'로 돌아가지 못했다").toBeVisible();
+  await page.getByTestId("quick-wrong-open").first().click();
+  await page.getByTestId("wrong-view-close").click();
+  await expect(page.getByTestId("wrong-view-screen")).toHaveCount(0);
+  await expect(page.locator(".quick-scoreboard"), "풀던 퀵 회차로 돌아오지 못했다").toBeVisible();
+});

@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { answerCurrent, openProduct, waitForList } from "./helpers";
+import { answerCurrent, openProduct, waitForList, goNextQuestion } from "./helpers";
 
 /**
  * 정합성 테스트 — 같은 사실이 화면마다 같은 값으로 보이는가.
@@ -20,9 +20,7 @@ async function openBar(page: Page) {
 async function answerAll(page: Page, max: number) {
   for (let i = 0; i < max; i += 1) {
     await answerCurrent(page);
-    const n = page.locator("#nextBtn");
-    if (!(await n.count()) || (await n.isDisabled())) break;
-    await n.click();
+    if (!(await goNextQuestion(page))) break;
   }
 }
 

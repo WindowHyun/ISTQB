@@ -11,6 +11,7 @@ import {
 import { formatClock } from '../../utils/time';
 import { useBackDismiss } from '../../hooks/useBackDismiss';
 import { BACK_PRIORITY } from '../../utils/backGuard';
+import { answerKeyFor } from '../../utils/answerKey';
 import { QuestionCard } from './QuestionCard';
 import { QuestionPalette } from './QuestionPalette';
 import { QuickScoreboard } from './QuickScoreboard';
@@ -196,10 +197,22 @@ export const QuestionWorkspace = () => {
         return;
       }
       if (event.key === 'ArrowLeft') setIndex((i) => Math.max(0, i - 1));
-      else if (event.key === 'ArrowRight') setIndex((i) => Math.min(total - 1, i + 1));
+      else if (event.key === 'ArrowRight') {
+        // 퀵에서 앞으로 가는 길은 '채점 후'뿐이다 — 버튼(‹ ›의 ›)을 없앤 것과 같은 규칙을
+        // 키보드에도 건다. 아니면 화살표 하나로 채점하지 않은 문항을 미리 넘겨볼 수 있다.
+        if (s.mode === 'quick') {
+          const q = currentQuestions[Math.min(Math.max(s.index, 0), Math.max(0, total - 1))];
+          if (!q || !s.quickGraded[answerKeyFor(s.setId, 'quick', q)]) return;
+        }
+        setIndex((i) => Math.min(total - 1, i + 1));
+      }
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
+    // currentQuestions는 배열 참조가 매 렌더 바뀔 수 있어 의존성에 넣으면 리스너가 계속
+    // 재등록된다. 핸들러는 길이(total)만 미리 읽고 나머지는 이벤트 시점의 스토어에서
+    // 읽으므로(퀵의 채점 여부 판정 포함) 목록 길이만 의존성으로 충분하다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setIndex, currentQuestions.length]);
 
   /**
@@ -374,7 +387,14 @@ export const QuestionWorkspace = () => {
         )}
         <div className="topbar-actions">
           <button id="prevBtn" type="button" aria-label="이전 문제" disabled={safeIndex === 0} onClick={goPrev}>‹</button>
-          <button id="nextBtn" type="button" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
+          {/* 퀵에는 앞으로 가는 화살표를 두지 않는다.
+              전 세트를 섞어 한 문항씩 내는 모드에서 '다음'을 미리 눌러 볼 수 있으면,
+              채점하지 않은 문항을 그냥 지나칠 수 있고 그 문항은 집계에도 남지 않는다.
+              앞으로 가는 길은 채점 뒤에 나타나는 '다음 문제' 하나뿐이다(뒤로는 열어 둔다 —
+              이미 채점해 정답을 본 문항을 다시 보는 것은 학습에 해가 없다). */}
+          {mode !== 'quick' && (
+            <button id="nextBtn" type="button" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
+          )}
         </div>
       </header>
 
@@ -523,7 +543,10 @@ export const QuestionWorkspace = () => {
             <span className="jp-dot" aria-hidden="true" />{safeIndex + 1} / {total}
           </button>
         )}
-        <button type="button" className="ab-nav" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
+        {/* 데스크톱 헤더와 같은 이유로 퀵에서는 뺀다 — 앞으로는 '채점 → 다음 문제'로만 간다. */}
+        {mode !== 'quick' && (
+          <button type="button" className="ab-nav" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
+        )}
       </nav>
     </section>
   );

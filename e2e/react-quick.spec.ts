@@ -82,12 +82,13 @@ test.describe("퀵 랜덤", () => {
     await enterQuick(page, "CSTS");
     let shortAnswers = 0;
     let visited = 0;
+    // 퀵에는 앞으로 가는 화살표가 없다 — 채점해야 '다음 문제'가 열린다. 유형 비율을 재려면
+    // 훑는 문항을 실제로 풀며 지나가야 한다(answerCurrent가 답하고 채점까지 한다).
     for (let i = 0; i < 20; i += 1) {
       visited += 1;
       if (await page.locator(".short-answer-input").count()) shortAnswers += 1;
-      const next = page.locator("#nextBtn");
-      if (!(await next.count()) || (await next.isDisabled())) break;
-      await next.click();
+      await answerCurrent(page);
+      if (!(await quickNext(page))) break;
       await page.waitForTimeout(60);
     }
     // 셀렉터가 어긋나 조기 이탈하면 검사가 무력해진다 — 실제로 20문항을 밟았는지 먼저 본다.

@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { openProduct, enterQuick, quickStat, answerCurrent } from "./helpers";
+import { openProduct, enterQuick, quickStat, answerCurrent, goNextQuestion } from "./helpers";
 
 /** 퀵 진입 UI 계약 — 패널 위치, 세트 컨트롤 부재, 헤더 점수판, 결과 모달의 오답노트 진입로 제거. */
 
@@ -53,7 +53,7 @@ test("퀵 패널의 버튼은 상시 '다시 섞어 시작'이고, 누르면 회
   for (let i = 0; i < 2; i += 1) {
     await answerCurrent(page);
     await expect(quickStat(page, "solved")).toHaveText(String(i + 1));
-    if (i === 0) await page.locator("#nextBtn").click();
+    if (i === 0) await goNextQuestion(page);
   }
 
   await openBar(page);
@@ -134,7 +134,7 @@ test("퀵에는 진행률 대신 헤더 점수판이 있고, 답할 때마다 �
     const correct = Number(await quickStat(page, "correct").textContent());
     const wrong = Number(await quickStat(page, "wrong").textContent());
     expect(correct + wrong, "진행은 올랐는데 정답·오답 어디에도 안 잡혔다").toBe(i + 1);
-    if (i < 2) await page.locator("#nextBtn").click();
+    if (i < 2) await goNextQuestion(page);
   }
 });
 
@@ -198,7 +198,7 @@ test("퀵: 앞 문항으로 돌아가도 점수판이 되감기지 않고, 채�
   for (let i = 0; i < 3; i += 1) {
     await answerCurrent(page);
     await expect(quickStat(page, "solved")).toHaveText(String(i + 1));
-    if (i < 2) await page.locator("#nextBtn").click();
+    if (i < 2) await goNextQuestion(page);
   }
 
   // 앞 문항으로 두 번 돌아간다 — 여기서 값이 줄면 종전 결함이다.
@@ -268,7 +268,6 @@ test("퀵: 복수정답을 일부만 고르면 점수판이 '답함'으로 세�
 
   // 2) 복수정답 문항으로 이동해 **하나만** 고른다.
   await page.getByTestId("quick-next-btn").click();
-  await expect(page.locator("#nextBtn"), "저장된 추첨 2문항으로 시작해야 한다").toBeDisabled();
   await expect(page.locator("#questionTitle")).toContainText("복수정답");
   await page.locator("#options .option").first().click();
 
@@ -286,6 +285,12 @@ test("퀵: 복수정답을 일부만 고르면 점수판이 '답함'으로 세�
   await expect(quickStat(page, "solved"), "아직 채점 전이다").toHaveText("1");
   await page.getByTestId("quick-grade-btn").click();
   await expect(quickStat(page, "solved")).toHaveText("2");
+  // 저장된 추첨이 2문항이었음은 여기서 드러난다 — 마지막 문항을 채점하면 '다음 문제'가
+  // 아니라 '다시 섞어 시작'이 뜬다(퀵에는 분모를 적는 자리가 없다).
+  await expect(
+    page.getByTestId("quick-reshuffle-btn"),
+    "저장된 추첨 2문항으로 시작해야 한다(마지막 문항이 아니다)",
+  ).toBeVisible();
 });
 
 /**
@@ -314,13 +319,14 @@ test("퀵에서는 문항 이동(점프)과 팔레트가 사라지고 ‹ › �
   await expect(page.locator(".palette-block"), "퀵에 팔레트 블록이 남아 있다").toHaveCount(0);
   await expect(page.locator("#questionNav"), "퀵에 번호 격자가 남아 있다").toHaveCount(0);
 
-  // 남은 이동 수단은 실제로 동작해야 한다.
+  // 남은 이동 수단은 실제로 동작해야 한다 — 앞으로는 채점 뒤의 '다음 문제', 뒤로는 ‹.
   await expect(page.locator("#prevBtn"), "첫 문항에서는 ‹ 가 잠긴다").toBeDisabled();
-  const first = await page.locator("#questionTitle").textContent();
-  await page.locator("#nextBtn").click();
-  await expect(page.locator("#questionTitle")).not.toHaveText(first || "");
+  const first = (await page.locator("#questionTitle").textContent()) || "";
+  await answerCurrent(page); // 헬퍼가 채점까지 한다
+  await page.getByTestId("quick-next-btn").click();
+  await expect(page.locator("#questionTitle")).not.toHaveText(first);
   await page.locator("#prevBtn").click();
-  await expect(page.locator("#questionTitle")).toHaveText(first || "");
+  await expect(page.locator("#questionTitle")).toHaveText(first);
 });
 
 /**
@@ -392,4 +398,40 @@ test("퀵: 채점한 문항으로 ‹ 돌아가면 정답이 그대로 열려 �
   await expect(page.locator("#feedback")).toBeVisible();
   await expect(page.locator("#options .option").first()).toBeDisabled();
   await expect(page.getByTestId("quick-next-btn"), "이미 채점한 문항인데 채점 버튼이 다시 떴다").toBeVisible();
+});
+
+/**
+ * 퀵에는 **앞으로 가는 화살표가 없다.**
+ *
+ * 전 세트를 섞어 한 문항씩 내는 모드에서 '다음'을 미리 눌러 볼 수 있으면, 채점하지 않은
+ * 문항을 그냥 지나칠 수 있고 그 문항은 집계에도 남지 않는다. 앞으로 가는 길은 채점 뒤에
+ * 나타나는 '다음 문제' 하나뿐이다.
+ *
+ * 버튼과 키보드를 함께 본다 — 버튼만 없애면 → 키 하나로 같은 일이 그대로 된다.
+ * 뒤로(‹ · ←)는 열어 둔다: 이미 채점해 정답을 본 문항을 다시 보는 것은 해가 없다.
+ */
+test("퀵에는 앞으로 가는 ›가 없고, → 키도 채점 전에는 움직이지 않는다", async ({ page }) => {
+  test.setTimeout(300_000);
+  await page.goto("/");
+  await page.evaluate(() => localStorage.clear());
+  await openProduct(page, "ISTQB");
+
+  // 연습에는 있다 — 퀵에서만 빠지는 것임을 같은 검사에서 못박는다.
+  await expect(page.locator("#nextBtn")).toHaveCount(1);
+
+  await enterQuick(page, "ISTQB");
+  await expect(page.locator("#nextBtn"), "퀵에 앞으로 가는 화살표가 남아 있다").toHaveCount(0);
+  await expect(page.locator("#prevBtn"), "뒤로 가는 화살표까지 사라졌다").toHaveCount(1);
+
+  // → 키로도 못 넘어간다(채점 전).
+  const first = (await page.locator("#questionTitle").textContent()) || "";
+  await page.locator("#questionStem").click(); // 입력 필드가 아닌 곳에 포커스
+  await page.keyboard.press("ArrowRight");
+  await page.waitForTimeout(200);
+  await expect(page.locator("#questionTitle"), "채점 전인데 → 키로 다음 문항에 갔다").toHaveText(first);
+
+  // 채점하면 그때는 → 키도 열린다(버튼과 같은 규칙).
+  await answerCurrent(page); // 헬퍼가 채점까지 한다
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator("#questionTitle")).not.toHaveText(first);
 });

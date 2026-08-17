@@ -1,6 +1,6 @@
 import { test, expect, Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { openProduct, gotoStable, enterQuick, quickStat, answerCurrent } from "./helpers";
+import { openProduct, gotoStable, enterQuick, quickStat, answerCurrent, quickNext } from "./helpers";
 
 /**
  * 퀵 랜덤 UI/UX 검사.
@@ -14,13 +14,18 @@ const problems: string[] = [];
 const bad = (s: string) => { problems.push(s); console.log("  ✗ " + s); };
 const note = (s: string) => console.log("· " + s);
 
-/** 보기가 있는 문항이 나올 때까지 '다음'으로 이동한다(찾으면 true). */
+/**
+ * 보기가 있는 문항이 나올 때까지 넘긴다(찾으면 true).
+ *
+ * 퀵에는 앞으로 가는 화살표가 없다 — 채점해야 '다음 문제'가 열린다. 그래서 보기가 없는
+ * 문항(서답형)은 풀고 채점해 지나간다(answerCurrent가 둘 다 한다). 찾은 문항은 답하지
+ * 않고 그대로 둔다 — 부르는 쪽이 그 문항으로 키보드 조작을 검사한다.
+ */
 async function advanceToOptionQuestion(page: Page, max = 20): Promise<boolean> {
   for (let i = 0; i < max; i += 1) {
     if (await page.locator("#options .option").count()) return true;
-    const next = page.locator("#nextBtn");
-    if (!(await next.count()) || (await next.isDisabled())) return false;
-    await next.click();
+    await answerCurrent(page);
+    if (!(await quickNext(page))) return false;
     await page.waitForTimeout(80);
   }
   return false;

@@ -18,7 +18,7 @@ import { ResultSummary } from '../quiz/ResultSummary';
 import { QuestionPalette } from '../quiz/QuestionPalette';
 import { Question } from '../../hooks/useQuestions';
 import { loadSetQuestions, peekSetQuestions } from '../../utils/questionLoader';
-import { RichText } from '../../utils/parser';
+import { WrongQuestionView } from '../quiz/WrongQuestionView';
 import { MODE_LABEL } from '../../utils/modeLabel';
 import { formatAnswerList } from '../../utils/answerDisplay';
 import { useBackDismiss } from '../../hooks/useBackDismiss';
@@ -71,7 +71,7 @@ export const AppModals = () => {
     setMode, beginSession, clearAnswers, setReviewIds, setSetId, setChapterFilter, setResumePrompt,
     resetProgressForSets, clearQuickRounds,
     setQuitExamOpen, setGradedResume, setRandomDraw,
-    setPendingSetChange, commitSetChange, reviewedOk,
+    setPendingSetChange, commitSetChange, reviewedOk, setWrongView,
     pendingRestart, setPendingRestart, setResumeNotice,
     confirmExitExam, setConfirmExitExam,
     resetToGate,
@@ -86,6 +86,7 @@ export const AppModals = () => {
     quitExamOpen: s.quitExamOpen, gradedResume: s.gradedResume,
     pendingSetChange: s.pendingSetChange,
     setSettingsOpen: s.setSettingsOpen, setStatsOpen: s.setStatsOpen, setWrongNoteOpen: s.setWrongNoteOpen,
+    setWrongView: s.setWrongView,
     setResultOpen: s.setResultOpen, setPaletteOpen: s.setPaletteOpen, setDrawerOpen: s.setDrawerOpen,
     setConfirmGradeOpen: s.setConfirmGradeOpen, setMode: s.setMode, beginSession: s.beginSession,
     clearAnswers: s.clearAnswers, setReviewIds: s.setReviewIds, setSetId: s.setSetId,
@@ -622,6 +623,26 @@ export const AppModals = () => {
                         <span className="qw-ans">
                           내 답 <b>{fmtAns(item.myAnswer)}</b> · 정답 <b>{fmtAns(item.correctAnswer)}</b>
                         </span>
+                        {/* 문항으로 들어가는 길. 모달을 닫고 본문 화면에 그 문항을 펼친다 —
+                            해설이 길어 모달 안에서는 스크롤이 겹치고, 종전에는 이 목록이
+                            보기 전용이라 "왜 틀렸는지"를 여기서 확인할 수 없었다. */}
+                        <button
+                          type="button"
+                          className="qw-open"
+                          data-testid="quick-wrong-open"
+                          onClick={() => {
+                            setWrongView({
+                              setId: sid,
+                              number: item.number,
+                              qid: item.qid,
+                              myAnswer: item.myAnswer,
+                              correctAnswer: item.correctAnswer,
+                            });
+                            setWrongNoteOpen(false);
+                          }}
+                        >
+                          오답 보기
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -704,43 +725,11 @@ export const AppModals = () => {
                 {!selectedWrongQuestion ? (
                   <p className="wn-loading">{wrongNoteQuestions === null ? '문제 불러오는 중…' : '문항을 찾을 수 없습니다.'}</p>
                 ) : (
-                  <div className="wrong-note-view">
-                    <div className="question-stem">
-                      <RichText content={selectedWrongQuestion.stem} />
-                    </div>
-                    {selectedWrongQuestion.options.length > 0 ? (
-                      <div className="options wrong-note-options">
-                        {selectedWrongQuestion.options.map((opt) => {
-                          const mine = selectedWrongItem.myAnswer.some((a) => a.toLowerCase() === opt.key.toLowerCase());
-                          const correct = selectedWrongItem.correctAnswer.some((a) => a.toLowerCase() === opt.key.toLowerCase());
-                          let cls = 'option';
-                          if (correct) cls += ' correct';
-                          else if (mine) cls += ' selected wrong';
-                          return (
-                            <div key={opt.key} className={cls} data-mine={mine || undefined} data-correct={correct || undefined}>
-                              <span className="option-key">{opt.key.toUpperCase()}</span>
-                              <span className="option-text"><RichText content={opt.text} inline /></span>
-                              {(mine || correct) && (
-                                <span className="wn-tag">{correct ? (mine ? '내 답 · 정답' : '정답') : '내 답'}</span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      // 단답형·진위형 등 보기 없는 문항: 내 답/정답 텍스트로 표시.
-                      <dl className="wrong-note-short">
-                        <div><dt>내 답</dt><dd>{fmtAns(selectedWrongItem.myAnswer)}</dd></div>
-                        <div><dt>정답</dt><dd>{fmtAns(selectedWrongItem.correctAnswer)}</dd></div>
-                      </dl>
-                    )}
-                    {/* 해설 — 오답 노트의 목적이 "왜 틀렸는지" 복습인데 종전에는 지문·보기·
-                        내 답·정답만 보여 정작 이유를 볼 수 없었다(연습 모드 피드백에는 이미 노출). */}
-                    <div className="wrong-note-explain" data-testid="wrong-note-explain">
-                      <h5>해설</h5>
-                      <RichText content={selectedWrongQuestion.explanation || '해설이 없습니다.'} />
-                    </div>
-                  </div>
+                  <WrongQuestionView
+                    question={selectedWrongQuestion}
+                    myAnswer={selectedWrongItem.myAnswer}
+                    correctAnswer={selectedWrongItem.correctAnswer}
+                  />
                 )}
               </div>
             ) : (

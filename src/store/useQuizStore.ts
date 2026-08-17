@@ -163,6 +163,18 @@ export interface QuizState {
    * 종전과 같은 모양으로 합산된다.
    */
   quickRoundId: string | null;
+  /**
+   * 오답 노트에서 '오답 보기'로 연 문항 — 팝업이 아니라 **본문 화면**에 펼친다.
+   *
+   * 퀵 오답은 출처 세트가 제각각이라(전 세트를 섞는 모드) 세트를 고르고 번호를 찾는
+   * 기존 3단계 경로로는 닿을 수 없었다. 여기에 출처 세트와 문항을 함께 담아, 노트에서
+   * 누른 그 문항 하나로 곧장 간다. 문항 id(qid)를 함께 두는 이유는 번호가 세트마다
+   * 겹치기 때문이다 — A세트 3번과 B세트 3번은 다른 문항이다.
+   *
+   * 영속화하지 않는다: 새로고침하면 풀이 화면으로 돌아가는 편이 자연스럽고, 이 값이
+   * 남아 있으면 앱이 오답 화면으로 열려 "왜 문제가 안 나오지"가 된다.
+   */
+  wrongView: { setId: string; number: number; qid?: string; myAnswer: string[]; correctAnswer: string[] } | null;
 
   // Actions
   setActiveProduct: (product: 'istqb' | 'csts') => void;
@@ -180,6 +192,8 @@ export interface QuizState {
   clearQuickRounds: (certification?: string | null) => void;
   /** 퀵에서 이 문항의 채점을 끝냈다고 표시한다(정답·해설 공개와 집계의 기준). */
   markQuickGraded: (key: string) => void;
+  /** 오답 보기 화면을 연다(null이면 닫고 풀이 화면으로 돌아간다). */
+  setWrongView: (view: QuizState['wrongView']) => void;
   // 오답(review) 대상 문항 id 목록. 키는 `${setId}-${mode}`(과거 데이터는 setId 단독일 수 있음).
   setReviewIds: (key: string, ids: string[]) => void;
   setGraded: (key: string, value: boolean) => void;
@@ -260,6 +274,7 @@ export const sessionScopeDefaults = () => ({
   // 채점 표시와 회차 id도 제품 스코프다 — 답안(quickDraw)과 같은 생애를 갖는다.
   quickGraded: {} as Record<string, true>,
   quickRoundId: null as string | null,
+  wrongView: null as QuizState['wrongView'],
   // 제품이 바뀌면 돌아갈 세트도 남의 제품 것이 되므로 함께 비운다.
   preQuickSetId: null as string | null,
 });
@@ -302,6 +317,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   quickNonce: 0,
   quickGraded: {},
   quickRoundId: null,
+  wrongView: null,
   preQuickSetId: null,
 
   setActiveProduct: (activeProduct) => set({ activeProduct }),
@@ -352,6 +368,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     // 오답 목록이 파편화되고 저장소도 그만큼 부푼다.
     quickRounds: [...freshQuickRounds(state.quickRounds).filter((r) => r.id !== round.id), round],
   })),
+  setWrongView: (wrongView) => set({ wrongView }),
   markQuickGraded: (key) => set((state) => ({
     quickGraded: { ...state.quickGraded, [key]: true },
     // 퀵 진입로는 둘인데(모드 세그먼트, 퀵 패널의 재추첨) 세그먼트는 startQuick을 거치지

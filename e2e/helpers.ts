@@ -276,6 +276,22 @@ export async function quickNext(page: Page): Promise<boolean> {
   return true;
 }
 
+/**
+ * 모드를 가리지 않고 '다음 문항으로'. 갈 곳이 없으면 false.
+ *
+ * 퀵에는 앞으로 가는 화살표(#nextBtn)가 없다 — 채점하지 않은 문항을 미리 넘겨보지
+ * 못하게 뺐다. 그 모드에서는 채점 뒤에 나타나는 '다음 문제'가 유일한 통로다.
+ * 두 통로를 부르는 쪽마다 분기하면 사본이 갈리므로(이 저장소가 반복해서 겪은 결함
+ * 클래스다) 여기 하나로 모은다.
+ */
+export async function goNextQuestion(page: Page): Promise<boolean> {
+  if (await quickNext(page)) return true;
+  const arrow = page.locator("#nextBtn");
+  if (!(await arrow.count()) || (await arrow.isDisabled())) return false;
+  await arrow.click();
+  return true;
+}
+
 // 채점: 채점 버튼 클릭 후 미응답 경고 모달이 뜨면 확인까지 처리한다.
 export async function submitGrade(page: Page, testid = "grade-button") {
   await page.getByTestId(testid).click();

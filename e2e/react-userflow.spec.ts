@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { expectMode, openProduct, enterQuick, enterMiniTest, quickStat, answerCurrent, gradeQuickIfNeeded } from "./helpers";
+import { expectMode, openProduct, enterQuick, enterMiniTest, quickStat, answerCurrent, gradeQuickIfNeeded, goNextQuestion } from "./helpers";
 
 /**
  * 유저 관점 전수 시나리오 — "실제로 이 앱을 쓰는 사람이 겪는 흐름"을 끝까지 밟는다.
@@ -42,9 +42,7 @@ async function answerAll(page: Page, max = 80) {
     if (await opt.count()) await opt.click();
     // 퀵은 한 문항씩 채점하고 넘어간다 — 답만 고르고 지나가면 집계도 기록도 남지 않는다.
     await gradeQuickIfNeeded(page);
-    const next = page.locator("#nextBtn");
-    if (!(await next.count()) || (await next.isDisabled())) break;
-    await next.click();
+    if (!(await goNextQuestion(page))) break;
   }
 }
 
