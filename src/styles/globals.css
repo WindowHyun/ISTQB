@@ -810,16 +810,41 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
   box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
+/* 헤더는 [표식 + 제목/요약] · [액션]의 두 덩이다. 구분선을 없애고 제목 블록에 무게를
+   실어, 본문이 헤더에 눌리지 않게 한다(팝업마다 첫 줄이 무엇인지 바로 읽힌다). */
 .modal-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--line);
+  padding: 18px 22px 12px;
 }
-.modal-header h3 { font-size: 17px; font-weight: 800; }
-.modal-header button {
+.modal-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.modal-title-ico {
+  width: 34px; height: 34px; flex: 0 0 auto;
+  border-radius: 11px;
+  display: grid; place-items: center;
+  background: var(--primary-50);
+  color: var(--primary-700);
+  font-size: 16px;
+}
+.modal-title-text { min-width: 0; }
+.modal-header h3 { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
+.modal-subtitle { font-size: 12.5px; color: var(--muted); font-weight: 600; margin-top: 1px; }
+/* 닫기는 아이콘 버튼으로 낮춘다 — 종전에는 본문 버튼과 같은 무게라 시선을 먼저 끌었다.
+   접근 가능한 이름은 aria-label로 '닫기'를 유지한다. */
+.modal-close {
+  width: 34px; height: 34px; flex: 0 0 auto;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 11px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+}
+.modal-close:hover { background: var(--surface-3); color: var(--text); }
+/* 헤더의 부가 액션(통계의 '이력 비우기' 등)은 종전 모양을 유지한다. */
+.modal-header-actions > button:not(.modal-close) {
   border: 1px solid var(--line-strong);
   background: var(--surface);
   border-radius: var(--radius-sm);
@@ -828,9 +853,18 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
   font-weight: 700;
   color: var(--text-2);
 }
-.modal-header button:hover { background: var(--surface-3); }
+.modal-header-actions > button:not(.modal-close):hover { background: var(--surface-3); }
 .modal-header button.danger { color: var(--danger); border-color: var(--danger-200); background: var(--danger-50); }
-.modal-body { padding: 18px 20px; overflow-y: auto; }
+.modal-body { padding: 6px 22px 18px; overflow-y: auto; }
+/* 바닥 안내 — 본문을 가르던 보조 설명이 여기로 내려온다. */
+.modal-foot {
+  padding: 12px 22px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: 12px;
+  color: var(--muted);
+}
+.modal-foot b, .modal-foot strong { color: var(--text-2); }
 /* ── 오답 노트(1단계 세트 선택 → 2단계 오답 목록, 읽기 전용)(#3·#4) ───── */
 .wrong-note-sets { display: flex; flex-direction: column; gap: 8px; }
 .wrong-note-set-btn {
@@ -948,23 +982,84 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 .wn-nav-btn:hover:not(:disabled) { border-color: var(--primary); background: var(--surface); }
 .wn-nav-btn:disabled { opacity: .35; cursor: default; }
 .wn-nav-pos { font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
-/* ── 퀵 오답 목록의 '오답 보기' ─────────────────────────────────────────
-   목록 한 줄은 [출처 세트 · 번호 · 내 답/정답 · 버튼]이다. 버튼은 오른쪽 끝에 붙여
-   줄마다 같은 자리에서 눌리게 한다(스캔하며 내려올 때 손이 흔들리지 않는다). */
-.quick-wrong-list li { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
-.quick-wrong-list .qw-ans { flex: 1 1 auto; }
+/* ── 오답 노트 섹션 머리·빈 상태 ───────────────────────────────────── */
+.wn-sec-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.wn-sec-head h4 { font-size: 14px; font-weight: 800; }
+.wn-sec-badge {
+  font-size: 11.5px; font-weight: 800; padding: 1px 8px; border-radius: 100px;
+  background: var(--warning-50); color: var(--warning);
+}
+.wn-empty {
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+.wn-empty span { display: block; font-size: 20px; opacity: 0.7; margin-bottom: 2px; }
+
+/* ── 퀵 오답 카드 ───────────────────────────────────────────────────
+   문항 하나가 카드 한 장이다. 종전에는 [세트·번호·내 답/정답·버튼]이 한 줄로 흘러
+   눈이 어디서 끊어야 할지 알 수 없었다. 번호를 왼쪽에 고정 폭으로 세우고, 답은
+   색으로 갈라(내 답 빨강 · 정답 초록) 한눈에 대조되게 한다. */
+.quick-wrong-list { display: flex; flex-direction: column; gap: 8px; }
+.wrong-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.wrong-card:hover { border-color: var(--primary-100); background: var(--primary-50); }
+/* 번호는 한 줄로 붙는다(자릿수가 늘어도 줄바꿈하지 않는다). */
+.qw-no {
+  display: inline-flex; align-items: center; gap: 1px; white-space: nowrap;
+  height: 34px; padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 15px; font-weight: 800; line-height: 1;
+}
+.qw-no small { font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.qw-main { min-width: 0; }
+.qw-src {
+  display: block;
+  font-size: 11.5px; font-weight: 700; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.qw-ans { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+.ans-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 700;
+  padding: 3px 9px;
+  border: 1px solid transparent;
+  border-radius: 100px;
+}
+.ans-pill.mine { background: var(--danger-50); color: var(--danger); border-color: var(--danger-200); }
+.ans-pill.right { background: var(--success-50); color: var(--success); border-color: var(--success-200); }
 .qw-open {
   flex: 0 0 auto;
   border: 1px solid var(--primary-100);
-  background: var(--primary-50);
+  background: var(--surface);
   color: var(--primary-700);
   border-radius: 10px;
-  padding: 6px 12px;
+  padding: 8px 13px;
   font-size: 12.5px;
   font-weight: 800;
-  min-height: 32px;
+  white-space: nowrap;
+  min-height: 34px;
 }
 .qw-open:hover { background: var(--primary-100); }
+/* 좁은 폭에서는 버튼을 아래 줄로 내린다 — 세트명이 뭉개지는 것보다 낫다. */
+@media (max-width: 520px) {
+  .wrong-card { grid-template-columns: auto 1fr; }
+  .qw-open { grid-column: 1 / -1; }
+}
 
 /* ── 오답 보기 화면(본문) ───────────────────────────────────────────────
    풀이 화면과 같은 골격(.workspace/.question-card)을 쓰되, 상단 액션은 '오답 노트로'와

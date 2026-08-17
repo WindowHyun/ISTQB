@@ -600,7 +600,17 @@ export const AppModals = () => {
       )}
 
       {wrongNoteOpen && (
-        <Modal title="오답 노트" onClose={() => { setWrongNoteOpen(false); setWrongNoteSetId(null); setWrongNoteQuestionNo(null); }}>
+        <Modal
+          title="오답 노트"
+          icon="📒"
+          // 열자마자 규모를 알려 준다 — 종전에는 스크롤해 봐야 몇 개인지 알 수 있었다.
+          subtitle={`퀵 ${quickWrongs.length}문항 · 세트 ${wrongNoteBySet.length}개`}
+          // 목록 사이를 가르던 전체 안내를 바닥으로 내린다.
+          footer={selectedWrong ? undefined : (
+            <>세트별 오답은 <b>전 회차 누적</b>이고, 사이드바의 <b>‘오답 다시 풀기’</b>는 최근 채점 기준으로 출제됩니다.</>
+          )}
+          onClose={() => { setWrongNoteOpen(false); setWrongNoteSetId(null); setWrongNoteQuestionNo(null); }}
+        >
           <div className="modal-body" data-testid="wrong-note">
             {wrongNoteBySet.length === 0 && quickWrongs.length === 0 ? (
               <p>표시할 오답이 없습니다. (시험·랜덤 모드에서 채점하면 기록됩니다)</p>
@@ -611,17 +621,24 @@ export const AppModals = () => {
                   "언제 사라지는가"를 문구로 밝힌다. 보기 전용(상세 진입 없음). */}
               {quickWrongs.length > 0 && (
                 <section className="quick-wrong-note" data-testid="quick-wrong-note">
-                  <h4>⚡ 최근 퀵 오답 {quickWrongs.length}개</h4>
+                  <div className="wn-sec-head">
+                    <h4>⚡ 최근 퀵 오답</h4>
+                    <span className="wn-sec-badge">24시간 뒤 삭제</span>
+                  </div>
                   <p className="stats-hint">
-                    퀵은 회차 기록을 남기지 않습니다. 이 목록은 채점 후 24시간 뒤 자동으로 사라져요.
+                    퀵은 회차 기록을 남기지 않습니다 — 이 목록만 임시로 남아요.
                   </p>
                   <ul className="quick-wrong-list">
                     {quickWrongs.map(({ setId: sid, setTitle, item }) => (
-                      <li key={`${sid}:${item.number}`} data-testid="quick-wrong-item">
-                        <span className="qw-src">{setTitle}</span>
-                        <span className="qw-no">{item.number}번</span>
-                        <span className="qw-ans">
-                          내 답 <b>{fmtAns(item.myAnswer)}</b> · 정답 <b>{fmtAns(item.correctAnswer)}</b>
+                      <li key={`${sid}:${item.number}`} className="wrong-card" data-testid="quick-wrong-item">
+                        {/* 번호는 왼쪽 고정 폭 — 줄마다 같은 자리에서 읽힌다(줄바꿈 없음). */}
+                        <span className="qw-no">{item.number}<small>번</small></span>
+                        <span className="qw-main">
+                          <span className="qw-src">{setTitle}</span>
+                          <span className="qw-ans">
+                            <span className="ans-pill mine">내 답 <b>{fmtAns(item.myAnswer)}</b></span>
+                            <span className="ans-pill right">정답 <b>{fmtAns(item.correctAnswer)}</b></span>
+                          </span>
                         </span>
                         {/* 문항으로 들어가는 길. 모달을 닫고 본문 화면에 그 문항을 펼친다 —
                             해설이 길어 모달 안에서는 스크롤이 겹치고, 종전에는 이 목록이
@@ -641,20 +658,24 @@ export const AppModals = () => {
                             setWrongNoteOpen(false);
                           }}
                         >
-                          오답 보기
+                          오답 보기 ›
                         </button>
                       </li>
                     ))}
                   </ul>
                 </section>
               )}
+              <div className="wn-sec-head">
+                <h4>📗 세트별 오답</h4>
+              </div>
               {wrongNoteBySet.length === 0 && (
-                <p>세트별 오답은 아직 없습니다. (시험·랜덤 모드에서 채점하면 기록됩니다)</p>
+                // 빈 상태를 형태로 보여 준다 — 종전에는 본문과 같은 크기의 한 줄이라
+                // '내용'인지 '없음'인지 구분이 되지 않았다.
+                <p className="wn-empty" data-testid="wrong-note-sets-empty">
+                  <span aria-hidden="true">🗂️</span>
+                  아직 없습니다 — 시험·미니 시험에서 채점하면 세트별로 모입니다.
+                </p>
               )}
-              {/* 노트(전 회차 누적)와 '오답 다시 풀기'(최근 채점 기준)의 범위 차이 안내(A4). */}
-              <p className="stats-hint">
-                오답 노트는 전 회차 누적 기록이에요. 사이드바의 ‘오답 다시 풀기’는 최근 채점 기준으로 출제됩니다.
-              </p>
               <ul className="wrong-note-sets" data-testid="wrong-note-sets">
                 {wrongNoteBySet.map((h) => (
                   <li key={h.setId}>

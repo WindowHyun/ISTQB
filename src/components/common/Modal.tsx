@@ -11,13 +11,19 @@ interface ModalProps {
   children: ReactNode;
   /** 헤더 닫기 버튼 외에 추가로 노출할 헤더 액션(예: 위험 버튼). */
   headerExtra?: ReactNode;
+  /** 제목 왼쪽의 작은 표식(이모지 한 글자). 어느 팝업인지 한눈에 구분되게 한다. */
+  icon?: ReactNode;
+  /** 제목 아래 한 줄 요약(예: "퀵 2문항 · 세트 3개") — 열자마자 규모를 알려 준다. */
+  subtitle?: ReactNode;
+  /** 바닥 안내 스트립. 본문을 가르던 보조 설명을 여기로 내린다. */
+  footer?: ReactNode;
 }
 
 /**
  * 공용 모달: Esc 닫기 + 포커스 트랩(Tab 순환) + 열기 전 포커스 복원 + 백드롭 클릭 닫기.
  * 기존 설정·오답노트 모달과 신규 통계·결과 모달이 동일한 접근성 동작을 공유한다.
  */
-export const Modal = ({ title, onClose, children, headerExtra }: ModalProps) => {
+export const Modal = ({ title, onClose, children, headerExtra, icon, subtitle, footer }: ModalProps) => {
   const panelRef = useRef<HTMLElement>(null);
   // onClose는 호출부가 매 렌더 새 인라인 함수를 넘긴다 — effect 의존성으로 두면
   // 결과 모달이 열린 동안(타이머 틱으로 매초 리렌더) 포커스 강탈/스크롤락 재실행이
@@ -119,13 +125,24 @@ export const Modal = ({ title, onClose, children, headerExtra }: ModalProps) => 
         onClick={(e) => e.stopPropagation()}
       >
         <header className="modal-header">
-          <h3>{title}</h3>
+          <div className="modal-title">
+            {icon && <span className="modal-title-ico" aria-hidden="true">{icon}</span>}
+            <div className="modal-title-text">
+              <h3>{title}</h3>
+              {subtitle && <p className="modal-subtitle">{subtitle}</p>}
+            </div>
+          </div>
           <div className="modal-header-actions">
             {headerExtra}
-            <button type="button" onClick={onClose}>닫기</button>
+            {/* 아이콘 버튼이지만 접근 가능한 이름은 '닫기' 그대로다 — 스크린리더와
+                E2E가 이 이름으로 찾는다(보이는 글자를 ✕로 줄인 것뿐이다). */}
+            <button type="button" className="modal-close" aria-label="닫기" onClick={onClose}>
+              <span aria-hidden="true">✕</span>
+            </button>
           </div>
         </header>
         {children}
+        {footer && <footer className="modal-foot">{footer}</footer>}
       </section>
     </div>
   );
