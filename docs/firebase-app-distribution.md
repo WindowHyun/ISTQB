@@ -86,5 +86,28 @@ firebase appdistribution:distribute \
   동작한다(번들 후 실기기 1회 점검 권장).
 - **레거시 분리**: 루트 `service-worker.js`(tombstone)·`www/`(레거시 바닐라 앱)은 그대로 둔다.
   웹 운영 배포(Vercel)는 영향 없음.
-- **APK 서명**: debug APK는 디버그 키로 서명된다. App Distribution 테스트엔 문제없지만,
-  배포 채널을 넓히려면 release 서명을 사용한다(섹션 2/워크플로 주석 참고).
+- **APK 서명 — 고정하지 않으면 매번 '삭제 후 설치'가 된다.**
+
+  debug APK는 러너가 그때그때 만드는 임시 키로 서명된다. 러너는 실행마다 새로 만들어지므로
+  **빌드마다 서명이 달라지고**, 안드로이드는 서명이 다른 APK를 기존 앱 위에 덮어쓰지 않는다
+  (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`). 테스터는 새 빌드마다 앱을 지웠다 깔아야 하고,
+  그때 **풀이 기록(localStorage·IndexedDB)이 함께 사라진다.**
+
+  워크플로는 keystore Secret이 **있으면 서명된 release APK**를, 없으면 종전대로 debug APK를
+  만든다(없을 때는 실행 로그에 경고가 남는다). 고정하려면:
+
+  1. 키스토어를 한 번 만든다 —
+     `keytool -genkeypair -v -keystore istqb-release.jks -alias istqb -keyalg RSA -keysize 2048 -validity 10950`
+  2. **그 파일을 안전한 곳에 백업한다.** 잃으면 다시는 같은 앱을 업데이트할 수 없다
+     (사용자가 지우고 새로 깔아야 한다). 저장소에는 넣지 않는다(`.gitignore`가 `*.jks`를 막는다).
+  3. base64로 인코딩한다 — `base64 -w0 istqb-release.jks`(macOS는 `base64 -i … | tr -d '\n'`)
+  4. Secret 4개를 등록한다: `ANDROID_KEYSTORE_BASE64` · `KEYSTORE_PASSWORD` ·
+     `KEY_ALIAS` · `KEY_PASSWORD`
+
+  **전환하는 그 한 번은 여전히 삭제 설치다** — 서명이 바뀌기 때문이고, 그 뒤로는 계속
+  덮어쓰기 설치가 된다. 기록을 지키려면 삭제 전에 `설정 → 기록 내보내기`로 백업한다.
+
+- **versionCode**: CI가 `ISTQB_VERSION_CODE`(실행 번호)를 넘기면 `1000 + 번호`로 올라간다.
+  고정값이면 배포마다 같은 버전이라 어느 빌드가 최신인지 구분되지 않는다. 로컬 빌드는
+  종전 값(3)이라 테스터 기기의 CI 빌드 위에 덮어 설치되지 않는다 — 로컬 확인은 지우고
+  깔거나 `ISTQB_VERSION_CODE`를 직접 넘긴다.

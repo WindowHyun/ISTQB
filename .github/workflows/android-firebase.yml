@@ -60,10 +60,70 @@ jobs:
       - name: Capacitor sync (dist → android)
         run: npx cap sync android
 
-      - name: Build debug APK
+      # ── 서명 ───────────────────────────────────────────────────────────
+      # keystore Secret이 있으면 **서명된 release APK**를, 없으면 종전대로 debug APK를
+      # 만든다. 두 갈래로 둔 이유는 순서 의존을 없애기 위해서다 — 워크플로를 먼저 고쳐도
+      # 빌드가 깨지지 않고, Secret을 등록하는 순간부터 서명 빌드로 넘어간다.
+      #
+      # 서명이 왜 필요한가: debug APK는 러너가 그때그때 만드는 임시 키로 서명된다.
+      # 러너는 실행마다 새로 만들어지므로 **빌드마다 서명이 달라지고**, 안드로이드는 서명이
+      # 다른 APK를 기존 앱 위에 덮어쓰지 않는다(INSTALL_FAILED_UPDATE_INCOMPATIBLE).
+      # 그래서 테스터는 새 빌드를 받을 때마다 앱을 지웠다 깔아야 했고, 그때마다 풀이
+      # 기록(localStorage·IndexedDB)이 함께 사라졌다.
+      - name: Detect signing secrets
+        id: signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "have=yes" >> "$GITHUB_OUTPUT"
+            echo "::notice::keystore Secret을 찾았습니다 — 서명된 release APK를 만듭니다."
+          else
+            echo "have=no" >> "$GITHUB_OUTPUT"
+            echo "::warning::keystore Secret이 없어 debug APK로 배포합니다. 빌드마다 서명이 달라져 테스터는 '삭제 후 설치'를 해야 합니다(docs/firebase-app-distribution.md 참고)."
+          fi
+
+      - name: Decode keystore
+        if: steps.signing.outputs.have == 'yes'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/release.jks
+
+      - name: Build release APK (signed)
+        if: steps.signing.outputs.have == 'yes'
+        env:
+          ISTQB_RELEASE_STORE_FILE: release.jks
+          ISTQB_RELEASE_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          ISTQB_RELEASE_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          ISTQB_RELEASE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          # 실행 번호로 versionCode를 올린다 — 고정값이면 테스터 쪽에서 어느 빌드가
+          # 최신인지 구분되지 않고, 스토어·배포 도구가 '업데이트'로 취급하지 않는다.
+          ISTQB_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          chmod +x android/gradlew
+          cd android && ./gradlew assembleRelease --no-daemon
+
+      - name: Build debug APK (서명 Secret 없음)
+        if: steps.signing.outputs.have != 'yes'
         run: |
           chmod +x android/gradlew
           cd android && ./gradlew assembleDebug --no-daemon
+
+      - name: Resolve APK path
+        id: apk
+        run: |
+          if [ "${{ steps.signing.outputs.have }}" = "yes" ]; then
+            APK=android/app/build/outputs/apk/release/app-release.apk
+            NAME=app-release-apk
+          else
+            APK=android/app/build/outputs/apk/debug/app-debug.apk
+            NAME=app-debug-apk
+          fi
+          # 산출물이 실제로 있는지 여기서 끊는다 — 없으면 업로드 단계가 빈 파일로
+          # '성공'하고, 테스터에게 빈 배포가 나간다.
+          test -f "$APK"
+          echo "path=$APK" >> "$GITHUB_OUTPUT"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
 
       - name: Upload to Firebase App Distribution
         uses: wzieba/Firebase-Distribution-Github-Action@v1
@@ -72,28 +132,10 @@ jobs:
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           groups: ${{ github.event.inputs.groups || 'WiseStoneT' }}
           releaseNotes: ${{ github.event.inputs.notes || github.ref_name }}
-          file: android/app/build/outputs/apk/debug/app-debug.apk
+          file: ${{ steps.apk.outputs.path }}
 
       - name: Upload APK artifact (백업)
         uses: actions/upload-artifact@v7
         with:
-          name: app-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-
-# ── (선택) release 서명 APK 변형 ───────────────────────────────────────
-# debug 대신 서명된 release APK를 배포하려면 위 "Build debug APK" 단계를
-# 아래로 교체하고 keystore Secrets를 등록한다:
-#
-#   - name: Decode keystore
-#     run: echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/release.jks
-#     env: { ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }} }
-#   - name: Build release APK
-#     run: |
-#       chmod +x android/gradlew
-#       cd android && ./gradlew assembleRelease --no-daemon
-#     env:
-#       ISTQB_RELEASE_STORE_FILE: release.jks
-#       ISTQB_RELEASE_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-#       ISTQB_RELEASE_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-#       ISTQB_RELEASE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-#   # file 경로: android/app/build/outputs/apk/release/app-release.apk
+          name: ${{ steps.apk.outputs.name }}
+          path: ${{ steps.apk.outputs.path }}

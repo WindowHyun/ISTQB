@@ -6,6 +6,18 @@ def releaseKeyAlias = System.getenv("ISTQB_RELEASE_KEY_ALIAS")
 def releaseKeyPassword = System.getenv("ISTQB_RELEASE_KEY_PASSWORD")
 def hasReleaseSigning = releaseStorePath && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
 
+// versionCode — CI가 실행 번호를 넘기면 그것으로 올린다(1000 + run_number).
+//
+// 고정값이면 배포마다 같은 버전이라, 테스터 쪽에서 어느 것이 최신인지 구분되지 않고
+// 배포 도구도 '업데이트'로 취급하지 않는다. 1000을 더해 여유를 두는 이유는 과거 값(3)보다
+// 확실히 크게 만들어 단조 증가를 깨지 않기 위해서다.
+//
+// 넘기지 않는 로컬 빌드는 종전 값 그대로다. 그 APK는 테스터 기기의 CI 빌드(1000+)보다
+// 낮으므로 위에 덮어 설치되지 않는다(다운그레이드는 안드로이드가 막는다) — 로컬에서
+// 확인할 때는 앱을 지우고 깔거나 ISTQB_VERSION_CODE를 직접 넘긴다.
+def versionCodeEnv = System.getenv("ISTQB_VERSION_CODE")
+def resolvedVersionCode = versionCodeEnv ? 1000 + versionCodeEnv.toInteger() : 3
+
 android {
     namespace "com.local.istqbfl"
     compileSdk rootProject.ext.compileSdkVersion
@@ -25,7 +37,7 @@ android {
         applicationId "com.local.istqbfl"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 3
+        versionCode resolvedVersionCode
         versionName "1.0.2-dev"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
