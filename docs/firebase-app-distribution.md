@@ -104,6 +104,27 @@ firebase appdistribution:distribute \
   4. Secret 4개를 등록한다: `ANDROID_KEYSTORE_BASE64` · `KEYSTORE_PASSWORD` ·
      `KEY_ALIAS` · `KEY_PASSWORD`
 
+     `KEY_PASSWORD`는 키스토어 비밀번호가 아니라 **키 자체의 비밀번호**다. 위 `keytool`
+     실행에서 "키 비밀번호(RETURN이면 키스토어와 동일)"에 그냥 엔터를 쳤다면 두 값은
+     같다 — 요즘 기본 형식인 **PKCS12는 애초에 둘을 같게 강제**하므로, 다른 값을 넣으면
+     빌드가 서명 단계에서 깨진다. 확신이 없으면 `KEYSTORE_PASSWORD`와 같은 값을 넣거나
+     아예 비워 둔다(비면 store 비밀번호를 쓴다).
+
+  워크플로는 빌드 전에 keystore를 **검증**한다(`Verify keystore secrets`) — store 비밀번호,
+  alias, 키 비밀번호를 차례로 확인하고 틀린 것만 짚어 준다. 자주 나오는 실패:
+
+  | 로그에 보이는 것 | 원인 |
+  | --- | --- |
+  | `keystore Secret이 없어 debug APK로 배포합니다` | `ANDROID_KEYSTORE_BASE64`가 등록되지 않았거나 값이 비어 있다 |
+  | `keystore를 열지 못했습니다` / `Keystore was tampered with` | `KEYSTORE_PASSWORD`가 다르거나 base64 값이 잘렸다 |
+  | `KEY_ALIAS를 keystore에서 찾지 못했습니다` | alias 오타(대소문자 구분) |
+  | `Get Key failed: Given final block not properly padded` | **키 비밀번호가 다르다** — `KEY_PASSWORD`를 고친다 |
+
+  값을 복사할 때 **끝의 줄바꿈·공백까지 딸려 들어가는 것**이 흔한 원인이다. base64는
+  `base64 -w0`(한 줄)로 만들고, PowerShell이면
+  `[Convert]::ToBase64String([IO.File]::ReadAllBytes("istqb-release.jks")) | Set-Clipboard`를 쓴다
+  (`certutil -encode`는 PEM 머리말이 붙는다 — 워크플로가 걷어내지만 권장하지 않는다).
+
   **전환하는 그 한 번은 여전히 삭제 설치다** — 서명이 바뀌기 때문이고, 그 뒤로는 계속
   덮어쓰기 설치가 된다. 기록을 지키려면 삭제 전에 `설정 → 기록 내보내기`로 백업한다.
 

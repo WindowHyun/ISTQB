@@ -1,9 +1,12 @@
 apply plugin: 'com.android.application'
 
-def releaseStorePath = System.getenv("ISTQB_RELEASE_STORE_FILE")
+def releaseStorePath = System.getenv("ISTQB_RELEASE_STORE_FILE")?.trim()
 def releaseStorePassword = System.getenv("ISTQB_RELEASE_STORE_PASSWORD")
-def releaseKeyAlias = System.getenv("ISTQB_RELEASE_KEY_ALIAS")
-def releaseKeyPassword = System.getenv("ISTQB_RELEASE_KEY_PASSWORD")
+def releaseKeyAlias = System.getenv("ISTQB_RELEASE_KEY_ALIAS")?.trim()
+// 키 비밀번호를 안 넘기면 store 비밀번호를 쓴다 — keytool 생성 때 "키 비밀번호(같으면
+// RETURN)"를 그냥 넘긴 키스토어가 흔하고, 요즘 기본 형식인 PKCS12는 애초에 둘을 같게
+// 강제한다. 비워 둔 것을 "서명 설정 없음"으로 보면 그 흔한 키스토어를 못 쓴다.
+def releaseKeyPassword = System.getenv("ISTQB_RELEASE_KEY_PASSWORD") ?: releaseStorePassword
 def hasReleaseSigning = releaseStorePath && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
 
 // versionCode — CI가 실행 번호를 넘기면 그것으로 올린다(1000 + run_number).
