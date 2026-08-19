@@ -891,7 +891,7 @@ react-transition-quick    (미실측)  →  50 / 50 통과</p>
 <section class="block">
   <div class="sec-head">
     <h2>게이트 실행 결과</h2>
-    <span class="sec-note">수정 전 / 수정 후</span>
+    <span class="sec-note">점검 시작 시점 / 4차 수정 후</span>
   </div>
 
   <div class="tbl-wrap">
@@ -901,12 +901,14 @@ react-transition-quick    (미실측)  →  50 / 50 통과</p>
       </thead>
       <tbody>
         <tr><td><code>tsc --noEmit</code> · <code>-p tsconfig.test.json</code> · <code>eslint</code></td><td class="ok">통과</td><td class="ok">통과</td></tr>
-        <tr><td><code>vitest run</code></td><td>44파일 / 696</td><td class="ok">45파일 / <b>712</b> (+16)</td></tr>
-        <tr><td><code>node scripts/verify.js</code></td><td>12파일 626문항 · 오류 0</td><td>데이터 무변경</td></tr>
-        <tr><td><code>playwright --project=react</code></td><td>409 / 1 실패</td><td class="ok">2회 실행 — 410 통과 / 409·1 (F-5)</td></tr>
+        <tr><td><code>vitest run</code></td><td>44파일 / 696</td><td class="ok">49파일 / <b>761</b> (+65)</td></tr>
+        <tr><td><code>node scripts/verify.js</code></td><td>12파일 626문항 · 오류 0</td><td class="ok">12파일 · 오류 0 · 경고 0</td></tr>
+        <tr><td><code>playwright --project=react</code></td><td>409 / 1 실패</td><td class="ok"><b>411 통과</b> (12.0분)</td></tr>
+        <tr><td><code>playwright --project=react --project=apk</code></td><td class="mono">미실행</td><td class="ok"><b>424 통과</b> (12.2분)</td></tr>
         <tr><td><code>stryker</code> 코어 <span class="mono">(break 85)</span></td><td>92.30 <span class="mono">(문서값)</span></td><td class="ok"><b>92.44</b></td></tr>
         <tr><td><code>stryker</code> 저장 계층 <span class="mono">(break 67)</span></td><td><b>69.53</b> <span class="mono">(직접 실측)</span></td><td class="ok"><b>69.92</b></td></tr>
         <tr><td><code>npm audit --omit=dev</code></td><td class="ok">0건</td><td class="ok">0건</td></tr>
+        <tr><td><code>verify-pdf-data.py</code></td><td class="mono">pymupdf 부재</td><td class="mono">pymupdf 부재 — CI가 담당</td></tr>
       </tbody>
     </table>
   </div>
@@ -923,6 +925,12 @@ react-transition-quick    (미실측)  →  50 / 50 통과</p>
       마지막 줄과 그냥 비교했다면 <strong>남이 만든 드리프트를 자기 탓으로 오판</strong>했을 자리입니다.
       래칫 표에 실측 두 줄과 이 주의를 남겼습니다. <code>break 67</code>은 그대로 두었습니다 —
       +0.39pp는 이 계층의 검출력을 유의미하게 끌어올린 폭이 아닙니다.
+    </p>
+    <p>
+      <strong>4차에서는 두 뮤테이션 게이트를 다시 돌리지 않았습니다.</strong> 두 설정의
+      <code>mutate</code> 대상(코어 7개 유틸 · <code>storage.ts</code> · <code>useQuizStore.ts</code>) 중
+      <strong>4차에 바뀐 파일이 하나도 없습니다</strong>. 같은 코드를 다시 재는 일이라
+      위 수치가 그대로 유효합니다 — 돌리지 않은 것과 값이 없는 것은 다르므로 여기 적어 둡니다.
     </p>
   </div>
 </section>

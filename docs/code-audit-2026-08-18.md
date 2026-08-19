@@ -749,6 +749,18 @@ CS-1의 가드(AF13)를 "끝까지 스크롤한 뒤 마지막 보기가 바 위�
 스크롤 자체가 없어 어떤 여백이든 통과합니다. 재야 할 것은 콘텐츠가 아니라 규칙이었습니다 —
 "셸이 비워 둔 자리가 고정 바 높이를 덮는가"로 바꾸자 규칙을 되살렸을 때 정확히 빨간불이 됩니다.
 
+## 게이트 (4차 종료 시점)
+
+| 명령 | 결과 |
+|---|---|
+| `tsc --noEmit` · `-p tsconfig.test.json` · `eslint` | 통과 |
+| `vitest run` | 49파일 / **761** (점검 시작 시점 44파일 / 696) |
+| `node scripts/verify.js` | 12파일 · 오류 0 · 경고 0 |
+| `playwright --project=react --project=apk` | **424 통과** (12.2분, 실패 0) |
+| `npm audit --omit=dev` | 0건 |
+| `stryker` 코어 / 저장 계층 | **미실행** — 두 설정의 `mutate` 대상 중 4차에 바뀐 파일이 없어 3차 값(92.44 / 69.92)이 그대로 유효 |
+| `verify-pdf-data.py` | **미실행** — 이 환경에 `pymupdf` 부재 |
+
 ## 남긴 것
 
 - **AN-3 (정보)** — `addJavascriptInterface`에 출처 검사가 없습니다. `capacitor.config.json`에
