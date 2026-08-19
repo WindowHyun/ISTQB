@@ -1,11 +1,32 @@
 /**
- * Normalizes question data, fixing newlines and separating options.
+ * PDF에서 뜯어낸 문항을 보기 쉬운 모양으로 되돌린다.
+ *
+ * ⚠ 이 함수의 결과를 **자동으로 채택하면 안 된다.** fix-questions.js는 결과를
+ * reports/normalized/ 아래에만 쓰고 원본은 건드리지 않는다. 이유는 아래 위험 때문이다.
+ *
+ * ── 위험: 보기 키 재부여 ──────────────────────────────────────────────
+ * 지문이나 한 덩어리 보기에서 보기를 뽑아낼 때(extractFromStem·extractFromOptions),
+ * 새 보기에는 **나온 순서대로** 'a','b','c','d' 키를 새로 매긴다. 그런데 정답(q.answer)은
+ * 원본 키를 그대로 들고 있다. 둘을 이어 주는 것은 아무것도 없다.
+ *
+ *   - 원본 키가 달랐다면(A·B·C / 1·2·3·4) 정답 키가 새 보기 목록에 없으므로 아래
+ *     검증에서 잡힌다.
+ *   - **원본 키도 이미 a·b·c·d였다면 아무것도 잡지 못한다.** 뽑아낸 순서가 원본 순서와
+ *     다르면 정답이 조용히 다른 보기를 가리킨다 — 데이터는 멀쩡해 보이고 검증도 통과하며,
+ *     사용자만 맞는 답을 골랐는데 오답 처리를 당한다.
+ *
+ * 그래서 **키를 다시 매겼으면 무조건 수동 검토로 올린다.** 이 스크립트는 검토 도구이므로
+ * 놓치는 쪽(거짓 음성)이 과하게 잡는 쪽보다 훨씬 비싸다. 검토자는 새 보기의 순서가 원본과
+ * 같은지, 그리고 q.answer가 여전히 옳은 보기를 가리키는지를 눈으로 확인해야 한다.
+ *
  * @param {Object} rawQuestion The raw question object
  * @returns {Object} { normalized: Object, requiresManualReview: boolean }
  */
 function normalizeQuestionData(rawQuestion) {
   let q = JSON.parse(JSON.stringify(rawQuestion));
   let requiresManualReview = false;
+  /** 보기 키를 새로 매겼는가 — 그랬다면 정답 매핑을 사람이 확인해야 한다(위 주석). */
+  let keysReassigned = false;
 
   // 1. Fix newlines in stem and explanation
   const fixNewlines = (blocks) => {
@@ -92,6 +113,7 @@ function normalizeQuestionData(rawQuestion) {
           key: String.fromCharCode(97 + i), // 'a', 'b', 'c', 'd'
           text: `${ext.label} ${ext.text}`
         }));
+        keysReassigned = true;
         return true;
       }
     }
@@ -108,6 +130,7 @@ function normalizeQuestionData(rawQuestion) {
           key: String.fromCharCode(97 + i),
           text: `${ext.label} ${ext.text}`
         }));
+        keysReassigned = true;
         return true;
       }
     }
@@ -143,6 +166,11 @@ function normalizeQuestionData(rawQuestion) {
     const validKeys = Array.isArray(q.options) ? q.options.map(o => o.key) : [];
     const allAnswersValid = q.answer.every(ans => validKeys.includes(ans));
     if (!allAnswersValid) {
+      requiresManualReview = true;
+    }
+    // 키를 다시 매겼다면 '정답 키가 목록에 있다'는 것으로는 아무것도 보장되지 않는다.
+    // 원본 키도 a·b·c·d였다면 순서만 바뀌어도 통과하면서 정답이 다른 보기를 가리킨다.
+    if (keysReassigned) {
       requiresManualReview = true;
     }
   } else {
