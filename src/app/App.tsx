@@ -11,6 +11,7 @@ import { AppModals } from '../components/modals/AppModals';
 import { MODE_LABEL } from '../utils/modeLabel';
 import { useBackDismiss } from '../hooks/useBackDismiss';
 import { BACK_PRIORITY, initHardwareBackButton } from '../utils/backGuard';
+import { watchNativeSystemBars } from '../utils/nativeSystemBars';
 
 const Sidebar = React.lazy(() => import('../components/layout/Sidebar').then(module => ({ default: module.Sidebar })));
 const QuestionWorkspace = React.lazy(() => import('../components/quiz/QuestionWorkspace').then(module => ({ default: module.QuestionWorkspace })));
@@ -45,6 +46,10 @@ export const App = () => {
     // 안드로이드 하드웨어 뒤로가기 연결(웹에서는 no-op).
     void initHardwareBackButton();
   }, []);
+
+  // 테마를 안드로이드 시스템 바 색에 잇는다(웹에서는 no-op).
+  // 셸이 아니라 여기 두는 이유는 nativeSystemBars의 주석 참고 — 게이트 화면이 셸 밖이다.
+  useEffect(() => watchNativeSystemBars(), []);
 
   // 뒤로가기로 닫히는 오버레이 — 드로어는 그 위에 열린 모달이 먼저 닫히도록 최하위.
   useBackDismiss(drawerOpen, () => setDrawerOpen(false), BACK_PRIORITY.drawer);

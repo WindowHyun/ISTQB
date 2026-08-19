@@ -40,33 +40,73 @@ public class MainActivity extends BridgeActivity {
     if (getBridge() != null && getBridge().getWebView() != null) {
       WebView webView = getBridge().getWebView();
       webView.addJavascriptInterface(new BackupBridge(this), "AndroidBackup");
+      webView.addJavascriptInterface(new ThemeBridge(), "AndroidTheme");
       injectSafeAreaInsets(webView);
     }
   }
 
   private void configureSystemBars() {
-    Window window = getWindow();
-    // 상태바·내비게이션 바 색상을 앱 표면색(--surface: #ffffff)에 맞춘다 —
-    // 상단바(.mobile-topbar)와 하단 액션바가 모두 이 색이라 경계가 보이지 않는다.
-    // 종전 값(#f5f7f2)은 폐기된 틸 브랜드 팔레트 잔재로, 실제 배경(--bg: #eef2f7)과도
-    // 달라 상태바만 미묘하게 초록빛으로 떴다.
-    window.setStatusBarColor(Color.rgb(255, 255, 255));
-    window.setNavigationBarColor(Color.rgb(255, 255, 255));
-
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
       // false: WebView가 상태바 뒤까지 그려짐(edge-to-edge)
       // CSS env(safe-area-inset-top)으로 내용을 피해서 그림
-      window.setDecorFitsSystemWindows(false);
+      getWindow().setDecorFitsSystemWindows(false);
     }
+    // 시작 색은 라이트 테마의 표면색(--surface: #ffffff)이다 — 상단바(.mobile-topbar)와
+    // 하단 액션바가 모두 이 색이라 경계가 보이지 않는다. 다크 테마이면 웹이 뜨자마자
+    // AndroidTheme.setSystemBars()로 덮어쓴다(아래 ThemeBridge).
+    // 종전 값(#f5f7f2)은 폐기된 틸 브랜드 팔레트 잔재로, 실제 배경(--bg: #eef2f7)과도
+    // 달라 상태바만 미묘하게 초록빛으로 떴다.
+    applySystemBars(Color.rgb(255, 255, 255), true);
+  }
+
+  /**
+   * 시스템 바를 앱 표면색에 맞춘다.
+   *
+   * @param color   바 배경색
+   * @param lightBar 배경이 밝은가. 밝으면 아이콘을 어둡게(LIGHT_*_BAR 플래그) 그려야 보인다 —
+   *                 플래그 이름의 'LIGHT'는 아이콘이 아니라 **배경**을 가리킨다.
+   */
+  private void applySystemBars(int color, boolean lightBar) {
+    Window window = getWindow();
+    window.setStatusBarColor(color);
+    window.setNavigationBarColor(color);
 
     int flags = window.getDecorView().getSystemUiVisibility();
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-      flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+      // 반드시 켜고 끄기를 모두 한다. 켜기만 하면 다크로 갔다가 라이트로 돌아올 때
+      // 플래그가 남아 흰 바탕에 흰 아이콘이 되어 시계·배터리가 사라진다.
+      if (lightBar) flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+      else flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
     }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+      if (lightBar) flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+      else flags &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
     }
     window.getDecorView().setSystemUiVisibility(flags);
+  }
+
+  /**
+   * 웹의 테마를 네이티브 시스템 바에 잇는다.
+   *
+   * 종전에는 바 색이 onCreate에서 흰색으로 한 번 박히고 끝이었다. 그래서 다크 테마에서는
+   * 어두운 앱 위아래에 **흰 띠 두 줄**이 남았다(edge-to-edge라 앱이 그 뒤까지 그리는데
+   * 바 배경만 흰색이었다). 웹에서는 시스템 바가 없어 드러나지 않고 APK에서만 나타났다.
+   *
+   * 색을 네이티브가 정하지 않고 웹이 넘겨주는 이유: 진실의 출처를 CSS 토큰(--surface)
+   * 하나로 둔다. 여기서 팔레트를 복제하면 토큰이 바뀔 때 조용히 어긋난다.
+   */
+  public class ThemeBridge {
+    @JavascriptInterface
+    public void setSystemBars(String colorHex, boolean lightBar) {
+      final int color;
+      try {
+        color = Color.parseColor(String.valueOf(colorHex).trim());
+      } catch (Exception ignored) {
+        return; // 파싱 못 하는 값이면 이전 색을 유지한다(검은 바보다 낫다).
+      }
+      // @JavascriptInterface는 WebView의 JS 스레드에서 불린다 — 윈도우는 UI 스레드에서만 만진다.
+      runOnUiThread(() -> applySystemBars(color, lightBar));
+    }
   }
 
   /**
