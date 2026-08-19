@@ -30,7 +30,7 @@
 ```bash
 npm run lint && npm run typecheck && npm run typecheck:test   # 정적 게이트
 npm run verify                                                # 문제 데이터·콘텐츠 감사
-npm test                                                      # 유닛(store·utils 순수 로직)
+npm test                                                      # 유닛(store·utils·hooks + scripts/ 도구 + middleware.ts)
 npm run test:e2e                                              # React 기능 E2E(Chromium)
 ```
 
@@ -40,7 +40,7 @@ npm run test:e2e                                              # React 기능 E2E
 npm run test:nf                # 비기능 — 성능·오프라인·타이머·저장 내구성
 npm run test:apk               # APK/WebView — 안전영역·터치 타깃(데스크톱 E2E가 대체 못 함)
 npm run test:mutation          # Stryker 코어 — 채점·통계 순수 로직(break 85, ~70초)
-npm run test:mutation:storage  # Stryker 영속화·상태 계층(break 65, ~12분)
+npm run test:mutation:storage  # Stryker 영속화·상태 계층(break 67, ~12분)
 ```
 
 ### 뮤테이션 게이트가 둘인 이유
@@ -53,7 +53,7 @@ npm run test:mutation:storage  # Stryker 영속화·상태 계층(break 65, ~12�
 
 | 설정 | 대상 | 실측 | break | 성격 |
 | --- | --- | --- | --- | --- |
-| `stryker.config.json` | 채점·통계 순수 로직 7파일 | 92.30% | 85 | 지켜야 할 높은 기준 |
+| `stryker.config.json` | 채점·통계 순수 로직 7파일 | 92.44% | 85 | 지켜야 할 높은 기준 |
 | `stryker.storage.config.json` | `storage.ts`·`useQuizStore.ts` | 71.37% | 67 | **래칫**(50 → 58 → 65 → 67) |
 
 두 번째는 목표가 아니라 바닥이다. `storage.ts`는 커버리지 81%인데 뮤테이션이 50.91%였다 —

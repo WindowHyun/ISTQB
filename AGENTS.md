@@ -41,8 +41,8 @@
 > 정확한 수치는 각 스위트 실행 결과와 CI 로그가 정본입니다. 다만 **데이터 계약 수치**(12세트
 > 626문항 등)는 계약 테스트가 강제하므로 문서에 남깁니다.
 - 채점·통계·저장 키 등 핵심 순수 로직을 고쳤다면 `npm run test:mutation`(Stryker 코어, CI break 85)으로 테스트의 결함 검출력을 확인합니다.
-- `src/utils/storage.ts`·`src/store/useQuizStore.ts`(영속화·상태 계층)를 고쳤다면 `npm run test:mutation:storage`(CI break 65, ~12분)를 실행합니다. 게이트가 둘로 나뉜 이유와 래칫 규칙은 `docs/harness/README.md`를 참고하세요 — **검사를 보강하면 break도 함께 올립니다.**
-- 테스트·e2e 파일을 추가·수정했다면 `npm run typecheck:test`를 실행합니다 — 앱 `tsconfig`는 테스트를 exclude하므로 이 명령이 아니면 타입 검사를 받지 않습니다. **루트의 `middleware.ts`(사이트 전체 Basic Auth 관문)도 같은 이유로 여기에만 걸려 있습니다** — 앱 `tsconfig`의 `include`가 `src`뿐이고 Vercel이 별도 번들하므로 `npm run build`로는 안 잡힙니다.
+- `src/utils/storage.ts`·`src/store/useQuizStore.ts`(영속화·상태 계층)를 고쳤다면 `npm run test:mutation:storage`(CI break 67, ~12분)를 실행합니다. 게이트가 둘로 나뉜 이유와 래칫 규칙은 `docs/harness/README.md`를 참고하세요 — **검사를 보강하면 break도 함께 올립니다.**
+- 테스트·e2e 파일을 추가·수정했다면 `npm run typecheck:test`를 실행합니다 — 앱 `tsconfig`는 테스트를 exclude하므로 이 명령이 아니면 타입 검사를 받지 않습니다. **루트의 `middleware.ts`(사이트 전체 Basic Auth 관문)와 `scripts/**/*.test.ts`(데이터 보정 도구의 계약 검사)도 같은 이유로 여기에만 걸려 있습니다** — 앱 `tsconfig`의 `include`가 `src`뿐이고 Vercel이 별도 번들하므로 `npm run build`로는 안 잡힙니다. 둘 다 `tsconfig.test.json`의 `include`에 명시돼 있으니, `src` 밖에 검사를 새로 두면 그 목록에 함께 넣습니다.
 - e2e 스펙에 `test.setTimeout`을 새로 주거나 올렸다면 **잡 타임아웃과의 부등식**을 다시 계산합니다 — `스펙 최대 예산 × 2(CI 재시도) + 정상 스위트 시간 < 잡 timeout`. 깨지면 멈춘 스펙이 예산을 태우는 동안 잡이 벽시계로 먼저 잘려 **원인이 로그에 한 줄도 안 남습니다.** 근거와 실측표는 `docs/harness/README.md`를 참고하세요.
 - 의존성을 추가했다면 `dependencies` / `devDependencies` 분류를 확인합니다. 빌드·테스트에만 쓰이면 `devDependencies`입니다 — 잘못 넣으면 `audit` 게이트("배포 번들의 취약점만 차단")가 빌드 도구 체인까지 재서, 사용자에게 나가지도 않는 패키지의 권고로 CI가 막힙니다(실제로 겪었습니다).
 - 컴포넌트·훅 안의 순수 로직을 고쳤다면, 유닛이 닿을 수 있게 **모듈로 꺼내는 것**을 먼저 검토합니다. `reviewTargetIds`(useQuestions) · `roundHistory`(useQuizSession) · `wrongNote`(AppModals)가 그 사례이고, 셋 다 꺼낸 뒤에야 결함이 검사로 고정됐습니다.
