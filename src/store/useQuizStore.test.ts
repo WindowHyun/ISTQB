@@ -308,7 +308,14 @@ describe('resetProgressForSets — 이력 삭제와 짝이 되는 상태 정리'
       'B-exam-1': ['keep'],           // 다른 제품 세트 — 건드리면 안 된다
     },
     graded: { 'A-exam': true, 'QUICK-quick': true, 'B-exam': true },
-    reviewIds: { 'A-exam': ['1', '2'], 'QUICK-quick': ['Q1'], 'B-exam': ['9'] },
+    quickGraded: { 'QUICK-quick-Q1': true, 'OTHER-quick-Q9': true },
+    reviewIds: {
+      'A-exam': ['1', '2'],
+      'A-random#테스트 기초': ['m1'],   // 챕터 미니 회차 키 — base로 되돌려 지워야 한다
+      'QUICK-quick': ['Q1'],
+      'B-exam': ['9'],
+      'B-random#테스트 기초': ['keep'], // 다른 세트의 미니 키 — 남아야 한다
+    },
     reviewedOk: { A: [1, 2], B: [3] },
     examStarted: { A: true, B: true },
     examStartedAt: { A: 111, B: 222 },
@@ -327,6 +334,11 @@ describe('resetProgressForSets — 이력 삭제와 짝이 되는 상태 정리'
     expect(s.reviewedOk.A).toBeUndefined();
     expect(s.examStarted.A).toBeUndefined();
     expect(s.examStartedAt.A).toBeUndefined();
+    // 챕터 미니 회차 키(`#챕터`)도 함께 — base 키만 지우면 미니 오답이 유령으로 남는다.
+    expect(s.reviewIds['A-random#테스트 기초']).toBeUndefined();
+    // 답안만 지우고 퀵 채점 표시를 남기면, 그 문항이 선택은 빈 채로 '오답'이 펼쳐지고
+    // 보기가 잠겨 다시 풀 수 없다(점수판은 0으로 돌아가 화면 안에서 값이 어긋난다).
+    expect(s.quickGraded['QUICK-quick-Q1']).toBeUndefined();
   });
 
   it('목록에 없는 세트는 손대지 않는다(다른 제품 기록 보호)', () => {
@@ -336,8 +348,11 @@ describe('resetProgressForSets — 이력 삭제와 짝이 되는 상태 정리'
     expect(s.answers['B-exam-1']).toEqual(['keep']);
     expect(s.graded['B-exam']).toBe(true);
     expect(s.reviewIds['B-exam']).toEqual(['9']);
+    expect(s.reviewIds['B-random#테스트 기초']).toEqual(['keep']);
     expect(s.reviewedOk.B).toEqual([3]);
     expect(s.examStartedAt.B).toBe(222);
+    // 다른 네임스페이스의 퀵 채점 표시는 남는다(답안과 같은 접두 규칙).
+    expect(s.quickGraded['OTHER-quick-Q9']).toBe(true);
   });
 
   // 접두 일치로 지우면 이름이 겹치는 다른 세트까지 함께 날아간다.
@@ -359,6 +374,75 @@ describe('resetProgressForSets — 이력 삭제와 짝이 되는 상태 정리'
     const before = useQuizStore.getState().answers;
     useQuizStore.getState().resetProgressForSets([]);
     expect(useQuizStore.getState().answers).toBe(before);
+  });
+});
+
+/**
+ * 답안을 지울 때 퀵의 문항별 채점 표시(quickGraded)도 같은 범위로 지운다.
+ *
+ * 퀵의 정답 공개·잠금은 quickGraded 하나로 판정한다(QuestionCard). 답안만 지우면 그 문항은
+ * 선택이 빈 채로 "❌ 오답입니다"가 펼쳐지고 보기·입력이 disabled로 굳어 **다시 풀 수 없다.**
+ * 반면 점수판(computeQuickStats)은 확정된 답이 있어야 세므로 0으로 돌아간다 — 같은 화면
+ * 안에서 문항 상태와 숫자가 어긋난다. 탈출구는 '다시 섞어 시작'뿐이었다.
+ *
+ * startQuick은 처음부터 둘을 함께 비웠는데 초기화 경로만 규칙이 갈려 있었다.
+ */
+describe('clearAnswers — 퀵 채점 표시도 같은 범위로 비운다', () => {
+  beforeEach(reset);
+
+  it('지운 답안과 같은 접두의 quickGraded를 함께 지운다', () => {
+    useQuizStore.setState({
+      answers: { 'QUICK-quick-Q1': ['a'], 'QUICK-quick-Q2': ['b'], 'A-exam-Q1': ['c'] },
+      quickGraded: { 'QUICK-quick-Q1': true, 'QUICK-quick-Q2': true },
+    });
+    useQuizStore.getState().clearAnswers('QUICK', 'quick');
+    const s = useQuizStore.getState();
+    expect(s.answers).toEqual({ 'A-exam-Q1': ['c'] });
+    expect(s.quickGraded).toEqual({});
+  });
+
+  it('다른 네임스페이스의 채점 표시는 남긴다', () => {
+    useQuizStore.setState({
+      answers: { 'A-exam-Q1': ['a'] },
+      quickGraded: { 'QUICK-quick-Q1': true },
+    });
+    useQuizStore.getState().clearAnswers('A', 'exam');
+    expect(useQuizStore.getState().quickGraded).toEqual({ 'QUICK-quick-Q1': true });
+  });
+});
+
+/**
+ * 오답 대상 비우기 — 챕터 미니 회차 키까지.
+ *
+ * setReviewIds(gradeKey, [])는 base 키 하나만 비운다. 미니 회차는 `#챕터`가 붙은 별도
+ * 키라(answerKey.reviewKeyFor) 그대로 남아, '현재 모드 답안 초기화' 뒤에도 오답 모드가
+ * 지워진 회차의 문항을 계속 출제했다.
+ */
+describe('clearReviewTargets — 세트·모드의 오답 대상 전부', () => {
+  beforeEach(reset);
+
+  it('base 키와 챕터 키를 함께 비우고, 다른 모드·세트는 남긴다', () => {
+    useQuizStore.setState({
+      reviewIds: {
+        'A-random': ['r1'],
+        'A-random#테스트 기초': ['m1'],
+        'A-random#정적 테스팅': ['m2'],
+        'A-exam': ['e1'],
+        'AB-random': ['other'],
+      },
+    });
+    useQuizStore.getState().clearReviewTargets('A', 'random');
+    expect(useQuizStore.getState().reviewIds).toEqual({
+      'A-exam': ['e1'],
+      'AB-random': ['other'],
+    });
+  });
+
+  it('지울 것이 없으면 상태 참조를 바꾸지 않는다(불필요한 저장·리렌더 방지)', () => {
+    useQuizStore.setState({ reviewIds: { 'A-exam': ['e1'] } });
+    const before = useQuizStore.getState().reviewIds;
+    useQuizStore.getState().clearReviewTargets('A', 'random');
+    expect(useQuizStore.getState().reviewIds).toBe(before);
   });
 });
 

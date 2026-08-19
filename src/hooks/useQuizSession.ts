@@ -4,7 +4,7 @@ import { useQuizStore } from '../store/useQuizStore';
 import { useQuestions, Question } from './useQuestions';
 import { isQuestionCorrect } from '../utils/answer';
 import { isQuickCommitted, isAnsweredInMode } from '../utils/quickStats';
-import { answerKeyFor, gradeKeyFor } from '../utils/answerKey';
+import { answerKeyFor, gradeKeyFor, reviewKeyFor } from '../utils/answerKey';
 import { buildRoundHistory, makeRoundId } from '../utils/roundHistory';
 import { questionKey } from '../utils/chapterStats';
 import { computeCstsWeightedScore } from '../utils/scoring';
@@ -85,9 +85,13 @@ export function useQuizSession() {
   }, [mode, currentQuestions, answers, answerKeyOf]);
   // CSTS 합격 판정용 가중 점수(4지선다·서답형 1.5점/진위형 1.0점) — evaluatePass가 소비한다.
   // ISTQB는 전 문항이 동일 배점이라 결과가 단순 정답률과 같아 무해하지만, 실제로 쓰는 건 CSTS뿐이다.
+  //
+  // 모집단은 gradedTotal·gradedCorrect와 **같은 gradableQuestions**다. currentQuestions로
+  // 재면 퀵에서 결과 표시가 회차 범위와 어긋난다(퀵은 채점한 문항만 회차로 남긴다).
+  // 퀵이 아니면 gradableQuestions === currentQuestions라 값도 참조도 종전과 같다.
   const cstsWeighted = useMemo(
-    () => computeCstsWeightedScore(currentQuestions, answers, answerKeyOf),
-    [currentQuestions, answers, answerKeyOf],
+    () => computeCstsWeightedScore(gradableQuestions, answers, answerKeyOf),
+    [gradableQuestions, answers, answerKeyOf],
   );
 
   /**
@@ -173,7 +177,9 @@ export function useQuizSession() {
       // (연습은 채점이 없고 시험 모드 진입 시 setMode가 필터를 해제하므로 랜덤에서만 값이 실린다)
       chapter: snapshot.chapterFilter ?? undefined,
       // CSTS 합격 판정 가중 점수 스냅샷 — ISTQB는 저장하지 않는다(단순 정답률이라 불필요).
-      cstsWeighted: snapshot.activeProduct === 'csts' ? cstsWeighted : undefined,
+      // 값이 아니라 플래그를 넘긴다: 가중 점수는 buildRoundHistory가 이 회차의 questions로
+      // 직접 계산해, correct/total과 모집단이 갈릴 수 없다(RoundHistoryInput.weighted 주석).
+      weighted: snapshot.activeProduct === 'csts',
       now: Date.now(),
       id: makeRoundId(),
     });
@@ -192,7 +198,10 @@ export function useQuizSession() {
     }
     if (mode !== 'quick') {
       // 모드별로 저장해 랜덤 채점이 시험 오답 목록을 덮어쓰지 않게 한다(오답 모드는 합집합을 읽음).
-      setReviewIds(gradeKey, wrongIds);
+      // 챕터 미니 시험은 내부 모드가 random이라 채점 키가 세트 전체 랜덤과 같다 —
+      // 그대로 쓰면 10문항 미니 한 번이 40문항 랜덤의 오답 목록을 통째로 갈아치운다.
+      // 회차 레코드의 chapter와 같은 값으로 키를 갈라 둔다(answerKey.reviewKeyFor).
+      setReviewIds(reviewKeyFor(setId, mode, snapshot.chapterFilter), wrongIds);
       // 다시 틀린 문항은 '복습함'에서 되돌린다 — 아니면 한 번 복습했다는 이유로
       // 이후 계속 오답인데도 재풀이 목록에 영영 나타나지 않는다.
       unmarkReviewed(setId, wrongQs.map((q) => q.number));
@@ -244,7 +253,9 @@ export function useQuizSession() {
       certification: snapshot.activeProduct ?? undefined,
       setTitle: '퀵 랜덤',
       elapsedSeconds: snapshot.elapsedSeconds,
-      cstsWeighted: snapshot.activeProduct === 'csts' ? cstsWeighted : undefined,
+      // 방금 채점한 문항까지 포함한 gradedQs 기준으로 계산된다 — 넘겨받은 값을 쓰면
+      // 추첨 전체(최대 440문항)를 모집단으로 삼아 correct/total과 어긋났다.
+      weighted: snapshot.activeProduct === 'csts',
       now: Date.now(),
       // markQuickGraded가 방금 보장한 값이다(없으면 그 자리에서 만든다).
       id: snapshot.quickRoundId ?? makeRoundId(),

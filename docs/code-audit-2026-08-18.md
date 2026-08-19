@@ -6,6 +6,24 @@
 
 ---
 
+> ## ✅ F-1 ~ F-4는 이 브랜치에서 **수정 완료** (갱신: 2026-08-19)
+>
+> 아래 본문은 **수정 전 시점의 조사 기록**을 그대로 보존합니다. "재현 확인"·"잠복"이라는
+> 서술은 당시 사실이며, 지금은 아래 표대로 바뀌었습니다.
+>
+> | # | 조치 | 결함을 고정한 검사 |
+> |---|---|---|
+> | F-1 | `saveUiState`·`saveAnswers`가 **예약 시점의 제품**으로 키를 만든다. `flushPersist`는 `activeProduct`가 비어도 대기 중인 저장을 내보낸다 | `src/utils/storage.gateexit.test.ts` (신설 6건) |
+> | F-2 | `clearAnswers`·`resetProgressForSets`가 지운 답안과 **같은 범위의 `quickGraded`**를 함께 비운다(`dropQuickGraded`) | `useQuizStore.test.ts` — `clearAnswers — 퀵 채점 표시…` |
+> | F-3 | 가중 점수를 호출부가 넘기지 않는다. `buildRoundHistory`가 **회차의 `questions`로 직접** 계산해 `correct`·`total`과 모집단이 갈릴 수 없다(`weighted` 플래그) | `roundHistory.test.ts` — `가중 점수의 모집단은 total과 같다` |
+> | F-4 | 오답 대상 키에 챕터를 붙인다(`reviewKeyFor` → `A-random#챕터`). 읽는 쪽(`reviewTargetIds`)은 base·챕터 키를 **합집합**으로 본다 | `answerKey.test.ts` · `useQuestions.review.test.ts` · `useQuizStore.test.ts` |
+> | F-5 | **미조치** — 제품 결함이 아닌 검사 결함이라 이번 범위에서 뺐습니다. `react-pairwise`가 `helpers.ts`의 복수정답 처리 경로를 쓰도록 바꾸면 닫힙니다 |  |
+>
+> 추가한 검사는 전부 **대상 결함을 되돌려 빨간불을 확인한 뒤** 원복했습니다(F-1 4건 / F-2·F-4 4건 / F-3 2건 / F-4 읽기 1건).
+> 검증 결과는 §2를 이 수정 이후 값으로 갱신했습니다.
+
+---
+
 ## 0. 요약
 
 정적 게이트(`lint` · `typecheck` · `typecheck:test`)와 유닛 696건, 데이터 검증 626문항은 **전부 통과**합니다.
@@ -264,16 +282,20 @@ CI의 `E2E smoke`는 재시도 1회(`retries: 1`)라 대개는 가려지지만, 
 
 ## 2. 검증 결과 (실행한 명령과 결과)
 
-| 명령 | 결과 |
-|---|---|
-| `npx tsc --noEmit` | 통과 (출력 없음) |
-| `npx tsc --noEmit -p tsconfig.test.json` | 통과 |
-| `npx eslint .` | 통과 |
-| `npx vitest run` | **44 파일 / 696 테스트 전부 통과** (13.4s) |
-| `node scripts/verify.js` | 12파일 626문항 · 오류 0 · 경고 0 / dup-groups 46그룹 96문항 최신 |
-| `npx playwright test --project=react` | **409 통과 / 1 실패** (14.2m) — 실패 1건은 제품이 아니라 검사 결함(F-5) |
-| `npm audit --omit=dev --audit-level=high` | **0건** |
-| `npm audit` (dev 포함) | high 4건(`undici` · `js-yaml` · `fast-uri`) — 빌드·테스트 전용, 배포 번들에는 없음 |
+점검 시점(수정 전)과 F-1~F-4 수정 후를 함께 적습니다.
+
+| 명령 | 점검 시점 | 수정 후 |
+|---|---|---|
+| `npx tsc --noEmit` | 통과 | 통과 |
+| `npx tsc --noEmit -p tsconfig.test.json` | 통과 | 통과 |
+| `npx eslint .` | 통과 | 통과 |
+| `npx vitest run` | 44파일 / **696 통과** | 45파일 / **712 통과** (+16, 신규 검사) |
+| `node scripts/verify.js` | 12파일 626문항 · 오류 0 · 경고 0 | (데이터 무변경) |
+| `npx playwright test --project=react` | 409 통과 / **1 실패**(F-5 플래키) | **410 전부 통과** (12.6m) |
+| `npx stryker run` (코어, break 85) | 92.30%(문서 실측) | **92.44%** ✓ |
+| `npx stryker run stryker.storage.config.json` (break 67) | 71.37%(문서 실측) | §2.2 참고 |
+| `npm audit --omit=dev --audit-level=high` | **0건** | 0건 |
+| `npm audit` (dev 포함) | high 4건(`undici` · `js-yaml` · `fast-uri`) — 빌드·테스트 전용, 배포 번들에는 없음 | 동일 |
 
 > E2E는 이 환경에 Playwright 1.61이 요구하는 chromium 빌드(1228)가 없어, 미리 설치된 chromium(1194)을
 > `launchOptions.executablePath`로 지정한 **임시 설정 파일**로 실행했습니다. 스펙·프로젝트 정의는 저장소 것 그대로이며
@@ -281,9 +303,9 @@ CI의 `E2E smoke`는 재시도 1회(`retries: 1`)라 대개는 가려지지만, 
 
 실행하지 않은 점검과 사유:
 
-- `scripts/verify-pdf-data.py` — 원본 PDF와 `pymupdf`가 이 환경에 없어 생략(CI `pdf-data` 잡이 담당).
-- `npm run test:nf` / `test:apk` — 코드 변경이 없어 회귀 대상이 아니고, 단일 `webServer`를 공유하므로 react 스위트와 동시 실행 불가.
-- `npm run test:mutation*` — 코드 변경이 없어 검출력 지표가 달라질 여지가 없음(러너 시간 대비 소득 없음).
+- `scripts/verify-pdf-data.py` — 원본 PDF와 `pymupdf`가 이 환경에 없어 생략(CI `pdf-data` 잡이 담당). 문제 데이터는 이번 수정에서 한 줄도 바뀌지 않았습니다.
+- `npm run test:nf` / `test:apk` — 수정 범위가 영속화·상태·순수 로직이라 레이아웃·안전영역과 무관하고, 단일 `webServer`를 공유해 react 스위트와 동시 실행이 불가합니다. **저장 내구성은 `test:nf`의 영역과 겹치므로, 배포 전 이 스위트를 한 번 돌리는 것을 권합니다.**
+- 실기기 Safari 확인 — IndexedDB·Blob·서비스워커 계층은 건드리지 않았고 변경은 `localStorage` 키 선택과 순수 로직에 한정됩니다. 다만 `AGENTS.md`의 기준상 영속화 계층을 고쳤으므로 배포 전 30초 실기기 확인은 남겨 둡니다.
 
 ### 2.1 데이터 계층 독립 스캔 (하네스와 별개로 직접 확인)
 

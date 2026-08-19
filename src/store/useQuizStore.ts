@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { answerKeyPrefix, gradeKeyFor } from '../utils/answerKey';
+import { answerKeyPrefix, gradeKeyFor, isReviewKeyOf } from '../utils/answerKey';
 import { makeRoundId } from '../utils/roundHistory';
 
 // quick: 제품의 전 세트에서 10~20문항을 뽑아 짧게 푸는 모드. 세트 하나에 매이지 않으므로
@@ -28,6 +28,27 @@ export function freshQuickRounds(rounds: ExamHistory[] | undefined, now = Date.n
  * 한쪽 누락으로 이력이 무단 폐기되거나(그 결함이 실제로 났다) 초기화가 반쪽이 된다.
  */
 export const PLAY_MODES = ['exam', 'practice', 'random', 'review', 'quick'] as const;
+
+/**
+ * 답안을 지울 때 **퀵의 문항별 채점 표시도 같은 범위로 함께 지운다.**
+ *
+ * 퀵의 정답 공개·잠금은 `quickGraded`(답안과 같은 키) 하나로 판정한다. 답안만 지우면
+ * 그 문항은 선택이 빈 채로 "❌ 오답입니다"가 펼쳐지고 보기·입력이 `disabled`로 굳는다 —
+ * 다시 풀 수 없고, 점수판(확정된 답이 있어야 센다)은 0으로 돌아가 화면 안에서 값이 어긋난다.
+ *
+ * `startQuick`은 처음부터 둘을 함께 비웠는데 초기화 경로(`clearAnswers`·`resetProgressForSets`)만
+ * 규칙이 갈려 있었다. 같은 술어를 공유하도록 여기 한 곳에 둔다.
+ */
+function dropQuickGraded(
+  quickGraded: Record<string, true>,
+  matches: (key: string) => boolean,
+): Record<string, true> {
+  const next: Record<string, true> = {};
+  for (const key of Object.keys(quickGraded)) {
+    if (!matches(key)) next[key] = true;
+  }
+  return next;
+}
 
 /**
  * 퀵의 출제 규모 — 제품의 전 세트를 섞어 끝까지 낸다.
@@ -194,8 +215,14 @@ export interface QuizState {
   markQuickGraded: (key: string) => void;
   /** 오답 보기 화면을 연다(null이면 닫고 풀이 화면으로 돌아간다). */
   setWrongView: (view: QuizState['wrongView']) => void;
-  // 오답(review) 대상 문항 id 목록. 키는 `${setId}-${mode}`(과거 데이터는 setId 단독일 수 있음).
+  // 오답(review) 대상 문항 id 목록. 키는 `${setId}-${mode}`(챕터 미니 회차는 `#챕터`가 붙고,
+  // 과거 데이터는 setId 단독일 수 있음 — answerKey.reviewKeyFor).
   setReviewIds: (key: string, ids: string[]) => void;
+  /**
+   * 이 세트·모드의 오답 대상을 **전부** 비운다 — 챕터 미니 회차 키(`#챕터`)까지.
+   * `setReviewIds(gradeKey, [])`는 base 키 하나만 비워, 미니 회차의 오답이 그대로 남는다.
+   */
+  clearReviewTargets: (setId: string, mode: QuizMode) => void;
   setGraded: (key: string, value: boolean) => void;
   setExamStarted: (setId: string, value: boolean) => void;
   /** 시험 응시 개시 시각 기록/해제 — 제한시간의 기준점. */
@@ -387,6 +414,16 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   setReviewIds: (key, ids) => set((state) => ({
     reviewIds: { ...state.reviewIds, [key]: ids }
   })),
+  clearReviewTargets: (setId, mode) => set((state) => {
+    const reviewIds = { ...state.reviewIds };
+    let changed = false;
+    for (const key of Object.keys(reviewIds)) {
+      if (!isReviewKeyOf(key, setId, mode)) continue;
+      delete reviewIds[key];
+      changed = true;
+    }
+    return changed ? { reviewIds } : state;
+  }),
   setGraded: (key, value) => set((state) => ({
     graded: { ...state.graded, [key]: value }
   })),
@@ -400,10 +437,11 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     return { examStartedAt: next };
   }),
   clearAnswers: (setId, mode) => set((state) => {
+    const prefix = answerKeyPrefix(setId, mode);
     const nextAnswers = { ...state.answers };
     for (const key in nextAnswers) {
       // 답안 키는 `${setId}-${mode}-${qid}` — 구분자까지 포함해 유사 접두 세트id 오삭제를 방지.
-      if (key.startsWith(answerKeyPrefix(setId, mode))) {
+      if (key.startsWith(prefix)) {
         delete nextAnswers[key];
       }
     }
@@ -419,6 +457,8 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       graded: { ...state.graded, [gradeKeyFor(setId, mode)]: false },
       examStarted: nextExamStarted,
       examStartedAt: nextExamStartedAt,
+      // 답안과 같은 범위의 퀵 채점 표시도 함께(dropQuickGraded 주석 참고).
+      quickGraded: dropQuickGraded(state.quickGraded, (k) => k.startsWith(prefix)),
     };
   }),
   resetProgressForSets: (setIds) => set((state) => {
@@ -433,11 +473,13 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       if (answerPrefixes.some((p) => key.startsWith(p))) delete answers[key];
     }
     const graded = { ...state.graded };
+    for (const key of gradeKeys) delete graded[key];
+    // 오답 대상 — 남기면 삭제된 회차의 오답이 오답 모드에 계속 출제된다.
+    // 챕터 미니 회차 키는 `${채점키}#챕터`라 base로 되돌려 판정한다(접두 비교를 쓰면
+    // 세트 id가 서로의 접두인 경우에 남의 키까지 지운다).
     const reviewIds = { ...state.reviewIds };
-    for (const key of gradeKeys) {
-      delete graded[key];
-      // 오답 대상 — 남기면 삭제된 회차의 오답이 오답 모드에 계속 출제된다.
-      delete reviewIds[key];
+    for (const key of Object.keys(reviewIds)) {
+      if (gradeKeys.has(key.split('#')[0])) delete reviewIds[key];
     }
     const examStarted = { ...state.examStarted };
     const examStartedAt = { ...state.examStartedAt };
@@ -447,7 +489,12 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       delete examStartedAt[id];
       delete reviewedOk[id];
     }
-    return { answers, graded, reviewIds, examStarted, examStartedAt, reviewedOk };
+    return {
+      answers, graded, reviewIds, examStarted, examStartedAt, reviewedOk,
+      // 답안과 같은 접두 규칙으로 퀵 채점 표시도 지운다 — 남기면 '이력 비우기' 직후
+      // 퀵 화면의 문항이 정답이 열린 채 잠겨 다시 풀 수 없다.
+      quickGraded: dropQuickGraded(state.quickGraded, (k) => answerPrefixes.some((pre) => k.startsWith(pre))),
+    };
   }),
   removeHistories: (ids) => set((state) => {
     const nextHistories = { ...state.histories };

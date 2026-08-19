@@ -44,3 +44,34 @@ export function answerKeyPrefix(setId: string, mode: string): string {
 export function answerKeyFor(setId: string, mode: string, q: QuestionIdentity): string {
   return `${answerKeyPrefix(setId, mode)}${questionIdOf(q)}`;
 }
+
+
+/**
+ * 오답 대상(reviewIds) 키 — 채점 키에 **챕터**를 덧붙인다.
+ *
+ * 챕터 미니 시험은 내부 모드가 `random`이라 세트 전체 랜덤과 채점 키가 같았다. 그런데
+ * 채점은 `setReviewIds(key, wrongIds)`로 **덮어쓴다.** 그래서 40문항 랜덤을 채점해 오답
+ * 12개가 잡힌 뒤 10문항짜리 미니 시험을 한 번 채점하면, 오답 모드가 출제할 목록이 미니의
+ * 오답 두어 개로 교체됐다 — 오답 노트(이력 합집합)에는 12개가 그대로 보이므로
+ * "노트에는 있는데 오답 풀이에는 안 나온다"가 된다.
+ *
+ * 저장소는 다른 곳에서는 이 둘을 일관되게 갈라 놓는다(`isSetLevelRound`·
+ * `latestAttemptComparison`·`findGradedRoundMatch`·`buildMiniTestRounds`가 모두 `chapter`로
+ * 나눈다). `reviewIds`만 예외였다. 같은 분리 기준을 이 키에도 세운다.
+ *
+ * `graded` 키는 종전 그대로 챕터를 붙이지 않는다 — 미니 진입이 `clearAnswers(setId,'random')`로
+ * 그 세트의 랜덤 채점 상태를 어차피 함께 되돌리므로, 나누면 오히려 두 규칙이 갈린다.
+ *
+ * 구분자로 '#'을 쓰는 이유: 세트 id·모드·챕터명 어디에도 나타나지 않아 base를 되찾을 수 있다
+ * (`resetProgressForSets`가 접두가 아니라 base 일치로 지운다).
+ */
+export function reviewKeyFor(setId: string, mode: string, chapter?: string | null): string {
+  const base = gradeKeyFor(setId, mode);
+  return chapter ? `${base}#${chapter}` : base;
+}
+
+/** 이 키가 (세트, 모드)의 오답 대상 키인가 — 챕터 접미가 붙은 미니 회차 키까지 포함한다. */
+export function isReviewKeyOf(key: string, setId: string, mode: string): boolean {
+  const base = gradeKeyFor(setId, mode);
+  return key === base || key.startsWith(`${base}#`);
+}

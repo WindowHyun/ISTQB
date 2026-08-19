@@ -54,4 +54,28 @@ describe('reviewTargetIds — 오답 모드 대상 산정', () => {
   it('오답이 없으면 빈 집합이다(없는 키 접근으로 터지지 않는다)', () => {
     expect([...reviewTargetIds({}, SET)]).toEqual([]);
   });
+
+  it('챕터 미니 회차의 오답도 함께 낸다 — 세트 전체 랜덤과 합집합', () => {
+    // 미니 시험(랜덤 + 챕터 필터)은 채점 키가 세트 전체 랜덤과 같아, 종전에는 10문항
+    // 미니 한 번이 40문항 랜덤의 오답 목록을 통째로 덮었다. 이제 키를 갈라 저장하므로
+    // (answerKey.reviewKeyFor) **읽을 때 둘 다 봐야** 오답이 사라지지 않는다.
+    const got = reviewTargetIds(
+      {
+        [`${SET}-random`]: ['r1', 'r2'],
+        [`${SET}-random#테스트 기초`]: ['m1', 'r2'],
+        [`${SET}-random#정적 테스팅`]: ['m2'],
+      },
+      SET,
+    );
+    expect([...got].sort()).toEqual(['m1', 'm2', 'r1', 'r2']);
+  });
+
+  it('다른 세트의 챕터 키는 새어 들어오지 않는다', () => {
+    // 세트 id가 서로의 접두인 조합(A / AB)에서 접두 비교로 짰다면 여기서 깨진다.
+    const got = reviewTargetIds(
+      { [`${SET}B-random#테스트 기초`]: ['other'], [`${SET}-exam`]: ['mine'] },
+      SET,
+    );
+    expect([...got]).toEqual(['mine']);
+  });
 });
