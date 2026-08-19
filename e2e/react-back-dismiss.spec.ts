@@ -54,6 +54,21 @@ test.describe("뒤로가기-오버레이", () => {
     await expect(page.locator("#questionStem")).toBeVisible();
   });
 
+  // 라이트박스는 모달 위에도 뜨는 유일한 오버레이라, 종전에는 가드에 등록되지 않은 채였다.
+  // 그림을 확대한 상태에서 뒤로가기를 누르면 그림은 그대로 남고 페이지를 벗어났다
+  // (APK에서는 앱이 종료됐다) — Esc·✕·배경 탭은 멀쩡히 동작해 웹 조작으로는 안 드러났다.
+  test("확대한 그림은 뒤로가기로 닫히고 문항이 그대로 남는다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await gotoQuestion(page, 23);
+    await page.locator("#questionFigure img, #questionStem img").first().click();
+    await expect(page.getByTestId("figure-lightbox")).toBeVisible({ timeout: 5_000 });
+
+    await page.goBack();
+
+    await expect(page.getByTestId("figure-lightbox")).toHaveCount(0);
+    await expect(page.locator("#questionStem")).toBeVisible();
+  });
+
   test("모달이 없을 때의 뒤로가기는 가로채지 않는다", async ({ page }) => {
     await openProduct(page, "ISTQB");
     await expect(page.locator("#questionStem")).toBeVisible();

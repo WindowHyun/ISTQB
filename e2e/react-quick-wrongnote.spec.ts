@@ -174,4 +174,19 @@ test("퀵 오답의 '오답 보기'는 팝업이 아니라 본문 화면으로 �
   await page.getByTestId("wrong-view-close").click();
   await expect(page.getByTestId("wrong-view-screen")).toHaveCount(0);
   await expect(page.locator(".quick-scoreboard"), "풀던 퀵 회차로 돌아오지 못했다").toBeVisible();
+
+  // 뒤로가기도 돌아갈 길이다. 이 화면은 종전에 뒤로가기 가드에 등록되지 않았는데,
+  // 화면을 통째로 차지해 풀이 화면이 언마운트된 상태였으므로 뒤로가기 한 번에
+  // **페이지를 벗어났다**(APK에서는 해설을 읽다 앱이 그대로 종료됐다).
+  // 되돌아가는 자리는 '풀이'가 아니라 **눌러서 들어온 노트**다.
+  await openBar(page);
+  await page.getByRole("button", { name: /오답 노트/ }).first().click();
+  await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 20_000 });
+  await page.getByTestId("quick-wrong-open").first().click();
+  await expect(page.getByTestId("wrong-view-screen")).toBeVisible({ timeout: 20_000 });
+
+  await page.goBack();
+
+  await expect(page.getByTestId("wrong-view-screen"), "뒤로가기가 오답 화면을 지나쳤다").toHaveCount(0);
+  await expect(page.getByTestId("wrong-note"), "뒤로가기가 노트로 돌아가지 않았다").toBeVisible();
 });
