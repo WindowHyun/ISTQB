@@ -243,6 +243,33 @@ test.describe("APK 기능 · 퀵 랜덤(터치)", () => {
       .toBe(beforeSets);
     expect(errors).toEqual([]);
   });
+
+  /**
+   * 퀵도 하단 고정 액션바를 쓴다 — 본문 아래 여백을 줄이면 안 된다.
+   *
+   * CSS에 `.app-shell[data-mode="quick"] { padding-bottom: 16px + safe }`가 있었다.
+   * .app-shell이 다는 속성은 data-drawer뿐이라 한 번도 걸리지 않아 죽어 있었지만,
+   * 주석은 "퀵에는 하단 고정 액션바가 없다"고 적혀 있었다. 데스크톱(.quick-actionbar)
+   * 이야기를 모바일에 적용한 것으로, ≤880px에서는 .mobile-actionbar가 fixed로 그 자리를
+   * 맡는다. 규칙이 살아났다면 96px → 16px로 줄어 마지막 보기와 해설이 바 밑에 깔렸을 것이다.
+   * 규칙은 지웠고, 다시 들어오면 여기서 잡는다.
+   */
+  test("AF13 퀵도 하단 액션바 높이만큼 본문 아래 여백을 남긴다", async ({ page }) => {
+    await startQuick(page);
+    // 전제부터 확인한다 — '퀵에는 하단바가 없다'는 옛 주석이 거짓임을 값으로 못 박는다.
+    const bar = page.locator(".mobile-actionbar");
+    await expect(bar, "퀵에 하단 고정 액션바가 없다(전제 붕괴)").toBeVisible();
+
+    // 여백을 '스크롤 끝의 마지막 보기 위치'로 재면 안 된다 — 퀵은 매번 다른 문항을
+    // 뽑으므로 짧은 문항이 걸리면 스크롤 자체가 없어 어떤 여백이든 통과한다.
+    // 재야 할 것은 콘텐츠가 아니라 규칙이다: 셸이 비워 둔 자리가 고정 바를 덮는가.
+    const { pad, barHeight } = await page.evaluate(() => ({
+      pad: parseFloat(getComputedStyle(document.querySelector(".app-shell")!).paddingBottom),
+      barHeight: document.querySelector(".mobile-actionbar")!.getBoundingClientRect().height,
+    }));
+    expect(pad, `본문 아래 여백 ${pad}px가 하단 액션바 ${barHeight}px보다 얕다`)
+      .toBeGreaterThanOrEqual(barHeight);
+  });
 });
 
 test.describe("APK 기능 · 가로 모드(넓은 폭, >880px)", () => {

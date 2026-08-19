@@ -2167,7 +2167,17 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 
 /* 모바일: 제목 옆에 네 칸을 함께 두면 '문제 N'이 두 글자 폭으로 눌린다.
    헤더를 접어(.topbar flex-wrap) 점수판만 아랫줄 전체를 쓰게 하고, 칸은 균등 분할한다.
-   하단 고정 액션바가 없는 모드이므로 본문 아래 여백도 되돌린다. */
+
+   ⚠ 퀵이라고 본문 아래 여백을 줄이면 안 된다. 여기에 그런 규칙이
+   (`.app-shell[data-mode="quick"] { padding-bottom: … }`) 있었는데 두 가지가 틀렸다.
+     1) 죽어 있었다 — .app-shell이 실제로 다는 속성은 data-drawer뿐이라 한 번도 걸리지
+        않았다(data-mode는 사이드바의 모드 버튼에 붙는다).
+     2) 살아났다면 오히려 깨졌을 것이다 — "퀵에는 하단 고정 액션바가 없다"는 전제가
+        모바일에서는 거짓이다. 없는 것은 데스크톱의 .quick-actionbar이고, ≤880px에서는
+        .mobile-actionbar가 fixed로 그 자리를 대신 맡는다(퀵에서는 '이 문항 채점 →
+        다음 문제'가 그 안에 들어간다). 여백을 96px에서 16px로 줄이면 마지막 보기와
+        해설이 그 바 밑에 깔린다.
+   그래서 규칙을 되살리지 않고 지웠다. .app-shell의 하단 여백은 모든 모드에서 같다. */
 @media (max-width: 880px) {
   .quick-scoreboard {
     flex: 1 1 100%;
@@ -2176,7 +2186,4 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
   .qs-item { flex: 1 1 0; min-width: 0; padding: 7px 4px; }
   .qs-item b { font-size: 17px; }
   .qs-item small { font-size: 10px; }
-  /* 퀵에는 하단 고정 액션바가 없으므로 그 자리를 비워 둘 이유도 없다.
-     안전영역만 남긴다 — 홈 인디케이터 위에 '다음 문제'가 깔리면 안 된다. */
-  .app-shell[data-mode="quick"] { padding-bottom: calc(16px + var(--safe-bottom)); }
 }
