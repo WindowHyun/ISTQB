@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { syncNativeSystemBars, watchNativeSystemBars } from './nativeSystemBars';
+import { syncNativeSystemBars, syncThemeColorMeta, watchSystemBarColors } from './nativeSystemBars';
 
 /**
  * APK 다크 모드에서 앱 위아래에 남던 **흰 띠 두 줄**을 없애는 다리.
@@ -78,7 +78,7 @@ describe('nativeSystemBars', () => {
   });
 
   it('감시를 걸면 즉시 한 번 맞추고, 테마가 바뀔 때마다 다시 맞춘다', async () => {
-    const stop = watchNativeSystemBars();
+    const stop = watchSystemBarColors();
     expect(setSystemBars).toHaveBeenCalledTimes(1); // 프리페인트가 심어 둔 값
 
     document.body.dataset.theme = 'dark';
@@ -94,5 +94,74 @@ describe('nativeSystemBars', () => {
     const after = setSystemBars.mock.calls.length;
     await new Promise((r) => setTimeout(r, 20));
     expect(setSystemBars, '해제 후에도 감시가 살아 있다').toHaveBeenCalledTimes(after);
+  });
+});
+
+/**
+ * PWA의 브라우저 크롬 색 — index.vite.html의 theme-color는 media로 갈라져 **OS 선호만**
+ * 따른다. 앱 안에서 OS와 다른 테마를 고르면(설정의 라이트/다크) 홈 화면에서 띄운 PWA의
+ * 상단 띠만 반대 색으로 남는다. APK의 흰 띠와 같은 문제이고 같은 자리에서 고친다.
+ */
+describe('syncThemeColorMeta', () => {
+  let style: HTMLStyleElement;
+  const metas = () => [...document.head.querySelectorAll('meta[name="theme-color"]')]
+    .map((m) => m.getAttribute('content'));
+
+  beforeEach(() => {
+    style = styleTokens('#ffffff', '#131c2b');
+    delete document.body.dataset.theme;
+    // index.vite.html과 같은 배치 — media로 갈라진 두 장.
+    document.head.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.remove());
+    for (const [scheme, color] of [['light', '#ffffff'], ['dark', '#131c2b']]) {
+      const m = document.createElement('meta');
+      m.setAttribute('name', 'theme-color');
+      m.setAttribute('media', `(prefers-color-scheme: ${scheme})`);
+      m.setAttribute('content', color);
+      document.head.appendChild(m);
+    }
+  });
+  afterEach(() => {
+    style.remove();
+    document.head.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.remove());
+  });
+
+  // 태그를 지우거나 순서를 바꾸지 않고 둘 다 같은 값으로 덮는다 — 브라우저가 어느 쪽을
+  // 고르든 결과가 같아진다(그리고 JS 없는 첫 페인트에서는 원래 OS 기반 값이 그대로 쓰인다).
+  it('앱 테마가 다크면 두 태그를 모두 다크 표면색으로 덮는다', () => {
+    document.body.dataset.theme = 'dark';
+    syncThemeColorMeta();
+    expect(metas()).toEqual(['#131c2b', '#131c2b']);
+  });
+
+  it('앱 테마가 라이트면 두 태그를 모두 라이트 표면색으로 덮는다', () => {
+    document.body.dataset.theme = 'light';
+    syncThemeColorMeta();
+    expect(metas()).toEqual(['#ffffff', '#ffffff']);
+  });
+
+  it('media 속성은 건드리지 않는다(JS 없는 첫 페인트의 OS 기반 선택을 남긴다)', () => {
+    document.body.dataset.theme = 'dark';
+    syncThemeColorMeta();
+    expect([...document.head.querySelectorAll('meta[name="theme-color"]')]
+      .map((m) => m.getAttribute('media')))
+      .toEqual(['(prefers-color-scheme: light)', '(prefers-color-scheme: dark)']);
+  });
+
+  it('스타일이 아직 없으면 태그를 건드리지 않는다', () => {
+    style.remove();
+    document.body.dataset.theme = 'dark';
+    syncThemeColorMeta();
+    expect(metas()).toEqual(['#ffffff', '#131c2b']);
+  });
+
+  // 브리지가 없는 순수 웹(PWA)에서도 이쪽은 동작해야 한다 — 네이티브와 독립된 경로다.
+  it('안드로이드 브리지가 없어도 감시가 theme-color를 맞춘다', async () => {
+    delete (window as unknown as { AndroidTheme?: unknown }).AndroidTheme;
+    document.body.dataset.theme = 'light';
+    const stop = watchSystemBarColors();
+    expect(metas()).toEqual(['#ffffff', '#ffffff']);
+    document.body.dataset.theme = 'dark';
+    await vi.waitFor(() => expect(metas()).toEqual(['#131c2b', '#131c2b']));
+    stop();
   });
 });

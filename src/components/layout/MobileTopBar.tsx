@@ -14,7 +14,11 @@ export const MobileTopBar = () => {
     chapterFilter: s.chapterFilter, setDrawerOpen: s.setDrawerOpen,
   })));
   const { appData, total, answered, progressPercent } = useQuizSession();
-  const setTitle = appData?.sets.find((s) => s.id === setId)?.title || '문제 풀이';
+  // 퀵의 setId는 센티넬('QUICK')이라 세트 목록에서 찾히지 않는다. 폴백에 맡기면
+  // 모바일 상단바만 '문제 풀이'로 뜨고 데스크톱 사이드바는 '퀵 랜덤'이라 라벨이 갈린다.
+  const setTitle = mode === 'quick'
+    ? '퀵 랜덤'
+    : appData?.sets.find((s) => s.id === setId)?.title || '문제 풀이';
 
   return (
     <header className="mobile-topbar" aria-label="시험 정보">

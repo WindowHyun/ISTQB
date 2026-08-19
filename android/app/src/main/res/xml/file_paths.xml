@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  FileProvider가 URI를 내줄 수 있는 경로. 이 앱에서 실제로 쓰이는 곳은 하나뿐이다 —
+  WebView의 <input type="file">에서 '사진 촬영'을 고를 때 Capacitor가 임시 파일을
+  만들어 카메라 앱에 넘기는 경로(BridgeWebChromeClient.createImageFile →
+  getExternalFilesDir(DIRECTORY_PICTURES)). 그래서 딱 그 폴더만 연다.
+
+  종전에는 Capacitor 템플릿 잔재인 <external-path path="."/>(외부 저장소 **루트 전체**)와
+  <cache-path path="."/>가 들어 있었다. 넓기만 한 것이 아니라 틀리기까지 했다 —
+  getExternalFilesDir는 external-path가 아니라 external-files-path에 걸리므로,
+  정작 유일한 사용처는 저 선언으로 동작하지 않는다.
+  (exported="false"라 직접 악용은 안 되지만, 죽은 설정에 넓은 경로를 남길 이유가 없다.)
+-->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <external-path name="my_images" path="." />
-    <cache-path name="my_cache_images" path="." />
+    <external-files-path name="capture_images" path="Pictures" />
 </paths>

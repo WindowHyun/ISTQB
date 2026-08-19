@@ -320,7 +320,8 @@
   <p class="kicker">ISTQB / CSTS 학습앱 · 코드 점검</p>
   <h1>코드를 고치기 전에, 무엇을 읽었는지부터</h1>
   <p class="standfirst">
-    세 차례에 걸쳐 저장소를 전수 열람했습니다. 결함 16건을 찾았고 그중 4건은 수정·검증까지 끝냈습니다.
+    세 차례에 걸쳐 저장소를 전수 열람해 결함 16건을 찾았고, 네 번째로 <strong>그 전량을 수정했습니다</strong>
+    (하나는 &lsquo;지금 손대지 않는다&rsquo;로 남겼습니다 — 아래에 이유를 적었습니다).
     이 문서는 발견 목록이자 <strong>열람 범위의 기록</strong>입니다 — 어디를 읽었고 어디를 읽지 않았는지를
     함께 적지 않으면 "점검했다"는 말이 무엇을 보증하는지 알 수 없기 때문입니다.
   </p>
@@ -328,7 +329,7 @@
     <span>기준 커밋 <b>c2854d1</b></span>
     <span>브랜치 <b>claude/code-issues-error-report-wj5222</b></span>
     <span>점검 <b>2026-08-18 ~ 08-19</b></span>
-    <span>3회차 누적</span>
+    <span>4회차 누적</span>
   </p>
 </header>
 
@@ -341,16 +342,17 @@
 
   <dl class="score">
     <div><dt>열람한 소스</dt><dd>100<small>%</small></dd></div>
-    <div class="is-high"><dt>찾은 결함</dt><dd>16<small>건</small></dd></div>
-    <div class="is-pass"><dt>수정 완료</dt><dd>4<small>건</small></dd></div>
-    <div><dt>추가한 검사</dt><dd>16<small>건</small></dd></div>
-    <div class="is-pass"><dt>유닛 통과</dt><dd>712</dd></div>
+    <div><dt>찾은 결함</dt><dd>16<small>건</small></dd></div>
+    <div class="is-pass"><dt>수정 완료</dt><dd>15<small>건</small></dd></div>
+    <div><dt>추가한 검사</dt><dd>50<small>건</small></dd></div>
+    <div class="is-pass"><dt>유닛 통과</dt><dd>761</dd></div>
   </dl>
 
   <p class="lede">
-    결함 16건 중 <strong>사용자 화면에 지금 보이는 것은 2건</strong>(R-1 렌더 문자열 훼손, F-2 퀵 초기화 잠금)이고,
-    <strong>데이터를 잃거나 오염시키는 것이 2건</strong>(F-1 제품 키 경합, F-4 오답 대상 덮어쓰기)입니다.
-    나머지는 잠복이거나 APK 전용, 또는 검사·도구 쪽 문제입니다.
+    결함 16건 중 <strong>사용자 화면에 지금 보이던 것이 2건</strong>(R-1 렌더 문자열 훼손, F-2 퀵 초기화 잠금),
+    <strong>데이터를 잃거나 오염시키던 것이 2건</strong>(F-1 제품 키 경합, F-4 오답 대상 덮어쓰기)이었고
+    나머지는 잠복이거나 APK 전용, 또는 검사·도구 쪽 문제였습니다. <strong>15건을 고쳤고</strong>,
+    남긴 하나(AN-3)는 아직 존재하지 않는 설정을 전제로 한 방어라 지금 붙이면 쓰이지 않는 코드가 됩니다.
   </p>
 </section>
 
@@ -414,13 +416,14 @@
 <!-- ══════════════════════════ 수정 완료 ══════════════════════════ -->
 <section class="block">
   <div class="sec-head">
-    <h2>수정 완료</h2>
-    <span class="sec-note">1차 · 유닛 16건 신설 · 게이트 전부 통과</span>
+    <h2>수정 완료 · 1차 — 데이터와 저장</h2>
+    <span class="sec-note">유닛 16건 신설 · 게이트 전부 통과</span>
   </div>
 
   <p class="lede">
-    네 건 모두 <strong>대상 결함을 되돌려 검사가 빨간불이 되는 것을 확인한 뒤</strong> 원복했습니다.
-    헛도는 검사를 남기지 않기 위한 절차입니다.
+    아래 모든 수정은 <strong>대상 결함을 고의로 되돌려 검사가 빨간불이 되는 것을 확인한 뒤</strong> 원복했습니다.
+    헛도는 검사를 남기지 않기 위한 절차이고, 실제로 한 번은 이 절차가 <strong>헛도는 검사를 잡아냈습니다</strong>
+    (아래 CS-1).
   </p>
 
   <div class="find">
@@ -515,17 +518,17 @@ after resetProgress → quickGraded: 그대로 | quickDraw: 그대로</p>
 <!-- ══════════════════════════ 미조치 ══════════════════════════ -->
 <section class="block">
   <div class="sec-head">
-    <h2>미조치 — 제품 코드</h2>
-    <span class="sec-note">2·3차 · 사용자에게 보이는 순</span>
+    <h2>수정 완료 · 2차 — 렌더러 · APK · 도구 · 게이트</h2>
+    <span class="sec-note">2~4차 · 사용자에게 보이던 순</span>
   </div>
 
   <div class="find">
 
-    <article class="card sev-high">
+    <article class="card sev-done">
       <div class="card-head">
         <span class="tag">R-1</span>
         <h3 class="card-title">렌더러가 정상 문장을 붙여 &ldquo;참여할인력&rdquo;으로 보여준다</h3>
-        <span class="chip high">HIGH</span>
+        <span class="chip done">수정</span>
       </div>
       <p class="where">src/utils/parser.tsx · stripPdfNoise() — <code>.replace(/할\s+인/g, "할인")</code></p>
       <p>
@@ -548,16 +551,24 @@ ISTQB-EXTRA #22 높은 할 인을        → 할인을           ✅ 의도대�
         <code>re.sub(r"\s+", "", s)</code>로 공백을 전부 제거합니다. 띄어쓰기 차이는 <strong>원리적으로</strong> 이 게이트의 검출 대상이 아닙니다.
       </p>
       <p>
-        <strong>제안</strong> — <code>/할\s+인(?=[을를])/</code>로 좁히면 진짜 아티팩트 2건만 남고 오작동 4건이 사라집니다.
-        공백은 어차피 정규화되므로 PDF 게이트에 안전합니다.
+        <strong>조치</strong> — 규칙표를 <code>PDF_JOIN_RULES</code>로 꺼내고 문제의 규칙만
+        <code>/할\s+인(?![력적])/</code>로 좁혔습니다. 뒤에 &lsquo;력&middot;적&rsquo;이 오면 그것은 &lsquo;인력&middot;인적&rsquo;이라는
+        낱말이기 때문입니다(점검 중 세운 <code>(?=[을를])</code> 안보다 넓게 잡아, 조사 없이 이어지는 경우까지 살립니다).
       </p>
+      <p>
+        규칙표를 꺼낸 것이 수정의 절반입니다. 함수 안에 체이닝으로 묻혀 있어서 <strong>어떤 검사도 규칙에 닿은 적이 없었고</strong>,
+        그래서 이 결함이 살아남았습니다. 626문항 전체를 대상으로 <strong>규칙이 실제로 발동하는 지점을 값으로 고정하는</strong>
+        검사를 붙였습니다 — 새 발동 지점은 근거와 함께 허용 목록에 적어야 통과합니다.
+      </p>
+      <p class="evidence">신설 검사가 첫 실행에서 제가 열거하지 못한 발동 지점 하나를 잡았습니다:
+ISTQB-FL-V4-C:4  "&lt;u&gt;두(2) 개를&lt;/u&gt; 고르시오"  ← 밑줄 구간 안에서 갈라진 조각(진짜 아티팩트)</p>
     </article>
 
-    <article class="card sev-med">
+    <article class="card sev-done">
       <div class="card-head">
         <span class="tag">AN-1</span>
         <h3 class="card-title">다크 모드 APK에서 시스템 바만 흰색으로 남는다</h3>
-        <span class="chip med">MEDIUM</span>
+        <span class="chip done">수정</span>
       </div>
       <p class="where">android/…/MainActivity.java · configureSystemBars()</p>
       <p>
@@ -567,13 +578,31 @@ ISTQB-EXTRA #22 높은 할 인을        → 할인을           ✅ 의도대�
         <code>@capacitor/status-bar</code> 플러그인도 의존성에 없습니다. 결과적으로 다크 모드 APK는 본문만 어둡고
         위아래 시스템 바가 흰색으로 남습니다.
       </p>
+      <p>
+        <strong>조치</strong> — <code>AndroidTheme.setSystemBars(색, 밝은바)</code> 브리지를 만들고
+        웹이 <code>body[data-theme]</code> 변화를 감시해 호출합니다. 색은 네이티브가 정하지 않고
+        <strong>웹이 CSS 토큰(<code>--surface</code>)에서 읽어 넘깁니다</strong> — 팔레트의 진실을
+        <code>globals.css</code> 하나로 두기 위함이고, 네이티브에 값을 복제하면 토큰이 바뀔 때 조용히 어긋납니다.
+      </p>
+      <p>
+        감시를 <code>useTheme</code>의 effect가 아니라 속성 변화에 건 이유가 있습니다.
+        <code>useTheme</code>은 앱 셸 안에서만 도는데 <strong>제품 선택 게이트는 셸 밖</strong>이라,
+        effect에 걸면 사용자가 <em>처음 보는 화면</em>에서만 바가 흰 채로 남습니다.
+      </p>
+      <p>
+        같은 자리에서 <strong>CS-4</strong>(PWA의 <code>theme-color</code>가 OS 선호만 따라 앱 내 테마와 어긋나는 것)도
+        함께 닫았습니다. 두 개의 <code>media</code> 태그를 지우거나 순서를 바꾸지 않고 같은 값으로 덮어,
+        JS가 없는 첫 페인트에서는 원래의 OS 기반 값이 그대로 쓰이게 했습니다.
+      </p>
+      <p class="evidence">안드로이드 쪽은 이 환경에 SDK가 없어 컴파일하지 못했습니다(javac 파스 검사만 통과).
+실제 바 색은 APK로 눈으로 확인해야 합니다 — 웹 유닛으로 고정한 것은 "웹이 무엇을 넘기는가"까지입니다.</p>
     </article>
 
-    <article class="card sev-med">
+    <article class="card sev-done">
       <div class="card-head">
         <span class="tag">R-3</span>
         <h3 class="card-title">오버레이 15종 중 둘만 뒤로가기 가드에서 빠져 있다</h3>
-        <span class="chip med">MEDIUM</span>
+        <span class="chip done">수정</span>
       </div>
       <p class="where">src/utils/lightbox.ts · src/components/quiz/WrongViewScreen.tsx</p>
       <p>
@@ -598,13 +627,22 @@ ISTQB-EXTRA #22 높은 할 인을        → 할인을           ✅ 의도대�
         Esc·배경 탭·화면 버튼은 정상이라 <strong>웹에서는 드러나지 않고 APK에서만</strong> 나타납니다.
         오답 보기 화면은 <code>wrongView</code>가 켜질 때 <code>QuestionWorkspace</code>가 언마운트되면서 그쪽 가드도 함께 사라집니다.
       </p>
+      <p>
+        <strong>조치</strong> — 라이트박스는 <code>BACK_PRIORITY.lightbox(40)</code>로 가장 높은 우선순위에 등록했습니다
+        (모달 위에도 뜨는 유일한 오버레이라 그 아래 모달보다 먼저 닫혀야 합니다). 닫는 경로가 넷이 되므로
+        (&times; &middot; 배경 탭 &middot; Esc &middot; 뒤로가기) <code>close()</code>에 멱등 가드를 넣어 정리가 두 번 돌지 않게 했습니다.
+        오답 보기 화면은 <code>BACK_PRIORITY.screen(5)</code>으로 등록하고, 되돌아가는 자리를
+        &lsquo;풀이&rsquo;가 아니라 <strong>눌러서 들어온 오답 노트</strong>로 맞췄습니다.
+      </p>
+      <p class="evidence">되돌림 검증 — 라이트박스 유닛 5건 전부 red / 오답 보기 E2E는 화면과 노트가 함께 사라지며 red
+(뒤로가기가 오버레이를 지나쳐 페이지를 벗어난다는 뜻입니다)</p>
     </article>
 
-    <article class="card sev-med">
+    <article class="card sev-done">
       <div class="card-head">
         <span class="tag">CS-1</span>
         <h3 class="card-title">죽은 CSS 규칙 하나 — 되살리는 순간 모바일 퀵이 깨진다</h3>
-        <span class="chip med">MEDIUM</span>
+        <span class="chip done">수정</span>
       </div>
       <p class="where">src/styles/globals.css:2181 · <code>.app-shell[data-mode="quick"]</code></p>
       <p>
@@ -615,15 +653,27 @@ ISTQB-EXTRA #22 높은 할 인을        → 할인을           ✅ 의도대�
         문제는 그 규칙의 주석입니다. <em>&ldquo;퀵에는 하단 고정 액션바가 없으므로&rdquo;</em>라고 적혀 있는데
         <strong>사실이 아닙니다</strong> — <code>QuestionWorkspace</code>는 <code>.mobile-actionbar</code>를 무조건 렌더하고
         퀵에서는 그 안에 채점/다음 버튼을 넣습니다. 지금은 죽어 있어 무해하지만, 누군가 &ldquo;왜 안 먹지&rdquo; 하고
-        <code>data-mode</code>를 붙이는 순간 하단 여백이 96px에서 16px로 줄어 <strong>본문이 78px짜리 고정 액션바에 가려집니다.</strong>
+        <code>data-mode</code>를 붙이는 순간 하단 여백이 96px에서 16px로 줄어 <strong>본문이 고정 액션바에 가려집니다.</strong>
+      </p>
+      <p>
+        <strong>조치</strong> — 되살리지 않고 지웠습니다. 틀린 전제를 주석에 남겨 두면 다음 사람이 같은 규칙을 다시 씁니다.
+        무엇이 왜 틀렸는지를 그 자리에 적어 두고, 규칙이 돌아오면 잡히도록 E2E 가드(AF13)를 붙였습니다.
+      </p>
+      <p class="evidence">되살렸을 때의 실측 — 본문 아래 여백 40px 대 하단 액션바 높이 103px
+(마지막 보기가 63px만큼 바 밑에 깔립니다)</p>
+      <p>
+        <strong>이 가드는 처음 쓴 판이 헛돌았습니다.</strong> &ldquo;끝까지 스크롤한 뒤 마지막 보기가 바 위에서 끝나는가&rdquo;로
+        재도록 썼더니 결함을 넣어도 초록이었습니다 — 퀵은 매번 다른 문항을 뽑으므로 짧은 문항이 걸리면
+        스크롤 자체가 없어 어떤 여백이든 통과합니다. 재야 할 것은 콘텐츠가 아니라 규칙이었습니다:
+        <strong>셸이 비워 둔 자리가 고정 바 높이를 덮는가</strong>로 바꾸자 문항 길이와 무관하게 빨간불이 됩니다.
       </p>
     </article>
 
-    <article class="card sev-med">
+    <article class="card sev-done">
       <div class="card-head">
         <span class="tag">R-5 · R-6</span>
         <h3 class="card-title">데이터 보정 도구가 검증·배포 대상 디렉터리에 산출물을 쓴다</h3>
-        <span class="chip med">MEDIUM</span>
+        <span class="chip done">수정</span>
       </div>
       <p class="where">scripts/fix-questions.js · scripts/normalize-utils.js</p>
       <p>
@@ -638,13 +688,25 @@ ISTQB-EXTRA #22 높은 할 인을        → 할인을           ✅ 의도대�
         <code>answer</code>는 손대지 않습니다.</strong> 원래 정답이 <code>'a'</code>였고 재부여 뒤에도 <code>'a'</code>가 있으면
         뜻이 바뀌었는데 검토 대상으로도 뜨지 않습니다.
       </p>
+      <p>
+        <strong>조치(R-5)</strong> — 산출물을 이미 gitignore된 <code>reports/normalized/&lt;원본경로&gt;</code>로 옮겼습니다.
+        파일 이름은 원본과 같게 뒀습니다 — 검토를 마치면 그대로 덮어쓸 수 있어야 하기 때문입니다.
+      </p>
+      <p>
+        <strong>조치(R-6)</strong> — 키를 다시 매겼으면 <strong>무조건 수동 검토로 올립니다.</strong>
+        &lsquo;정답 키가 새 목록에 있다&rsquo;는 사실은 아무것도 보장하지 않습니다 —
+        원본 키도 이미 a&middot;b&middot;c&middot;d였다면 순서만 바뀌어도 모든 검증을 통과하면서 정답이 다른 보기를 가리킵니다.
+        검토 도구에서는 놓치는 쪽이 과하게 잡는 쪽보다 훨씬 비쌉니다.
+      </p>
+      <p class="evidence">현재 데이터에서는 검토 건수가 260건 그대로입니다 — 오늘의 코퍼스는 이 경로를 밟지 않습니다.
+비용 없이 앞으로 들어올 데이터의 구멍만 막습니다.</p>
     </article>
 
-    <article class="card sev-low">
+    <article class="card sev-done">
       <div class="card-head">
         <span class="tag">R-4 · CS-2 · AN-2</span>
         <h3 class="card-title">경미 — 라벨 불일치, 죽은 코드, 넓은 설정</h3>
-        <span class="chip low">LOW</span>
+        <span class="chip done">수정</span>
       </div>
       <p>
         <strong>R-4a</strong> 모바일 상단바가 퀵에서 세트명을 <code>'문제 풀이'</code>로 표기합니다
@@ -656,13 +718,26 @@ ISTQB-EXTRA #22 높은 할 인을        → 할인을           ✅ 의도대�
         <strong>AN-2</strong> FileProvider가 <code>&lt;external-path path="."/&gt;</code>(외부 저장소 루트 전체)로 선언돼 있으나
         앱 어디에서도 쓰이지 않습니다(Capacitor 템플릿 잔재, <code>exported="false"</code>).
       </p>
+      <p>
+        <strong>조치</strong> — R-4a는 퀵에서 <code>'퀵 랜덤'</code>으로 분기해 사이드바와 라벨을 맞췄고,
+        R-4b는 짧은 세션 목록에 출처 세트명을 붙였습니다(같은 챕터가 두 줄로 보이던 자리).
+        CS-2는 참조 0건을 다시 확인하고 지웠습니다 — <strong>2,190 → 2,152줄</strong>.
+        <code>.table-image*</code>는 살아 있는 <code>.reference-image*</code>와 묶여 있어 셀렉터만 떼어냈습니다.
+      </p>
+      <p>
+        <strong>AN-2는 조사하는 동안 판단이 바뀌었습니다.</strong> &lsquo;넓기만 하고 안 쓰인다&rsquo;가 아니라
+        <strong>넓으면서 동시에 틀렸습니다</strong> — 이 provider의 유일한 사용처(Capacitor의 파일 선택 &rarr; 사진 촬영)는
+        <code>getExternalFilesDir</code>를 쓰므로 <code>external-files-path</code>에 걸립니다. 즉 종전 선언으로는
+        정작 그 경로가 <em>동작하지 않으면서</em> 외부 저장소 루트 전체를 열어 두고 있었습니다.
+        실제 사용처 한 곳(<code>Pictures</code>)으로 좁혔습니다.
+      </p>
     </article>
 
-    <article class="card sev-latent">
+    <article class="card sev-done">
       <div class="card-head">
-        <span class="tag">R-2 · R-7 · AN-3</span>
+        <span class="tag">R-2 · R-7</span>
         <h3 class="card-title">잠복 — 지금은 0건이지만 데이터·설정이 바뀌면 드러난다</h3>
-        <span class="chip latent">LATENT</span>
+        <span class="chip done">수정</span>
       </div>
       <p>
         <strong>R-2</strong> <code>isCodeLine</code>이 <code>/[;{}]/</code>로 판정해, 집합 표기
@@ -670,9 +745,44 @@ ISTQB-EXTRA #22 높은 할 인을        → 할인을           ✅ 의도대�
         <strong>R-7a</strong> 누락번호 검사가 <strong>Windows에서 조용히 꺼집니다</strong>
         (<code>C:\…</code> 경로에서 <code>split(':')[1]</code>이 경로 조각 → <code>parseInt</code> NaN → 검사 skip). ·
         <strong>R-7b</strong> id 중복 검사가 파일 단위라 세트 간 충돌을 못 봅니다 — 전역 중복 <strong>0건</strong>. ·
-        <strong>R-7c</strong> 재수록 그룹의 대표만 미태깅이면 챕터 통일 항목이 누락됩니다 — 해당 <strong>0건</strong>. ·
-        <strong>AN-3</strong> <code>addJavascriptInterface</code>에 출처 검사가 없습니다. 지금은 로컬 번들만 로드해 안전하지만,
-        라이브 리로드용 <code>server.url</code>이 추가되면 원격 콘텐츠에 그대로 노출됩니다.
+        <strong>R-7c</strong> 재수록 그룹의 대표만 미태깅이면 챕터 통일 항목이 누락됩니다 — 해당 <strong>0건</strong>.
+      </p>
+      <p>
+        <strong>조치(R-2)</strong> — 판정을 <code>isGenericCodeLine</code>으로 꺼내고, 세미콜론&middot;중괄호만 보던
+        branch에서 <strong>한글이 섞인 줄</strong>과 <strong>집합 표기</strong>를 뺐습니다. 실측한 진짜 코드
+        (<code>Bool p;</code> &middot; <code>puts("p is true");</code> &middot; <code>If ((x&gt;1) and (y==1)){</code>)에는
+        한글이 없어 그대로 남습니다. 626문항 전수 대조 + 양쪽 경계 사례를 검사로 고정했습니다.
+      </p>
+      <p>
+        <strong>조치(R-7a)</strong> — 누락번호 키에서 경로를 뺐습니다. 집합은 원래 파일 단위라 경로를 섞을 이유가 없었고,
+        섞은 탓에 <strong>검사가 Windows에서 통째로 꺼져 있었습니다.</strong> ·
+        <strong>(R-7b)</strong> id 중복을 스캔 전체로 올리고, 데이터 루트도 하나만 보게 했습니다
+        (둘 다 훑으면 같은 문항을 두 번 세고 모든 id가 중복으로 잡힙니다). ·
+        <strong>(R-7c)</strong> 그룹 안의 <strong>첫 태깅 챕터</strong>를 대표값으로 씁니다.
+      </p>
+      <p class="evidence">되살아난 검사가 실제로 발동하는지 프로브로 확인:
+번호에 구멍을 내니 → WARNING "누락된 문제 번호: 3"
+다른 파일에 같은 id를 넣으니 → ERROR "id 중복: ISTQB-FL-V4-A-001"
+R-7c는 대표만 미태깅으로 만들면 종전 2건 / 수정본 3건 (오늘 데이터에서는 결과 동일 → index.json 재생성 불필요)</p>
+    </article>
+
+    <article class="card sev-latent">
+      <div class="card-head">
+        <span class="tag">AN-3</span>
+        <h3 class="card-title">지금 고치지 않기로 한 것 — 브리지의 출처 검사</h3>
+        <span class="chip latent">보류</span>
+      </div>
+      <p class="where">android/…/MainActivity.java · addJavascriptInterface</p>
+      <p>
+        <code>addJavascriptInterface</code>로 주입한 브리지(<code>AndroidBackup</code> &middot; 이번에 추가한 <code>AndroidTheme</code>)는
+        WebView의 모든 JS에 노출되고 출처 검사가 없습니다. <code>capacitor.config.json</code>에 <code>server.url</code>이 없어
+        <strong>로컬 번들만 로드하므로 현재는 안전합니다.</strong> 라이브 리로드용 <code>server.url</code>이 추가되면
+        원격 콘텐츠에 그대로 노출됩니다.
+      </p>
+      <p>
+        지금 방어를 붙이면 <strong>존재하지 않는 설정을 전제로 한, 아무도 통과하지 않는 코드</strong>가 됩니다.
+        검사할 &lsquo;허용 출처&rsquo;의 정의가 그 설정과 함께 정해져야 하므로, 라이브 리로드를 도입하는 시점에
+        같이 보는 것이 맞다고 판단했습니다 — 그때 이 항목을 다시 꺼낼 수 있도록 여기 남깁니다.
       </p>
     </article>
 
@@ -702,17 +812,17 @@ ISTQB-EXTRA #22 높은 할 인을        → 할인을           ✅ 의도대�
   </div>
 
   <p class="lede">
-    검사 자체의 품질은 높습니다. 다만 <strong>같은 결함 유형이 세 스펙에 퍼져 있고</strong>,
-    이름이 비슷한 기존 검사가 &lsquo;이미 덮여 있다&rsquo;는 오판을 만드는 자리가 하나 있습니다.
+    검사 자체의 품질은 높았습니다. 다만 <strong>같은 결함 유형이 세 스펙에 퍼져 있었고</strong>,
+    이름이 비슷한 기존 검사가 &lsquo;이미 덮여 있다&rsquo;는 오판을 만드는 자리가 하나 있었습니다. 둘 다 닫았습니다.
   </p>
 
   <div class="find">
 
-    <article class="card sev-med">
+    <article class="card sev-done">
       <div class="card-head">
         <span class="tag">F-5 · E-1</span>
         <h3 class="card-title">퀵에서 보기를 하나만 누르는 스펙 3곳 — 복수정답이 뽑히면 실패한다</h3>
-        <span class="chip med">MEDIUM</span>
+        <span class="chip done">수정</span>
       </div>
       <p>
         퀵은 <code>isQuickCommitted</code>가 <strong>복수정답을 전부 골라야</strong> 확정으로 봅니다(사양이고 유닛으로 고정돼 있습니다).
@@ -741,13 +851,24 @@ ISTQB-EXTRA #22 높은 할 인을        → 할인을           ✅ 의도대�
         <strong>저장소에 이미 해법이 둘 있습니다</strong> — <code>helpers.answerCurrent</code>(제목의 &lsquo;복수정답&rsquo; 표기를 보고 나머지를 고름)와
         <code>react-quick-ux.spec.ts:244</code>의 결정적 <code>quickDraw</code> 시딩. 세 지점만 그 해법을 안 씁니다.
       </p>
+      <p>
+        <strong>조치</strong> — <code>answerCurrent</code>에서 &lsquo;고르기&rsquo;만 떼어낸 <code>selectCurrent</code>를 만들어
+        (채점까지 하면 안 되는 자리가 있었습니다) 세 지점이 각자 필요한 쪽을 쓰게 했습니다.
+        <strong>한 곳은 그것으로도 부족했습니다</strong> — 퀵은 전 세트를 섞으므로 연달아 뽑힌 두 문항의 번호가
+        같을 수 있고, &ldquo;문제 9가 아니다&rdquo;라는 단언이 그 자리에서 깨졌습니다.
+        같은 파일이 이미 쓰던 결정적 <code>quickDraw</code> 시딩으로 추첨을 고정했습니다.
+      </p>
+      <p class="evidence">--repeat-each=25 실측
+react-quick-ux        3 / 25 실패  →  25 / 25 통과
+react-pairwise        3 / 25 실패  →  12 / 12 통과
+react-transition-quick    (미실측)  →  50 / 50 통과</p>
     </article>
 
-    <article class="card sev-low">
+    <article class="card sev-done">
       <div class="card-head">
         <span class="tag">E-2</span>
         <h3 class="card-title">이름이 비슷한 검사가 다른 축을 재고 있었다</h3>
-        <span class="chip low">주의</span>
+        <span class="chip done">수정</span>
       </div>
       <p class="where">e2e/react-study-ux.spec.ts · &ldquo;랜덤 채점이 시험 오답 목록을 덮어쓰지 않는다(오답 모드 합집합)&rdquo;</p>
       <p>
@@ -755,6 +876,11 @@ ISTQB-EXTRA #22 높은 할 인을        → 할인을           ✅ 의도대�
         F-4가 고친 것은 <strong>같은 랜덤 키를 공유하는 전체 랜덤 ↔ 챕터 미니</strong>이고,
         이 테스트는 <strong>수정 전후 모두 통과합니다.</strong>
         비슷한 이름의 검사가 있으면 &ldquo;이미 덮여 있다&rdquo;고 오판하기 쉬운 자리입니다.
+      </p>
+      <p>
+        <strong>조치</strong> — 검사를 바꿀 것은 없습니다(그 축은 그 축대로 옳습니다).
+        <strong>무엇을 재고 무엇을 재지 않는지</strong>를 그 자리에 적었습니다 —
+        챕터 미니 쪽 회귀는 <code>reviewKeyFor</code>/<code>isReviewKeyOf</code>의 유닛이 맡는다는 것까지 함께.
       </p>
     </article>
 
@@ -836,19 +962,20 @@ ISTQB-EXTRA #22 높은 할 인을        → 할인을           ✅ 의도대�
 <section class="block">
   <div class="sec-head">
     <h2>다음에 할 일</h2>
-    <span class="sec-note">비용 대비 효과 순</span>
+    <span class="sec-note">코드 쪽은 비었습니다 — 남은 것은 사람 눈이 필요한 확인입니다</span>
   </div>
 
   <ol class="steps">
-    <li><strong>R-1</strong> — 유일하게 지금 사용자 화면에 보이는 결함이고, 정규식 한 줄로 닫힙니다.</li>
-    <li><strong>F-5 · E-1</strong> — 세 스펙이 이미 있는 헬퍼를 쓰게 바꿉니다. 중복 구현이 아니라 중복 제거이고,
-      CI의 <code>E2E smoke</code> 잡이 10번에 한 번씩 빨간불이 되는 것을 멈춥니다.</li>
-    <li><strong>R-3 · AN-1</strong> — 둘 다 APK에서만 드러나 제보가 잘 들어오지 않는 자리입니다.
-      뒤로가기 가드는 기존 <code>useBackDismiss</code> 재사용, 시스템 바는 테마 변경 시 네이티브에 알리는 경로가 필요합니다.</li>
-    <li><strong>R-5 · R-6</strong> — 도구를 한 번 쓰면 데이터·배포가 오염됩니다. 출력 경로를
-      <code>reports/</code>(이미 gitignore됨)로 옮기고 경고를 적습니다.</li>
-    <li><strong>CS-1</strong> — 규칙을 지우거나, 주석의 잘못된 전제를 고칩니다. 남겨 두면 다음 사람이 되살립니다.</li>
-    <li><strong>R-2 · R-7</strong> — 전부 잠복입니다. 검사를 붙여 두면 데이터가 바뀌는 시점에 잡힙니다.</li>
+    <li><strong>APK를 한 번 빌드해 눈으로 봅니다.</strong> AN-1의 시스템 바 색은 이 환경에 Android SDK가 없어
+      컴파일조차 하지 못했습니다. 웹 유닛이 고정한 것은 &ldquo;웹이 무엇을 넘기는가&rdquo;까지이고,
+      네이티브가 그것을 어떻게 칠하는지는 실기기에서만 보입니다. 다크로 켜고 위아래 띠를 확인하면 끝납니다.</li>
+    <li><strong><code>verify-pdf-data.py</code>를 CI에서 한 번 통과시킵니다.</strong> 이 환경에 <code>pymupdf</code>가 없어
+      실행하지 못했습니다. 4차 수정은 데이터를 건드리지 않으므로 판정은 3차와 같아야 하지만,
+      &lsquo;같아야 한다&rsquo;와 &lsquo;같았다&rsquo;는 다릅니다.</li>
+    <li><strong><code>test:nf</code>(비기능)를 한 번 돌립니다.</strong> 단일 <code>webServer</code>를 공유해
+      react&middot;apk 스위트와 동시에 돌릴 수 없어 이번에도 생략했습니다. 영속화 계층을 고쳤으므로 배포 전 한 번은 필요합니다.</li>
+    <li><strong>AN-3은 라이브 리로드를 도입할 때 함께 봅니다.</strong> 지금 붙이면 아무도 통과하지 않는 방어가 됩니다
+      (위 카드에 이유를 적었습니다).</li>
   </ol>
 </section>
 
@@ -859,9 +986,15 @@ ISTQB-EXTRA #22 높은 할 인을        → 할인을           ✅ 의도대�
   </div>
 
   <p>
-    <strong>실행하지 않은 스위트</strong> — <code>test:nf</code>(비기능)·<code>test:apk</code>(WebView)는
-    단일 <code>webServer</code>를 공유해 react 스위트와 동시 실행이 불가했습니다.
-    영속화 계층을 고쳤으므로 배포 전 <code>test:nf</code> 한 번과 실기기 Safari 30초 확인을 권합니다.
+    <strong>실행하지 않은 스위트</strong> — <code>test:nf</code>(비기능)는 단일 <code>webServer</code>를 공유해
+    react&middot;apk 스위트와 동시 실행이 불가해 이번에도 돌리지 못했습니다.
+    영속화 계층을 고쳤으므로 배포 전 한 번과 실기기 Safari 30초 확인을 권합니다.
+    (<code>test:apk</code>는 4차에서 실행했습니다 — CS-1의 가드가 그 스위트에 있습니다.)
+  </p>
+  <p>
+    <strong>컴파일하지 못한 코드</strong> — <code>MainActivity.java</code>의 변경은 Android SDK가 없어
+    빌드하지 못했습니다. javac 파스 검사만 통과했고, 남은 오류(<code>BridgeActivity</code> 미해결 등)는
+    전부 SDK 부재에서 오는 것입니다. <strong>이 파일에 대해서는 &ldquo;문법이 맞다&rdquo;까지만 보증합니다.</strong>
   </p>
   <p>
     <strong>실행 환경 제약</strong> — <code>verify-pdf-data.py</code>는 원본 PDF와 <code>pymupdf</code>가 없어 생략했습니다(CI가 담당).
@@ -875,7 +1008,7 @@ ISTQB-EXTRA #22 높은 할 인을        → 할인을           ✅ 의도대�
 </section>
 
 <footer class="foot">
-  ISTQB / CSTS 학습앱 코드 점검 · 3회차 누적 · 기준 커밋 c2854d1 ·
+  ISTQB / CSTS 학습앱 코드 점검 · 4회차 누적 · 발견 16건 전량 조치(보류 1) ·
   상세 근거와 재현 절차는 <code>docs/code-audit-2026-08-18.md</code>
 </footer>
 
