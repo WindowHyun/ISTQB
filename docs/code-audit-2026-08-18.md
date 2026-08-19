@@ -595,3 +595,111 @@ q.options = extracted.map((ext, i) => ({ key: String.fromCharCode(97 + i), text:
 2. **R-3** — APK에서만 드러나 리포트가 잘 안 들어오는 자리입니다. 기존 `useBackDismiss` 재사용이라 비용이 작습니다.
 3. **R-5 / R-6** — 도구를 한 번 쓰면 데이터·배포가 오염됩니다. 출력 경로 이동 + 경고 주석.
 4. **R-2 / R-7** — 전부 잠복입니다. 검사를 붙여 두면 데이터가 바뀌는 시점에 잡힙니다.
+
+---
+
+# 3차 점검 (2026-08-19) — 남은 4개 영역
+
+2차까지도 손대지 않은 CSS·E2E·테스트·Android를 마저 읽었습니다. 이로써 저장소의 모든 코드 파일을 최소 1회 열람했습니다.
+
+| 범위 | 분량 | 방식 | 결과 |
+|---|---:|---|---|
+| `android/` | 715줄 | 정독 | 결함 1 · 경미 1 · 정보 1 |
+| `src/styles/globals.css` | 2,182줄 | 정독 + 죽은 셀렉터 계량 | 결함 1 · 경미 2 · 정보 1 |
+| `e2e/*.spec.ts` (439 테스트) | 9,544줄 | 전수 계량 + 후보 정독 | 결함 1(F-5 3번째 지점) · 주의 1 |
+| `src/**/*.test.ts` (126 테스트) | 7,066줄 | 전수 계량 | **결함 없음** |
+
+## AN-1 · 다크 모드 APK에서 시스템 바만 흰색으로 남는다 — Medium
+
+`android/…/MainActivity.java`의 `configureSystemBars()`가 상태바·내비게이션 바를
+`Color.rgb(255,255,255)` + `SYSTEM_UI_FLAG_LIGHT_STATUS_BAR`로 **하드코딩**합니다.
+
+앱은 다크 테마를 지원하고(`body[data-theme]`) `index.vite.html`은 `theme-color`를 라이트/다크로
+나눠 두었지만, **Capacitor WebView의 네이티브 바에는 그 meta가 적용되지 않습니다.**
+`@capacitor/status-bar` 플러그인도 의존성에 없어 웹에서 네이티브로 테마를 알릴 경로가 없습니다.
+
+결과: 다크 모드 APK는 본문만 어둡고 위아래 시스템 바가 흰색으로 남습니다.
+`setDecorFitsSystemWindows(false)`(API 30+)로 edge-to-edge를 켜 두어 더 눈에 띕니다.
+
+**AN-2 (Low)** — `AndroidManifest.xml`의 FileProvider가 `<external-path path="."/>`(외부 저장소 루트 전체)로
+선언돼 있으나 앱 어디에서도 쓰이지 않습니다(백업은 MediaStore 경로). Capacitor 템플릿 잔재이고
+`exported="false"`라 직접 악용은 안 되지만, 죽은 설정에 넓은 경로가 붙어 있습니다.
+
+**AN-3 (정보)** — `addJavascriptInterface(BackupBridge, "AndroidBackup")`은 WebView의 모든 JS에 노출됩니다.
+`capacitor.config.json`에 `server.url`이 없어 로컬 번들만 로드하므로 현재는 안전합니다. 다만 브리지에
+출처 검사가 없어, 라이브 리로드용 `server.url`이 추가되면 원격 콘텐츠에 그대로 노출됩니다.
+
+> 잘 되어 있는 것: `allowBackup="false"`, release 서명 env 누락 시 빌드를 명시적으로 실패시키는 가드,
+> `sanitizeFileName`, safe-area 주입의 3중 재시도 + `onApplyWindowInsets` 연동.
+
+## CS-1 · 죽은 CSS 규칙 하나 — 되살리는 순간 모바일 퀵이 깨진다 — Medium
+
+`src/styles/globals.css:2181`
+
+```css
+.app-shell[data-mode="quick"] { padding-bottom: calc(16px + var(--safe-bottom)); }
+```
+
+`App.tsx:247`은 `.app-shell`에 `data-drawer`만 붙입니다 — 코드베이스에서 `data-mode`는
+사이드바의 모드 버튼(`Sidebar.tsx:350`)에만 있습니다. **셀렉터가 아무것도 잡지 못합니다.**
+
+문제는 그 규칙에 달린 주석입니다 — *"퀵에는 하단 고정 액션바가 없으므로"* 는 **사실이 아닙니다.**
+`QuestionWorkspace`는 `.mobile-actionbar`를 무조건 렌더하고, 퀵에서는 그 안에
+`renderQuickMain('ab-main', '-m')`(채점/다음 버튼)을 넣습니다.
+
+지금은 죽어 있어 무해합니다. 그러나 누군가 "왜 안 먹지" 하고 `data-mode`를 붙이는 순간
+하단 여백이 96px → 16px로 줄어 **본문 마지막이 78px짜리 고정 액션바에 가려집니다.**
+
+**CS-2 (Low)** — 죽은 규칙 8묶음(~30줄): `.wrong-note-group` · `.table-image`/`.table-image-frame`(다크 대응 포함) ·
+`.quick-label` · `.settings-toggle` · `.quick-next-bar`(반응형 포함) · `.quick-done`/`-title`/`-body`.
+소스 참조 전부 0건입니다. `.quick-done`은 *"전 세트를 다 본 뒤의 종착 화면"* 이라는
+**존재하지 않는 기능**을 설명합니다.
+
+**CS-3 (Low)** — `:root` 주석이 `MainActivity.injectStatusBarHeight()`를 가리키는데 실제 메서드명은
+`injectSafeAreaInsets()` / `evaluateSafeAreaJs()`입니다.
+
+**CS-4 (정보)** — `theme-color` meta가 `prefers-color-scheme`(OS)만 따르므로, 앱 내 테마를 OS와 다르게
+고른 사용자는 브라우저 크롬 색이 어긋납니다(PWA 한정).
+
+> 잘 되어 있는 것: 대비 수치를 실측과 함께 주석에 남긴 토큰 설계, `--primary` ↔ `--primary-solid` 분리로
+> 다크 대비 미달 15곳 일괄 해소, 44px 터치 타깃, 드로어의 `visibility` 차단, `prefers-reduced-motion`.
+
+## E-1 · F-5 클래스의 세 번째 지점 — Medium
+
+`react-transition-quick.spec.ts:194`가 퀵에서 보기를 하나만 누르고
+`page.getByTestId("quick-grade-btn").click()`을 호출합니다. 복수정답 문항이 뽑히면 버튼이 `disabled`라
+Playwright가 actionability를 기다리며 **스펙 예산(300초)을 통째로 태우고 타임아웃**합니다 —
+앞선 두 지점(단언 실패)보다 진단이 어렵습니다.
+
+| 위치 | 실패 방식 | `--repeat-each=25` 실측 |
+|---|---|---|
+| `react-pairwise.spec.ts:166` | 단언 실패 | 3 / 25 |
+| `react-quick-ux.spec.ts:360` | 단언 실패 | 3 / 25 |
+| `react-transition-quick.spec.ts:194` | **예산 소진 후 타임아웃** | 미실측(기전 동일) |
+
+**저장소에 이미 해법이 둘 있습니다** — `helpers.answerCurrent`(제목의 '복수정답' 표기를 보고 나머지를 고름)와
+`react-quick-ux.spec.ts:244`의 결정적 `quickDraw` 시딩. 세 지점만 그 해법을 쓰지 않습니다.
+
+**E-2 (주의)** — `react-study-ux.spec.ts`의 "랜덤 채점이 시험 오답 목록을 덮어쓰지 않는다(오답 모드 합집합)"는
+이름이 F-4와 겹치지만 **다른 축**(시험 키 ↔ 랜덤 키)을 검사합니다. 그 둘은 원래 키가 달라 덮어쓰지 않으므로
+이 테스트는 **F-4 수정 전후 모두 통과**합니다. 이름이 비슷한 검사가 있으면 "이미 덮여 있다"고 오판하기 쉬운 자리입니다.
+
+## 검사 품질 — 565개 테스트 전수 계량
+
+| 항목 | 유닛 126 | E2E 439 |
+|---|---:|---:|
+| 단언이 없는 테스트 | 0 | 0 |
+| 무의미 단언(`true === true`) | 0 | 0 |
+| `.skip` / `.todo` | 0 | 0 |
+| `.only`(스위트 무력화) | 0 | 0 |
+| 지문 가시성만으로 상태 단언(하네스 README 금지) | — | 0 |
+
+후보로 잡힌 2건(`react-back-dismiss` · `react-state-matrix`)은 각각 `toHaveCount(0)`와
+누적 `bad()` + 최종 `expect(problems).toEqual([])`로 **실제 상태를 재고 있어** 위반이 아닙니다.
+
+---
+
+## HTML 리포트
+
+3회차 전체를 한 장으로 정리한 HTML 리포트를 `docs/code-audit-report.html`에 두었습니다
+(기존 `docs/qa-report.html`의 토큰 체계를 그대로 따릅니다).
