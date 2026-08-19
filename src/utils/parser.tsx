@@ -406,21 +406,50 @@ function buildRichBlocks(text: unknown, inline = false): Block[] {
     return normalizeGenericCodeBlocks(normalized);
   }
 
+/**
+ * 태그가 없는 줄이 **코드로 보이는가.** 세 줄 이상 이어지면 어두운 고정폭 블록으로 그린다
+ * (normalizeGenericCodeBlocks). 정답이 아니라 휴리스틱이므로, 틀리는 방향이 중요하다 —
+ * 코드를 산문으로 두면 읽기 조금 불편할 뿐이지만, 산문을 코드로 그리면 지문이 통째로
+ * 깨져 보인다.
+ *
+ * 종전에는 `/[;{}]/` 하나로 **줄 어디에든** 세미콜론이나 중괄호가 있으면 코드로 봤다.
+ * 테스팅 교재에서 그 둘은 산문에 흔하다:
+ *   - 동등 분할의 집합 표기 — "세 개의 동등 분할이 있습니다: {..., -2, -1}, {0, 1, 2}, …"
+ *   - 목록을 여는 세미콜론 — "아래와 같은 테스트웨어 유형이 주어지고;"
+ *   - 표를 한 줄로 편 것 — "TC1: 19세, 경험이 없는 미등록 남성; 기대 결과: 분류 A"
+ * 실측(626문항): 이 branch에 걸리는 33줄 중 21줄이 이런 산문이었다. 지금은 세 줄이
+ * 연달아 걸리는 구간이 없어 블록이 만들어지지 않을 뿐, 데이터가 조금만 바뀌면 드러난다.
+ *
+ * 그래서 이 branch에서만 둘을 뺀다. 나머지 판정(단독 중괄호·키워드·대입)은 그대로다.
+ *   - 한글이 섞인 줄: 산문이다. 실측한 진짜 코드(`Bool p;` · `puts("p is true");` ·
+ *     `If ((x>1) and (y==1)){`)에는 한글이 없다 — 키워드형 의사코드(IF/READ/PRINT)는
+ *     위의 별도 branch가 잡으므로 이 제외에 걸리지 않는다.
+ *   - 중괄호로 감싼 목록: `{26, 30, 41, 52, 55}` 같은 집합 표기다. 세미콜론·괄호·대입이
+ *     하나라도 있으면 집합으로 보지 않는다.
+ */
+export function isGenericCodeLine(line: string): boolean {
+  const value = String(line || "").trim();
+  if (!value) return false;
+  if (/^[{}]$/.test(value)) return true;
+  if (
+    /^(?:int|void|float|double|char|boolean|String|if|else|return|for|while|switch|IF|ELSE|THEN|END|ENDIF|READ|PRINT)\b/.test(
+      value,
+    )
+  ) {
+    return true;
+  }
+  if (/^[A-Za-z_]\w*\s*=/.test(value)) return true;
+  if (!/[;{}]/.test(value)) return false;
+  if (/[가-힣]/.test(value)) return false;
+  if (/^\{[^;{}()=]*\}$/.test(value)) return false;
+  return true;
+}
+
   function normalizeGenericCodeBlocks(text: string): string {
     const lines = String(text || "").split("\n");
     const blocks: string[] = [];
     let codeLines: string[] = [];
-    const isCodeLine = (line: string) => {
-      const value = String(line || "").trim();
-      return (
-        /^[{}]$/.test(value) ||
-        /[;{}]/.test(value) ||
-        /^(?:int|void|float|double|char|boolean|String|if|else|return|for|while|switch|IF|ELSE|THEN|END|ENDIF|READ|PRINT)\b/.test(
-          value,
-        ) ||
-        /^[A-Za-z_]\w*\s*=/.test(value)
-      );
-    };
+    const isCodeLine = isGenericCodeLine;
     const flushCode = () => {
       blocks.push(
         ...(codeLines.length >= 3
