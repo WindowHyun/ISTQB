@@ -534,38 +534,66 @@ function buildRichBlocks(text: unknown, inline = false): Block[] {
 
   
 // PDF 추출 노이즈 제거 — parser.tsx 추출 시 누락되어 buildRichBlocks에서 ReferenceError를 유발했음(복원).
+/**
+ * PDF 추출에서 한 낱말이 공백으로 갈라진 것을 되붙이는 규칙표.
+ *
+ * **조건 없는 전역 치환이라 정상 문장을 붙일 수 있다.** 실제로 그랬다 —
+ * `/할\s+인/`이 "리뷰에 참여할 인력" · "진행할 인력과 조직" · "수행할 인적 자원"을
+ * "참여할인력" · "진행할인력과" · "수행할인적"으로 만들었다(626문항 중 4곳).
+ * 데이터 쪽은 오히려 반대로 일하고 있었다 — `scripts/normalize-utils.js`에
+ * `'참여할인력' → '참여할 인력'` 하드코딩 치환이 있다. 두 계층이 같은 문장을 반대로
+ * 고치고 렌더러가 이겼던 것이다.
+ *
+ * 어떤 게이트도 잡지 못했다: `scripts/verify-pdf-data.py`의 `norm()`이 비교 전에
+ * 공백을 전부 제거하므로 띄어쓰기 오류는 **원리적으로** 그 게이트의 검출 대상이 아니다.
+ *
+ * 그래서 표를 밖으로 꺼낸다. 규칙이 함수 안에 체이닝으로 묻혀 있으면 "이 규칙이 어디에
+ * 발동하는가"를 검사가 물어볼 수 없다. 지금은 `parser.pdfnoise.test.ts`가 이 표를 그대로
+ * 받아 **626문항 전수에 돌려 보고, 허용 목록 밖에서 발동하면 실패한다.**
+ * 규칙을 추가·수정하면 그 검사가 먼저 답한다.
+ *
+ * (`shortAnswerCandidates`를 export한 것과 같은 이유다 — 결과를 값으로 고정할 수
+ *  있어야 과다 적용을 막는다.)
+ */
+export const PDF_JOIN_RULES: [RegExp, string][] = [
+  [/실\s+무/g, "실무"],
+  [/수행\s+하고/g, "수행하고"],
+  [/실행\s+하는/g, "실행하는"],
+  [/제공\s+되었다/g, "제공되었다"],
+  [/초과\s+하는/g, "초과하는"],
+  [/포함\s+되어/g, "포함되어"],
+  [/등록\s+하지/g, "등록하지"],
+  [/유지\s+된다/g, "유지된다"],
+  [/대출\s+되어/g, "대출되어"],
+  [/처리\s+되며/g, "처리되며"],
+  [/표시\s+되지/g, "표시되지"],
+  // 뒤에 '력'·'적'이 오면 그것은 '인력'·'인적'이라는 낱말이다 — 붙이면 안 된다.
+  // 이 한 글자 예외가 실측 오작동 4건을 모두 제거하고, 진짜 아티팩트 2건
+  // ("할 인 유형" · "할 인을")은 그대로 고친다.
+  [/할\s+인(?![력적])/g, "할인"],
+  [/테스트 케이\s+스/g, "테스트 케이스"],
+  [/케\s+이스/g, "케이스"],
+  [/테\s+스트/g, "테스트"],
+  [/테스\s+트/g, "테스트"],
+  [/시\s+간/g, "시간"],
+  [/나타\s+낸/g, "나타낸"],
+  [/같\s+은/g, "같은"],
+  [/요구사\s+항/g, "요구사항"],
+  [/비\s+즈니스/g, "비즈니스"],
+  [/컴포\s+넌트/g, "컴포넌트"],
+  [/사\s+용자/g, "사용자"],
+  [/두\((\d+)\)\s+개/g, "두($1)개"],
+];
+
 function stripPdfNoise(text: string): string {
-  return String(text || "")
+  let out = String(text || "")
     .replace(/Korean Software Testing Qualifications Board[^\n]*/gi, "")
     .replace(/www\.kstqb\.org\s+I\s+info@kstqb\.org(?:\s+\d+\s+of\s+\d+)?/gi, "")
     .replace(/www\.kstqb\.org\s*/gi, "")
     .replace(/info@kstqb\.org\s*/gi, "")
-    .replace(/\b\d+\s+of\s+\d+\b/gi, "")
-    .replace(/실\s+무/g, "실무")
-    .replace(/수행\s+하고/g, "수행하고")
-    .replace(/실행\s+하는/g, "실행하는")
-    .replace(/제공\s+되었다/g, "제공되었다")
-    .replace(/초과\s+하는/g, "초과하는")
-    .replace(/포함\s+되어/g, "포함되어")
-    .replace(/등록\s+하지/g, "등록하지")
-    .replace(/유지\s+된다/g, "유지된다")
-    .replace(/대출\s+되어/g, "대출되어")
-    .replace(/처리\s+되며/g, "처리되며")
-    .replace(/표시\s+되지/g, "표시되지")
-    .replace(/할\s+인/g, "할인")
-    .replace(/테스트 케이\s+스/g, "테스트 케이스")
-    .replace(/케\s+이스/g, "케이스")
-    .replace(/테\s+스트/g, "테스트")
-    .replace(/테스\s+트/g, "테스트")
-    .replace(/시\s+간/g, "시간")
-    .replace(/나타\s+낸/g, "나타낸")
-    .replace(/같\s+은/g, "같은")
-    .replace(/요구사\s+항/g, "요구사항")
-    .replace(/비\s+즈니스/g, "비즈니스")
-    .replace(/컴포\s+넌트/g, "컴포넌트")
-    .replace(/사\s+용자/g, "사용자")
-    .replace(/두\((\d+)\)\s+개/g, "두($1)개")
-    .replace(/\s{2,}/g, " ");
+    .replace(/\b\d+\s+of\s+\d+\b/gi, "");
+  for (const [pattern, replacement] of PDF_JOIN_RULES) out = out.replace(pattern, replacement);
+  return out.replace(/\s{2,}/g, " ");
 }
 
 function normalizeReadableCharacters(text: string): string {
