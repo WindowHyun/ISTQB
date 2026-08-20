@@ -12,6 +12,7 @@ import { MODE_LABEL } from '../utils/modeLabel';
 import { useBackDismiss } from '../hooks/useBackDismiss';
 import { BACK_PRIORITY, initHardwareBackButton } from '../utils/backGuard';
 import { watchSystemBarColors } from '../utils/nativeSystemBars';
+import { isAtProductGate } from '../utils/sessionDerive';
 
 const Sidebar = React.lazy(() => import('../components/layout/Sidebar').then(module => ({ default: module.Sidebar })));
 const QuestionWorkspace = React.lazy(() => import('../components/quiz/QuestionWorkspace').then(module => ({ default: module.QuestionWorkspace })));
@@ -114,7 +115,12 @@ export const App = () => {
     return <div className="loading">앱 로딩 중...</div>;
   }
 
-  if (mode === 'home' || !activeProduct) {
+  // 게이트 판정은 sessionDerive가 단일 원천이다 — UpdatePrompt가 "새 버전을 묻지 않고
+  // 바로 적용해도 되는가"를 같은 값으로 본다(그 함수 주석 참고).
+  // `|| !activeProduct`는 논리적으로 중복이다(위 함수가 이미 포함한다). 타입 좁히기용이다 —
+  // 함수 호출 뒤로는 TS가 activeProduct의 null 여부를 알 수 없어, 아래 셸에서 non-null로 쓰려면
+  // 이 자리에 직접 적어 줘야 한다. 규칙 자체는 여전히 한 곳(isAtProductGate)에만 있다.
+  if (isAtProductGate({ mode, activeProduct }) || !activeProduct) {
     return (
       // 게이트도 경계 안에 둔다 — 종전에는 워크스페이스만 감싸서, 제품 선택 화면에서
       // 렌더 예외가 나면 폴백 없이 백지가 됐다(재시도 버튼조차 없다).

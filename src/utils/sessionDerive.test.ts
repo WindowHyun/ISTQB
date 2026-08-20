@@ -3,6 +3,7 @@ import type { Question } from '../hooks/useQuestions';
 import {
   selectGradableQuestions, tallySession, selectCorrectQuestions,
   deriveExamStage, clampIndex, deriveQuickControls, deriveCanGrade, progressPercentOf,
+  isAtProductGate,
 } from './sessionDerive';
 
 /**
@@ -228,5 +229,41 @@ describe('progressPercentOf', () => {
   // 문항이 실리기 전에도 사이드바가 이 값을 그린다 — NaN이 되면 화면에 'NaN%'가 뜬다.
   it('문항이 없으면 0이다(0으로 나누지 않는다)', () => {
     expect(progressPercentOf(0, 0)).toBe(0);
+  });
+});
+
+/**
+ * 게이트 판정 — 두 곳이 이 값을 본다.
+ *   ① `App`이 워크스페이스 대신 게이트를 그릴지
+ *   ② `UpdatePrompt`가 새 버전을 **묻지 않고 바로 적용**할지
+ *
+ * ②가 이 검사의 무게다. 참이 잘못 나오면 **풀이 중에 경고 없이 페이지가 리로드된다** —
+ * 시험에는 제한시간이 있으므로 그대로 사고다. 거짓이 잘못 나오면 배너가 게이트에서도
+ * 떠서, 잃을 것 없는 자리인데 사용자에게 묻게 된다.
+ */
+describe('isAtProductGate — 게이트인가', () => {
+  it('제품을 아직 고르지 않았으면 게이트다', () => {
+    expect(isAtProductGate({ mode: 'practice', activeProduct: null })).toBe(true);
+    expect(isAtProductGate({ mode: 'exam', activeProduct: null })).toBe(true);
+  });
+
+  it("모드가 'home'이면 제품이 남아 있어도 게이트다", () => {
+    // resetToGate는 모드를 home으로 되돌리되 제품을 즉시 비우지 않는 경로가 있다.
+    expect(isAtProductGate({ mode: 'home', activeProduct: 'istqb' })).toBe(true);
+    expect(isAtProductGate({ mode: 'home', activeProduct: null })).toBe(true);
+  });
+
+  // 여기가 거짓이어야 자동 리로드가 막힌다 — 풀이 중인 모든 모드를 못 박는다.
+  it.each(['practice', 'exam', 'random', 'quick', 'review'])(
+    "%s 모드로 풀이 중이면 게이트가 아니다(자동 리로드 금지)",
+    (mode) => {
+      expect(isAtProductGate({ mode, activeProduct: 'istqb' })).toBe(false);
+      expect(isAtProductGate({ mode, activeProduct: 'csts' })).toBe(false);
+    },
+  );
+
+  // 빈 문자열은 '고르지 않음'과 같게 다룬다 — 손상된 저장값이 그대로 실릴 수 있다.
+  it('제품이 빈 문자열이면 게이트로 본다', () => {
+    expect(isAtProductGate({ mode: 'practice', activeProduct: '' })).toBe(true);
   });
 });

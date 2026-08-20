@@ -178,3 +178,18 @@ export function deriveCanGrade(input: {
 export function progressPercentOf(answered: number, total: number): number {
   return total ? Math.round((answered / total) * 100) : 0;
 }
+
+/**
+ * 지금 화면이 **제품 선택 게이트**인가 — 아직 아무것도 시작하지 않은 상태.
+ *
+ * `App`이 워크스페이스 대신 게이트를 그리는 조건이고, 동시에 **서비스워커 새 버전을
+ * 사용자에게 묻지 않고 바로 적용해도 되는 조건**이다(UpdatePrompt). 둘이 갈리면
+ * "게이트인데 배너가 뜬다" 또는 "풀이 중인데 화면이 리로드된다"가 된다 — 후자는
+ * 제한시간 시험 중에 일어나면 그대로 사고이므로 규칙을 한 곳에 둔다.
+ */
+export function isAtProductGate(input: {
+  mode: string;
+  activeProduct: string | null;
+}): boolean {
+  return input.mode === 'home' || !input.activeProduct;
+}
