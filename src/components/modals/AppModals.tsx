@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore, ExamHistory, QUICK_SET_ID, freshQuickRounds } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
-import { gradeKeyFor } from '../../utils/answerKey';
 import { useTheme, ThemePref } from '../../hooks/useTheme';
 import { exportUserData, importUserData, removeHistoriesEverywhere } from '../../utils/storage';
 import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
@@ -68,7 +67,7 @@ export const AppModals = () => {
     settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, resumePrompt,
     quitExamOpen, gradedResume, pendingSetChange,
     setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
-    setMode, beginSession, clearAnswers, setReviewIds, setSetId, setChapterFilter, setResumePrompt,
+    setMode, beginSession, clearAnswers, clearReviewTargets, setSetId, setChapterFilter, setResumePrompt,
     resetProgressForSets, clearQuickRounds,
     setQuitExamOpen, setGradedResume, setRandomDraw,
     setPendingSetChange, commitSetChange, reviewedOk, setWrongView,
@@ -89,7 +88,7 @@ export const AppModals = () => {
     setWrongView: s.setWrongView,
     setResultOpen: s.setResultOpen, setPaletteOpen: s.setPaletteOpen, setDrawerOpen: s.setDrawerOpen,
     setConfirmGradeOpen: s.setConfirmGradeOpen, setMode: s.setMode, beginSession: s.beginSession,
-    clearAnswers: s.clearAnswers, setReviewIds: s.setReviewIds, setSetId: s.setSetId,
+    clearAnswers: s.clearAnswers, clearReviewTargets: s.clearReviewTargets, setSetId: s.setSetId,
     resetProgressForSets: s.resetProgressForSets,
     setChapterFilter: s.setChapterFilter, setResumePrompt: s.setResumePrompt,
     setQuitExamOpen: s.setQuitExamOpen, setGradedResume: s.setGradedResume,
@@ -388,7 +387,8 @@ export const AppModals = () => {
     clearAnswers(setId, mode);
     // 이 세트/모드의 오답(review) 대상도 비운다 — 남기면 삭제된 회차의 오답이
     // 오답 모드에 유령처럼 남는다(오답 노트에는 없는데 오답 풀이엔 나오는 불일치).
-    setReviewIds(gradeKeyFor(setId, mode), []);
+    // 챕터 미니 회차 키(`#챕터`)까지 함께 비운다 — base 키만 지우면 미니 오답이 남는다.
+    clearReviewTargets(setId, mode);
     const ids = Object.values(histories)
       .filter((h) => h.setId === setId && h.mode === mode)
       .map((h) => h.id);

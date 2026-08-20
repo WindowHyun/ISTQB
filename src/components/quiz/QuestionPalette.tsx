@@ -3,6 +3,7 @@ import { useQuizStore } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { isQuestionCorrect } from '../../utils/answer';
 import { isAnsweredInMode } from '../../utils/quickStats';
+import { clampIndex } from '../../utils/sessionDerive';
 
 interface QuestionPaletteProps {
   /** 인라인(데스크톱 본문) 팔레트엔 id="questionNav"를 부여(E2E·레거시 선택자 유지). */
@@ -20,7 +21,7 @@ export const QuestionPalette = ({ withId, onJump }: QuestionPaletteProps) => {
   const { currentQuestions, answerKeyOf, isGraded } = useQuizSession();
 
   const total = currentQuestions.length;
-  const safeIndex = Math.min(Math.max(index, 0), Math.max(0, total - 1));
+  const safeIndex = clampIndex(index, total);
 
   return (
     <nav

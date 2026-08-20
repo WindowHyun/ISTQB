@@ -30,7 +30,7 @@
 ```bash
 npm run lint && npm run typecheck && npm run typecheck:test   # 정적 게이트
 npm run verify                                                # 문제 데이터·콘텐츠 감사
-npm test                                                      # 유닛(store·utils 순수 로직)
+npm test                                                      # 유닛(store·utils·hooks + scripts/ 도구 + middleware.ts)
 npm run test:e2e                                              # React 기능 E2E(Chromium)
 ```
 
@@ -40,12 +40,12 @@ npm run test:e2e                                              # React 기능 E2E
 npm run test:nf                # 비기능 — 성능·오프라인·타이머·저장 내구성
 npm run test:apk               # APK/WebView — 안전영역·터치 타깃(데스크톱 E2E가 대체 못 함)
 npm run test:mutation          # Stryker 코어 — 채점·통계 순수 로직(break 85, ~70초)
-npm run test:mutation:storage  # Stryker 영속화·상태 계층(break 65, ~12분)
+npm run test:mutation:storage  # Stryker 영속화·상태 계층(break 67, ~12분)
 ```
 
 ### 뮤테이션 게이트가 둘인 이유
 
-`stryker.config.json`(코어 6파일)과 `stryker.storage.config.json`(`storage.ts`·`useQuizStore.ts`)로
+`stryker.config.json`(코어 7파일)과 `stryker.storage.config.json`(`storage.ts`·`useQuizStore.ts`)로
 나뉜다. 합치면 둘 중 하나를 잃기 때문이다 — 8파일을 한꺼번에 잰 실측이 65.16%인데,
 코어는 92%대이고 `storage.ts`가 50.91%라 평균이 그쪽으로 끌려간다. break를 65로 낮추면
 `answer.ts`가 89%에서 70%로 무너져도 통과하고, 85를 유지하면 CI가 즉시 빨간불이 되어
@@ -53,8 +53,8 @@ npm run test:mutation:storage  # Stryker 영속화·상태 계층(break 65, ~12�
 
 | 설정 | 대상 | 실측 | break | 성격 |
 | --- | --- | --- | --- | --- |
-| `stryker.config.json` | 채점·통계 순수 로직 7파일 | 92.30% | 85 | 지켜야 할 높은 기준 |
-| `stryker.storage.config.json` | `storage.ts`·`useQuizStore.ts` | 71.37% | 67 | **래칫**(50 → 58 → 65 → 67) |
+| `stryker.config.json` | 채점·통계 순수 로직 7파일 | 93.25% | 85 | 지켜야 할 높은 기준 |
+| `stryker.storage.config.json` | `storage.ts`·`useQuizStore.ts` | 69.92% | 67 | **래칫**(50 → 58 → 65 → 67) |
 
 두 번째는 목표가 아니라 바닥이다. `storage.ts`는 커버리지 81%인데 뮤테이션이 50.91%였다 —
 "실행은 되지만 결과를 확인하지 않는" 검사가 많다는 뜻이고, 실제로 그 틈에서 결함이 나왔다
@@ -68,7 +68,16 @@ npm run test:mutation:storage  # Stryker 영속화·상태 계층(break 65, ~12�
 | 최초 | 53.82% | 222 | 394 | 50 |
 | 복원 분기 검사 20건 | 62.07% | 116 | 390 | 58 |
 | 오류·엣지 경로 53건 | 69.86% | 60 | 343 | 65 |
-| 정제기 경계 14건 | **71.37%** | 65 | **331** | **67** |
+| 정제기 경계 14건 | 71.37% | 65 | 331 | **67** |
+| (2026-08-19 실측 — 검사 추가 없이 그냥 잰 값) | 69.53% | 88 | 345 | 67 |
+| 게이트 복귀 경합·퀵 초기화 검사 16건 | **69.92%** | 88 | **349** | **67** |
+
+> **표의 점수는 그때의 코드 기준이다 — 나중에 마지막 줄과 그냥 비교하면 오판한다.**
+> 71.37을 잰 뒤로 퀵의 문항 단위 채점·`wrongView` 등이 `useQuizStore.ts`에 들어오면서,
+> 검사를 한 줄도 지우지 않았는데 같은 설정의 점수가 **69.53%로 내려가 있었다**(2026-08-19 실측).
+> 새 기능이 no-coverage를 데려온 것이지 기존 검사가 약해진 것이 아니다.
+> 그래서 이 계층을 고칠 때는 **수정 전 점수를 직접 한 번 재고 그것과 비교한다** — 문서의
+> 마지막 줄과 비교하면 남이 만든 드리프트를 자기 탓으로 오판하고, 진짜 하락도 함께 묻힌다.
 
 앞의 세 라운드는 같은 패턴이었다 — **no-coverage(유닛이 아예 안 지나가는 코드)를 줄인 것이
 점수 상승의 주된 원인**이고 survived는 천천히 줄었다(394 → 390 → 343). 즉 '검사를 더
@@ -77,10 +86,17 @@ npm run test:mutation:storage  # Stryker 영속화·상태 계층(break 65, ~12�
 
 네 번째 라운드는 처음으로 그 반대였다 — 닿는 것은 대체로 끝나 survived를 줄여 올렸다
 (343 → 331). 값이 비싸지는 구간에 들어섰다는 신호이므로, 다음은 점수를 밀어 올리기보다
-**아직 아무도 안 재는 계층**(hooks — 브랜치 커버리지 11.7%)을 재기 시작하는 편이 낫다.
+**아직 아무도 안 재는 계층**(hooks — 브랜치 커버리지 **10.3%**, 2026-08-19 실측)을
+재기 시작하는 편이 낫다. 이 값은 잰 시점마다 달라진다 — 훅에 조건이 추가되면 분모가
+늘어 **검사를 지우지 않아도 내려간다**(2026-08-13에는 11.7%였다).
 
 `useQuizStore.ts`는 이 과정에서 67.01 → **87.29%**가 되고 no-coverage가 0이 됐다. 남은
 60건은 전부 `storage.ts`이며, 이제부터는 survived 343건이 주된 과제다.
+
+*(2026-08-19 갱신: 그 뒤 `useQuizStore.ts`의 no-coverage가 다시 9건이 됐다 —
+`addQuickRound`의 같은-id 교체, `markQuickGraded`, `setWrongView`처럼 위 라운드 이후에
+들어온 액션들이다. 위 문단의 "no-coverage 0"은 당시 사실이고, 지금 가장 값싼 보강은
+여전히 같은 자리다: 그 세 액션에 닿는 유닛부터.)*
 
 ### E2E 단언 규약 — 지문 가시성을 상태 단언으로 쓰지 않는다
 

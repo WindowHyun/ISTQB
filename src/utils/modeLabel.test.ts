@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { GRADED_MODES, MODE_LABEL, isGradedMode } from './modeLabel';
+import { GRADED_MODES, MODE_LABEL, MODE_CAPTION, isGradedMode } from './modeLabel';
 import { HISTORY_MODES } from './storage';
 
 /**
@@ -63,6 +63,62 @@ describe('MODE_LABEL', () => {
   // 게이트는 사용자에게 보여줄 모드가 아니다 — 라벨이 생기면 상단바에 '홈'이 뜬다.
   it('게이트 모드(home)에는 라벨을 주지 않는다', () => {
     expect(MODE_LABEL.home).toBeUndefined();
+  });
+});
+
+/**
+ * MODE_CAPTION — 이 파일에서 **유일하게 검사가 닿지 않던 자리**였다.
+ * 뮤테이션 실측 58.33%(7 kill / 5 survived)의 생존분이 전부 여기였다: 캡션 문자열을
+ * 통째로 비워도 400개 넘는 검사가 전부 통과했다. 사용자가 읽는 안내문이므로
+ * 내용까지 값으로 고정한다(MODE_LABEL과 같은 방식).
+ */
+describe('MODE_CAPTION', () => {
+  it('모드별 캡션이 고정돼 있다', () => {
+    expect(MODE_CAPTION).toEqual({
+      practice: '즉시 정답·해설이 보여요. 기록되지 않습니다.',
+      exam: '채점 후 정답이 공개돼요. 응시 중에는 세트·모드 변경이 잠깁니다.',
+      random: '통계의 챕터 미니 시험으로 들어오는 모드예요. 채점하면 챕터 통계에 반영됩니다.',
+      review: '틀린 문항만 모아 즉시 피드백으로 다시 풉니다.',
+    });
+  });
+
+  // Sidebar는 `MODE_CAPTION[mode] && <p>`로 그린다 — 빈 문자열이면 캡션이 사라지는 게
+  // 아니라 **빈 문단이 남는다**(레이아웃에 빈 줄). 값이 있으면 내용도 있어야 한다.
+  it('캡션이 있으면 빈 문자열이 아니다', () => {
+    for (const [mode, caption] of Object.entries(MODE_CAPTION)) {
+      expect(caption.trim(), `${mode} 캡션이 비었다`).not.toBe('');
+    }
+  });
+
+  // 게이트는 세그먼트가 뜨지 않는 화면이다 — 캡션이 생기면 그릴 자리가 없다.
+  it('게이트 모드(home)에는 캡션을 주지 않는다', () => {
+    expect(MODE_CAPTION.home).toBeUndefined();
+  });
+
+  /**
+   * ⚠ 지금의 사실을 고정한다 — **퀵만 캡션이 없다.**
+   *
+   * 사이드바 세그먼트의 네 버튼은 practice·exam·quick·review인데(Sidebar.tsx:17),
+   * 그중 퀵에서만 세그먼트 아래가 빈다. random은 반대로 세그먼트에 버튼이 없는데도
+   * 캡션이 있고, 그 이유는 파일 주석에 적혀 있다(통계의 챕터 미니 시험으로 진입).
+   * 퀵의 부재에는 그런 근거가 없어 **의도인지 누락인지 코드만으로는 알 수 없다.**
+   *
+   * 그래서 값을 바꾸지 않고 현재 상태만 못 박는다. 캡션을 채우기로 정하면 이 검사가
+   * 먼저 빨간불이 되고, 그때 위 `toEqual`과 함께 고치면 된다.
+   */
+  it('세그먼트 모드 중 퀵만 캡션이 없다(현재 상태 고정)', () => {
+    const segmentModes = ['practice', 'exam', 'quick', 'review'];
+    const withCaption = segmentModes.filter((m) => MODE_CAPTION[m]);
+    expect(withCaption).toEqual(['practice', 'exam', 'review']);
+    expect(MODE_CAPTION.quick).toBeUndefined();
+  });
+
+  // 캡션이 붙은 모드는 사용자에게 이름으로도 불린다 — 라벨 없이 캡션만 있으면
+  // 상단바엔 모드 id가 영문으로 뜨는데 사이드바엔 한국어 설명이 붙는 꼴이 된다.
+  it('캡션이 있는 모드에는 라벨도 있다', () => {
+    for (const mode of Object.keys(MODE_CAPTION)) {
+      expect(MODE_LABEL[mode], `${mode} 라벨 없음`).toBeTruthy();
+    }
   });
 });
 

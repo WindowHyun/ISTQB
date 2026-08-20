@@ -12,6 +12,7 @@ import { formatClock } from '../../utils/time';
 import { useBackDismiss } from '../../hooks/useBackDismiss';
 import { BACK_PRIORITY } from '../../utils/backGuard';
 import { answerKeyFor } from '../../utils/answerKey';
+import { clampIndex } from '../../utils/sessionDerive';
 import { QuestionCard } from './QuestionCard';
 import { QuestionPalette } from './QuestionPalette';
 import { QuickScoreboard } from './QuickScoreboard';
@@ -201,7 +202,7 @@ export const QuestionWorkspace = () => {
         // 퀵에서 앞으로 가는 길은 '채점 후'뿐이다 — 버튼(‹ ›의 ›)을 없앤 것과 같은 규칙을
         // 키보드에도 건다. 아니면 화살표 하나로 채점하지 않은 문항을 미리 넘겨볼 수 있다.
         if (s.mode === 'quick') {
-          const q = currentQuestions[Math.min(Math.max(s.index, 0), Math.max(0, total - 1))];
+          const q = currentQuestions[clampIndex(s.index, total)];
           if (!q || !s.quickGraded[answerKeyFor(s.setId, 'quick', q)]) return;
         }
         setIndex((i) => Math.min(total - 1, i + 1));

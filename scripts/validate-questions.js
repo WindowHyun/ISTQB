@@ -39,6 +39,8 @@ try {
 
 let totalErrors = 0;
 let totalWarnings = 0;
+/** 스캔 전체에서 본 문항 id — 세트 간 중복을 잡으려면 파일을 넘어 살아 있어야 한다. */
+const ALL_IDS = new Set();
 
 function log(level, file, qId, message) {
   const prefix = level === 'ERROR' ? '❌' : '⚠️';
@@ -64,11 +66,14 @@ function validateQuestion(q, filePath, allIds, allNumbers) {
   }
 
   if (q.number !== undefined) {
-    const numKey = `${filePath}:${q.number}`;
-    if (allNumbers.has(numKey)) {
+    // allNumbers는 파일마다 새로 만든다 — 경로를 키에 섞을 이유가 없었고, 섞은 탓에
+    // 아래 누락번호 검사가 `n.split(':')[1]`로 번호를 되찾다가 Windows 경로(C:\…)에서
+    // 경로 조각을 집어 parseInt → NaN, 전부 걸러져 **검사 자체가 조용히 꺼졌다**
+    // (실측: POSIX 40 / Windows NaN). CI는 ubuntu라 아무도 알아채지 못했다.
+    if (allNumbers.has(q.number)) {
       log('ERROR', filePath, qId, `number 중복: ${q.number}`);
     }
-    allNumbers.add(numKey);
+    allNumbers.add(q.number);
   }
 
   if (Array.isArray(q.options)) {
@@ -281,11 +286,14 @@ function validateFile(filePath) {
     return;
   }
 
-  const allIds = new Set();
+  // id는 스캔 전체에서 유일해야 한다(ALL_IDS). 종전에는 파일마다 새 Set이라 세트 간
+  // 충돌을 볼 수 없었는데, 재수록 그룹표(build-duplicate-groups)는 "같은 문제라도
+  // 세트마다 id가 다르다"를 전제로 짜여 있다 — 그 전제가 깨지면 그룹이 잘못 묶인다.
+  // 번호는 반대로 파일 안에서만 유일하면 된다(세트마다 1번부터 다시 센다).
   const allNumbers = new Set();
 
   for (const q of questions) {
-    validateQuestion(q, filePath, allIds, allNumbers);
+    validateQuestion(q, filePath, ALL_IDS, allNumbers);
   }
 
   // 챕터(대단원) 검증 — 값이 있으면 taxonomy에 등록된 이름이어야 함(오타·잘못된 값 차단).
@@ -307,7 +315,7 @@ function validateFile(filePath) {
   }
 
   if (allNumbers.size > 0) {
-    const nums = Array.from(allNumbers).map(n => parseInt(n.split(':')[1], 10)).filter(n => !isNaN(n));
+    const nums = Array.from(allNumbers).map(n => parseInt(n, 10)).filter(n => !isNaN(n));
     if (nums.length > 0) {
       const maxNum = Math.max(...nums);
       const missing = Array.from({length: maxNum}, (_, i) => i + 1).filter(i => !nums.includes(i));
@@ -322,7 +330,11 @@ function validateFile(filePath) {
 
 console.log('=== 문제 데이터 검증 시작 ===\n');
 
-const dataDirs = ['www/data/istqb', 'www/data/csts', 'data/istqb', 'data/csts'];
+// 데이터 루트는 하나만 본다 — www/data가 정본이고 data/는 옛 배치의 대체 경로다
+// (taxonomy 로딩도 같은 순서로 고른다). 둘 다 있으면 같은 문항을 두 번 세게 되고,
+// 아래 전역 id 검사에서 모든 id가 중복으로 잡힌다.
+const dataRoot = ['www/data', 'data'].find(d => fs.existsSync(path.join(process.cwd(), d)));
+const dataDirs = dataRoot ? [`${dataRoot}/istqb`, `${dataRoot}/csts`] : [];
 let filesChecked = 0;
 
 for (const dir of dataDirs) {

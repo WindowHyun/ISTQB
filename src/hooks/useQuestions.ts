@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore, QuizMode, QUICK_SET_ID } from '../store/useQuizStore';
 import { loadIndex, loadSetQuestions, subscribeLoads } from '../utils/questionLoader';
 import { makeCanonicalIdResolver } from '../utils/chapterStats';
-import { gradeKeyFor } from '../utils/answerKey';
+import { isReviewKeyOf } from '../utils/answerKey';
 
 // Fisher–Yates shuffle: 균일 분포를 보장한다. (sort 비교자에 Math.random을 쓰면 편향됨)
 // 경계가 한 칸만 어긋나도(`* i` 또는 `i >= 0`) 조용히 편향된다 — 눈으로는 여전히
@@ -171,6 +171,10 @@ export interface QuickCandidate {
 /**
  * 오답 모드가 다시 낼 문항 id — 이 세트의 시험·랜덤 오답 합집합(+구버전 단독 키).
  *
+ * 랜덤 쪽은 챕터 미니 회차 키(`${setId}-random#챕터`)까지 함께 읽는다. 미니와 세트 전체
+ * 랜덤은 표본이 달라 서로를 대체할 수 없으므로 키를 갈라 두었고(answerKey.reviewKeyFor),
+ * 읽을 때는 둘 다 '이 세트에서 틀린 문항'이므로 합집합이 맞다.
+ *
  * 퀵은 여기 들어오지 않는다. 종전에는 이 계산이 effect 안에 묻혀 있었고 `${setId}-quick`
  * 키까지 읽었는데, 그 키를 쓰는 코드는 어디에도 없었다 — 읽기는 늘 빈 배열을 받았고
  * 주석만 "퀵도 담긴다"고 설명했다. 사양(퀵은 세트 버킷에 넣지 않는다)은
@@ -188,12 +192,16 @@ export function reviewTargetIds(
   reviewIds: Record<string, string[]>,
   setId: string,
 ): Set<string> {
-  return new Set([
-    ...(reviewIds[gradeKeyFor(setId, 'exam')] || []),
-    ...(reviewIds[gradeKeyFor(setId, 'random')] || []),
-    // 구버전 데이터 호환 — 모드가 붙기 전의 단독 키.
-    ...(reviewIds[setId] || []),
-  ]);
+  const out = new Set<string>();
+  for (const [key, ids] of Object.entries(reviewIds)) {
+    const mine =
+      isReviewKeyOf(key, setId, 'exam') ||
+      isReviewKeyOf(key, setId, 'random') ||
+      key === setId; // 구버전 데이터 호환 — 모드가 붙기 전의 단독 키.
+    if (!mine) continue;
+    for (const id of ids || []) out.add(id);
+  }
+  return out;
 }
 
 /** 출제 목록을 만든 맥락. 스토어의 현재 mode/setId와 **다를 수 있다**(CurrentList 참고). */

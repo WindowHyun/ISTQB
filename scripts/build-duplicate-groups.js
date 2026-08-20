@@ -118,7 +118,11 @@ function buildChapters(index, groups) {
   for (const g of groups) {
     const chs = [...new Set(g.map((id) => chapterOf.get(id)))];
     if (chs.length < 2) continue;               // 갈리지 않으면 기록할 것이 없다
-    const canonical = chapterOf.get(g[0]);
+    // 대표(g[0])의 챕터만 보면, 대표가 미태깅인 그룹은 통일 항목이 통째로 빠진다.
+    // 그러면 같은 문제를 어느 세트에서 풀었느냐에 따라 챕터 집계가 갈린다 — 이 표가
+    // 막으려던 바로 그 증상이다. 그룹 안에서 **처음 태깅된 챕터**를 대표값으로 쓴다
+    // (그룹 순서는 결정적이라 결과도 결정적이다).
+    const canonical = g.map((id) => chapterOf.get(id)).find((c) => c != null) ?? null;
     if (canonical) out[g[0]] = canonical;
   }
   return out;

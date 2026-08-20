@@ -6,6 +6,8 @@ import { loadSetQuestions, peekSetQuestions } from '../../utils/questionLoader';
 import { questionKey } from '../../utils/chapterStats';
 import { formatAnswerList } from '../../utils/answerDisplay';
 import { WrongQuestionView } from './WrongQuestionView';
+import { useBackDismiss } from '../../hooks/useBackDismiss';
+import { BACK_PRIORITY } from '../../utils/backGuard';
 
 /**
  * 오답 하나를 **본문 화면**에 펼친다 — 팝업이 아니다.
@@ -40,6 +42,17 @@ export const WrongViewScreen = () => {
     return () => { cancelled = true; };
   }, [path]);
 
+  // 이 화면에 들어오는 길은 오답 노트 하나뿐이고(노트는 그때 닫힌다), 나가는 버튼도
+  // 헤더의 '← 오답 노트'다. 그래서 뒤로가기는 '풀이로 돌아가기'가 아니라 **노트로**
+  // 되돌린다 — 눌러서 들어온 자리로 정확히 되돌아가는 것이 뒤로가기의 뜻이다.
+  //
+  // 종전에는 여기가 가드에 등록돼 있지 않았다. 화면을 통째로 차지하는 데다 워크스페이스가
+  // 언마운트된 상태라, 안드로이드에서 뒤로가기를 누르면 **앱이 그대로 종료됐다**
+  // (해설을 읽다 뒤로가기 한 번에 앱이 사라진다). 웹에서는 브라우저가 페이지를 떠났다.
+  const close = () => setWrongView(null);
+  const backToNote = () => { setWrongView(null); setWrongNoteOpen(true); };
+  useBackDismiss(Boolean(wrongView), backToNote, BACK_PRIORITY.screen);
+
   if (!wrongView) return null;
 
   const setTitle = appData?.sets.find((s) => s.id === wrongView.setId)?.title ?? wrongView.setId;
@@ -48,9 +61,6 @@ export const WrongViewScreen = () => {
   const question = questions?.find((q) => (wrongView.qid ? questionKey(q) === wrongView.qid : false))
     ?? questions?.find((q) => q.number === wrongView.number)
     ?? null;
-
-  const close = () => setWrongView(null);
-  const backToNote = () => { setWrongView(null); setWrongNoteOpen(true); };
 
   return (
     <section className="workspace wrong-view-screen" aria-label="오답 보기" data-testid="wrong-view-screen">

@@ -1,6 +1,7 @@
 import type { Question } from '../hooks/useQuestions';
 import type { ExamHistory, QuizMode } from '../store/useQuizStore';
 import { buildChapterStats, questionKey } from './chapterStats';
+import { computeCstsWeightedScore } from './scoring';
 
 /**
  * 채점 회차 레코드 조립 — 순수 계층.
@@ -34,8 +35,21 @@ export interface RoundHistoryInput {
   elapsedSeconds: number;
   /** 챕터 미니 시험 표식 — 랜덤 + 챕터 필터일 때만 실린다. */
   chapter?: string;
-  /** CSTS 가중 점수 스냅샷. ISTQB에서는 넣지 않는다(단순 정답률이라 불필요). */
-  cstsWeighted?: { score: number; maxScore: number };
+  /**
+   * CSTS면 true — 가중 점수는 **이 회차의 `questions`로 여기서 계산한다.**
+   *
+   * 종전에는 호출부가 계산한 값을 받았다. 그래서 퀵에서 모집단이 갈렸다: 회차에 담기는
+   * 문항은 '채점을 마친 것'뿐인데(예 3문항) 넘어온 가중 점수는 '추첨된 전 문항'
+   * 기준이었다(CSTS 최대 440문항). 한 레코드 안에서 `correct/total = 3/3`과
+   * `cstsWeighted.maxScore ≈ 640`이 공존했고, 회차 %의 단일 원천인
+   * `attemptRatePercent`는 가중 점수를 우선하므로 그 값이 화면에 닿는 순간 3/3짜리
+   * 회차가 0~1%로 표시된다.
+   *
+   * 같은 함수가 `questions` 하나에서 `correct`·`total`·`cstsWeighted`를 모두 만들면
+   * 세 값의 모집단이 어긋날 수 없다 — 계약을 값이 아니라 **구조로** 고정한다.
+   * ISTQB에서는 넣지 않는다(전 문항 동일 배점이라 단순 정답률과 같다).
+   */
+  weighted?: boolean;
   /** 회차 시각. 주입 가능하게 두어 테스트가 결정적이 된다. */
   now: number;
   /** 회차 id. 같은 ms 재채점·백업 병합에서도 겹치지 않아야 한다. */
@@ -88,10 +102,14 @@ export function buildGradedAnswers(
 export function buildRoundHistory(input: RoundHistoryInput): ExamHistory {
   const {
     setId, mode, questions, answers, answerKeyOf, wrongQuestions,
-    certification, setTitle, elapsedSeconds, chapter, cstsWeighted, now, id,
+    certification, setTitle, elapsedSeconds, chapter, weighted, now, id,
   } = input;
 
   const chapterOutcome = buildChapterStats(questions, answers, answerKeyOf);
+  // correct/total과 **같은 문항 집합**에서 뽑는다(weighted 주석 참고).
+  const cstsWeighted = weighted
+    ? computeCstsWeightedScore(questions, answers, answerKeyOf)
+    : undefined;
 
   return {
     id,

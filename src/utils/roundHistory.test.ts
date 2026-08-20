@@ -138,11 +138,33 @@ describe('buildRoundHistory — 회차 레코드', () => {
     expect(Object.keys(h.answers).sort()).toEqual([keyOf(q1), keyOf(q2), keyOf(q3)].sort());
   });
 
-  it('CSTS 가중 점수는 넘긴 경우에만 실린다', () => {
+  it('CSTS 가중 점수는 weighted를 켠 경우에만 실린다', () => {
     expect(buildRoundHistory(base).cstsWeighted).toBeUndefined();
-    const weighted = buildRoundHistory({ ...base, cstsWeighted: { score: 9, maxScore: 12 } });
+    // q1·q2·q3 모두 4지선다(1.5점) — 만점 4.5, q2만 오답이라 3.0점.
     // 이게 빠지면 새로고침 뒤 통계 %가 합격 판정과 어긋난다(실제로 났던 결함).
-    expect(weighted.cstsWeighted).toEqual({ score: 9, maxScore: 12 });
+    expect(buildRoundHistory({ ...base, weighted: true }).cstsWeighted)
+      .toEqual({ score: 3, maxScore: 4.5 });
+  });
+
+  it('가중 점수의 모집단은 total과 같다 — 회차에 담긴 문항으로만 잰다', () => {
+    // 퀵에서 실제로 갈렸던 조합이다: 회차에는 '채점을 마친 문항'만 담기는데(예 3문항)
+    // 가중 점수는 호출부가 '추첨된 전 문항'(최대 440문항)으로 계산해 넘겼다.
+    // 한 레코드 안에서 correct/total과 cstsWeighted의 모집단이 달라지면, 회차 %의
+    // 단일 원천인 attemptRatePercent가 가중 점수를 우선하므로 3/3짜리 회차가 0~1%가 된다.
+    //
+    // 계약: **buildRoundHistory에 넘긴 questions 하나에서 셋이 모두 나온다.**
+    // (호출부가 값을 넘기던 시절에는 이 계약을 값으로만 지킬 수 있었고, 실제로 갈렸다.)
+    const tf = q({ number: 4, type: 'true_false', options: [], answer: ['o'] });
+    const h = buildRoundHistory({
+      ...base,
+      weighted: true,
+      questions: [q1, tf],
+      answers: { ...base.answers, [keyOf(tf)]: ['o'] },
+      wrongQuestions: [],
+    });
+    // 4지선다 1.5 + 진위형 1.0 = 2.5점 만점. 문항 수(total)와 짝이 맞는다.
+    expect(h.total).toBe(2);
+    expect(h.cstsWeighted).toEqual({ score: 2.5, maxScore: 2.5 });
   });
 
   it('챕터 미니 시험 표식은 넘긴 경우에만 실린다', () => {

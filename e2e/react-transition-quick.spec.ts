@@ -191,9 +191,11 @@ test("전이: 퀵 진행 중에는 세트 셀렉트가 사라져 추첨도 진�
 
   await toQuick(page);
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-  await page.locator("#options .option").first().click();
   // 퀵의 진행은 채점이 올린다 — 고르기만 해서는 0 그대로다(한 문항씩 채점하는 모드).
-  await page.getByTestId("quick-grade-btn").click();
+  // answerCurrent가 고르고 채점까지 한다. 보기를 하나만 누르고 채점 버튼을 직접 클릭하면,
+  // 복수정답 문항이 뽑힌 회차에서 버튼이 disabled라 click()이 actionability를 기다리며
+  // 스펙 예산 300초를 통째로 태운다(F-5 — 단언 실패보다 진단이 어려운 실패 방식이다).
+  await answerCurrent(page);
   const solved = page.locator(".quick-scoreboard .qs-item").first().locator("b");
   await expect(solved).toHaveText("1");
 

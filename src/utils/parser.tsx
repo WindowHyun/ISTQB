@@ -406,21 +406,50 @@ function buildRichBlocks(text: unknown, inline = false): Block[] {
     return normalizeGenericCodeBlocks(normalized);
   }
 
+/**
+ * 태그가 없는 줄이 **코드로 보이는가.** 세 줄 이상 이어지면 어두운 고정폭 블록으로 그린다
+ * (normalizeGenericCodeBlocks). 정답이 아니라 휴리스틱이므로, 틀리는 방향이 중요하다 —
+ * 코드를 산문으로 두면 읽기 조금 불편할 뿐이지만, 산문을 코드로 그리면 지문이 통째로
+ * 깨져 보인다.
+ *
+ * 종전에는 `/[;{}]/` 하나로 **줄 어디에든** 세미콜론이나 중괄호가 있으면 코드로 봤다.
+ * 테스팅 교재에서 그 둘은 산문에 흔하다:
+ *   - 동등 분할의 집합 표기 — "세 개의 동등 분할이 있습니다: {..., -2, -1}, {0, 1, 2}, …"
+ *   - 목록을 여는 세미콜론 — "아래와 같은 테스트웨어 유형이 주어지고;"
+ *   - 표를 한 줄로 편 것 — "TC1: 19세, 경험이 없는 미등록 남성; 기대 결과: 분류 A"
+ * 실측(626문항): 이 branch에 걸리는 33줄 중 21줄이 이런 산문이었다. 지금은 세 줄이
+ * 연달아 걸리는 구간이 없어 블록이 만들어지지 않을 뿐, 데이터가 조금만 바뀌면 드러난다.
+ *
+ * 그래서 이 branch에서만 둘을 뺀다. 나머지 판정(단독 중괄호·키워드·대입)은 그대로다.
+ *   - 한글이 섞인 줄: 산문이다. 실측한 진짜 코드(`Bool p;` · `puts("p is true");` ·
+ *     `If ((x>1) and (y==1)){`)에는 한글이 없다 — 키워드형 의사코드(IF/READ/PRINT)는
+ *     위의 별도 branch가 잡으므로 이 제외에 걸리지 않는다.
+ *   - 중괄호로 감싼 목록: `{26, 30, 41, 52, 55}` 같은 집합 표기다. 세미콜론·괄호·대입이
+ *     하나라도 있으면 집합으로 보지 않는다.
+ */
+export function isGenericCodeLine(line: string): boolean {
+  const value = String(line || "").trim();
+  if (!value) return false;
+  if (/^[{}]$/.test(value)) return true;
+  if (
+    /^(?:int|void|float|double|char|boolean|String|if|else|return|for|while|switch|IF|ELSE|THEN|END|ENDIF|READ|PRINT)\b/.test(
+      value,
+    )
+  ) {
+    return true;
+  }
+  if (/^[A-Za-z_]\w*\s*=/.test(value)) return true;
+  if (!/[;{}]/.test(value)) return false;
+  if (/[가-힣]/.test(value)) return false;
+  if (/^\{[^;{}()=]*\}$/.test(value)) return false;
+  return true;
+}
+
   function normalizeGenericCodeBlocks(text: string): string {
     const lines = String(text || "").split("\n");
     const blocks: string[] = [];
     let codeLines: string[] = [];
-    const isCodeLine = (line: string) => {
-      const value = String(line || "").trim();
-      return (
-        /^[{}]$/.test(value) ||
-        /[;{}]/.test(value) ||
-        /^(?:int|void|float|double|char|boolean|String|if|else|return|for|while|switch|IF|ELSE|THEN|END|ENDIF|READ|PRINT)\b/.test(
-          value,
-        ) ||
-        /^[A-Za-z_]\w*\s*=/.test(value)
-      );
-    };
+    const isCodeLine = isGenericCodeLine;
     const flushCode = () => {
       blocks.push(
         ...(codeLines.length >= 3
@@ -534,38 +563,66 @@ function buildRichBlocks(text: unknown, inline = false): Block[] {
 
   
 // PDF 추출 노이즈 제거 — parser.tsx 추출 시 누락되어 buildRichBlocks에서 ReferenceError를 유발했음(복원).
+/**
+ * PDF 추출에서 한 낱말이 공백으로 갈라진 것을 되붙이는 규칙표.
+ *
+ * **조건 없는 전역 치환이라 정상 문장을 붙일 수 있다.** 실제로 그랬다 —
+ * `/할\s+인/`이 "리뷰에 참여할 인력" · "진행할 인력과 조직" · "수행할 인적 자원"을
+ * "참여할인력" · "진행할인력과" · "수행할인적"으로 만들었다(626문항 중 4곳).
+ * 데이터 쪽은 오히려 반대로 일하고 있었다 — `scripts/normalize-utils.js`에
+ * `'참여할인력' → '참여할 인력'` 하드코딩 치환이 있다. 두 계층이 같은 문장을 반대로
+ * 고치고 렌더러가 이겼던 것이다.
+ *
+ * 어떤 게이트도 잡지 못했다: `scripts/verify-pdf-data.py`의 `norm()`이 비교 전에
+ * 공백을 전부 제거하므로 띄어쓰기 오류는 **원리적으로** 그 게이트의 검출 대상이 아니다.
+ *
+ * 그래서 표를 밖으로 꺼낸다. 규칙이 함수 안에 체이닝으로 묻혀 있으면 "이 규칙이 어디에
+ * 발동하는가"를 검사가 물어볼 수 없다. 지금은 `parser.pdfnoise.test.ts`가 이 표를 그대로
+ * 받아 **626문항 전수에 돌려 보고, 허용 목록 밖에서 발동하면 실패한다.**
+ * 규칙을 추가·수정하면 그 검사가 먼저 답한다.
+ *
+ * (`shortAnswerCandidates`를 export한 것과 같은 이유다 — 결과를 값으로 고정할 수
+ *  있어야 과다 적용을 막는다.)
+ */
+export const PDF_JOIN_RULES: [RegExp, string][] = [
+  [/실\s+무/g, "실무"],
+  [/수행\s+하고/g, "수행하고"],
+  [/실행\s+하는/g, "실행하는"],
+  [/제공\s+되었다/g, "제공되었다"],
+  [/초과\s+하는/g, "초과하는"],
+  [/포함\s+되어/g, "포함되어"],
+  [/등록\s+하지/g, "등록하지"],
+  [/유지\s+된다/g, "유지된다"],
+  [/대출\s+되어/g, "대출되어"],
+  [/처리\s+되며/g, "처리되며"],
+  [/표시\s+되지/g, "표시되지"],
+  // 뒤에 '력'·'적'이 오면 그것은 '인력'·'인적'이라는 낱말이다 — 붙이면 안 된다.
+  // 이 한 글자 예외가 실측 오작동 4건을 모두 제거하고, 진짜 아티팩트 2건
+  // ("할 인 유형" · "할 인을")은 그대로 고친다.
+  [/할\s+인(?![력적])/g, "할인"],
+  [/테스트 케이\s+스/g, "테스트 케이스"],
+  [/케\s+이스/g, "케이스"],
+  [/테\s+스트/g, "테스트"],
+  [/테스\s+트/g, "테스트"],
+  [/시\s+간/g, "시간"],
+  [/나타\s+낸/g, "나타낸"],
+  [/같\s+은/g, "같은"],
+  [/요구사\s+항/g, "요구사항"],
+  [/비\s+즈니스/g, "비즈니스"],
+  [/컴포\s+넌트/g, "컴포넌트"],
+  [/사\s+용자/g, "사용자"],
+  [/두\((\d+)\)\s+개/g, "두($1)개"],
+];
+
 function stripPdfNoise(text: string): string {
-  return String(text || "")
+  let out = String(text || "")
     .replace(/Korean Software Testing Qualifications Board[^\n]*/gi, "")
     .replace(/www\.kstqb\.org\s+I\s+info@kstqb\.org(?:\s+\d+\s+of\s+\d+)?/gi, "")
     .replace(/www\.kstqb\.org\s*/gi, "")
     .replace(/info@kstqb\.org\s*/gi, "")
-    .replace(/\b\d+\s+of\s+\d+\b/gi, "")
-    .replace(/실\s+무/g, "실무")
-    .replace(/수행\s+하고/g, "수행하고")
-    .replace(/실행\s+하는/g, "실행하는")
-    .replace(/제공\s+되었다/g, "제공되었다")
-    .replace(/초과\s+하는/g, "초과하는")
-    .replace(/포함\s+되어/g, "포함되어")
-    .replace(/등록\s+하지/g, "등록하지")
-    .replace(/유지\s+된다/g, "유지된다")
-    .replace(/대출\s+되어/g, "대출되어")
-    .replace(/처리\s+되며/g, "처리되며")
-    .replace(/표시\s+되지/g, "표시되지")
-    .replace(/할\s+인/g, "할인")
-    .replace(/테스트 케이\s+스/g, "테스트 케이스")
-    .replace(/케\s+이스/g, "케이스")
-    .replace(/테\s+스트/g, "테스트")
-    .replace(/테스\s+트/g, "테스트")
-    .replace(/시\s+간/g, "시간")
-    .replace(/나타\s+낸/g, "나타낸")
-    .replace(/같\s+은/g, "같은")
-    .replace(/요구사\s+항/g, "요구사항")
-    .replace(/비\s+즈니스/g, "비즈니스")
-    .replace(/컴포\s+넌트/g, "컴포넌트")
-    .replace(/사\s+용자/g, "사용자")
-    .replace(/두\((\d+)\)\s+개/g, "두($1)개")
-    .replace(/\s{2,}/g, " ");
+    .replace(/\b\d+\s+of\s+\d+\b/gi, "");
+  for (const [pattern, replacement] of PDF_JOIN_RULES) out = out.replace(pattern, replacement);
+  return out.replace(/\s{2,}/g, " ");
 }
 
 function normalizeReadableCharacters(text: string): string {

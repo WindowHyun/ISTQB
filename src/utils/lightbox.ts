@@ -1,6 +1,7 @@
 // 문제 그림 클릭 시 앱 내(in-app) 확대 라이트박스. 새 탭으로 이탈하지 않는다.
 // parser.tsx(바닐라 DOM)와 QuestionCard(React)에서 공유한다.
 import { lockBodyScroll } from './scrollLock';
+import { BACK_PRIORITY, registerBackGuard } from './backGuard';
 
 let activeOverlay: HTMLElement | null = null;
 
@@ -38,13 +39,22 @@ export function openImageLightbox(src: string): void {
   const unlock = lockBodyScroll();
   const prevFocused = document.activeElement as HTMLElement | null;
 
+  let closed = false;
   const close = () => {
+    // 닫는 경로가 넷이다(✕ · 배경 탭 · Esc · 뒤로가기) — 둘이 겹쳐도 한 번만 정리한다.
+    if (closed) return;
+    closed = true;
     document.removeEventListener('keydown', onKey, true);
+    unregisterBack();
     overlay.remove();
     unlock();
     activeOverlay = null;
     prevFocused?.focus?.();
   };
+
+  // 하드웨어/브라우저 뒤로가기로도 닫는다. 모달 위에 겹칠 수 있으므로 우선순위가 가장 높다 —
+  // 등록하지 않으면 뒤로가기가 이 오버레이를 지나쳐 아래 모달을 닫거나 앱을 벗어난다.
+  const unregisterBack = registerBackGuard({ priority: BACK_PRIORITY.lightbox, close: () => close() });
 
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape') { e.stopPropagation(); close(); return; }

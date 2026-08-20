@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { openProduct, gotoStable, gradeQuickIfNeeded } from "./helpers";
+import { openProduct, gotoStable, answerCurrent } from "./helpers";
 
 /**
  * 페어와이즈(all-pairs) 조합 테스트.
@@ -165,10 +165,11 @@ test.describe("페어와이즈 조합", () => {
         const before = await counter.textContent();
         const opt = page.locator("#options .option").first();
         if (await opt.count()) {
-          await opt.click();
-          // 퀵은 한 문항씩 채점하고 넘어간다 — 고르는 것만으로는 진행이 오르지 않는다.
-          // (다른 모드에는 이 버튼이 없어 아무 일도 하지 않는다.)
-          await gradeQuickIfNeeded(page);
+          // answerCurrent가 고르고(복수정답이면 전부) 퀵이면 채점까지 한다 —
+          // 다른 모드에는 채점 버튼이 없어 고르기만 하고 끝난다.
+          // 종전에는 보기를 하나만 눌러, 퀵에 복수정답이 뽑힌 회차에서 확정되지 않아
+          // "답을 골라도 진행이 그대로"로 오보했다(F-5 — 실측 25회 중 3회).
+          await answerCurrent(page);
           await page.waitForTimeout(150);
           const after = await counter.textContent();
           if (before === after && /^0(\s|$)/.test((before ?? "").trim())) {

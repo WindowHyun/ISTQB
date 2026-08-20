@@ -204,6 +204,24 @@ export function quickStat(page: Page, cell: "solved" | "correct" | "wrong" | "st
  * 고치면 되도록 한 곳에 둔다.
  */
 export async function answerCurrent(page: Page) {
+  await selectCurrent(page);
+  await gradeQuickIfNeeded(page);
+}
+
+/**
+ * **답만 고른다 — 채점하지 않는다.**
+ *
+ * 퀵에서 "고르는 것"과 "채점하는 것"은 다른 사건이고, 그 둘이 갈라져 있다는 사실 자체를
+ * 검사하는 스펙이 있다(고르기만 하면 정답이 열리지 않는다). 그런 스펙은 `answerCurrent`를
+ * 쓸 수 없으므로 — 채점까지 해 버린다 — 종전에는 각자 `.option.first().click()` 한 줄로
+ * 대신했다. 그것이 F-5의 원인이다: **복수정답 문항이 뽑히면 하나만 골라선 확정되지 않아**
+ * 채점 버튼이 `disabled`로 남고, 그 상태를 기대한 단언이 실패하거나 `click()`이
+ * actionability를 기다리다 스펙 예산을 통째로 태운다(실측 25회 중 3회).
+ *
+ * 그래서 선택 절차를 여기로 꺼낸다. 채점이 필요하면 `answerCurrent`, 필요 없으면 이쪽이다 —
+ * 어느 쪽이든 복수정답·서답형 처리는 한 곳에서만 산다.
+ */
+export async function selectCurrent(page: Page) {
   const short = page.locator(".short-answer-input");
   // 유형이 확정될 때까지 기다린다 — 퀵 진입 직후에는 이전 모드의 화면이 잠깐 남아 있고,
   // 보기와 서답형 입력 중 무엇이 뜰지도 뽑기가 정한다. 한쪽만 기다리면 반대 유형이 뽑힌
@@ -218,21 +236,19 @@ export async function answerCurrent(page: Page) {
     const check = page.locator(".short-answer-check");
     await check.first().waitFor({ state: "visible", timeout: 2000 }).catch(() => {});
     if (await check.count()) await check.first().click();
-    await gradeQuickIfNeeded(page);
     return;
   }
   const options = page.locator("#options .option");
   await options.first().click();
   // 복수정답 표기는 문제 제목이 단다("문제 4 · 복수정답" — QuestionWorkspace).
   const title = (await page.locator("#questionTitle").textContent()) || "";
-  if (!title.includes("복수정답")) { await gradeQuickIfNeeded(page); return; }
+  if (!title.includes("복수정답")) return;
   const total = await options.count();
   for (let i = 1; i < total; i += 1) {
     const opt = options.nth(i);
     if (await opt.isDisabled()) break; // 확정돼 잠겼다 — 더 고를 것이 없다
     await opt.click();
   }
-  await gradeQuickIfNeeded(page);
 }
 
 /**

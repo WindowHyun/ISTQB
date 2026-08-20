@@ -399,6 +399,10 @@ export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGro
                   {miniRounds.map((m) => (
                     <li key={m.id} className={m.rate < weakThreshold ? 'weak' : ''} data-testid="mini-round-item">
                       <span className="mr-chapter">{m.chapter ?? '퀵 랜덤'}</span>
+                      {/* 같은 챕터를 세트 A·B에서 각각 미니 시험하면 챕터명만으로는 두 줄이
+                          구분되지 않는다(정답률만 다른 같은 이름 두 개). 출처 세트를 붙인다.
+                          퀵은 세트에 매이지 않아(setId가 센티넬) 붙일 것이 없다. */}
+                      {m.kind === 'mini' && <span className="mr-set">{m.title}</span>}
                       <span className="mr-rate">{m.rate}% <small>({m.correct}/{m.total})</small></span>
                       {m.elapsedSeconds != null && (
                         <span className="mr-time">소요 {formatClock(m.elapsedSeconds)}</span>
@@ -408,7 +412,9 @@ export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGro
                         type="button"
                         className="stl-round-del"
                         data-testid="round-delete-btn"
-                        aria-label={`${m.chapter ?? '퀵 랜덤'} ${m.kind === 'quick' ? '기록' : '미니 시험 기록'} 삭제`}
+                        aria-label={m.kind === 'quick'
+                          ? '퀵 랜덤 기록 삭제'
+                          : `${m.title} ${m.chapter} 미니 시험 기록 삭제`}
                         title="이 회차 기록만 삭제"
                         onClick={() => onDeleteRound(m.id)}
                       >
