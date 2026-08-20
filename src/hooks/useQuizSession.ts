@@ -3,13 +3,17 @@ import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../store/useQuizStore';
 import { useQuestions, Question } from './useQuestions';
 import { isQuestionCorrect } from '../utils/answer';
-import { isQuickCommitted, isAnsweredInMode } from '../utils/quickStats';
 import { answerKeyFor, gradeKeyFor, reviewKeyFor } from '../utils/answerKey';
 import { buildRoundHistory, makeRoundId } from '../utils/roundHistory';
 import { questionKey } from '../utils/chapterStats';
 import { computeCstsWeightedScore } from '../utils/scoring';
-import { isGradedMode } from '../utils/modeLabel';
 import { saveHistoryToDB } from '../utils/storage';
+// 파생 계산은 순수 계층으로 꺼내 두었다 — 이 훅은 조립과 React 배선만 맡는다.
+// 왜 꺼냈는지는 utils/sessionDerive.ts 머리 주석 참고(이 파일은 커버리지 0%였다).
+import {
+  selectGradableQuestions, tallySession, selectCorrectQuestions,
+  deriveExamStage, clampIndex, deriveQuickControls, deriveCanGrade, progressPercentOf,
+} from '../utils/sessionDerive';
 
 // 사이드바(통계·채점·진행률)와 워크스페이스(문항·네비)가 공유하는 파생 상태/액션.
 // 레거시 레이아웃은 채점 버튼·진행률을 사이드바에, 문항을 워크스페이스에 두므로
@@ -55,12 +59,7 @@ export function useQuizSession() {
    * 그 관계를 quickStats.test.ts의 교차 계약 검사가 고정한다.
    */
   const gradableQuestions = useMemo(
-    () => (mode === 'quick'
-      // 퀵은 **채점을 마친 문항**만 회차에 담는다. 채점이 문항 단위가 되면서 "답을 골라
-      // 두기만 한 문항"이 생겼는데, 그것까지 담으면 아직 정답을 보지도 않은 문항이
-      // 챕터 통계와 24시간 오답 목록에 먼저 들어간다.
-      ? currentQuestions.filter((q) => quickGraded[answerKeyOf(q)])
-      : currentQuestions),
+    () => selectGradableQuestions(mode, currentQuestions, quickGraded, answerKeyOf),
     [mode, currentQuestions, quickGraded, answerKeyOf],
   );
 
@@ -68,21 +67,10 @@ export function useQuizSession() {
   // 이 훅은 5개 컴포넌트(사이드바·워크스페이스·팔레트·상단바·모달)가 각각 호출하므로,
   // 메모 없이는 전 문항 순회(답함/정답/오답/가중점수)가 컴포넌트 수 × 렌더 수만큼 반복된다.
   // 실제 입력(문항·답안·키 규칙)이 바뀔 때만 재계산하도록 묶는다.
-  const { answered, correctCount, wrongQuestions } = useMemo(() => {
-    let answeredCount = 0;
-    let correct = 0;
-    const wrong: { q: Question; i: number }[] = [];
-    currentQuestions.forEach((q, i) => {
-      const selected = answers[answerKeyOf(q)] || [];
-      // '답함'의 기준은 모드가 정한다 — 퀵은 확정(복수정답은 다 골라야)이라야 답함이다.
-      // 팔레트 색도 같은 함수를 쓴다(isAnsweredInMode가 단일 원천).
-      if (isAnsweredInMode(mode, q, selected)) answeredCount += 1;
-      if (isQuestionCorrect(q.answer, selected, q.type, q.answerParts)) correct += 1;
-      // 채점된 시험/랜덤 또는 오답 모드에서 틀린 문항 목록(오답노트·네비 표시용).
-      else wrong.push({ q, i });
-    });
-    return { answered: answeredCount, correctCount: correct, wrongQuestions: wrong };
-  }, [mode, currentQuestions, answers, answerKeyOf]);
+  const { answered, correctCount, wrongQuestions } = useMemo(
+    () => tallySession(mode, currentQuestions, answers, answerKeyOf),
+    [mode, currentQuestions, answers, answerKeyOf],
+  );
   // CSTS 합격 판정용 가중 점수(4지선다·서답형 1.5점/진위형 1.0점) — evaluatePass가 소비한다.
   // ISTQB는 전 문항이 동일 배점이라 결과가 단순 정답률과 같아 무해하지만, 실제로 쓰는 건 CSTS뿐이다.
   //
@@ -102,39 +90,24 @@ export function useQuizSession() {
    */
   const { gradedTotal, gradedCorrect } = useMemo(() => ({
     gradedTotal: gradableQuestions.length,
-    gradedCorrect: gradableQuestions.filter((q) =>
-      isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts)).length,
+    gradedCorrect: selectCorrectQuestions(gradableQuestions, answers, answerKeyOf).length,
   }), [gradableQuestions, answers, answerKeyOf]);
 
   const gradeKey = gradeKeyFor(setId, mode);
   const isGraded = Boolean(graded[gradeKey]);
-  // 시험 단계 파생 상태의 단일 원천 — 게이트(QuestionWorkspace)·잠금(Sidebar)·
-  // 통계 연습 버튼(AppModals)이 모두 이 값을 쓴다. 규칙을 한 곳만 고치면 되게 한다.
-  // - showExamGate: 완전히 새로 시작하는 시험(시작 전·미채점·답안 없음)에서만 게이트 노출.
-  //   answered>0(이어풀기 복원)은 이미 응시 개시로 본다.
-  // - examLocked: 응시 중(시작 후 미채점)에는 세트/모드 전이를 잠근다.
-  const showExamGate = mode === 'exam' && !examStarted && !isGraded && answered === 0;
-  const examLocked = mode === 'exam' && !!examStarted && !isGraded;
-  // 시험은 시작 게이트 통과(또는 이어풀기 답안 존재) 전에는 채점 불가 — 게이트는
-  // 워크스페이스만 가리므로, 이 조건이 없으면 사이드바 '채점하기'로 응시한 적 없는
-  // 시험이 0/N 유령 회차로 기록된다.
-  const examUnderway = mode !== 'exam' || !!examStarted || answered > 0;
+  // 시험 단계 파생 상태 — 규칙은 sessionDerive가 단일 원천이다.
+  const { showExamGate, examLocked, examUnderway } =
+    deriveExamStage({ mode, examStarted, isGraded, answered });
   // ── 퀵: 한 문항씩 채점하고 넘어간다 ────────────────────────────────────────
   // 지금 보고 있는 문항. 퀵의 채점·다음 이동이 전부 이 하나를 대상으로 한다.
-  const currentQuestion = currentQuestions[Math.min(Math.max(index, 0), Math.max(0, total - 1))];
+  const currentQuestion = currentQuestions[clampIndex(index, total)];
   const currentKey = currentQuestion ? answerKeyOf(currentQuestion) : '';
-  /** 이 문항을 채점했는가 — 정답·해설 공개와 집계의 기준(QuestionCard와 같은 값을 본다). */
-  const currentQuickGraded = mode === 'quick' && !!quickGraded[currentKey];
-  /** 채점 버튼을 열어도 되는가 — 답을 다 골랐고 아직 채점하지 않았다. */
-  const canGradeQuestion = mode === 'quick' && !!currentQuestion && !currentQuickGraded
-    && isQuickCommitted(currentQuestion, answers[currentKey] || []);
-  const hasNextQuestion = index < total - 1;
+  const { currentQuickGraded, canGradeQuestion, hasNextQuestion } = deriveQuickControls({
+    mode, currentQuestion, currentKey, quickGraded, answers, index, total,
+  });
 
-  const canGrade = mode === 'quick'
-    // 퀵에는 '세션 채점'이 없다 — 이 값은 문항 단위 채점 버튼의 가용 여부다.
-    ? canGradeQuestion
-    : isGradedMode(mode) && !isGraded && total > 0 && examUnderway;
-  const progressPercent = total ? Math.round((answered / total) * 100) : 0;
+  const canGrade = deriveCanGrade({ mode, canGradeQuestion, isGraded, total, examUnderway });
+  const progressPercent = progressPercentOf(answered, total);
 
   const handleGrade = () => {
     // 멱등성 가드 — 같은 tick 더블클릭 등으로 재진입해도 회차/통계가 이중 집계되지 않게 한다.
@@ -213,13 +186,11 @@ export function useQuizSession() {
   // 오답 모드는 즉시 피드백이라 이미 정오답이 확정돼 있으므로 별도 채점이 필요 없다.
   // 회차로 기록하지 않는 이유: 오답만 골라 푼 표본이라 통계(정답률·회차)에 섞으면 왜곡된다.
   const reviewedCount = mode === 'review'
-    ? currentQuestions.filter((q) =>
-        isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts)).length
+    ? selectCorrectQuestions(currentQuestions, answers, answerKeyOf).length
     : 0;
   const completeReview = () => {
     if (mode !== 'review') return 0;
-    const done = currentQuestions.filter((q) =>
-      isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts));
+    const done = selectCorrectQuestions(currentQuestions, answers, answerKeyOf);
     if (done.length) markReviewed(setId, done.map((q) => q.number));
     return done.length;
   };

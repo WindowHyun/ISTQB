@@ -45,7 +45,7 @@ npm run test:mutation:storage  # Stryker 영속화·상태 계층(break 67, ~12�
 
 ### 뮤테이션 게이트가 둘인 이유
 
-`stryker.config.json`(코어 6파일)과 `stryker.storage.config.json`(`storage.ts`·`useQuizStore.ts`)로
+`stryker.config.json`(코어 7파일)과 `stryker.storage.config.json`(`storage.ts`·`useQuizStore.ts`)로
 나뉜다. 합치면 둘 중 하나를 잃기 때문이다 — 8파일을 한꺼번에 잰 실측이 65.16%인데,
 코어는 92%대이고 `storage.ts`가 50.91%라 평균이 그쪽으로 끌려간다. break를 65로 낮추면
 `answer.ts`가 89%에서 70%로 무너져도 통과하고, 85를 유지하면 CI가 즉시 빨간불이 되어
@@ -53,8 +53,8 @@ npm run test:mutation:storage  # Stryker 영속화·상태 계층(break 67, ~12�
 
 | 설정 | 대상 | 실측 | break | 성격 |
 | --- | --- | --- | --- | --- |
-| `stryker.config.json` | 채점·통계 순수 로직 7파일 | 92.44% | 85 | 지켜야 할 높은 기준 |
-| `stryker.storage.config.json` | `storage.ts`·`useQuizStore.ts` | 71.37% | 67 | **래칫**(50 → 58 → 65 → 67) |
+| `stryker.config.json` | 채점·통계 순수 로직 7파일 | 93.25% | 85 | 지켜야 할 높은 기준 |
+| `stryker.storage.config.json` | `storage.ts`·`useQuizStore.ts` | 69.92% | 67 | **래칫**(50 → 58 → 65 → 67) |
 
 두 번째는 목표가 아니라 바닥이다. `storage.ts`는 커버리지 81%인데 뮤테이션이 50.91%였다 —
 "실행은 되지만 결과를 확인하지 않는" 검사가 많다는 뜻이고, 실제로 그 틈에서 결함이 나왔다
@@ -86,7 +86,9 @@ npm run test:mutation:storage  # Stryker 영속화·상태 계층(break 67, ~12�
 
 네 번째 라운드는 처음으로 그 반대였다 — 닿는 것은 대체로 끝나 survived를 줄여 올렸다
 (343 → 331). 값이 비싸지는 구간에 들어섰다는 신호이므로, 다음은 점수를 밀어 올리기보다
-**아직 아무도 안 재는 계층**(hooks — 브랜치 커버리지 11.7%)을 재기 시작하는 편이 낫다.
+**아직 아무도 안 재는 계층**(hooks — 브랜치 커버리지 **10.3%**, 2026-08-19 실측)을
+재기 시작하는 편이 낫다. 이 값은 잰 시점마다 달라진다 — 훅에 조건이 추가되면 분모가
+늘어 **검사를 지우지 않아도 내려간다**(2026-08-13에는 11.7%였다).
 
 `useQuizStore.ts`는 이 과정에서 67.01 → **87.29%**가 되고 no-coverage가 0이 됐다. 남은
 60건은 전부 `storage.ts`이며, 이제부터는 survived 343건이 주된 과제다.
