@@ -702,7 +702,7 @@ Playwright가 actionability를 기다리며 **스펙 예산(300초)을 통째로
 ## HTML 리포트
 
 3회차 전체를 한 장으로 정리한 HTML 리포트를 `docs/code-audit-report.html`에 두었습니다
-(기존 `docs/qa-report.html`의 토큰 체계를 그대로 따릅니다).
+(기존 `docs/archive/qa-report.html`의 토큰 체계를 그대로 따릅니다).
 
 ---
 

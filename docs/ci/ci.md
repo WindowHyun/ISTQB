@@ -37,8 +37,8 @@ env:
 | `lint` | Lint & Typecheck | `npm run lint` + `npm run typecheck` + `npm run typecheck:test` | — |
 | `verify-data` | Verify data & content | `npm run verify` (626문항 정답·이미지·스키마·콘텐츠 감사) | — |
 | `pdf-data` | Verify data against source PDFs | `python3 scripts/verify-pdf-data.py` (원본 PDF 13종에서 독립 추출해 **텍스트 2,489조각·정답 626문항·밑줄 146곳** 대조 — 데이터 수정이 원문을 훼손하면 차단. python 3.12 + pymupdf) | — |
-| `unit` | Unit tests (vitest) | `npm run test:cov` (유닛 + 커버리지, **임계값 게이트**: stmt 75·branch 71·func 74·line 77) | `coverage/`(7일) |
-| `mutation` | Mutation tests (Stryker) | `npm run test:mutation` (채점·통계 순수 로직 6파일에 뮤턴트 주입 — **break 85**) | `reports/mutation/`(7일) |
+| `unit` | Unit tests (vitest) | `npm run test:cov` (유닛 + **커버리지 임계값 게이트** — 값은 `vitest.config.ts`가 정본, 아래 '커버리지 임계값 범위' 참고) | `coverage/`(7일) |
+| `mutation` | Mutation tests (Stryker) | `npm run test:mutation` (채점·통계 순수 로직 7파일에 뮤턴트 주입 — **break 85**) | `reports/mutation/`(7일) |
 | `mutation-storage` | Mutation tests — 영속화·상태 계층 | `npm run test:mutation:storage` (`storage.ts`·`useQuizStore.ts` — **break 67**, 래칫) | `reports/mutation-storage/`(7일) |
 | `build` | Build (tsc + vite) | `npm run build` → **`npm run size`**(번들 예산: JS 140KB·CSS 12KB, gzip) | `dist/`(7일) |
 | `android-build` | Android APK build (no deploy) | `npm run build` → `cap sync` → 커밋된 android 프로젝트가 낡았는지 확인 → `./gradlew assembleDebug` | — |
@@ -69,7 +69,9 @@ env:
 
 **커버리지 임계값 범위:** `vitest.config.ts`의 coverage `include`는 `src/store/**`·`src/utils/**`·`src/hooks/**`다. 컴포넌트/앱 셸은 뷰 계층이라 E2E가 맞는 도구이고, 여기에 넣으면 3,400여 줄이 사실상 0%라 전체 수치가 반토막 나면서 임계값이 무의미해진다. 임계값은 실측보다 약 2%p 낮게 잡아 "지금보다 나빠지지 않는다"는 바닥으로 쓴다(래칫). 현재 값과 갱신 이력은 `vitest.config.ts`의 주석이 정본이다 — 여기 숫자를 적어 두면 갱신이 어긋난다.
 
-> 임계값을 올리는 방법은 렌더러를 들이는 것이 아니라 **훅·컴포넌트 안의 순수 로직을 모듈로 꺼내 유닛으로 덮는 것**이다. `reviewTargetIds`(useQuestions) · `roundHistory`(useQuizSession의 회차 조립) · `wrongNote`(AppModals의 오답 합집합)가 그 사례다.
+> **이 규칙은 예고한 대로 깨진 적이 있다.** 위 `unit` 행에 한동안 `stmt 75·branch 71·func 74·line 77`이 박혀 있었는데, 그 사이 실측이 올라 임계값이 세 번 상향돼(→ 79·76·75·80) 표만 옛 값으로 남았다. 규칙을 적어 둔 문단에서 30줄 위의 표가 그 규칙을 어기고 있었던 셈이다. **숫자를 옮겨 적고 싶어지면, 그 숫자가 바뀔 때 이 문서가 함께 고쳐질 이유가 있는지 먼저 묻는다.** 없으면 참조만 남긴다.
+
+> 임계값을 올리는 방법은 렌더러를 들이는 것이 아니라 **훅·컴포넌트 안의 순수 로직을 모듈로 꺼내 유닛으로 덮는 것**이다. `reviewTargetIds`(useQuestions) · `roundHistory`(useQuizSession의 회차 조립) · `wrongNote`(AppModals의 오답 합집합) · **`sessionDerive`(useQuizSession의 파생 계산 전체)** 가 그 사례다. 마지막이 가장 크다 — 284줄·0%였던 훅의 조건문이 측정 대상이 되면서 전체 branch가 +2.84%p 올랐다.
 
 **번들 예산(`npm run size`):** `scripts/check-bundle-size.js`가 `dist`의 JS·CSS를 **gzip 압축한 크기** 합계를 예산과 대조한다(JS 140KB·CSS 12KB). 서비스워커도 브라우저가 내려받는 JS이므로 `assets`만 세지 않고 함께 계산한다 — 그러지 않으면 SW 비대화가 예산을 우회한다. 여유를 넉넉히 둬 무거운 의존성 유입 같은 **큰** 회귀만 잡고 소폭 증가엔 관대하다.
 

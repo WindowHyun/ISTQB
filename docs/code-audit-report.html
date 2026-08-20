@@ -928,6 +928,35 @@ react-transition-quick    (미실측)  →  50 / 50 통과</p>
   </div>
 
   <div class="callout">
+    <h3>머지 후 CI가 확인한 것 — 로컬이 못 돌린 넷 포함</h3>
+    <p>
+      위 &ldquo;최종&rdquo; 열은 <strong>로컬 실측</strong>입니다. 그 뒤 이 작업은 main에 머지됐고
+      (<code>f4a3c03</code>), CI가 <strong>14개 잡 전부 초록</strong>으로 통과했습니다
+      (run&nbsp;#295). 로컬 환경이 못 돌려 &ldquo;미실행&rdquo;으로 남겼던 넷이 여기서 처음 실행됐습니다:
+    </p>
+    <ul>
+      <li><code>android-build</code> — <code>gradlew assembleDebug</code>가 통과. AN-1의
+        <code>MainActivity.java</code> 브리지가 <strong>실제로 컴파일된 것은 이때가 처음</strong>입니다.
+        앞선 <code>cap sync</code> 낡음 검사도 통과해, 손으로 고친 자바 파일이 동기화에 덮이지 않는다는
+        것까지 확인됐습니다.</li>
+      <li><code>codeql</code> · <code>secrets</code>(gitleaks) · <code>audit</code> — 전부 통과.</li>
+    </ul>
+    <p>
+      CI가 잰 값 둘이 로컬과 다릅니다. <strong>저장 계층 뮤테이션은 71.37%</strong>
+      (killed&nbsp;1007 · timeout&nbsp;30 · survived&nbsp;328 · no-cov&nbsp;88)로, 위 표의 69.92%보다
+      1.45%p 높습니다 &mdash; 머지에 F-1·F-2 검사가 더 들어간 결과입니다. 커버리지도
+      81.34/78.91/77.84/82.84 &rarr; <strong>81.35/78.94/77.89/82.85</strong>, 유닛은 807 &rarr;
+      <strong>815</strong>가 됐습니다. <strong>위 표의 값은 고치지 않았습니다</strong> &mdash;
+      그때 그 코드를 잰 기록이고, 덮어쓰면 이 문서가 무엇을 근거로 판단했는지가 사라집니다.
+    </p>
+    <p>
+      <strong>그래서 저장 계층 <code>break</code>는 이제 올릴 시점입니다.</strong> 실측 71.37%에
+      게이트가 67이라 여유가 4.37%p입니다. 위 callout에서 &ldquo;+0.39pp는 올릴 폭이 아니다&rdquo;라고
+      한 판단은 69.92 기준이었고, 그 전제가 바뀌었습니다.
+    </p>
+  </div>
+
+  <div class="callout">
     <h3>문서의 뮤테이션 기준값이 이미 낡아 있었습니다</h3>
     <p>
       <code>docs/harness/README.md</code>의 래칫 기록은 2026-08-13의 <strong>71.37%</strong>인데,

@@ -2,7 +2,7 @@
 
 ## 저장소 작업 방식
 
-이 저장소는 Codex 작업에 하네스 우선(harness-first) 방식을 사용합니다. 변경을 시작하기 전에 작업 영향 범위를 분류하고, `docs/harness/` 아래의 관련 하네스 문서를 먼저 읽습니다.
+이 저장소는 하네스 우선(harness-first) 방식을 사용합니다. 변경을 시작하기 전에 작업 영향 범위를 분류하고, `docs/harness/` 아래의 관련 하네스 문서를 먼저 읽습니다. 사람이든 에이전트든, 어떤 도구로 작업하든 같습니다.
 
 ## 필수 하네스 라우팅
 
@@ -13,8 +13,10 @@
 - 앱 동작, 풀이 모드(연습·시험·퀵·오답 + 통계에서만 들어가는 챕터 미니 시험), 채점, 챕터 통계, 오답 노트, 상태 저장,
   제품 전환, 탭 간 동기화, 가져오기/내보내기:
   - `docs/harness/app-logic-harness.md`를 읽습니다.
-- Android, Capacitor, `www/`, APK, 매니페스트, 아이콘, 서비스 워커 패키징:
-  - `docs/harness/android-build-harness.md`를 읽습니다.
+- Android, Capacitor, `www/`, APK, 매니페스트, 아이콘, 서비스 워커 패키징,
+  **웹↔네이티브 JS 브리지**(`addJavascriptInterface`로 주입하는 객체와 그것을 부르는 웹 코드):
+  - `docs/harness/android-build-harness.md`를 읽습니다 — 브리지는 그 문서의 **계약 표**가 정본입니다.
+    양쪽이 서로를 검사하지 않아 이름·시그니처가 갈리면 조용히 죽고, 증상은 APK에서만 납니다.
 - 릴리스, 전달 전 점검, 여러 영역에 걸친 큰 변경:
   - `docs/harness/release-harness.md`를 읽습니다.
 
@@ -45,7 +47,7 @@
 - 테스트·e2e 파일을 추가·수정했다면 `npm run typecheck:test`를 실행합니다 — 앱 `tsconfig`는 테스트를 exclude하므로 이 명령이 아니면 타입 검사를 받지 않습니다. **루트의 `middleware.ts`(사이트 전체 Basic Auth 관문)와 `scripts/**/*.test.ts`(데이터 보정 도구의 계약 검사)도 같은 이유로 여기에만 걸려 있습니다** — 앱 `tsconfig`의 `include`가 `src`뿐이고 Vercel이 별도 번들하므로 `npm run build`로는 안 잡힙니다. 둘 다 `tsconfig.test.json`의 `include`에 명시돼 있으니, `src` 밖에 검사를 새로 두면 그 목록에 함께 넣습니다.
 - e2e 스펙에 `test.setTimeout`을 새로 주거나 올렸다면 **잡 타임아웃과의 부등식**을 다시 계산합니다 — `스펙 최대 예산 × 2(CI 재시도) + 정상 스위트 시간 < 잡 timeout`. 깨지면 멈춘 스펙이 예산을 태우는 동안 잡이 벽시계로 먼저 잘려 **원인이 로그에 한 줄도 안 남습니다.** 근거와 실측표는 `docs/harness/README.md`를 참고하세요.
 - 의존성을 추가했다면 `dependencies` / `devDependencies` 분류를 확인합니다. 빌드·테스트에만 쓰이면 `devDependencies`입니다 — 잘못 넣으면 `audit` 게이트("배포 번들의 취약점만 차단")가 빌드 도구 체인까지 재서, 사용자에게 나가지도 않는 패키지의 권고로 CI가 막힙니다(실제로 겪었습니다).
-- 컴포넌트·훅 안의 순수 로직을 고쳤다면, 유닛이 닿을 수 있게 **모듈로 꺼내는 것**을 먼저 검토합니다. `reviewTargetIds`(useQuestions) · `roundHistory`(useQuizSession) · `wrongNote`(AppModals)가 그 사례이고, 셋 다 꺼낸 뒤에야 결함이 검사로 고정됐습니다.
+- 컴포넌트·훅 안의 순수 로직을 고쳤다면, 유닛이 닿을 수 있게 **모듈로 꺼내는 것**을 먼저 검토합니다. `reviewTargetIds`(useQuestions) · `roundHistory`(useQuizSession) · `wrongNote`(AppModals) · **`sessionDerive`(useQuizSession의 파생 계산 전체)** 가 그 사례이고, 넷 다 꺼낸 뒤에야 결함이 검사로 고정됐습니다. `sessionDerive`가 가장 큰 사례입니다 — 284줄·커버리지 0%였던 훅에서 조건문을 들어내자 **전체 branch가 +2.84%p**, hooks 계층 브랜치가 10.3% → 12.98%가 됐습니다. 훅 계층을 올리는 방법은 렌더러를 들이는 것이 아니라 이것입니다.
 - 추가한 테스트가 헛돌지 않는지 확인합니다: 대상 결함을 일부러 되돌려 **실패하는 것을 보고** 원복합니다.
 - 요청된 변경에서 기존 하네스가 잡지 못하는 결함 유형이 드러나면, 작업 완료로 보기 전에 하네스를 보강하거나 보강안을 제시합니다.
 
