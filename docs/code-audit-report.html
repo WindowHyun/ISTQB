@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<meta name="description" content="ISTQB/CSTS 학습앱 전수 코드 점검 — 5회차 누적, 결함 16건 중 15건 조치, 되돌림 검증 13/13, 열람 범위와 실측 근거">
+<meta name="description" content="ISTQB/CSTS 학습앱 전수 코드 점검 — 6회차 누적, 결함 16건 중 15건 조치, 되돌림 검증 21/21, 검사 사각지대 정리와 자기 오류 기록">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%A9%BB%3C/text%3E%3C/svg%3E">
 <title>ISTQB 앱 전수 코드 점검</title>
 
@@ -320,9 +320,12 @@
   <p class="kicker">ISTQB / CSTS 학습앱 · 코드 점검</p>
   <h1>코드를 고치기 전에, 무엇을 읽었는지부터</h1>
   <p class="standfirst">
-    세 차례에 걸쳐 저장소를 전수 열람해 결함 16건을 찾았고, 네 번째로 <strong>그 전량을 수정</strong>
-    (하나는 &lsquo;지금 손대지 않는다&rsquo;로 보류), 다섯 번째로 <strong>고친 것을 전부 되돌려 검사가 빨간불이
-    되는지 다시 확인</strong>했습니다. 그 과정에서 <strong>코드가 아니라 문서가 어긋나 있는 자리</strong>도 나왔습니다.
+    저장소를 전수 열람해 결함 16건을 찾고, <strong>전량을 수정</strong>(하나는 보류),
+    <strong>고친 것을 전부 되돌려 검사가 빨간불이 되는지 확인</strong>했습니다.
+    그 뒤 두 가지가 더 나왔습니다 — <strong>코드가 아니라 문서가 어긋난 자리</strong>,
+    그리고 <strong>결함이 나왔던 계층에 검사가 아예 닿지 않던 자리</strong>(훅 284줄·커버리지 0%).
+    마지막으로 &ldquo;여기서는 못 돌린다&rdquo;고 적어 둔 게이트가 <strong>실은 돌아갔습니다</strong> —
+    그 오판이 문서를 잘못 고치게 만든 경위도 아래에 남겼습니다.
     이 문서는 발견 목록이자 <strong>열람 범위의 기록</strong>입니다 — 어디를 읽었고 어디를 읽지 않았는지를
     함께 적지 않으면 "점검했다"는 말이 무엇을 보증하는지 알 수 없기 때문입니다.
   </p>
@@ -330,7 +333,7 @@
     <span>기준 커밋 <b>c2854d1</b></span>
     <span>브랜치 <b>claude/code-issues-error-report-wj5222</b></span>
     <span>점검 <b>2026-08-18 ~ 08-19</b></span>
-    <span>5회차 누적</span>
+    <span>6회차 누적</span>
   </p>
 </header>
 
@@ -343,11 +346,11 @@
 
   <dl class="score">
     <div><dt>열람한 소스</dt><dd>100<small>%</small></dd></div>
-    <div class="is-pass"><dt>검사 통과</dt><dd>1,206</dd></div>
+    <div class="is-pass"><dt>검사 통과</dt><dd>1,252</dd></div>
     <div><dt>찾은 결함</dt><dd>16<small>건</small></dd></div>
     <div class="is-pass"><dt>수정 완료</dt><dd>15<small>건</small></dd></div>
-    <div><dt>추가한 유닛</dt><dd>65<small>건</small></dd></div>
-    <div class="is-pass"><dt>되돌림 검증</dt><dd>13<small>/13</small></dd></div>
+    <div><dt>추가한 유닛</dt><dd>111<small>건</small></dd></div>
+    <div class="is-pass"><dt>되돌림 검증</dt><dd>21<small>/21</small></dd></div>
   </dl>
 
   <p class="lede">
@@ -893,26 +896,26 @@ react-transition-quick    (미실측)  →  50 / 50 통과</p>
 <section class="block">
   <div class="sec-head">
     <h2>게이트 실행 결과</h2>
-    <span class="sec-note">점검 시작 시점 / 5차 재실행</span>
+    <span class="sec-note">점검 시작 시점 / 최종 재실행</span>
   </div>
 
   <div class="tbl-wrap">
     <table>
       <thead>
-        <tr><th>명령</th><th>점검 시작 시점</th><th>5차 재실행</th></tr>
+        <tr><th>명령</th><th>점검 시작 시점</th><th>최종</th></tr>
       </thead>
       <tbody>
         <tr><td><code>npm run lint</code> <span class="mono">(eslint .)</span> · <code>typecheck</code> · <code>typecheck:test</code></td><td class="ok">통과</td><td class="ok">통과</td></tr>
-        <tr><td><code>npm run test:cov</code> <span class="mono">(커버리지 임계값 게이트)</span></td><td>44파일 / 696</td><td class="ok">49파일 / <b>761</b> (+65) · 80.31/76.07/76.54/81.81</td></tr>
+        <tr><td><code>npm run test:cov</code> <span class="mono">(커버리지 임계값 게이트)</span></td><td>44파일 / 696</td><td class="ok">51파일 / <b>807</b> (+111) · 81.34/78.91/77.84/82.84</td></tr>
         <tr><td><code>node scripts/verify.js</code></td><td>12파일 626문항 · 오류 0</td><td class="ok">12파일 · 오류 0 · 경고 0</td></tr>
         <tr><td><code>npm run test:e2e</code> <span class="mono">(react)</span></td><td>409 / 1 실패</td><td class="ok"><b>411 통과</b> (12.0분)</td></tr>
-        <tr><td><code>npm run test:apk</code> <span class="mono">(apk + apk-nf)</span></td><td class="mono">미실행</td><td class="ok"><b>21 통과</b> (35초)</td></tr>
+        <tr><td><code>npm run test:apk</code> <span class="mono">(apk + apk-nf)</span></td><td class="mono">미실행</td><td class="ok"><b>21 통과</b></td></tr>
         <tr><td><code>npm run test:nf</code> <span class="mono">(비기능)</span></td><td class="mono">미실행</td><td class="ok"><b>13 통과</b> (26초)</td></tr>
-        <tr><td><code>stryker</code> 코어 <span class="mono">(break 85)</span></td><td>92.30 <span class="mono">(문서값)</span></td><td class="ok"><b>92.44</b> · 622중 575 kill</td></tr>
+        <tr><td><code>stryker</code> 코어 <span class="mono">(break 85)</span></td><td>92.30 <span class="mono">(문서값)</span></td><td class="ok"><b>93.25</b> · 622중 580 kill</td></tr>
         <tr><td><code>stryker</code> 저장 계층 <span class="mono">(break 67)</span></td><td><b>69.53</b> <span class="mono">(직접 실측)</span></td><td class="ok"><b>69.92</b></td></tr>
         <tr><td><code>npm run size</code> <span class="mono">(번들 예산)</span></td><td class="mono">—</td><td class="ok">JS 126.2KB/140 · CSS 9.9KB/12</td></tr>
         <tr><td><code>npm audit --omit=dev</code></td><td class="ok">0건</td><td class="ok">0건</td></tr>
-        <tr><td><code>verify-pdf-data.py</code></td><td class="mono">pymupdf 부재</td><td class="mono">pymupdf 부재 — CI <code>pdf-data</code>가 담당</td></tr>
+        <tr><td><code>verify-pdf-data.py</code></td><td class="mono">미실행이라 적었음</td><td class="ok"><b>통과</b> — 텍스트 2,489 · 정답 626/626 · 밑줄 146 · 불일치 0</td></tr>
         <tr><td><code>gradlew assembleDebug</code> <span class="mono">(네이티브 컴파일)</span></td><td class="mono">—</td><td class="mono">SDK 부재 — CI <code>android-build</code>가 담당</td></tr>
       </tbody>
     </table>
@@ -932,10 +935,11 @@ react-transition-quick    (미실측)  →  50 / 50 통과</p>
       +0.39pp는 이 계층의 검출력을 유의미하게 끌어올린 폭이 아닙니다.
     </p>
     <p>
-      <strong>저장 계층 게이트는 5차에서 다시 돌리지 않았습니다.</strong> 그 설정의 <code>mutate</code> 대상
+      <strong>저장 계층 게이트는 다시 돌리지 않았습니다.</strong> 그 설정의 <code>mutate</code> 대상
       (<code>storage.ts</code> · <code>useQuizStore.ts</code>) 중 <strong>바뀐 파일이 하나도 없습니다</strong> —
-      같은 코드를 다시 재는 일이라 69.92%가 그대로 유효합니다. 코어는 문서 수치(91.9%)를 검증하려고
-      다시 돌렸고 <strong>92.44%</strong>였습니다. 돌리지 않은 것과 값이 없는 것은 다르므로 여기 적어 둡니다.
+      같은 코드를 다시 재는 일이라 69.92%가 그대로 유효합니다. 코어는 두 번 돌렸습니다:
+      문서 수치(91.9%)를 검증하려고 한 번(<b>92.44%</b>), <code>MODE_CAPTION</code> 검사를 붙인 뒤 한 번
+      (<b>93.25%</b>). 돌리지 않은 것과 값이 없는 것은 다르므로 여기 적어 둡니다.
     </p>
   </div>
 </section>
@@ -944,13 +948,13 @@ react-transition-quick    (미실측)  →  50 / 50 통과</p>
 <section class="block">
   <div class="sec-head">
     <h2>되돌림 검증 — 고친 것을 다시 부숴 본다</h2>
-    <span class="sec-note">주입 → 실행 → 자동 원복 · 매회 트리 청결 확인</span>
+    <span class="sec-note">주입 → 실행 → 자동 원복 · 21건 전부 red · 매회 트리 청결 확인</span>
   </div>
 
   <p class="lede">
     &ldquo;검사를 추가했다&rdquo;는 말은 그 검사가 <strong>대상 결함을 실제로 잡는다</strong>는 뜻이어야 합니다.
     그래서 고친 자리마다 결함을 다시 심고, 검사가 빨간불이 되는 것을 본 뒤 원복했습니다.
-    수정 당시에 한 번, 5차에서 스크립트로 한 번 더 — <strong>13건 전부 red</strong>였습니다.
+    수정 당시에 한 번, 재검증에서 스크립트로 한 번 더 — <strong>21건 전부 red</strong>였습니다.
   </p>
 
   <div class="tbl-wrap">
@@ -970,6 +974,14 @@ react-transition-quick    (미실측)  →  50 / 50 통과</p>
         <tr><td>R-6</td><td>키 재부여 검토 강제 제거</td><td class="n ok">RED 2</td></tr>
         <tr><td>AN-1 · CS-4</td><td>바 색 흰색 고정 / 메타 갱신 생략</td><td class="n ok">RED 4 · 3</td></tr>
         <tr><td>CS-1</td><td>죽은 여백 규칙 되살리기</td><td class="n ok">RED · AF13</td></tr>
+        <tr><td>C-1</td><td>퀵 회차 범위를 목록 전체로</td><td class="n ok">RED 3</td></tr>
+        <tr><td>C-1</td><td>&lsquo;답함&rsquo; 판정을 정답 판정으로</td><td class="n ok">RED 1</td></tr>
+        <tr><td>C-1</td><td>응시 게이트의 답안 조건 제거</td><td class="n ok">RED 1</td></tr>
+        <tr><td>C-1</td><td>응시 개시 조건 제거(유령 회차)</td><td class="n ok">RED 1</td></tr>
+        <tr><td>C-1</td><td>커서 하한 제거</td><td class="n ok">RED 3</td></tr>
+        <tr><td>C-1</td><td>재채점 가드 제거</td><td class="n ok">RED 1</td></tr>
+        <tr><td>C-1</td><td>문항 수 가드 제거</td><td class="n ok">RED 1</td></tr>
+        <tr><td>C-1</td><td>0 나눗셈 가드 제거</td><td class="n ok">RED 1</td></tr>
       </tbody>
     </table>
   </div>
@@ -992,6 +1004,113 @@ react-transition-quick    (미실측)  →  50 / 50 통과</p>
       재야 할 것은 콘텐츠가 아니라 규칙이었습니다 — <strong>셸이 비워 둔 자리가 고정 바 높이를 덮는가</strong>로
       바꾸자 문항 길이와 무관하게 빨간불이 됩니다(실측: 여백 40px 대 바 높이 103px).
       되돌려 보지 않았다면 <strong>있으나 마나 한 검사를 &lsquo;회귀 방지&rsquo;라고 부르며 커밋</strong>했을 자리입니다.
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════════════════ 검사 사각지대 ══════════════════════════ -->
+<section class="block">
+  <div class="sec-head">
+    <h2>결함이 나온 계층에 검사가 없었다</h2>
+    <span class="sec-note">수정이 끝난 뒤 커버리지를 다시 읽고 찾은 것</span>
+  </div>
+
+  <p class="lede">
+    16건을 고치고 나서 <strong>어디를 고쳤는지</strong>가 아니라 <strong>어디가 안 재지는지</strong>를 봤습니다.
+    이번 결함 중 셋(F-3 · F-4 · R-3)이 걸쳐 있던 <code>hooks</code> 계층이
+    <strong>statements 16.5% · branch 10.3%</strong>였습니다 — 검사로 잡은 것이 아니라
+    코드 리뷰로 잡은 것이었다는 뜻입니다.
+  </p>
+
+  <div class="find">
+    <article class="card sev-done">
+      <div class="card-head">
+        <span class="tag">C-1</span>
+        <h3 class="card-title"><code>useQuizSession</code> 284줄이 커버리지 0%였다</h3>
+        <span class="chip done">수정</span>
+      </div>
+      <p class="where">src/hooks/useQuizSession.ts → src/utils/sessionDerive.ts</p>
+      <p>
+        화면의 잠금·버튼 가용성·<strong>회차에 담기는 범위</strong>를 정하는 계산이 전부 훅 안에 있었습니다.
+        훅 안에 있으니 유닛이 닿지 못하고, 검증은 E2E가 화면 너머로 스쳐 지나가는 것뿐이었습니다.
+        F-3(가중점수 모집단)과 F-4(오답 대상 키)가 바로 이 근처였습니다.
+      </p>
+      <p>
+        <strong>조치</strong> — 파생 계산 8개를 순수 모듈로 꺼냈습니다. 판정 자체는 새로 만들지 않았습니다:
+        <code>isAnsweredInMode</code>·<code>isQuickCommitted</code>·<code>isQuestionCorrect</code>·
+        <code>isGradedMode</code>가 여전히 단일 원천이고, 이 모듈이 정하는 것은
+        <strong>어떤 범위에 적용하는가</strong>입니다 — 저장소가 반복해서 겪은 결함이
+        &ldquo;술어는 같은데 범위가 갈린&rdquo; 것이었기 때문입니다.
+      </p>
+      <p>
+        작업 중 <strong>같은 식이 컴포넌트 두 곳에 손으로 복제</strong>돼 있는 것도 나왔습니다
+        (<code>clampIndex</code> — 목록이 비동기로 바뀌는 사이 커서를 가두는 계산). 셋을 하나로 합쳤습니다.
+      </p>
+      <p class="evidence">검사 37건 신설 · 결함 8종 주입 → 8건 전부 red
+커버리지 branch 76.07% → 78.91%  (게이트 여유 1.07%p → 3.91%p)</p>
+      <p>
+        <strong>이것이 hooks를 올리는 유일하게 값싼 방법입니다</strong> — 렌더러(testing-library)를
+        들이지 않고, 조건을 훅에서 순수 함수로 옮기면 그 분기가 그대로 측정 대상이 됩니다.
+        저장소가 <code>roundHistory</code>·<code>reviewTargetIds</code>에서 이미 쓴 방법이고,
+        하네스 문서가 &ldquo;다음 차례&rdquo;로 지목해 둔 자리이기도 했습니다.
+      </p>
+    </article>
+
+    <article class="card sev-done">
+      <div class="card-head">
+        <span class="tag">C-2</span>
+        <h3 class="card-title">뮤테이션 생존 5건의 정체 — 안내문이 검사에 닿은 적이 없었다</h3>
+        <span class="chip done">수정</span>
+      </div>
+      <p class="where">src/utils/modeLabel.ts · MODE_CAPTION</p>
+      <p>
+        코어 게이트 7파일 중 <code>modeLabel.ts</code>만 <strong>58.33%</strong>였습니다.
+        <code>MODE_CAPTION</code>(사이드바에 상시 노출되는 모드 설명)을 <strong>통째로 비워도
+        800건 넘는 검사가 전부 통과</strong>했습니다. 사용자가 읽는 문장이라 내용까지 값으로 고정했습니다.
+      </p>
+      <p class="evidence">modeLabel.ts 58.33% → 100.00%  (생존 5 → 0)
+코어 전체 92.44% → 93.25%</p>
+      <p>
+        조사하다 <strong>비대칭이 하나 나왔습니다</strong> — 세그먼트 버튼 넷 중 <strong>퀵만 캡션이 없습니다.</strong>
+        <code>random</code>은 반대로 버튼이 없는데도 캡션이 있고 그 근거가 주석에 적혀 있는데,
+        퀵의 부재에는 근거가 없습니다. <strong>의도인지 누락인지 코드만으로는 알 수 없어</strong>
+        값을 바꾸지 않고 현재 상태만 못 박았습니다 — 캡션을 채우기로 정하면 그 검사가 먼저 빨간불이 됩니다.
+        (제품 문구라 판단이 필요한 자리입니다.)
+      </p>
+    </article>
+
+    <article class="card sev-done">
+      <div class="card-head">
+        <span class="tag">C-3</span>
+        <h3 class="card-title">상수 모듈 둘, 결론이 갈렸다</h3>
+        <span class="chip done">수정</span>
+      </div>
+      <p class="where">src/utils/brandLogo.ts · src/utils/links.ts</p>
+      <p>
+        둘 다 커버리지 0%인 상수 모듈입니다. <strong>한쪽만 검사를 붙였습니다.</strong>
+      </p>
+      <p>
+        <code>brandLogo.ts</code>에는 <strong>주석으로만 지켜지던 계약</strong>이 있었습니다 —
+        &ldquo;파비콘·런처 아이콘과 같은 디자인을 쓴다&rdquo;, &ldquo;종전에는 구 브랜드색(#166064 틸)을
+        하드코딩해 아이콘과 앱 내 로고의 색이 달라 보였다&rdquo;. 실제로 났던 결함이고, 지금은 사람의
+        주의력만이 재발을 막고 있었습니다. 두 파일의 팔레트가 같은지를 검사로 고정했습니다.
+      </p>
+      <p>
+        <code>links.ts</code>는 <strong>0%로 두었습니다.</strong> URL 상수 하나라
+        &ldquo;문자열이 문자열이다&rdquo; 말고 단언할 것이 없어, 검사를 쓰면 커버리지 숫자만 올라갑니다.
+        상수 모듈이라고 일괄로 넣거나 빼지 않고 <strong>계약이 있는지</strong>로 갈랐고,
+        그 판단 근거를 <code>vitest.config.ts</code>에 남겨 다음 사람이 가짜 검사로 &lsquo;고치지&rsquo; 않게 했습니다.
+      </p>
+    </article>
+  </div>
+
+  <div class="callout">
+    <h3>래칫은 올릴 때 같이 올린다</h3>
+    <p>
+      커버리지가 <strong>80.31 / 76.07 / 76.54 / 81.81 → 81.34 / 78.91 / 77.84 / 82.84</strong>가 됐습니다.
+      저장소 규칙이 <em>&ldquo;실측보다 낮게 잡은 래칫이라 올릴 때마다 임계값도 함께 올린다&rdquo;</em>이므로
+      게이트도 <strong>78/75/75/79 → 79/76/75/80</strong>으로 올렸습니다.
+      올리지 않으면 래칫이 아니라 그냥 낮은 기준입니다.
     </p>
   </div>
 </section>
@@ -1136,16 +1255,19 @@ react-transition-quick    (미실측)  →  50 / 50 통과</p>
 <section class="block">
   <div class="sec-head">
     <h2>다음에 할 일</h2>
-    <span class="sec-note">코드 쪽은 비었습니다 — 남은 것은 사람 눈이 필요한 확인입니다</span>
+    <span class="sec-note">남은 것은 하나 — 사람 눈이 필요합니다</span>
   </div>
 
   <ol class="steps">
     <li><strong>다크 모드 APK를 한 번 눈으로 봅니다.</strong> AN-1의 시스템 바 색만 남았습니다.
       컴파일은 CI <code>android-build</code> 잡이 맡고, 웹 유닛이 고정한 것은 &ldquo;웹이 무엇을 넘기는가&rdquo;까지입니다.
       <strong>네이티브가 그 값으로 무엇을 칠하는지는 실기기에서만 보입니다</strong> — 다크로 켜고 위아래 띠를 확인하면 끝납니다.</li>
-    <li><del><code>verify-pdf-data.py</code></del> — <strong>닫혔습니다.</strong> &ldquo;이 환경에 <code>pymupdf</code>가 없다&rdquo;고
-      적어 두었는데, <code>pip install pymupdf</code> 한 줄이면 됐습니다. 원본 PDF 13종도 저장소에 그대로 있었습니다.
-      실행 결과 <strong>텍스트 2,489조각 · 정답 626/626 · 밑줄 146 — 불일치 0</strong>으로 통과했습니다.</li>
+    <li><strong><code>MODE_CAPTION</code>의 퀵 자리를 채울지 정합니다.</strong> 세그먼트 버튼 넷 중
+      퀵만 캡션이 없는데, 의도인지 누락인지 코드만으로는 알 수 없어 현재 상태로 고정해 두었습니다.
+      제품 문구라 판단이 필요합니다(위 C-2 카드).</li>
+    <li><strong><code>hooks</code>의 나머지를 같은 방법으로 재기 시작합니다.</strong> <code>useQuizSession</code>을
+      꺼내 branch가 +2.84%p 올랐지만 계층 자체는 여전히 낮습니다(stmt 17.4% · branch 13.0%).
+      다음 덩어리는 <code>useQuestions</code>(440줄)입니다.</li>
     <li><strong>AN-3은 라이브 리로드를 도입할 때 함께 봅니다.</strong> 지금 붙이면 아무도 통과하지 않는 방어가 됩니다
       (위 카드에 이유를 적었습니다).</li>
     <li><strong>하네스에 새로 넣은 절이 실제로 쓰이는지 다음 작업에서 확인합니다.</strong> 문서는 읽히지 않으면
@@ -1175,10 +1297,32 @@ react-transition-quick    (미실측)  →  50 / 50 통과</p>
     남는 것은 컴파일이 아니라 <strong>칠해진 색</strong>이고, 그것은 실기기의 몫입니다.
   </p>
   <p>
-    <strong>실행 환경 제약</strong> — <code>verify-pdf-data.py</code>는 원본 PDF와 <code>pymupdf</code>가 없어 생략했습니다(CI가 담당).
-    E2E는 Playwright 1.61이 요구하는 chromium 빌드가 없어 미리 설치된 chromium을 지정한 임시 설정으로 돌렸습니다 —
-    스펙·프로젝트 정의는 저장소 것 그대로입니다.
+    <strong>실행 환경 제약</strong> — E2E는 Playwright 1.61이 요구하는 chromium 빌드가 없어
+    미리 설치된 chromium을 지정한 임시 설정으로 돌렸습니다 — 스펙·프로젝트 정의는 저장소 것 그대로입니다.
+    <code>verify-pdf-data.py</code>는 <strong>제약이 아니었습니다</strong>(아래 참고).
   </p>
+  <div class="callout">
+    <h3>&ldquo;여기서는 못 돌린다&rdquo;고 세 번 적었는데, 시도한 적이 없었습니다</h3>
+    <p>
+      <code>verify-pdf-data.py</code>를 계속 &ldquo;이 환경에 원본 PDF와 <code>pymupdf</code>가 없어 미실행&rdquo;으로
+      보고했습니다. 확인해 보니 <strong>PDF 13종은 <code>DATA/</code>에 그대로 있었고</strong>,
+      <code>pip install pymupdf</code> 한 줄로 게이트가 돌아 <strong>통과</strong>했습니다
+      (텍스트 2,489 · 정답 626/626 · 밑줄 146 · 불일치 0).
+      부재를 단정한 근거가 &ldquo;확인해 보니 없다&rdquo;가 아니라 &ldquo;없을 것 같다&rdquo;였습니다.
+    </p>
+    <p>
+      더 나쁜 것은 <strong>그 오판이 문서를 잘못 고치게 만들었다</strong>는 점입니다.
+      게이트를 못 돌린다고 보고 스크립트 로직을 손으로 재현해 조각 수를 세었는데, 그 재현이
+      <code>norm()</code>을 놓쳤습니다 — 8자 미만을 건너뛰는 필터의 <code>norm()</code>은 공백만이 아니라
+      <strong>HTML 태그·기호·따옴표·괄호·문장부호까지 전부 제거</strong>합니다. 공백만 지워 세니
+      127조각이 더 잡혔고(2,616), 저는 그것을 &ldquo;실측&rdquo;이라 부르며 문서의 2,489를 낡은 값으로 단정해
+      README·하네스·CI 문서를 고쳤습니다. <strong>문서가 처음부터 맞았습니다.</strong> 전부 원복했습니다.
+    </p>
+    <p>
+      남긴 것 둘: <code>data-harness.md</code>에 같은 함정 경고(조각 수를 손으로 세어 비교하지 말 것),
+      그리고 이 문단 자체 — <strong>게이트를 흉내 낸 값을 실측이라 부르지 않는다.</strong>
+    </p>
+  </div>
   <p>
     <strong>정적 열람의 한계</strong> — CSS는 규칙과 셀렉터를 읽고 죽은 규칙을 계량했을 뿐,
     실제 렌더를 눈으로 확인하지는 않았습니다. 반응형·안전영역은 <code>test:apk</code>가 맞는 도구입니다.
@@ -1186,7 +1330,7 @@ react-transition-quick    (미실측)  →  50 / 50 통과</p>
 </section>
 
 <footer class="foot">
-  ISTQB / CSTS 학습앱 코드 점검 · 5회차 누적 · 발견 16건 전량 조치(보류 1) · 되돌림 검증 13/13 ·
+  ISTQB / CSTS 학습앱 코드 점검 · 6회차 누적 · 발견 16건 전량 조치(보류 1) · 되돌림 검증 21/21 ·
   상세 근거와 재현 절차는 <code>docs/code-audit-2026-08-18.md</code>
 </footer>
 
