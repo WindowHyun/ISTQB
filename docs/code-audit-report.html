@@ -326,6 +326,7 @@
     그리고 <strong>결함이 나왔던 계층에 검사가 아예 닿지 않던 자리</strong>(훅 284줄·커버리지 0%).
     마지막으로 &ldquo;여기서는 못 돌린다&rdquo;고 적어 둔 게이트가 <strong>실은 돌아갔습니다</strong> —
     그 오판이 문서를 잘못 고치게 만든 경위도 아래에 남겼습니다.
+    <strong>지금 남은 것은 하나</strong>입니다(AN-3 — 지금 붙이면 아무도 통과하지 않는 방어).
     이 문서는 발견 목록이자 <strong>열람 범위의 기록</strong>입니다 — 어디를 읽었고 어디를 읽지 않았는지를
     함께 적지 않으면 "점검했다"는 말이 무엇을 보증하는지 알 수 없기 때문입니다.
   </p>
@@ -599,8 +600,13 @@ ISTQB-FL-V4-C:4  "&lt;u&gt;두(2) 개를&lt;/u&gt; 고르시오"  ← 밑줄 구
         함께 닫았습니다. 두 개의 <code>media</code> 태그를 지우거나 순서를 바꾸지 않고 같은 값으로 덮어,
         JS가 없는 첫 페인트에서는 원래의 OS 기반 값이 그대로 쓰이게 했습니다.
       </p>
-      <p class="evidence">안드로이드 쪽은 이 환경에 SDK가 없어 컴파일하지 못했습니다(javac 파스 검사만 통과).
-실제 바 색은 APK로 눈으로 확인해야 합니다 — 웹 유닛으로 고정한 것은 "웹이 무엇을 넘기는가"까지입니다.</p>
+      <p class="evidence">웹 유닛 4건 · 이 환경에서는 javac 파스 검사까지(컴파일은 CI android-build가 담당)
+실기기 APK 확인 완료 — 다크 모드에서 상태바·내비게이션 바가 앱 배경과 같은 색으로 어둡게 표시됨</p>
+      <p>
+        <strong>이 항목은 유닛으로 닫을 수 없는 종류였습니다.</strong> 웹 유닛이 고정한 것은
+        &ldquo;웹이 <code>--surface</code>에서 읽어 무엇을 넘기는가&rdquo;까지이고, 네이티브가 그 값으로 실제로
+        무엇을 칠하는지는 화면을 봐야 알 수 있습니다. <strong>실기기 APK에서 확인해 닫았습니다.</strong>
+      </p>
     </article>
 
     <article class="card sev-done">
@@ -1255,13 +1261,10 @@ react-transition-quick    (미실측)  →  50 / 50 통과</p>
 <section class="block">
   <div class="sec-head">
     <h2>다음에 할 일</h2>
-    <span class="sec-note">남은 것은 하나 — 사람 눈이 필요합니다</span>
+    <span class="sec-note">코드·검증 쪽은 비었습니다</span>
   </div>
 
   <ol class="steps">
-    <li><strong>다크 모드 APK를 한 번 눈으로 봅니다.</strong> AN-1의 시스템 바 색만 남았습니다.
-      컴파일은 CI <code>android-build</code> 잡이 맡고, 웹 유닛이 고정한 것은 &ldquo;웹이 무엇을 넘기는가&rdquo;까지입니다.
-      <strong>네이티브가 그 값으로 무엇을 칠하는지는 실기기에서만 보입니다</strong> — 다크로 켜고 위아래 띠를 확인하면 끝납니다.</li>
     <li><strong><code>MODE_CAPTION</code>의 퀵 자리를 채울지 정합니다.</strong> 세그먼트 버튼 넷 중
       퀵만 캡션이 없는데, 의도인지 누락인지 코드만으로는 알 수 없어 현재 상태로 고정해 두었습니다.
       제품 문구라 판단이 필요합니다(위 C-2 카드).</li>
@@ -1291,10 +1294,11 @@ react-transition-quick    (미실측)  →  50 / 50 통과</p>
   </p>
   <p>
     <strong>여기서 컴파일하지 못한 코드</strong> — <code>MainActivity.java</code>는 이 환경에 Android SDK가 없어
-    빌드하지 못했고 javac 파스 검사만 통과했습니다. 다만 4차 보고의 &ldquo;문법이 맞다까지만 보증&rdquo;은
+    빌드하지 못했고 javac 파스 검사만 통과했습니다. 다만 &ldquo;문법이 맞다까지만 보증&rdquo;은
     <strong>과소 표현이었습니다</strong> — CI에 <code>android-build</code> 잡이 있고
     <code>./gradlew assembleDebug</code>를 돌리므로, 푸시하면 컴파일 검증을 받습니다.
-    남는 것은 컴파일이 아니라 <strong>칠해진 색</strong>이고, 그것은 실기기의 몫입니다.
+    남는 것은 <strong>칠해진 색</strong>이었고, 그쪽은 <strong>실기기 APK로 확인해 닫았습니다</strong>
+    (다크 모드에서 위아래 바가 앱 배경과 같은 색으로 어둡게 표시됨).
   </p>
   <p>
     <strong>실행 환경 제약</strong> — E2E는 Playwright 1.61이 요구하는 chromium 빌드가 없어

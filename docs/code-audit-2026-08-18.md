@@ -716,7 +716,7 @@ Playwright가 actionability를 기다리며 **스펙 예산(300초)을 통째로
 | R-1 | `PDF_JOIN_RULES` 분리 + `할 인` 규칙을 `(?![력적])`로 좁힘 | 전수 대조 red | `ceceaf3` |
 | F-5 | `selectCurrent`/`answerCurrent` 분리 + 결정적 `quickDraw` 시딩 | 3/25 → 25/25 | `ceceaf3` |
 | R-3 | 라이트박스 · 오답 보기 화면을 뒤로가기 가드에 등록 | 유닛 5건 · E2E 1건 red | `c4eb30d` |
-| AN-1 | `AndroidTheme.setSystemBars` 브리지 + `body[data-theme]` 감시 | 유닛 3건 red | `9736113` |
+| AN-1 | `AndroidTheme.setSystemBars` 브리지 + `body[data-theme]` 감시 | 유닛 3건 red · **실기기 APK 확인 완료** | `9736113` |
 | R-5 | 보정 산출물을 `reports/normalized/` 로 이동 | — (경로 실측) | `a3d17a9` |
 | R-6 | 보기 키 재부여 시 무조건 수동 검토 + 위험 문서화 | 유닛 2건 red | `a3d17a9` |
 | CS-1 | 죽은 규칙 삭제 + 틀린 전제 주석 교정 | E2E AF13 red | `5c5defc` |
@@ -786,6 +786,10 @@ README·data-harness·ci.md·리포트를 고쳤습니다. **문서가 처음부
 
 ## 남긴 것
 
+- ~~**AN-1 실기기 확인**~~ — 닫혔습니다. 다크 모드 APK에서 상태바·내비게이션 바가 앱 배경과
+  같은 색으로 어둡게 표시되는 것을 실기기에서 확인했습니다. 이 항목은 원래 유닛으로 닫을 수
+  없는 종류였습니다 — 웹 유닛이 고정한 것은 "웹이 `--surface`에서 읽어 무엇을 넘기는가"까지이고,
+  네이티브가 그 값으로 실제로 무엇을 칠하는지는 화면을 봐야 알 수 있습니다.
 - **AN-3 (정보)** — `addJavascriptInterface`에 출처 검사가 없습니다. `capacitor.config.json`에
   `server.url`이 없어 로컬 번들만 로드하므로 현재는 안전하고, 라이브 리로드를 도입할 때
   같이 봐야 할 항목으로 남깁니다. 지금 손대면 쓰지도 않는 방어를 추가하는 셈입니다.
