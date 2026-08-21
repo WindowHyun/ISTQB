@@ -6,7 +6,7 @@
     "configFile": "vitest.stryker.config.ts"
   },
   "coverageAnalysis": "perTest",
-  "_comment_mutate": "answerKey/modeLabel은 코드량은 작지만 틀리면 손실이 크다 — answerKey는 저장 키의 단일 원천이라 문자열 하나만 어긋나도 사용자의 풀이 진행이 통째로 사라지고, modeLabel의 GRADED_MODES는 '채점하기' 노출과 실제 채점 가능 여부를 함께 결정한다. quickStats는 퀵에서 '무엇이 답한 것으로 확정됐는가'를 정하고, 그 판정이 점수판과 회차 기록 양쪽을 동시에 좌우한다 — 유닛이 0%였던 동안 이 파일에서 결함이 두 번 나왔다(복수정답 확정 규칙, 점수판 되감김).",
+  "_comment_mutate": "answerKey/modeLabel은 코드량은 작지만 틀리면 손실이 크다 — answerKey는 저장 키의 단일 원천이라 문자열 하나만 어긋나도 사용자의 풀이 진행이 통째로 사라지고, modeLabel의 GRADED_MODES는 '채점하기' 노출과 실제 채점 가능 여부를 함께 결정한다. quickStats는 퀵에서 '무엇이 답한 것으로 확정됐는가'를 정하고, 그 판정이 점수판과 회차 기록 양쪽을 동시에 좌우한다 — 유닛이 0%였던 동안 이 파일에서 결함이 두 번 나왔다(복수정답 확정 규칙, 점수판 되감김). sessionDerive는 useQuizSession에서 꺼낸 파생 계산으로, 화면이 '무엇을 채점 대상으로 보는가'·'게이트에 있는가'를 정한다 — 후자는 PWA가 새 버전을 묻지 않고 적용해도 되는지까지 결정하므로, 틀리면 풀이 중 리로드가 된다.",
   "mutate": [
     "src/utils/answer.ts",
     "src/utils/quickStats.ts",
@@ -14,14 +14,28 @@
     "src/utils/chapterStats.ts",
     "src/utils/attemptStats.ts",
     "src/utils/answerKey.ts",
-    "src/utils/modeLabel.ts"
+    "src/utils/modeLabel.ts",
+    "src/utils/sessionDerive.ts"
   ],
   "reporters": [
     "clear-text",
     "progress",
     "html"
   ],
-  "_comment_break": "break 85: 스코프에 quickStats를 넣은 뒤 실측 92.30%(quickStats 97.62%, no-coverage 0). 여유를 두되 테스트 효력이 유의미하게 무뎌지면 CI가 실패한다 — 이쪽은 래칫이 아니라 '지켜야 할 높은 기준'이라 break를 실측에 붙여 올리지 않는다.",
+  "_comment_break": [
+    "break 85: 스코프에 quickStats를 넣은 뒤 실측 92.30%(quickStats 97.62%, no-coverage 0).",
+    "여유를 두되 테스트 효력이 유의미하게 무뎌지면 CI가 실패한다 — 이쪽은 래칫이 아니라",
+    "'지켜야 할 높은 기준'이라 break를 실측에 붙여 올리지 않는다.",
+    "",
+    "  2026-08-20  7파일 93.25%  killed 579 / timeout 1 / survived 42 / no-coverage 0",
+    "  2026-08-21  sessionDerive 편입 → 8파일. 편입 전 단독 실측 96.99%(129/133, 생존 4)로",
+    "              코어 평균보다 높아, 합치면 93.25 → 93.91%가 된다(여유 8.25 → 8.91%p).",
+    "",
+    "새 파일을 이 목록에 넣기 전에는 **그 파일만 단독으로 먼저 잰다**",
+    "(`npx stryker run --mutate <경로>`). 평균에 섞이는 순간 break 85를 밑으로 끌어내릴 수",
+    "있고, 그러면 편입한 커밋이 곧바로 CI를 빨간불로 만든다. 커버리지가 높다는 것은",
+    "근거가 되지 못한다 — storage.ts가 커버리지 91%에 뮤테이션 65%다."
+  ],
   "thresholds": {
     "high": 90,
     "low": 75,

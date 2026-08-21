@@ -38,8 +38,8 @@ env:
 | `verify-data` | Verify data & content | `npm run verify` (626문항 정답·이미지·스키마·콘텐츠 감사) | — |
 | `pdf-data` | Verify data against source PDFs | `python3 scripts/verify-pdf-data.py` (원본 PDF 13종에서 독립 추출해 **텍스트 2,489조각·정답 626문항·밑줄 146곳** 대조 — 데이터 수정이 원문을 훼손하면 차단. python 3.12 + pymupdf) | — |
 | `unit` | Unit tests (vitest) | `npm run test:cov` (유닛 + **커버리지 임계값 게이트** — 값은 `vitest.config.ts`가 정본, 아래 '커버리지 임계값 범위' 참고) | `coverage/`(7일) |
-| `mutation` | Mutation tests (Stryker) | `npm run test:mutation` (채점·통계 순수 로직 7파일에 뮤턴트 주입 — **break 85**) | `reports/mutation/`(7일) |
-| `mutation-storage` | Mutation tests — 영속화·상태 계층 | `npm run test:mutation:storage` (`storage.ts`·`useQuizStore.ts` — **break 67**, 래칫) | `reports/mutation-storage/`(7일) |
+| `mutation` | Mutation tests (Stryker) | `npm run test:mutation` (채점·통계 순수 로직 8파일에 뮤턴트 주입 — **break 85**) | `reports/mutation/`(7일) |
+| `mutation-storage` | Mutation tests — 영속화·상태 계층 | `npm run test:mutation:storage` (`storage.ts`·`useQuizStore.ts` — **break 68**, 래칫) | `reports/mutation-storage/`(7일) |
 | `build` | Build (tsc + vite) | `npm run build` → **`npm run size`**(번들 예산: JS 140KB·CSS 12KB, gzip) | `dist/`(7일) |
 | `android-build` | Android APK build (no deploy) | `npm run build` → `cap sync` → 커밋된 android 프로젝트가 낡았는지 확인 → `./gradlew assembleDebug` | — |
 | `e2e` | E2E smoke (Playwright) | `npm run test:e2e`(`--project=react` — 시드 랜덤 스모크·몽키·axe 포함) | 실패 시 `playwright-report/`(7일) |

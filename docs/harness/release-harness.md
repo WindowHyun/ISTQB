@@ -39,7 +39,7 @@ npm run test:e2e                                              # React 기능 E2E
 npm run test:nf                # 성능·오프라인·타이머·저장 내구성을 건드렸다면
 npm run test:apk               # 모바일 레이아웃·안전영역·터치 타깃을 건드렸다면
 npm run test:mutation          # 채점·통계 순수 로직을 고쳤다면 (break 85)
-npm run test:mutation:storage  # storage.ts·useQuizStore.ts를 고쳤다면 (break 67, 약 12분)
+npm run test:mutation:storage  # storage.ts·useQuizStore.ts를 고쳤다면 (break 68, 약 12분)
 python3 scripts/verify-pdf-data.py   # www/data/** 를 수정했다면 (원본 PDF 대조)
 ```
 
