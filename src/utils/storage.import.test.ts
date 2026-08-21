@@ -59,6 +59,31 @@ describe('importUserData (Phase 4)', () => {
     expect((await s.loadHistoriesFromDB())['x-1']).toBeUndefined();
   });
 
+  /**
+   * 위 검사는 **한쪽 방향만** 봤다. 안내 문구는 백업 쪽 제품 이름(`from`)만 쓰는데,
+   * 위 검사는 현재 제품이 ISTQB(기본값)라 문구에 늘 'CSTS'만 등장했다. 그래서
+   * `PRODUCT_LABEL`의 `istqb: 'ISTQB'`는 **어떤 검사도 읽지 않는 값**이었다 —
+   * 뮤테이션에서 이 문자열을 통째로 비워도 815개 검사가 전부 통과했다(생존 뮤턴트).
+   *
+   * 사용자가 읽는 문구이므로 반대 방향도 고정한다. 두 라벨 모두 문구에 실리는
+   * 경로가 생겨야 둘 다 검사의 사정권에 들어온다.
+   */
+  it('반대 방향(CSTS에서 ISTQB 백업)도 어느 제품인지 문구로 알려준다', async () => {
+    const s = await freshStorage();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { useQuizStore } = await import('../store/useQuizStore');
+    useQuizStore.setState({ activeProduct: 'csts' });
+
+    const r = await s.importUserData(backupFile({
+      schemaVersion: 1, product: 'istqb',
+      histories: { 'z-1': { id: 'z-1', setId: 'ISTQB-FL-V4-A', mode: 'exam', answers: {}, correct: 1, total: 2 } },
+    }));
+
+    expect(r.ok).toBe(false);
+    expect(r.reason).toContain('ISTQB');
+    expect((await s.loadHistoriesFromDB())['z-1']).toBeUndefined();
+  });
+
   it('제품이 같으면 정상 가져온다', async () => {
     const s = await freshStorage();
     vi.spyOn(console, 'info').mockImplementation(() => {});
