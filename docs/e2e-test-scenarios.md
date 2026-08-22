@@ -32,7 +32,7 @@ Playwright 프로젝트는 **4개**다 — `react`(기능·Chromium) · `nonfunc
 |-----------|------|
 | `react-study-ux` | 이어풀기 배너·제출 전 검토·오답노트 재설계·재응시·결과 nowrap·aria-live |
 | `react-edge-modes` | 엣지: 모드 격리·리셋·잠금·시험 전환 가드 |
-| `react-edge-modal` | 엣지: 모달 Esc/백드롭·통계·토글·오답노트 문항 보기 |
+| `react-edge-modal` | 엣지: 모달 Esc/백드롭·통계·토글·오답노트에서 본문 화면으로 나가는 문항 보기 |
 | `react-edge-content` | 엣지: 라이트박스·표·콘솔·토스트·콘텐츠 표시 회귀 |
 | `react-edge-grade` | 엣지: 미응답 확인·컷스코어·복수정답·진위형·단답형 |
 | `react-final` | 최종점검 회귀 |

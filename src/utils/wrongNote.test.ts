@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildWrongNoteBySet } from './wrongNote';
+import { buildWrongNoteBySet, wrongViewIndex, wrongViewStep } from './wrongNote';
 import type { ExamHistory } from '../store/useQuizStore';
 
 // 오답노트 세트 그룹 — 종전에는 AppModals의 useMemo 안에 묻혀 있어 유닛이 닿지 못했다.
@@ -140,5 +140,49 @@ describe('buildWrongNoteBySet — 결측 필드', () => {
     ], titleOf);
     expect(got[0].attemptCount).toBe(1);
     expect(got[0].latestCreatedAt).toBe(100);
+  });
+});
+
+/**
+ * 오답 보기 화면의 이전/다음 이동 — 종전에는 오답노트 모달 안에 있던 기능이고,
+ * 그때는 컴포넌트 안에 묻혀 있어 유닛이 닿지 못했다. 화면으로 옮기면서 꺼냈다.
+ */
+describe('wrongViewIndex / wrongViewStep', () => {
+  const S = (number: number, qid?: string) =>
+    ({ number, qid, myAnswer: ['a'], correctAnswer: ['b'] });
+  const list = [S(3, 'q-3'), S(7, 'q-7'), S(9, 'q-9')];
+
+  it('qid로 자리를 찾는다', () => {
+    expect(wrongViewIndex(list, { number: 3, qid: 'q-7' })).toBe(1);
+  });
+
+  // 옛 기록에는 qid가 없다. qid를 강요하면 그 기록 전체가 -1이 되어 이동이 죽는다.
+  it('한쪽에 qid가 없으면 번호로 내려간다', () => {
+    expect(wrongViewIndex(list, { number: 9 })).toBe(2);
+    expect(wrongViewIndex([S(4), S(5)], { number: 5, qid: 'q-5' })).toBe(1);
+  });
+
+  it('목록에 없으면 -1이다', () => {
+    expect(wrongViewIndex(list, { number: 42 })).toBe(-1);
+  });
+
+  it('이전/다음으로 한 칸씩 움직인다', () => {
+    expect(wrongViewStep(list, { number: 7, qid: 'q-7' }, 1)?.number).toBe(9);
+    expect(wrongViewStep(list, { number: 7, qid: 'q-7' }, -1)?.number).toBe(3);
+  });
+
+  // 경계에서 null을 주는 것이 계약이다 — 버튼 비활성만으로 막으면 다른 호출 경로가 샌다.
+  it('양 끝을 넘어가면 null이다', () => {
+    expect(wrongViewStep(list, { number: 3, qid: 'q-3' }, -1)).toBeNull();
+    expect(wrongViewStep(list, { number: 9, qid: 'q-9' }, 1)).toBeNull();
+  });
+
+  it('현재 문항이 목록에 없으면 이동하지 않는다', () => {
+    expect(wrongViewStep(list, { number: 42 }, 1)).toBeNull();
+  });
+
+  it('빈 목록에서도 죽지 않는다(퀵은 형제를 넘기지 않는다)', () => {
+    expect(wrongViewIndex([], { number: 1 })).toBe(-1);
+    expect(wrongViewStep([], { number: 1 }, 1)).toBeNull();
   });
 });

@@ -963,8 +963,10 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 }
 @media (max-width: 560px) { .wn-overcome .wrong-note-item-btn { grid-template-columns: 1fr; } }
 
-/* ── 오답 노트 3단계: 팝업 내 문항 보기(읽기 전용) ───────────────────── */
-.wrong-note-question-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+/* ── 오답 문항 이동(‹ N / M ›) ─────────────────────────────────────────
+   종전에는 오답노트 모달의 3단계(팝업 내 문항 보기) 머리에 있었다. 문항 상세가 본문
+   화면으로 나가면서 이 이동도 함께 옮겼고, 팝업 머리 규칙(.wrong-note-question-head)은
+   잡을 요소가 사라져 지웠다 — 남겨 두면 다음 사람이 "왜 안 먹지" 하고 되살린다. */
 .wn-nav { display: flex; align-items: center; gap: 8px; }
 .wn-nav-btn {
   width: 30px;
@@ -1064,7 +1066,10 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
    풀이 화면과 같은 골격(.workspace/.question-card)을 쓰되, 상단 액션은 '오답 노트로'와
    '풀이로 돌아가기' 둘이다 — 들어온 길과 하던 일로 각각 돌아가는 두 출구. */
 .wrong-view-screen .topbar-actions { gap: 8px; }
-.wrong-view-screen .topbar-actions button {
+/* 자식 결합자(>)가 필수다. 이 액션 줄에는 이동 컨트롤(.wn-nav > .wn-nav-btn)도 들어오는데,
+   후손 선택자로 두면 30×30 정사각 화살표가 이 규칙에 덮여 가로로 늘어난다
+   (이 셀렉터가 클래스 2 + 요소라 .wn-nav-btn 단독보다 강하다). */
+.wrong-view-screen .topbar-actions > button {
   width: auto;
   padding: 0 14px;
   font-size: 13px;

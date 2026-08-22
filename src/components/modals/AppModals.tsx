@@ -15,33 +15,11 @@ import { latestAttemptComparison } from '../../utils/attemptStats';
 import { buildWrongNoteBySet, WrongNoteSetView } from '../../utils/wrongNote';
 import { ResultSummary } from '../quiz/ResultSummary';
 import { QuestionPalette } from '../quiz/QuestionPalette';
-import { Question } from '../../hooks/useQuestions';
 import { loadSetQuestions, peekSetQuestions } from '../../utils/questionLoader';
-import { WrongQuestionView } from '../quiz/WrongQuestionView';
 import { MODE_LABEL } from '../../utils/modeLabel';
 import { formatAnswerList } from '../../utils/answerDisplay';
 import { useBackDismiss } from '../../hooks/useBackDismiss';
 import { BACK_PRIORITY } from '../../utils/backGuard';
-
-// 오답노트 3단계(문항 보기)용 세트 문항 로더 — 본문(useQuestions)과 같은 공용
-// 로더(questionLoader)를 사용해 같은 세트를 다시 내려받지 않는다.
-// 이미 로드된 세트는 peek로 동기 렌더해 재진입 시 로딩 프레임이 깜빡이지 않는다.
-function useWrongNoteQuestions(path: string | null, setId: string | null): Question[] | null {
-  const [questions, setQuestions] = useState<Question[] | null>(
-    () => (path && peekSetQuestions(path)) || null,
-  );
-  useEffect(() => {
-    if (!setId || !path) { setQuestions(null); return; }
-    const cached = peekSetQuestions(path);
-    if (cached) { setQuestions(cached); return; }
-    let cancelled = false;
-    loadSetQuestions(path)
-      .then((qs) => { if (!cancelled) setQuestions(qs); })
-      .catch(() => { if (!cancelled) setQuestions([]); });
-    return () => { cancelled = true; };
-  }, [path, setId]);
-  return questions;
-}
 
 const FONT_SIZES: { value: 'small' | 'normal' | 'large'; label: string }[] = [
   { value: 'small', label: '작게' },
@@ -112,8 +90,6 @@ export const AppModals = () => {
   const [debugOn, setDebugOn] = useState(() => isDebugEnabled());
   // 오답 노트 팝업에서 선택한 세트(null이면 세트 목록 화면).
   const [wrongNoteSetId, setWrongNoteSetId] = useState<string | null>(null);
-  // 오답 노트 3단계: 선택한 오답 문항 번호(null이면 오답 목록 화면). 팝업 안에서 문제를 다시 본다.
-  const [wrongNoteQuestionNo, setWrongNoteQuestionNo] = useState<number | null>(null);
   // 응시 중 '처음 화면으로' 확인 — 잠금을 옆문으로 조용히 우회하지 않게 명시적 확인을 거친다
   // (답안은 저장되므로 파괴적이지 않음 → 로컬 상태로 충분, 다른 컴포넌트가 열 일 없음).
   const [confirmHomeOpen, setConfirmHomeOpen] = useState(false);
@@ -140,12 +116,13 @@ export const AppModals = () => {
   useBackDismiss(pendingRestart, () => setPendingRestart(false), BACK_PRIORITY.confirm);
   useBackDismiss(Boolean(pendingImport), () => setPendingImport(null), BACK_PRIORITY.confirm);
   useBackDismiss(confirmExitExam, () => setConfirmExitExam(false), BACK_PRIORITY.confirm);
-  // 오답노트는 3단계(세트 → 오답 목록 → 문항)라 뒤로가기가 한 단계씩 되돌아간다 —
-  // 문항을 보다 뒤로가기를 눌렀을 때 노트가 통째로 닫히면 되짚어 들어가야 한다.
+  // 오답노트는 2단계(세트 → 오답 목록)라 뒤로가기가 한 단계씩 되돌아간다 —
+  // 목록에서 뒤로가기를 눌렀을 때 노트가 통째로 닫히면 되짚어 들어가야 한다.
+  // 3단계(문항 상세)는 이제 이 모달에 없다. 문항은 본문 화면으로 나가고, 그 화면이
+  // 자기 뒤로가기를 직접 등록해 '← 오답 노트'로 되돌린다(WrongViewScreen).
   useBackDismiss(
     wrongNoteOpen,
     () => {
-      if (wrongNoteQuestionNo != null) { setWrongNoteQuestionNo(null); return; }
       if (wrongNoteSetId != null) { setWrongNoteSetId(null); return; }
       setWrongNoteOpen(false);
     },
@@ -238,26 +215,10 @@ export const AppModals = () => {
   const selectedWrong = wrongNoteSetId
     ? wrongNoteBySet.find((h) => h.setId === wrongNoteSetId) ?? null
     : null;
-  // 3단계 문항 보기: 선택한 세트의 문항을 로드해 해당 번호의 문제를 찾는다.
-  const wrongNoteSetPath = selectedWrong
-    ? appData?.sets.find((s) => s.id === selectedWrong.setId)?.path ?? null
-    : null;
-  const wrongNoteQuestions = useWrongNoteQuestions(wrongNoteSetPath, selectedWrong?.setId ?? null);
-  const selectedWrongItem = selectedWrong && wrongNoteQuestionNo != null
-    ? (selectedWrong.wrongItems ?? []).find((it) => it.number === wrongNoteQuestionNo) ?? null
-    : null;
-  const selectedWrongQuestion = selectedWrongItem
-    ? wrongNoteQuestions?.find((q) => q.number === selectedWrongItem.number) ?? null
-    : null;
-  // 3단계 ‹ › 이동: 같은 회차의 오답 목록 안에서 이전/다음 오답 문항으로 넘긴다.
-  const wrongItems = selectedWrong?.wrongItems ?? [];
-  const wrongItemIndex = selectedWrongItem
-    ? wrongItems.findIndex((it) => it.number === selectedWrongItem.number)
-    : -1;
-  const gotoWrongItem = (delta: number) => {
-    const next = wrongItems[wrongItemIndex + delta];
-    if (next) setWrongNoteQuestionNo(next.number);
-  };
+  // 문항 상세는 이 모달에 없다 — 두 목록 모두 본문 화면(WrongViewScreen)으로 나간다.
+  // 종전에는 세트별 오답만 모달 안 3단계(세트 → 문항 목록 → 문항 상세)로 돌았고,
+  // 그 상세를 그리려고 세트 문항을 모달이 직접 로드했다(useWrongNoteQuestions).
+  // 같은 것을 보는 화면이 둘이면 한쪽만 고쳐지므로 화면 쪽으로 합쳤다.
 
   const handleHome = () => {
     // 응시 중(잠금)에는 바로 이동하지 않고 확인을 거친다 — 사이드바 잠금과의 일관성.
@@ -609,7 +570,7 @@ export const AppModals = () => {
           footer={selectedWrong ? undefined : (
             <>세트별 오답은 <b>전 회차 누적</b>이고, 사이드바의 <b>‘오답 다시 풀기’</b>는 최근 채점 기준으로 출제됩니다.</>
           )}
-          onClose={() => { setWrongNoteOpen(false); setWrongNoteSetId(null); setWrongNoteQuestionNo(null); }}
+          onClose={() => { setWrongNoteOpen(false); setWrongNoteSetId(null); }}
         >
           <div className="modal-body" data-testid="wrong-note">
             {wrongNoteBySet.length === 0 && quickWrongs.length === 0 ? (
@@ -698,69 +659,14 @@ export const AppModals = () => {
                 ))}
               </ul>
               </>
-            ) : selectedWrongItem ? (
-              // 3단계: 선택한 오답 문항 보기(지문·보기 + 내 답/정답 하이라이트, 읽기 전용)
-              <div data-testid="wrong-note-question">
-                <div className="wrong-note-question-head">
-                  <button
-                    type="button"
-                    className="wrong-note-back"
-                    data-testid="wrong-note-question-back"
-                    onClick={() => setWrongNoteQuestionNo(null)}
-                  >
-                    ← 오답 목록
-                  </button>
-                  {/* 같은 회차의 이전/다음 오답 문항으로 이동. 끝에서는 비활성. */}
-                  <div className="wn-nav" role="group" aria-label="오답 문항 이동">
-                    <button
-                      type="button"
-                      className="wn-nav-btn"
-                      data-testid="wrong-note-prev"
-                      aria-label="이전 오답 문항"
-                      disabled={wrongItemIndex <= 0}
-                      onClick={() => gotoWrongItem(-1)}
-                    >
-                      ‹
-                    </button>
-                    <span className="wn-nav-pos" data-testid="wrong-note-pos">
-                      {wrongItemIndex + 1} / {wrongItems.length}
-                    </span>
-                    <button
-                      type="button"
-                      className="wn-nav-btn"
-                      data-testid="wrong-note-next"
-                      aria-label="다음 오답 문항"
-                      disabled={wrongItemIndex >= wrongItems.length - 1}
-                      onClick={() => gotoWrongItem(1)}
-                    >
-                      ›
-                    </button>
-                  </div>
-                </div>
-                <h4 className="wrong-note-set">
-                  문제 {selectedWrongItem.number}
-                  <small>
-                    내 답 {fmtAns(selectedWrongItem.myAnswer)} · 정답 {fmtAns(selectedWrongItem.correctAnswer)}
-                  </small>
-                </h4>
-                {!selectedWrongQuestion ? (
-                  <p className="wn-loading">{wrongNoteQuestions === null ? '문제 불러오는 중…' : '문항을 찾을 수 없습니다.'}</p>
-                ) : (
-                  <WrongQuestionView
-                    question={selectedWrongQuestion}
-                    myAnswer={selectedWrongItem.myAnswer}
-                    correctAnswer={selectedWrongItem.correctAnswer}
-                  />
-                )}
-              </div>
             ) : (
-              // 2단계: 선택한 세트의 오답 목록(문항을 누르면 팝업 안에서 해당 문제를 본다)
+              // 2단계: 선택한 세트의 오답 목록(문항을 누르면 노트가 닫히고 본문 화면에 펼쳐진다)
               <div data-testid="wrong-note-detail">
                 <button
                   type="button"
                   className="wrong-note-back"
                   data-testid="wrong-note-back"
-                  onClick={() => { setWrongNoteSetId(null); setWrongNoteQuestionNo(null); }}
+                  onClick={() => setWrongNoteSetId(null)}
                 >
                   ← 세트 목록
                 </button>
@@ -786,7 +692,25 @@ export const AppModals = () => {
                         type="button"
                         className="wrong-note-item wrong-note-item-btn"
                         data-testid="wrong-note-item-btn"
-                        onClick={() => setWrongNoteQuestionNo(it.number)}
+                        // 퀵과 같은 길로 보낸다 — 모달 안이 아니라 본문 화면에 펼친다.
+                        // 종전에는 이 목록만 모달 안 3단계로 들어갔는데, 해설은 길고
+                        // (코드 블록·표·그림이 섞인다) 모달 안에서는 스크롤이 이중으로 겹쳤다.
+                        // 같은 것을 보는 두 가지 화면이 있을 이유가 없어 하나로 모은다.
+                        onClick={() => {
+                          setWrongView({
+                            setId: selectedWrong.setId,
+                            number: it.number,
+                            qid: it.qid,
+                            myAnswer: it.myAnswer,
+                            correctAnswer: it.correctAnswer,
+                            // 이동용 형제 목록 — 모달 상세에 있던 `‹ 3 / 12 ›`를 화면으로 옮긴다.
+                            siblings: (selectedWrong.wrongItems ?? []).map((w) => ({
+                              number: w.number, qid: w.qid,
+                              myAnswer: w.myAnswer, correctAnswer: w.correctAnswer,
+                            })),
+                          });
+                          setWrongNoteOpen(false);
+                        }}
                       >
                         <span className="wn-num">문제 {it.number}</span>
                         {/* 내 답·정답을 한 덩어리로 묶는다 — 서답형은 값이 길어 줄바꿈이

@@ -70,9 +70,11 @@ test("axe: 주요 화면 WCAG 2.1 AA 스캔", async ({ page }) => {
   await scan(page, "오답노트-세트", found);
   await page.getByTestId("wrong-note-set-btn").first().click();
   await scan(page, "오답노트-목록", found);
+  // 문항을 누르면 모달이 닫히고 본문 화면(WrongViewScreen)에 펼쳐진다 — 모달이 아니라
+  // 화면이므로 Escape가 아니라 '풀이로 돌아가기'로 빠져나온다.
   await page.getByTestId("wrong-note-item-btn").first().click();
-  await scan(page, "오답노트-상세", found);
-  await page.keyboard.press("Escape");
+  await scan(page, "오답보기-화면", found);
+  await page.getByTestId("wrong-view-close").click();
 
   // 8) 설정
   await page.getByRole("button", { name: "⚙ 설정" }).click();

@@ -139,17 +139,18 @@ test.describe("엣지-모달", () => {
     await submitGrade(page);
     await page.getByRole("button", { name: "오답 노트 보기" }).click();
     await page.getByTestId("wrong-note-set-btn").first().click();
-    // 2단계: 오답 목록의 문항 버튼 클릭 → 3단계 문항 보기
+    // 2단계: 오답 목록의 문항 버튼 클릭 → 모달이 닫히고 본문 화면에 펼쳐진다(퀵과 같은 길).
     await page.getByTestId("wrong-note-item-btn").first().click();
-    const view = page.getByTestId("wrong-note-question");
+    const view = page.getByTestId("wrong-view-screen");
     await expect(view).toBeVisible();
+    await expect(page.getByTestId("wrong-note")).toHaveCount(0);
     // 지문이 실제로 렌더된다.
     await expect(view.locator(".question-stem .rich-text-container")).not.toBeEmpty();
     // 정답 보기가 하이라이트되고 태그가 붙는다.
     await expect(view.locator(".option.correct")).toHaveCount(1);
     await expect(view.locator(".option.correct .wn-tag")).toContainText("정답");
-    // 뒤로가기 → 오답 목록으로 복귀.
-    await page.getByTestId("wrong-note-question-back").click();
+    // '← 오답 노트' → 노트가 다시 열리고 그 세트의 오답 목록으로 복귀.
+    await page.getByTestId("wrong-view-back").click();
     await expect(page.getByTestId("wrong-note-detail")).toBeVisible();
   });
 
@@ -165,7 +166,7 @@ test.describe("엣지-모달", () => {
     await page.getByRole("button", { name: "오답 노트 보기" }).click();
     await page.getByTestId("wrong-note-set-btn").first().click();
     await page.getByTestId("wrong-note-item-btn").first().click();
-    const view = page.getByTestId("wrong-note-question");
+    const view = page.getByTestId("wrong-view-screen");
     // 내 답(오답)이 danger 스타일로 표시된다(정답과 다른 보기를 골랐던 문항).
     await expect(view.locator(".option.wrong .wn-tag")).toContainText("내 답");
     await expect(view.locator(".option.correct")).toHaveCount(1);
@@ -183,8 +184,8 @@ test.describe("엣지-모달", () => {
     await page.getByRole("button", { name: "오답 노트 보기" }).click();
     await page.getByTestId("wrong-note-set-btn").first().click();
     await page.getByTestId("wrong-note-item-btn").first().click();
-    const view = page.getByTestId("wrong-note-question");
-    const title = view.locator(".wrong-note-set");
+    const view = page.getByTestId("wrong-view-screen");
+    const title = view.locator("#questionTitle");
     const first = (await title.textContent()) || "";
     // 첫 오답: ‹ 비활성, 위치 "1 / N".
     await expect(page.getByTestId("wrong-note-prev")).toBeDisabled();

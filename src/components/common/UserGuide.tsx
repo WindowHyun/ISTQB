@@ -60,7 +60,7 @@ export const UserGuide = ({ onClose }: { onClose: () => void }) => (
       <section className="guide-section">
         <h4>📒 오답 노트</h4>
         <ul>
-          <li>채점한 <strong>모든 회차의 오답이 누적</strong>됩니다. 문항을 누르면 지문·보기·내 답·정답을 다시 볼 수 있어요.</li>
+          <li>채점한 <strong>모든 회차의 오답이 누적</strong>됩니다. 문항을 누르면 노트가 닫히고 그 문항의 지문·보기·해설이 <strong>화면에 펼쳐집니다</strong>(팝업이 아니에요). <strong>‹ ›</strong> 로 그 세트의 다른 오답으로 바로 넘어갈 수 있고, <strong>← 오답 노트</strong>로 목록에 돌아갑니다.</li>
           <li>최근 시험 2회 연속으로 맞힌 문항에는 <strong>✓ 극복</strong> 배지가 붙고 흐리게 표시됩니다.</li>
         </ul>
       </section>

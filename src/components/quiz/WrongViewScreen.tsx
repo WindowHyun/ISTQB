@@ -6,19 +6,26 @@ import { loadSetQuestions, peekSetQuestions } from '../../utils/questionLoader';
 import { questionKey } from '../../utils/chapterStats';
 import { formatAnswerList } from '../../utils/answerDisplay';
 import { WrongQuestionView } from './WrongQuestionView';
+import { wrongViewIndex, wrongViewStep } from '../../utils/wrongNote';
 import { useBackDismiss } from '../../hooks/useBackDismiss';
 import { BACK_PRIORITY } from '../../utils/backGuard';
 
 /**
  * 오답 하나를 **본문 화면**에 펼친다 — 팝업이 아니다.
  *
- * 퀵 오답은 출처 세트가 문항마다 다르다(전 세트를 섞는 모드라). 그래서 "세트를 고르고
- * 번호를 찾는" 노트의 기존 3단계로는 닿을 수 없었고, 목록은 보기 전용이었다. 노트에서
- * '오답 보기'를 누르면 그 문항의 출처 세트를 열어 여기서 지문·보기·해설을 보여준다.
+ * 오답 노트의 **두 목록이 모두 여기로 온다**(퀵 임시 목록 · 세트별 오답).
+ * 처음에는 퀵 전용이었다: 퀵 오답은 출처 세트가 문항마다 달라(전 세트를 섞는 모드라)
+ * "세트를 고르고 번호를 찾는" 노트의 3단계로는 닿을 수 없었기 때문이다. 세트별 오답은
+ * 그 3단계 안에 상세 화면을 따로 갖고 있었는데, 같은 것을 보는 화면이 둘일 이유가 없어
+ * 이쪽으로 합쳤다.
  *
  * 모달이 아니라 화면인 이유: 해설은 길고(코드 블록·표·그림이 섞인다) 모달 안에서는
  * 스크롤이 이중으로 겹친다. 그리고 노트를 닫아야만 문제를 볼 수 있던 종전 동선이
  * "닫고 다시 열기"를 반복하게 했다.
+ *
+ * 합치면서 모달 상세에 있던 **이전/다음 이동(`‹ 3 / 12 ›`)을 함께 가져왔다.** 옮기지
+ * 않았다면 세트별 오답에서 문항을 하나 볼 때마다 노트로 돌아가야 해, 기능이 조용히
+ * 나빠졌을 자리다(형제 목록은 `wrongView.siblings`가 나른다).
  */
 export const WrongViewScreen = () => {
   const { wrongView, setWrongView, setWrongNoteOpen } = useQuizStore(useShallow((s) => ({
@@ -55,6 +62,18 @@ export const WrongViewScreen = () => {
 
   if (!wrongView) return null;
 
+  // 같은 세트의 오답을 죽 훑는 이동. 형제 목록이 없으면(퀵) 이동 자체를 그리지 않는다 —
+  // 버튼만 두고 늘 비활성으로 두면 "왜 안 눌리지"가 되고, 그 답이 화면에 없다.
+  // 자리 찾기·경계 판정은 utils/wrongNote가 단일 원천이다(유닛이 닿는 자리).
+  const siblings = wrongView.siblings ?? [];
+  const at = wrongViewIndex(siblings, wrongView);
+  const goto = (delta: number) => {
+    const next = wrongViewStep(siblings, wrongView, delta);
+    if (!next) return;
+    // setId·siblings는 그대로 유지한다 — 같은 세트 안에서만 움직인다.
+    setWrongView({ ...wrongView, ...next });
+  };
+
   const setTitle = appData?.sets.find((s) => s.id === wrongView.setId)?.title ?? wrongView.setId;
   // id로 먼저 찾는다 — 문항 번호는 세트마다 겹치므로, 번호만으로 찾으면 재수록 문항에서
   // 다른 세트의 같은 번호를 집을 수 있다. 옛 기록에는 id가 없어 번호로 내려간다.
@@ -73,6 +92,33 @@ export const WrongViewScreen = () => {
           </div>
         </div>
         <div className="topbar-actions">
+          {at >= 0 && siblings.length > 1 && (
+            <div className="wn-nav" role="group" aria-label="오답 문항 이동">
+              <button
+                type="button"
+                className="wn-nav-btn"
+                data-testid="wrong-note-prev"
+                aria-label="이전 오답 문항"
+                disabled={at <= 0}
+                onClick={() => goto(-1)}
+              >
+                ‹
+              </button>
+              <span className="wn-nav-pos" data-testid="wrong-note-pos">
+                {at + 1} / {siblings.length}
+              </span>
+              <button
+                type="button"
+                className="wn-nav-btn"
+                data-testid="wrong-note-next"
+                aria-label="다음 오답 문항"
+                disabled={at >= siblings.length - 1}
+                onClick={() => goto(1)}
+              >
+                ›
+              </button>
+            </div>
+          )}
           <button type="button" data-testid="wrong-view-back" onClick={backToNote}>← 오답 노트</button>
           <button type="button" data-testid="wrong-view-close" onClick={close}>풀이로 돌아가기</button>
         </div>

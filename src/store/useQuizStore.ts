@@ -195,7 +195,25 @@ export interface QuizState {
    * 영속화하지 않는다: 새로고침하면 풀이 화면으로 돌아가는 편이 자연스럽고, 이 값이
    * 남아 있으면 앱이 오답 화면으로 열려 "왜 문제가 안 나오지"가 된다.
    */
-  wrongView: { setId: string; number: number; qid?: string; myAnswer: string[]; correctAnswer: string[] } | null;
+  wrongView: {
+    setId: string;
+    number: number;
+    qid?: string;
+    myAnswer: string[];
+    correctAnswer: string[];
+    /**
+     * 같은 세트에서 함께 틀린 문항들 — 있으면 화면에 이전/다음 이동이 뜬다.
+     *
+     * 세트별 오답은 한 회차의 오답을 죽 훑는 동선이라, 하나 보고 노트로 돌아가 다음을
+     * 누르는 왕복이 목록 길이만큼 반복된다. 종전 모달 상세에 있던 `‹ 3 / 12 ›` 이동을
+     * 화면으로 그대로 옮긴 것이다.
+     *
+     * 퀵은 넘기지 않는다(비워 둔다) — 출처 세트가 문항마다 달라 "같은 세트의 이전/다음"이
+     * 성립하지 않는다. 넘긴다면 세트를 건너뛰며 이동하게 되는데, 머리말의 세트명이 매번
+     * 바뀌어 어디를 보고 있는지 읽히지 않는다.
+     */
+    siblings?: { number: number; qid?: string; myAnswer: string[]; correctAnswer: string[] }[];
+  } | null;
 
   // Actions
   setActiveProduct: (product: 'istqb' | 'csts') => void;

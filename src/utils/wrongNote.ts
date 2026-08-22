@@ -94,3 +94,45 @@ export function buildWrongNoteBySet(
   }
   return merged.sort((a, b) => (b.latestCreatedAt || 0) - (a.latestCreatedAt || 0));
 }
+
+/** 오답 보기 화면이 이동에 쓰는 최소 형태(스토어 wrongView의 부분집합). */
+export interface WrongViewSibling {
+  number: number;
+  qid?: string;
+  myAnswer: string[];
+  correctAnswer: string[];
+}
+
+/**
+ * 형제 목록에서 지금 보고 있는 문항의 자리를 찾는다. 없으면 -1.
+ *
+ * **id를 번호보다 먼저 본다.** 문항 번호는 세트마다 겹치고, 한 세트 안에서도 재수록·개편으로
+ * 같은 번호가 둘일 수 있다. 번호로만 찾으면 3번을 눌렀는데 다른 3번이 잡힌다 —
+ * `WrongViewScreen`이 문항 자체를 찾을 때 쓰는 규칙과 같다(qid 우선, 없으면 번호).
+ *
+ * 양쪽 다 qid가 있을 때만 qid로 비교한다. 옛 기록에는 qid가 없어(번호만 남았다) 그때는
+ * 번호로 내려가야 하고, 한쪽만 있는 상태에서 qid를 강요하면 옛 기록이 통째로 -1이 된다.
+ */
+export function wrongViewIndex(
+  siblings: WrongViewSibling[],
+  current: { number: number; qid?: string },
+): number {
+  return siblings.findIndex((s) =>
+    (current.qid && s.qid ? s.qid === current.qid : s.number === current.number));
+}
+
+/**
+ * 이전/다음 오답 문항으로 옮긴 결과를 돌려준다. 끝을 넘어가면 null(이동 없음).
+ *
+ * 경계에서 null을 주는 것이 이 함수의 계약이다 — 호출부가 버튼 비활성만으로 막으면
+ * 키보드·프로그램 호출 경로가 열린 채로 남아 목록 밖으로 걸어 나간다.
+ */
+export function wrongViewStep(
+  siblings: WrongViewSibling[],
+  current: { number: number; qid?: string },
+  delta: number,
+): WrongViewSibling | null {
+  const at = wrongViewIndex(siblings, current);
+  if (at < 0) return null;
+  return siblings[at + delta] ?? null;
+}
