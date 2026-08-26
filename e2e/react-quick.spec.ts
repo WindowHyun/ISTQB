@@ -1,5 +1,99 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, Page } from "@playwright/test";
 import { openProduct, startQuick, answerQuick, solveQuickOne, modeBtn } from "./helpers";
+
+type DrawItem = { id: string; setId: string };
+
+/**
+ * ── 출제 순서를 갈아 끼우는 도구 ──────────────────────────────────────────
+ *
+ * 퀵은 제품 전 세트(수백 문항)를 담으므로 "끝에 닿았을 때"와 "특정 유형이 나왔을 때"를
+ * 실제 뽑기에 맡기면 검사가 성립하지 않는다(끝까지 풀 수 없고, 유형은 운에 달렸다).
+ * 그래서 앱이 방금 만든 저장본의 items만 바꿔 끼운다 — 저장 형식도 문항도 앱과 데이터에서
+ * 그대로 가져오므로 문항 id를 스펙에 박지 않는다.
+ */
+async function readQuickDraw(page: Page): Promise<DrawItem[]> {
+  return page.evaluate(() => {
+    for (const key of Object.keys(localStorage)) {
+      if (!key.endsWith("-ui-state")) continue;
+      try {
+        const items = (JSON.parse(localStorage.getItem(key) ?? "{}").quickDraw?.items ?? []) as DrawItem[];
+        if (items.length) return items;
+      } catch { /* 손상된 값은 건너뛴다 */ }
+    }
+    return [] as DrawItem[];
+  });
+}
+
+async function writeQuickDraw(page: Page, items: DrawItem[]) {
+  const applied = await page.evaluate((next) => {
+    type Ui = { index?: number; quickDraw?: { items: unknown[] } };
+    let hits = 0;
+    for (const key of Object.keys(localStorage)) {
+      // ui-state는 최상위에, 스냅샷은 uiState 아래에 같은 값을 들고 있다.
+      // 복원은 스냅샷을 우선해 읽으므로 둘 다 고쳐야 한다.
+      const isUi = key.endsWith("-ui-state");
+      const isSnapshot = key.endsWith("-history-snapshot");
+      if (!isUi && !isSnapshot) continue;
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const parsed = JSON.parse(raw) as Ui & { uiState?: Ui };
+        const ui = isUi ? parsed : parsed.uiState;
+        if (!ui?.quickDraw) continue;
+        ui.quickDraw.items = next;
+        ui.index = 0;
+        localStorage.setItem(key, JSON.stringify(parsed));
+        hits += 1;
+      } catch { /* 손상된 값은 건너뛴다 */ }
+    }
+    return hits;
+  }, items);
+  expect(applied, "저장된 퀵 출제 순서를 찾지 못했다 — 검사 전제가 깨졌다").toBeGreaterThan(0);
+}
+
+/** 저장(디바운스 500ms)이 끝나기를 기다렸다가 지금 저장된 출제 순서를 읽는다. */
+async function savedQuickDraw(page: Page): Promise<DrawItem[]> {
+  await expect
+    .poll(() => readQuickDraw(page).then((i) => i.length), { timeout: 10_000 })
+    .toBeGreaterThan(0);
+  return readQuickDraw(page);
+}
+
+/**
+ * 출제 순서를 주어진 항목으로 바꾼 뒤 그 제품으로 다시 들어간다.
+ *
+ * 순서가 중요하다 — **먼저 게이트로 되돌린 다음에 고친다.** 페이지를 떠나는 순간
+ * QuestionWorkspace의 정리(flushPersist)가 메모리의 출제 순서를 그대로 다시 쓰므로,
+ * 떠나기 전에 고쳐 두면 그 쓰기에 덮인다. 게이트에서는 activeProduct가 없어
+ * 저장 경로가 전부 조기 반환하므로 이 사이에 쓴 값이 그대로 복원에 들어간다.
+ */
+async function reopenQuickWith(page: Page, product: "ISTQB" | "CSTS", items: DrawItem[]) {
+  await page.reload();
+  const gate = page.getByRole("button", { name: product }).first();
+  await expect(gate).toBeVisible({ timeout: 20_000 });
+  await writeQuickDraw(page, items);
+  await gate.click();
+  await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+}
+
+/** 서답형(단일 칸) 문항 하나를 데이터에서 찾는다 — CSTS에만 있다. */
+async function findShortAnswerItem(page: Page): Promise<DrawItem> {
+  const found = await page.evaluate(async () => {
+    const idx = await fetch("data/index.json").then((r) => r.json());
+    const sets = (idx.sets as { id: string; certification: string; path: string }[])
+      .filter((s) => s.certification.toLowerCase() === "csts");
+    for (const s of sets) {
+      const raw = await fetch(`data/${s.path.replace(/^\.\//, "")}`).then((r) => r.json());
+      const questions = (Array.isArray(raw) ? raw : raw.questions ?? []) as
+        { id?: string; type?: string; answerParts?: unknown[] }[];
+      const q = questions.find((x) => x.type === "short_answer" && !x.answerParts?.length && x.id);
+      if (q?.id) return { id: q.id, setId: s.id };
+    }
+    return null;
+  });
+  expect(found, "CSTS에 서답형 문항이 없다 — 검사 전제가 깨졌다").not.toBeNull();
+  return found as DrawItem;
+}
 
 /**
  * 퀵 — 제품의 전 세트를 섞어 한 문항씩 무한으로 푸는 모드(구 '랜덤'을 흡수했다).
@@ -195,5 +289,92 @@ test.describe("퀵 — 세트 센티넬의 파급", () => {
     await solveQuickOne(page);
     await startQuick(page, "CSTS");
     await expect(page.getByTestId("qs-solved")).toHaveText("0");
+  });
+});
+
+/**
+ * 커서 규칙 — "앞으로만, 확정한 만큼만".
+ *
+ * 세 경로가 각자 커서를 만지면서 이 규칙 밖으로 나가 있었다(전부 실측으로 확인한 결함이다).
+ * 규칙을 아는 코드(quickReady·isQuickCommitted·advanceQuick)가 아니라, 그 규칙을 모르는
+ * 주변 코드가 뚫는 유형이라 화면에서 직접 고정한다.
+ */
+test.describe("퀵 — 커서 규칙", () => {
+  test("목록 끝에 닿으면 '한 바퀴 완료'가 뜨고 거기서 다시 시작할 수 있다", async ({ page }) => {
+    // 종전에는 범위 보정 effect가 완료 화면이 렌더된 직후 커서를 마지막 문항으로
+    // 되돌렸다 — 완료 화면과 '다시 섞어 시작'이 통째로 도달 불가였고, 사용자에게는
+    // 마지막 문항에서 '다음 문제'가 먹통인 것으로 보였다.
+    await startQuick(page, "ISTQB");
+    const items = await savedQuickDraw(page);
+    expect(items.length, "출제 순서가 전 세트를 담지 않았다 — 검사 전제가 깨졌다").toBeGreaterThan(2);
+    await reopenQuickWith(page, "ISTQB", items.slice(0, 2));
+
+    await solveQuickOne(page);
+    await solveQuickOne(page);
+
+    const done = page.getByTestId("quick-exhausted");
+    await expect(done, "목록을 다 풀었는데 완료 화면이 뜨지 않는다").toBeVisible();
+    // 세션 결과를 함께 보여준다 — 기록이 남지 않는 모드라 이 화면이 유일한 결산이다.
+    await expect(done).toContainText("정답");
+
+    await page.getByTestId("quick-restart-btn").click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("qs-solved")).toHaveText("0");
+  });
+
+  test("확정할 수 없는 입력으로는 '정답 확인'을 누를 수 없다", async ({ page }) => {
+    // 빈 입력으로 확인이 눌리면 해설만 열리고 확정은 되지 않아, '다음 문제'가 잠긴 채
+    // 확인 버튼마저 사라졌다 — 그 뒤로는 답을 입력해도 확정할 수단이 없어 그 문항에서
+    // 영영 빠져나올 수 없었다(탈출로는 '다시 섞어 시작'뿐, 진행은 전부 소실).
+    await startQuick(page, "CSTS");
+    const short = await findShortAnswerItem(page);
+    await reopenQuickWith(page, "CSTS", [short]);
+
+    const input = page.locator(".short-answer-input").first();
+    await expect(input, "서답형이 출제되지 않았다 — 검사 전제가 깨졌다").toBeVisible();
+    const check = page.getByTestId("short-answer-check");
+
+    // 비어 있으면 잠기고, 왜 잠겼는지 버튼 문구가 말한다(비활성만 두면 "왜 안 눌리지"가 된다).
+    await expect(check).toBeDisabled();
+    await expect(check).toContainText("입력");
+    await expect(page.locator("#feedback"), "확정 전에 해설이 열렸다").toHaveCount(0);
+    await expect(page.getByTestId("quick-next-btn")).toBeDisabled();
+
+    // 채우면 확인이 열리고, 확인은 곧 확정이다 — 잠금·해설·'다음 문제'가 함께 성립한다.
+    await input.fill("아무 답");
+    await expect(check).toBeEnabled();
+    await check.click();
+    await expect(page.locator("#feedback")).toBeVisible();
+    await expect(input, "확정했는데 입력칸이 잠기지 않았다").toBeDisabled();
+    await expect(page.getByTestId("quick-next-btn")).toBeEnabled();
+    await expect(page.getByTestId("qs-solved")).toHaveText("1");
+  });
+
+  test("키보드 화살표로는 커서가 움직이지 않는다", async ({ page }) => {
+    // 퀵에는 순차 이동이 없는데 화살표 핸들러에는 모드 가드가 없어, 키보드로만 규칙이
+    // 뚫렸다. →는 확정하지 않은 문항을 건너뛰어(커서가 앞으로만 가므로 영영 다시 안
+    // 나온다) '진행'과 '정답+오답'을 어긋나게 했고, ←는 진행 수치를 되감았다(실측 2→1).
+    await startQuick(page, "ISTQB");
+    const stem = () => page.locator("#questionStem").innerText();
+
+    // 지문에 포커스를 두고 누른다 — 입력칸에 포커스가 남아 있으면 핸들러가 원래
+    // 건너뛰므로, 그 상태로 통과하면 아무것도 증명하지 못한다.
+    const first = await stem();
+    await page.locator("#questionStem").click();
+    await page.keyboard.press("ArrowRight");
+    await page.waitForTimeout(200);
+    expect(await stem(), "→로 확정하지 않은 문항을 건너뛰었다").toBe(first);
+    await expect(page.getByTestId("qs-solved")).toHaveText("0");
+
+    await solveQuickOne(page);
+    await answerQuick(page);
+    await expect(page.getByTestId("qs-solved")).toHaveText("2");
+    const second = await stem();
+
+    await page.locator("#questionStem").click();
+    await page.keyboard.press("ArrowLeft");
+    await page.waitForTimeout(200);
+    expect(await stem(), "←로 이전 문항으로 되돌아갔다").toBe(second);
+    await expect(page.getByTestId("qs-solved"), "←로 되돌아가 진행 집계가 줄었다").toHaveText("2");
   });
 });

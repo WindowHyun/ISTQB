@@ -43,6 +43,9 @@ export const QuestionWorkspace = () => {
     showExamGate, examLocked, // 시험 단계 파생은 useQuizSession이 단일 원천(잠금과 동일 규칙 집합)
     loadError, retryLoad,
   } = useQuizSession();
+  // 커서 규칙이 모드마다 다르다(퀵만 목록 끝을 한 칸 지나갈 수 있다) — 아래 effect들이
+  // 조기 return보다 먼저 실행되므로 여기서 한 번만 정한다.
+  const isQuick = mode === 'quick';
   // 시험 제한시간(자격증별). null이면 제한 없음 — 종전처럼 경과 시간만 센다.
   const examLimit = mode === 'exam' ? examLimitSeconds(activeProduct) : null;
   // 경고는 임계값을 '내려가는 순간'에만 1회 울린다 — 매초 재발화나, 재응시로 시간이
@@ -163,12 +166,20 @@ export const QuestionWorkspace = () => {
   useBackDismiss(examLocked, () => setConfirmExitExam(true), BACK_PRIORITY.exam);
 
   // index가 현재 목록 범위를 벗어나면 보정(세트/모드 전환 잔여 index 방어, #70)
+  //
+  // 퀵만 상한이 한 칸 높다. 커서가 목록 끝을 지나간 자리(index === total)가 곧 '한 바퀴
+  // 완료' 화면인데, 다른 모드와 같은 규칙으로 끌어당기면 그 화면이 렌더된 직후 마지막
+  // 문항으로 되돌아간다 — 완료 화면과 '다시 섞어 시작'이 통째로 도달 불가가 되고,
+  // 사용자에게는 마지막 문항에서 '다음 문제'가 먹통인 것으로 보인다(실측 확인).
+  // 그 한 칸 너머(문항이 줄어든 상태로 복원되는 등)는 종전대로 끌어당긴다.
   useEffect(() => {
     const total = currentQuestions.length;
-    if (total && (index < 0 || index >= total)) {
-      setIndex(Math.min(Math.max(index, 0), total - 1));
+    if (!total) return;
+    const maxIndex = isQuick ? total : total - 1;
+    if (index < 0 || index > maxIndex) {
+      setIndex(Math.min(Math.max(index, 0), maxIndex));
     }
-  }, [currentQuestions.length, index, setIndex]);
+  }, [currentQuestions.length, index, setIndex, isQuick]);
 
   // 이어풀기 배너는 첫 문항(또는 세트 변경)에 도달하면 자동으로 닫는다(#A).
   useEffect(() => {
@@ -193,6 +204,13 @@ export const QuestionWorkspace = () => {
       ) {
         return;
       }
+      // 퀵에는 순차 이동이 없다 — 커서는 '다음 문제'로만, 앞으로만 간다.
+      // 화살표를 열어 두면 그 규칙이 키보드로만 뚫린다: →는 답을 확정하지 않은 문항을
+      // 건너뛰어(집계에서 빠지고 커서는 앞으로만 가므로 영영 다시 안 나온다) 화면의
+      // '진행'과 '정답+오답'을 어긋나게 하고, ←는 커서를 되돌려 진행 수치를 되감는다
+      // (집계가 커서 기준 파생값이라 그 자리에서 숫자가 줄어든다 — 실측 2→1).
+      // 모드는 이벤트 시점에 읽는다 — effect 의존성에 넣어 리스너를 다시 걸 이유가 없다.
+      if (s.mode === 'quick') return;
       if (event.key === 'ArrowLeft') setIndex((i) => Math.max(0, i - 1));
       else if (event.key === 'ArrowRight') setIndex((i) => Math.min(total - 1, i + 1));
     };
@@ -242,7 +260,6 @@ export const QuestionWorkspace = () => {
 
   const total = currentQuestions.length;
   const setTitle = appData?.sets.find((s) => s.id === setId)?.title || '';
-  const isQuick = mode === 'quick';
   // 퀵 집계 — 커서까지의 답안에서 파생한다(별도 카운터 없음, quickStats 주석 참고).
   const quick = isQuick
     ? computeQuickStats(currentQuestions, answers, answerKeyOf, index)

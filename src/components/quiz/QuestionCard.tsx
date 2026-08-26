@@ -144,6 +144,21 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
     if (isQuick) setAnswer(answerKey, draft);
     setShowFeedback(true);
   };
+  /**
+   * 퀵에서 '확인'을 눌러도 되는가 — 확정되지 않을 입력으로는 누를 수 없게 막는다.
+   *
+   * 종전에는 빈 입력(또는 다답형의 일부만 채운 입력)으로 눌러도 그대로 저장하고 해설을
+   * 열었다. 그러면 세 가지가 동시에 어긋난다: reveal이 켜져 '정답 확인' 버튼이 사라지고,
+   * 확정은 되지 않아 입력칸이 잠기지도 '다음 문제'가 열리지도 않는다. 그 뒤로는 답을
+   * 타이핑해도 퀵은 draft만 갱신하므로 확정할 수단이 남지 않는다 — 그 문항에서 영영
+   * 빠져나올 수 없다(실측 확인: '다시 섞어 시작'이나 모드 전환 외에 탈출로가 없었다).
+   *
+   * 판정은 확정 여부를 정하는 그 술어(isQuickCommitted)를 그대로 쓴다. 여기서 따로
+   * "비어 있나"만 보면 다답형의 부분 입력이 그대로 통과해 같은 교착이 남는다.
+   * 비활성 이유는 문구로 말한다 — '다음 문제' 버튼과 같은 규칙이다.
+   */
+  const quickCheckBlocked = isQuick && !isQuickCommitted(question, draft);
+  const checkLabel = quickCheckBlocked ? '정답을 입력하면 확인할 수 있어요' : '정답 확인';
 
   const correct = isQuestionCorrect(question.answer, selected, question.type, parts);
   const answerDisplay = isMultiPart
@@ -223,9 +238,11 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
               <button
                 type="button"
                 className="short-answer-check"
+                data-testid="short-answer-check"
+                disabled={quickCheckBlocked}
                 onClick={handleCheck}
               >
-                정답 확인
+                {checkLabel}
               </button>
             )}
           </div>
@@ -246,9 +263,11 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
               <button
                 type="button"
                 className="short-answer-check"
+                data-testid="short-answer-check"
+                disabled={quickCheckBlocked}
                 onClick={handleCheck}
               >
-                정답 확인
+                {checkLabel}
               </button>
             )}
           </div>

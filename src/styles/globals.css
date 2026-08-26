@@ -702,6 +702,9 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
 .short-answer-input:disabled { background: var(--surface-3); color: var(--muted); }
 .short-answer-check {
   flex: none;
+  /* 입력칸 옆에 설 때는 stretch로 키가 맞지만, 좁은 폭에서 줄바꿈되면 자기 줄에서
+     내용 높이만큼만 남는다 — 손가락으로 누르는 크기를 그때도 지킨다. */
+  min-height: 44px;
   padding: 0 20px;
   border: 1px solid var(--primary-solid);
   border-radius: var(--radius);
@@ -710,7 +713,16 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
   font-size: 14px;
   font-weight: 700;
 }
-.short-answer-check:hover { background: var(--primary-600); }
+.short-answer-check:hover:not(:disabled) { background: var(--primary-600); }
+/* 비활성(퀵에서 아직 확정할 수 없는 입력) — 흐리게 하면 이유를 적은 버튼 문구가
+   읽히지 않는다. '다음 문제' 버튼과 같이 투명도가 아니라 색으로 비활성을 알린다. */
+.short-answer-check:disabled {
+  opacity: 1;
+  background: var(--surface-3);
+  color: var(--muted);
+  border-color: var(--line);
+  cursor: not-allowed;
+}
 
 /* 다답형 단답(라벨별 입력 칸) — 서로 다른 답 여러 개를 각 칸에서 요구 */
 .short-answer-multi { flex-direction: column; align-items: stretch; }
