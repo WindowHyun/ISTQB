@@ -401,8 +401,13 @@ test.describe("퀵 — 커서 규칙", () => {
 
     // 지문에 포커스를 두고 누른다 — 입력칸에 포커스가 남아 있으면 핸들러가 원래
     // 건너뛰므로, 그 상태로 통과하면 아무것도 증명하지 못한다.
+    //
+    // 클릭이 아니라 focus()로 옮긴다. 지문 안에는 그림이 들어올 수 있고 그 그림은
+    // 누르면 라이트박스를 여는 것이 사양이다 — 클릭하면 그림 문항이 뽑힌 실행에서만
+    // 오버레이가 떠 다음 조작을 가로챈다(전수 실행에서 실제로 그렇게 실패했다).
+    // 지문은 스킵 링크 대상이라 tabIndex=-1을 갖고 있어 포커스만 옮길 수 있다.
     const first = await stem();
-    await page.locator("#questionStem").click();
+    await page.locator("#questionStem").focus();
     await page.keyboard.press("ArrowRight");
     await page.waitForTimeout(200);
     expect(await stem(), "→로 확정하지 않은 문항을 건너뛰었다").toBe(first);
@@ -413,7 +418,7 @@ test.describe("퀵 — 커서 규칙", () => {
     await expect(page.getByTestId("qs-solved")).toHaveText("2");
     const second = await stem();
 
-    await page.locator("#questionStem").click();
+    await page.locator("#questionStem").focus();
     await page.keyboard.press("ArrowLeft");
     await page.waitForTimeout(200);
     expect(await stem(), "←로 이전 문항으로 되돌아갔다").toBe(second);
