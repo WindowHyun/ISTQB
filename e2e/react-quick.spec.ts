@@ -76,6 +76,20 @@ async function reopenQuickWith(page: Page, product: "ISTQB" | "CSTS", items: Dra
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 }
 
+/**
+ * 지금 화면의 지문 텍스트. **글이 실제로 들어온 뒤에** 읽는다.
+ *
+ * `#questionStem`은 RichText가 effect에서 DOM을 채우는 컨테이너라, 요소는 먼저 보이고
+ * 글은 한 틱 뒤에 온다. 그 사이에 집으면 빈 문자열을 기준으로 삼게 되는데, 그러면
+ * "문항이 안 바뀌었다"를 재는 검사는 헛되이 실패하고 "바뀌었다"를 재는 검사는 빈 값과
+ * 비교해 그냥 통과한다 — 둘 다 실제 동작을 재지 못한다(전수 실행에서 전자로 실패했다).
+ */
+async function stemText(page: Page): Promise<string> {
+  const el = page.locator("#questionStem");
+  await expect(el, "지문 텍스트가 렌더되지 않았다").toHaveText(/\S/, { timeout: 15_000 });
+  return el.innerText();
+}
+
 /** 서답형(단일 칸) 문항 하나를 데이터에서 찾는다 — CSTS에만 있다. */
 async function findShortAnswerItem(page: Page): Promise<DrawItem> {
   const found = await page.evaluate(async () => {
@@ -134,11 +148,12 @@ test.describe("퀵 — 진입과 기본 흐름", () => {
 
   test("'다음 문제'를 누르면 새 문항으로 넘어간다", async ({ page }) => {
     await startQuick(page, "ISTQB");
-    const stem = () => page.locator("#questionStem").innerText();
-    const first = await stem();
+    // 지문은 글이 들어온 뒤에 읽는다 — 빈 문자열을 기준으로 잡으면 "달라졌다"가
+    // 그냥 참이 돼, 넘어가지 못하는 결함도 통과시킨다(stemText 주석 참고).
+    const first = await stemText(page);
     await solveQuickOne(page);
     await expect(page.locator("#feedback")).toHaveCount(0); // 새 문항은 미공개 상태
-    expect(await stem(), "같은 문항이 다시 떴다").not.toBe(first);
+    expect(await stemText(page), "같은 문항이 다시 떴다").not.toBe(first);
   });
 
   test("채점 버튼과 결과 요약이 없다 — 회차라는 단위가 없는 모드다", async ({ page }) => {
@@ -397,7 +412,6 @@ test.describe("퀵 — 커서 규칙", () => {
     // 뚫렸다. →는 확정하지 않은 문항을 건너뛰어(커서가 앞으로만 가므로 영영 다시 안
     // 나온다) '진행'과 '정답+오답'을 어긋나게 했고, ←는 진행 수치를 되감았다(실측 2→1).
     await startQuick(page, "ISTQB");
-    const stem = () => page.locator("#questionStem").innerText();
 
     // 지문에 포커스를 두고 누른다 — 입력칸에 포커스가 남아 있으면 핸들러가 원래
     // 건너뛰므로, 그 상태로 통과하면 아무것도 증명하지 못한다.
@@ -406,22 +420,22 @@ test.describe("퀵 — 커서 규칙", () => {
     // 누르면 라이트박스를 여는 것이 사양이다 — 클릭하면 그림 문항이 뽑힌 실행에서만
     // 오버레이가 떠 다음 조작을 가로챈다(전수 실행에서 실제로 그렇게 실패했다).
     // 지문은 스킵 링크 대상이라 tabIndex=-1을 갖고 있어 포커스만 옮길 수 있다.
-    const first = await stem();
+    const first = await stemText(page);
     await page.locator("#questionStem").focus();
     await page.keyboard.press("ArrowRight");
     await page.waitForTimeout(200);
-    expect(await stem(), "→로 확정하지 않은 문항을 건너뛰었다").toBe(first);
+    expect(await stemText(page), "→로 확정하지 않은 문항을 건너뛰었다").toBe(first);
     await expect(page.getByTestId("qs-solved")).toHaveText("0");
 
     await solveQuickOne(page);
     await answerQuick(page);
     await expect(page.getByTestId("qs-solved")).toHaveText("2");
-    const second = await stem();
+    const second = await stemText(page);
 
     await page.locator("#questionStem").focus();
     await page.keyboard.press("ArrowLeft");
     await page.waitForTimeout(200);
-    expect(await stem(), "←로 이전 문항으로 되돌아갔다").toBe(second);
+    expect(await stemText(page), "←로 이전 문항으로 되돌아갔다").toBe(second);
     await expect(page.getByTestId("qs-solved"), "←로 되돌아가 진행 집계가 줄었다").toHaveText("2");
   });
 });
