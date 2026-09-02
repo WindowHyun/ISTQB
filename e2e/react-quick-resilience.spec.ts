@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { openProduct } from "./helpers";
+import { openProduct, answerQuick } from "./helpers";
 
 /**
  * 퀵의 취약 지점 — 부분 로드 실패(E).
@@ -39,8 +39,9 @@ test.describe("퀵 — 복원력", () => {
     expect(blockedHits, "테스트가 아무 세트도 막지 못했다(가정 붕괴)").toBeGreaterThan(0);
 
     // 살아남은 세트로 실제로 풀 수 있어야 한다 — 점수판이 오르면 출제가 성립한 것이다.
+    // 확정 절차는 공용 헬퍼로 — 보기 하나만 누르면 복수정답 문항이 뽑힌 실행에서만 실패한다.
     await expect(page.getByTestId("qs-solved")).toHaveText("0");
-    await page.locator("#options .option").first().click();
+    await answerQuick(page);
     await expect(page.getByTestId("qs-solved")).toHaveText("1");
   });
 });

@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { openProduct } from "./helpers";
+import { openProduct, answerQuick } from "./helpers";
 
 /**
  * 정합성 테스트 — 같은 사실이 화면마다 같은 값으로 보이는가.
@@ -216,8 +216,11 @@ test("정합성: 오답 수가 결과·오답노트·재풀이에서 어긋나�
   await openBar(page);
   await page.getByTestId("quick-start-btn").click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+  // 확정 절차는 공용 헬퍼로 — 위 answerCurrent는 '답함'(진행률)까지만 만들면 되는
+  // 세트 모드용이라 복수정답을 다 고르지도, 서답형의 '정답 확인'을 누르지도 않는다.
+  // 퀵에서는 그것이 곧 미확정이라 해설이 열리지 않고, 그 문항이 뽑힌 실행에서만 실패한다.
   for (let i = 0; i < 5; i += 1) {
-    await answerCurrent(page);
+    await answerQuick(page);
     await expect(page.locator("#feedback")).toBeVisible();
     await page.getByTestId("quick-next-btn").click();
   }

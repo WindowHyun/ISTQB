@@ -149,20 +149,30 @@ export async function startQuick(page: Page, product: "ISTQB" | "CSTS") {
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 }
 
-/** 현재 퀵 문항에 답한다(유형 불문) — 답하면 정답·해설이 즉시 열린다. */
-export async function answerQuick(page: Page) {
+/**
+ * 현재 퀵 문항에 답한다(유형 불문) — 확정되면 정답·해설이 즉시 열린다.
+ *
+ * **퀵에서 "보기 하나 클릭 = 확정"은 성립하지 않는다.** 복수정답은 정답 개수만큼 다 골라야
+ * 하고(ISTQB 186문항 중 9), 서답형은 입력 후 '정답 확인'까지 눌러야 한다(CSTS 440문항 중 63).
+ * 스펙마다 지역 사본을 두면 유형별 절차가 갈라져, 그 문항이 뽑힌 실행에서만 실패하는
+ * 간헐 결함이 된다 — 실제로 네 개 스펙이 그렇게 흔들렸다. 절차는 여기 하나로 모은다.
+ *
+ * tap: 터치 경로를 재는 APK 스펙용. 데스크톱 클릭과 이벤트가 달라 그쪽은 tap이어야 한다.
+ */
+export async function answerQuick(page: Page, opts: { tap?: boolean } = {}) {
+  const press = (loc: ReturnType<Page["locator"]>) => (opts.tap ? loc.tap() : loc.click());
   const short = page.locator(".short-answer-input");
   const blanks = await short.count();
   if (blanks) {
     for (let i = 0; i < blanks; i += 1) await short.nth(i).fill("테스트");
-    await page.locator(".short-answer-check").click();
+    // 빈 입력으로는 확인이 잠긴다 — 위에서 모든 칸을 채웠으므로 여기서 열려 있다.
+    await press(page.locator(".short-answer-check"));
     return;
   }
-  // 복수정답은 정답 개수만큼 골라야 확정된다 — 보기를 순서대로 눌러 채운다.
-  const opts = page.locator("#options .option");
-  const n = await opts.count();
+  const options = page.locator("#options .option");
+  const n = await options.count();
   for (let i = 0; i < n; i += 1) {
-    await opts.nth(i).click();
+    await press(options.nth(i));
     if (await page.locator("#feedback").count()) break;
   }
 }

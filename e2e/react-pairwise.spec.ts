@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { openProduct, gotoStable } from "./helpers";
+import { openProduct, gotoStable, answerQuick } from "./helpers";
 
 /**
  * 페어와이즈(all-pairs) 조합 테스트.
@@ -159,9 +159,19 @@ test.describe("페어와이즈 조합", () => {
           ? page.getByTestId("qs-solved")
           : page.locator("#progressText");
         const before = await counter.textContent();
-        const opt = page.locator("#options .option").first();
-        if (await opt.count()) {
-          await opt.click();
+        // 퀵의 '진행'은 확정한 문항만 센다 — 보기 하나를 누르는 것으로는 복수정답·서답형이
+        // 확정되지 않아, 그 문항이 뽑힌 실행에서만 "진행이 그대로"라는 오탐이 난다.
+        // 확정 절차는 공용 헬퍼가 유형별로 밟는다.
+        let answeredOne = false;
+        if (c.mode === "quick") {
+          await answerQuick(page);
+          answeredOne = true;
+        } else {
+          const opt = page.locator("#options .option").first();
+          // 보기가 없는 문항(서답형)이 뽑힌 조합은 이 검사의 대상이 아니다 — 종전과 동일.
+          if (await opt.count()) { await opt.click(); answeredOne = true; }
+        }
+        if (answeredOne) {
           await page.waitForTimeout(150);
           const after = await counter.textContent();
           if (before === after && /^0/.test(before ?? "")) {

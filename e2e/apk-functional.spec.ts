@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { enterExamMobile, openSet, submitGrade, closeResult } from "./helpers";
+import { enterExamMobile, openSet, submitGrade, closeResult, answerQuick } from "./helpers";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // APK(WebView) 기능 테스트 — Android 폰 에뮬레이션 + MainActivity의 안전영역
@@ -191,7 +191,9 @@ test.describe("APK 기능 · 퀵(터치)", () => {
     await startQuick(page);
 
     const viewport = page.viewportSize()!;
-    await page.locator("#options .option").first().tap();
+    // 확정 절차는 공용 헬퍼로(터치 경로 유지) — 보기 하나만 탭하면 복수정답 문항이
+    // 뽑힌 실행에서만 해설이 열리지 않아 실패한다.
+    await answerQuick(page, { tap: true });
     await expect(page.locator("#feedback")).toBeVisible();
 
     // '다음 문제'는 하단 고정 바가 아니라 해설 뒤 본문 흐름에 있다 — 떠 있는 버튼으로
@@ -205,7 +207,7 @@ test.describe("APK 기능 · 퀵(터치)", () => {
     expect(box.height, "터치 타깃이 44px 미만").toBeGreaterThanOrEqual(44);
 
     await next.tap();
-    await page.locator("#options .option").first().tap();
+    await answerQuick(page, { tap: true });
     await expect(page.getByTestId("qs-solved")).toHaveText("2");
 
     // 앱 프로세스 재시작 = 저장된 출제 순서·커서·답안의 복원 경로.

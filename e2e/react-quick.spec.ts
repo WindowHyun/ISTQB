@@ -175,6 +175,21 @@ test.describe("퀵 — 점수판", () => {
     expect(correct + wrong, "진행과 정답+오답이 어긋난다").toBe(3);
   });
 
+  test("새로고침해도 이어풀기 배너 없이 점수판만으로 위치를 말한다", async ({ page }) => {
+    // 배너는 '현재 N / 총계'라는 분모 있는 문법인데 퀵은 분모를 없앤 모드다. 띄우면
+    // 배너의 커서 위치와 바로 아래 점수판의 진행(확정 수)이 서로 다른 숫자라,
+    // 같은 화면이 "지금 어디인가"에 두 번 다르게 답한다(실측: 배너 3 / 점수판 2).
+    await startQuick(page, "ISTQB");
+    for (let i = 0; i < 2; i += 1) await solveQuickOne(page);
+    await page.waitForTimeout(900); // 저장 디바운스
+
+    await page.reload();
+    await page.getByRole("button", { name: "ISTQB" }).first().click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("resume-banner"), "퀵에 분모 있는 배너가 떴다").toHaveCount(0);
+    await expect(page.getByTestId("quick-scoreboard")).toBeVisible();
+  });
+
   test("새로고침해도 진행 집계와 위치가 유지된다", async ({ page }) => {
     // 집계는 답안에서 파생하므로 화면 상태가 날아가도 수치가 흔들리면 안 된다.
     await startQuick(page, "ISTQB");
@@ -228,6 +243,18 @@ test.describe("퀵 — 없어진 것들", () => {
       await expect(modeBtn(page, label)).toBeVisible();
     }
   });
+
+  test("첫 화면(제품 게이트)도 폐지된 사양을 광고하지 않는다", async ({ page }) => {
+    // 세그먼트만 보던 위 검사는 게이트를 지나쳤다 — 랜덤 폐지 뒤에도 게이트 카드가
+    // "연습·시험·랜덤·오답·퀵 5가지 모드"와 "퀵 모드 오답은 24시간 임시 목록"을
+    // 계속 광고했다. 앱을 여는 사람이 가장 먼저 읽는 문장이라 여기서 고정한다.
+    await page.goto("/");
+    const card = page.locator(".gate-content-list");
+    await expect(card).toBeVisible({ timeout: 20_000 });
+    await expect(card, "게이트가 폐지된 '랜덤' 모드를 안내한다").not.toContainText("랜덤");
+    await expect(card, "게이트가 없어진 퀵 임시 목록(24시간)을 안내한다").not.toContainText("24시간");
+    await expect(card).toContainText("4가지 모드");
+  });
 });
 
 test.describe("퀵 — 기록을 남기지 않는다", () => {
@@ -262,6 +289,21 @@ test.describe("퀵 — 세트 센티넬의 파급", () => {
     await startQuick(page, "ISTQB");
     await expect(page.getByTestId("set-select")).toBeDisabled();
     await expect(page.getByTestId("quick-set-lock-hint")).toBeVisible();
+  });
+
+  test("모드 세그먼트가 비어 있는 이유와 돌아오는 길을 밝힌다", async ({ page }) => {
+    // 퀵은 세그먼트 밖의 별도 진입로라 퀵을 푸는 동안 세 버튼이 모두 선택 해제된다 —
+    // 그 상태를 설명 없이 두면 그룹이 "아무것도 안 골랐다"로만 보인다.
+    await startQuick(page, "ISTQB");
+    const segment = page.locator('.segmented[aria-label="풀이 모드"]');
+    await expect(segment.locator('button[aria-pressed="true"]')).toHaveCount(0);
+
+    const caption = page.getByTestId("mode-caption");
+    await expect(caption).toContainText("퀵");
+    await expect(caption, "세트 풀이로 돌아가는 길을 말하지 않는다").toContainText("돌아갑니다");
+    // 보조기기에도 전달돼야 한다 — 캡션을 읽지 않으면 선택 없는 그룹으로만 들린다.
+    await expect(segment).toHaveAttribute("aria-describedby", "modeCaption");
+    await expect(caption).toHaveAttribute("id", "modeCaption");
   });
 
   test("다른 모드로 나가면 세트 선택이 다시 열린다", async ({ page }) => {
