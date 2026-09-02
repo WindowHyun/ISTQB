@@ -6,7 +6,7 @@ import { Modal } from './Modal';
 export const UserGuide = ({ onClose }: { onClose: () => void }) => (
   <Modal title="사이트 사용법" onClose={onClose}>
     <div className="modal-body guide-body" data-testid="user-guide">
-      {/* 모드 5가지 요약을 최상단에 배치 — 아래 상세 설명(📝)을 다 읽지 않아도 차이를
+      {/* 모드 요약을 최상단에 배치 — 아래 상세 설명(📝)을 다 읽지 않아도 차이를
           한눈에 비교할 수 있게 한다(#gate-optimize E). */}
       <section className="guide-section guide-overview">
         <h4>📋 한눈에 보기 — 풀이 모드 4가지</h4>
@@ -75,7 +75,7 @@ export const UserGuide = ({ onClose }: { onClose: () => void }) => (
         <h4>⚙️ 편의 기능</h4>
         <ul>
           <li>설정에서 <strong>다크 모드</strong>·<strong>글자 크기</strong>(작게/기본/크게)를 바꿀 수 있습니다.</li>
-          <li>키보드 <strong>← →</strong>로 문항 이동, <strong>문항 목록</strong>(팔레트)에서 번호로 바로 점프 — 답한 문항/빈 문항이 색으로 구분됩니다.</li>
+          <li>연습·시험·오답에서는 키보드 <strong>← →</strong>로 문항을 옮기고, <strong>문항 목록</strong>(팔레트)에서 번호로 바로 점프할 수 있어요 — 답한 문항/빈 문항이 색으로 구분됩니다. (퀵은 <strong>다음 문제</strong>로만 앞으로 나아갑니다)</li>
           <li>그림 문항은 이미지를 누르면 <strong>확대</strong>됩니다(Esc로 닫기).</li>
           <li>한 번 접속해두면 <strong>오프라인</strong>에서도 동작합니다(PWA).</li>
         </ul>

@@ -19,20 +19,13 @@ interface ResultSummaryProps {
   modeLabel?: string;
   onClose: () => void;
   onOpenWrongNote: () => void;
-  /** 원클릭 재응시(A3) — 답안 초기화 후 시험은 게이트부터, 랜덤은 같은 추첨을 새로 푼다. */
+  /** 원클릭 재응시(A3) — 답안을 초기화하고 시작 게이트부터 다시 응시한다. */
   onRetry?: () => void;
-  /**
-   * 합격 판정을 숨긴다(퀵 랜덤). 10~20문항 표본에 '합격 기준 미달'을 붙이면 실제 시험에서
-   * 떨어진다는 뜻으로 읽힌다 — 세트 전체를 푼 것이 아니므로 그 판정의 근거가 없다.
-   */
-  hidePassVerdict?: boolean;
-  /**
-   * '오답 노트 보기' 버튼을 숨긴다(퀵 랜덤). 퀵의 오답은 회차가 아니라 각 문항의 출처
-   * 세트별로 흩어져 노트에 들어간다 — 결과 모달에서 바로 열면 방금 푼 회차의 오답만
-   * 모여 있을 것이라 기대하게 되지만 실제로는 세트별 전 회차 합산이 보인다.
-   */
-  hideWrongNote?: boolean;
 }
+// hidePassVerdict·hideWrongNote는 없앴다. 퀵 회차를 위한 분기였는데 퀵에 채점이
+// 사라져 결과 모달 자체가 뜨지 않는다 — 호출부가 0인 채로 "퀵 랜덤 · 합격 판정 없음"
+// 이라는 폐지된 문구만 코드에 남아 있었다. 회차가 생기는 모드는 시험뿐이고, 시험은
+// 언제나 세트 전체라 합격 판정을 숨길 이유가 없다.
 
 export const ResultSummary = ({
   setTitle,
@@ -47,8 +40,6 @@ export const ResultSummary = ({
   onClose,
   onOpenWrongNote,
   onRetry,
-  hidePassVerdict,
-  hideWrongNote,
 }: ResultSummaryProps) => {
   const { passed, ratePercent, criterionLabel, scoreLabel } = evaluatePass(certification, correct, total, cstsWeighted);
   const wrong = total - correct;
@@ -63,20 +54,9 @@ export const ResultSummary = ({
       <div className="modal-body result-summary" data-testid="result-summary">
         <p className="result-set">{setTitle}</p>
 
-        <div className={`result-score ${hidePassVerdict ? 'neutral' : passed ? 'pass' : 'fail'}`}>
-          {hidePassVerdict ? (
-            <>
-              {/* 퀵은 맞힌 개수를 그대로 보여준다 — %만 크게 띄우면 10문항 중 7개가 '70%'로
-                  환산돼 세트 전체 회차와 같은 무게로 읽힌다. */}
-              <strong data-testid="result-rate">{correct} / {total}문항</strong>
-              <span className="result-badge">퀵 랜덤 · 합격 판정 없음</span>
-            </>
-          ) : (
-            <>
-              <strong data-testid="result-rate">{ratePercent}%</strong>
-              <span className="result-badge">{passed ? '합격 기준 충족' : '합격 기준 미달'}</span>
-            </>
-          )}
+        <div className={`result-score ${passed ? 'pass' : 'fail'}`}>
+          <strong data-testid="result-rate">{ratePercent}%</strong>
+          <span className="result-badge">{passed ? '합격 기준 충족' : '합격 기준 미달'}</span>
         </div>
 
         {attemptRound != null && attemptRound > 0 && (
@@ -97,13 +77,11 @@ export const ResultSummary = ({
           <div className="result-metric-wide"><dt>점수</dt><dd data-testid="result-score">{scoreLabel}</dd></div>
           <div><dt>오답</dt><dd>{wrong}개</dd></div>
           <div><dt>소요 시간</dt><dd>{formatClock(elapsedSeconds)}</dd></div>
-          {!hidePassVerdict && (
-            <div className="result-metric-wide"><dt>합격 기준</dt><dd className="result-criterion">{criterionLabel}</dd></div>
-          )}
+          <div className="result-metric-wide"><dt>합격 기준</dt><dd className="result-criterion">{criterionLabel}</dd></div>
         </dl>
 
         <div className="result-actions">
-          {wrong > 0 && !hideWrongNote && (
+          {wrong > 0 && (
             <button type="button" className="primary" onClick={onOpenWrongNote}>
               오답 노트 보기
             </button>

@@ -36,8 +36,8 @@ export interface Question {
   // 세부 주제 태그(향후 확장). 현재는 비어 있을 수 있음.
   tags?: string[];
   difficulty?: string;
-  // 퀵 랜덤에서만 채워진다 — 전 세트 혼합이라 문항만 봐서는 어느 세트 것인지 알 수 없다.
-  // 오답을 각 세트의 오답노트로 흘려보내고, 복원 시 어떤 세트를 로드할지 정하는 데 쓴다.
+  // 퀵에서만 채워진다 — 전 세트 혼합이라 문항만 봐서는 어느 세트 것인지 알 수 없다.
+  // 화면에 그 문항의 출처 세트를 밝히고, 복원 시 어떤 세트를 로드할지 정하는 데 쓴다.
   sourceSetId?: string;
 }
 
@@ -166,7 +166,7 @@ export function useQuestions() {
     return () => { cancelled = true; };
   }, [reloadKey]);
 
-  // 퀵 랜덤 — 제품의 전 세트에서 뽑으므로 세트 하나를 여는 아래 effect와 경로가 다르다.
+  // 퀵 — 제품의 전 세트에서 뽑으므로 세트 하나를 여는 아래 effect와 경로가 다르다.
   // 세트별 JSON은 questionLoader가 Promise 캐시로 들고 있어, 이미 연 세트는 재요청하지 않는다.
   useEffect(() => {
     if (!appData || mode !== 'quick' || !activeProduct) return;

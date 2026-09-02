@@ -593,7 +593,14 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
       } else {
         store.setResumePrompt(hasExamProgress);
         // 선택 모달이 뜨는 경우엔 위치 배너는 띄우지 않는다(중복 방지). 그 외엔 첫 문항이 아니면 배너(#A).
-        store.setResumeNotice(!hasExamProgress && (restoredUi.index ?? 0) > 0);
+        //
+        // 퀵은 제외한다. 배너가 말하는 '현재 N / 총계'는 분모가 있는 모드의 문법인데,
+        // 퀵은 끝이 정해져 있지 않아 진행률·팔레트를 통째로 걷어낸 모드다. 띄우면
+        // 배너의 커서 위치(N)와 바로 아래 점수판의 진행(확정한 문항 수)이 서로 다른
+        // 숫자라, 같은 화면이 "지금 어디인가"에 두 번 다르게 답한다(실측: 배너 "3 / 186",
+        // 점수판 "진행 2"). 이어풀고 있다는 사실은 점수판이 이미 보여 주고, 처음부터
+        // 되돌리는 길은 사이드바의 '다시 섞어 시작'이 맡는다.
+        store.setResumeNotice(!hasExamProgress && m !== 'quick' && (restoredUi.index ?? 0) > 0);
       }
     }
   } catch (e) {
@@ -1063,8 +1070,8 @@ if (typeof window !== 'undefined') {
 
     // 이 제품의 UI 상태 키 — 누적형 필드만 받아 온다. 커서형(mode·setId·index 등)은
     // 받지 않는다: 다른 탭이 문항을 넘겼다고 이 탭의 화면이 따라 움직이면 풀던 자리를
-    // 빼앗긴다. 쓰기 쪽 병합만으로도 유실은 막히지만, 받아 두면 화면(퀵 오답·복습 진척)이
-    // 새로고침 없이 최신이 된다.
+    // 빼앗긴다. 쓰기 쪽 병합만으로도 유실은 막히지만, 받아 두면 화면(오답 대상·복습 진척·
+    // 시험 기준점)이 새로고침 없이 최신이 된다.
     if (e.key === uiStorageKey()) {
       try {
         const incoming = sanitizeUiState(JSON.parse(e.newValue));

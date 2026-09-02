@@ -54,7 +54,6 @@ function formatRoundDate(ms: number): string {
 
 interface StatsDashboardProps {
   histories: Record<string, ExamHistory>;
-  /** 만료되지 않은 퀵 회차 — 챕터 통계에만 합산한다(회차 목록·요약에는 넣지 않는다). */
   sets: SetSummary[];
   // 세트 간 재수록 문항 그룹 — 같은 문제를 챕터 분모에 두 번 세지 않기 위해 필요하다.
   duplicateGroups?: string[][];
@@ -77,10 +76,10 @@ export const StatsDashboard = ({ histories, sets, duplicateGroups, duplicateChap
   const passCriterionLabel = certification === 'csts'
     ? 'CSTS 합격 기준: 검정방법별 배점 합산 75점 이상(100점 만점)'
     : 'ISTQB 합격 기준: 정답률 65% 이상';
-  // 빈 상태 판정에만 쓰는 개수. 실전·미니를 모두 세어, 미니만 푼 사용자에게
-  // "기록 없음"이 뜨지 않게 한다(미니 섹션에는 내용이 있으므로 모순이 된다).
-  // 퀵도 함께 센다 — 회차 목록에는 남지 않지만 챕터 분석에는 기여하므로, 퀵만 푼
-  // 사용자에게 "기록 없음"을 띄우면 약점 분석을 통째로 가려 버린다.
+  // 빈 상태 판정에만 쓰는 개수. 실전 회차와 과거의 짧은 세션을 모두 세어, 짧은 세션만
+  // 남은 사용자에게 "기록 없음"이 뜨지 않게 한다(아래 섹션에는 내용이 있으므로 모순이 된다).
+  // 퀵은 이제 이력을 만들지 않으므로 여기 들어오지 않는다 — 퀵만 푼 사용자에게 이 화면이
+  // 비어 보이는 것은 사양대로다(퀵은 아무 기록도 남기지 않는다).
   const roundCount = Object.keys(histories).length;
 
   // 요약은 '실전 회차'(세트 전체)만 센다.

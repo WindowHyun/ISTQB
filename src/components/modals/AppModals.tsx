@@ -181,8 +181,8 @@ export const AppModals = () => {
     [productHistories, setId, mode],
   );
   const fmtAns = (arr: string[]) => formatAnswerList(arr, '미응답');
-  // 세트별 "전 회차 오답의 합집합" — 최신 회차만 보여주면 같은 세트를 랜덤으로
-  // 재채점했을 때 이전 시험 회차의 오답이 노트에서 사라진다(QA 지적 해소).
+  // 세트별 "전 회차 오답의 합집합" — 최신 회차만 보여주면 같은 세트를 다시 채점했을 때
+  // 이전 회차의 오답이 노트에서 사라진다(QA 지적 해소).
   // 같은 문항이 여러 회차에서 틀렸으면 가장 최근 회차의 내 답을 대표로 쓴다.
   // 전용 뷰 타입(WrongNoteSetView) — 도메인 ExamHistory를 가짜 id(merged-*)로 위조하지 않는다.
   // useMemo: AppModals는 answers를 구독(useQuizSession)해 답안 클릭마다 리렌더되므로,
@@ -921,7 +921,8 @@ export const AppModals = () => {
           onClose={() => setResultOpen(false)}
           onOpenWrongNote={() => { setResultOpen(false); setWrongNoteOpen(true); }}
           onRetry={() => {
-            // 원클릭 재응시(A3) — 답안 초기화 후 시험은 시작 게이트부터, 랜덤은 같은 추첨을 새로 푼다.
+            // 원클릭 재응시(A3) — 답안을 지우고 시작 게이트부터 다시 응시한다
+            // (결과 모달이 뜨는 모드는 채점이 있는 시험뿐이다).
             clearAnswers(setId, mode);
             beginSession();
             setResultOpen(false);

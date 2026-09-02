@@ -100,7 +100,7 @@ export interface QuizState {
   confirmGradeOpen: boolean;
   // 저장된 진행을 중간 위치에서 복원했을 때 "이어풀기" 안내 배너를 띄울지 여부.
   resumeNotice: boolean;
-  // 시험/랜덤 모드로 복원했고 이전 답안이 있을 때 "이어풀기/새로 풀기" 선택 모달을 띄울지 여부.
+  // 시험 모드로 복원했고 이전 답안이 있을 때 "이어풀기/새로 풀기" 선택 모달을 띄울지 여부.
   resumePrompt: boolean;
   // 응시 포기 확인 모달 — 응시 중 잠금의 공식 탈출구(답안 삭제·회차 기록 없음).
   quitExamOpen: boolean;
@@ -247,8 +247,8 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   setActiveProduct: (activeProduct) => set({ activeProduct }),
   // 모드/세트가 바뀌면 챕터 필터는 의미를 잃으므로 함께 해제한다(필터는 현재 연습 세션 한정).
   // 단 "같은 모드로 재확정"하는 경로에서는 해제하지 않는다 — 복원 직후 App이 저장된 모드를
-  // 그대로 setMode로 재확정하는데, 여기서 필터가 지워지면 미니 시험(랜덤+챕터) 복원이
-  // 무효화돼 저장된 추첨과 스코프가 어긋나고 일반 랜덤으로 무통보 재추첨된다.
+  // 그대로 setMode로 재확정하는데, 여기서 필터가 지워지면 복원된 챕터 집중 연습이
+  // 무효화돼 전체 세트로 무통보 전환된다(사용자는 필터가 걸린 줄 알고 있다).
   setMode: (mode) => set((state) => (state.mode === mode ? { mode } : { mode, chapterFilter: null })),
   setSetId: (setId) => set({ setId, chapterFilter: null }),
   setIndex: (indexOrFn) => set((state) => ({

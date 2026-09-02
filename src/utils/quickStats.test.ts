@@ -114,18 +114,14 @@ describe('computeQuickStats', () => {
     });
   });
 
+  // 커서가 끝을 한 칸 지나간 자리가 '한 바퀴 완료' 화면이다(QuestionWorkspace) —
+  // 그때도 집계는 마지막 문항까지만 세고 배열 밖을 읽지 않아야 한다.
   it('커서가 목록 끝을 넘어가도 마지막 문항까지만 센다(한 바퀴 완료 화면)', () => {
     const answers = Object.fromEntries(qs.map((q) => [keyOf(q), ['a']]));
-    const s = computeQuickStats(qs, answers, keyOf, qs.length);
-    expect(s).toMatchObject({ solved: 5, correct: 5, remaining: 0 });
-  });
-
-  it('남은 문항 수는 아직 안 푼 것의 개수다', () => {
-    const answers = { [keyOf(qs[0])]: ['a'] };
-    expect(computeQuickStats(qs, answers, keyOf, 0).remaining).toBe(4);
+    expect(computeQuickStats(qs, answers, keyOf, qs.length)).toMatchObject({ solved: 5, correct: 5 });
   });
 
   it('빈 목록에서도 터지지 않는다(문항 로드 전 렌더)', () => {
-    expect(computeQuickStats([], {}, keyOf, 0)).toMatchObject({ solved: 0, remaining: 0 });
+    expect(computeQuickStats([], {}, keyOf, 0)).toMatchObject({ solved: 0, correct: 0, wrong: 0 });
   });
 });

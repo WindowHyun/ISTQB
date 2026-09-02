@@ -1573,7 +1573,7 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 .stats-chapters ul { display: flex; flex-direction: column; gap: 6px; }
 .stats-chapters li {
   display: grid;
-  /* 이름 · 바 · 정답률 · 연습 · 미니 시험 */
+  /* 이름 · 바 · 정답률 · 연습 */
   grid-template-columns: minmax(90px, 1.1fr) 2fr auto auto auto;
   align-items: center;
   gap: 10px;
@@ -1675,7 +1675,8 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 }
 .stl-round-del:hover { color: var(--danger, #c0392b); }
 
-/* 챕터 미니 시험 기록 — 타임라인에서 빠지는 10문항 회차를 챕터명과 함께 보여준다. */
+/* 짧은 세션 기록(폐지된 챕터 미니 시험·구버전 퀵) — 타임라인에서 빠지는 과거 회차를
+   확인·삭제할 수 있게 보여준다. 신규 생성은 없다. */
 .stats-minis { margin: 14px 0 4px; }
 .stats-minis h4 { font-size: 13px; font-weight: 800; color: var(--text-2); margin-bottom: 8px; }
 .stats-minis h4 small { font-weight: 600; color: var(--muted); margin-left: 6px; }
@@ -1707,11 +1708,8 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 .result-score strong { font-size: 44px; font-weight: 800; line-height: 1; }
 .result-score.pass { background: var(--success-50); color: var(--success); }
 .result-score.fail { background: var(--danger-50); color: var(--danger); }
-/* 퀵 랜덤 — 합격/불합격 색을 쓰지 않는다. 10~20문항 표본에 빨강을 칠하면 판정이 없다고
-   써 놓아도 '떨어졌다'로 읽힌다. 중립 표면에 개수만 보여준다. */
-.result-score.neutral { background: var(--surface-2); color: var(--text); }
-/* "7 / 10문항"은 %(두 글자)보다 길어 44px에서 좁은 화면을 넘친다. */
-.result-score.neutral strong { font-size: 32px; }
+/* .result-score.neutral(합격 판정 없는 퀵 회차용 중립 표면)은 없앴다 — 퀵에 채점이
+   사라지면서 결과 모달이 뜨는 모드가 시험뿐이 됐고, 시험은 언제나 판정이 있다. */
 
 /* 퀵 진입 — 라벨 + 시작 버튼 한 줄. 버튼은 min-height 44px(손가락으로 누르는 크기). */
 .quick-row { display: flex; gap: 8px; align-items: stretch; }

@@ -48,13 +48,11 @@ export interface QuickStats {
   streak: number;
   /** 이번 세션의 최고 연속 정답. */
   best: number;
-  /** 아직 나오지 않은 문항 수(출제 순서에 남은 것). */
-  remaining: number;
 }
-
-export const EMPTY_QUICK_STATS: QuickStats = {
-  solved: 0, correct: 0, wrong: 0, streak: 0, best: 0, remaining: 0,
-};
+// remaining(남은 문항 수)과 EMPTY_QUICK_STATS는 없앴다. 화면 어디도 쓰지 않았고,
+// remaining은 이름('아직 나오지 않은 문항')과 계산(전체 − 확정한 수)이 서로 달라
+// 건너뛴 문항까지 '남은 것'으로 셌다 — 쓰기 시작하는 순간 어긋날 값이었다.
+// 퀵에 '남은 문항'을 보여줄 일이 생기면 그때 의미를 정해 다시 만든다.
 
 /**
  * @param questions 이번 세션의 출제 순서(제품 전 세트를 섞은 목록)
@@ -89,5 +87,5 @@ export function computeQuickStats(
       streak = 0;
     }
   }
-  return { solved, correct, wrong, streak, best, remaining: Math.max(0, questions.length - solved) };
+  return { solved, correct, wrong, streak, best };
 }

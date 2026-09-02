@@ -28,8 +28,9 @@ export const QuestionPalette = ({ withId, onJump }: QuestionPaletteProps) => {
       aria-label="문제 번호"
     >
       {currentQuestions.map((q, i) => {
-        // 원본 문항 번호로 표시한다. 종전에는 순번(i+1)을 찍어, 랜덤·미니·오답 모드에서
-        // 헤더가 "문제 39"인데 팔레트에는 39가 없는 상태가 됐다(연습·시험에서만 우연히 일치).
+        // 원본 문항 번호로 표시한다. 종전에는 순번(i+1)을 찍어, 출제 목록이 세트 순서와
+        // 다른 모드(오답 등)에서 헤더가 "문제 39"인데 팔레트에는 39가 없는 상태가 됐다
+        // (연습·시험에서만 우연히 일치했다).
         // 오답노트·해설이 모두 원본 번호를 쓰므로 그쪽에 맞춘다.
         const label = q.number ?? i + 1;
         const selected = answers[answerKeyOf(q)] || [];

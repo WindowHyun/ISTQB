@@ -29,7 +29,7 @@ export interface RoundHistoryInput {
   /** 오답으로 판정된 문항. 화면 표시와 같은 판정을 재사용해 규칙이 갈리지 않게 한다. */
   wrongQuestions: Question[];
   certification?: 'istqb' | 'csts';
-  /** 세트 제목(퀵은 '퀵 랜덤'). 세트가 index.json에서 빠져도 통계에 내부 id가 노출되지 않게 한다. */
+  /** 세트 제목. 세트가 index.json에서 빠져도 통계에 내부 id가 노출되지 않게 한다. */
   setTitle?: string;
   elapsedSeconds: number;
   /** 챕터 미니 시험 표식 — 랜덤 + 챕터 필터일 때만 실린다. */

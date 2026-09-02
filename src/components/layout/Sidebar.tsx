@@ -312,7 +312,15 @@ export const Sidebar = () => {
         <section className="panel">
           {/* 시각 라벨 없음 — 세그먼트 자체가 role=group + aria-label로 이름을 갖고 있고,
               바로 아래 모드 캡션이 지금 고른 모드를 글로 설명한다. */}
-          <div className="segmented" role="group" aria-label="풀이 모드">
+          {/* aria-describedby로 캡션을 그룹에 묶는다 — 퀵을 푸는 동안에는 세 버튼이
+              모두 선택 해제라, 캡션을 읽지 않으면 보조기기에도 "아무것도 안 고른 그룹"으로만
+              전달된다(그 이유와 돌아오는 길이 캡션에 있다). */}
+          <div
+            className="segmented"
+            role="group"
+            aria-label="풀이 모드"
+            aria-describedby={MODE_CAPTION[mode] ? 'modeCaption' : undefined}
+          >
             {MODE_LABELS.map(({ mode: m, label }) => (
               <button
                 key={m}
@@ -329,7 +337,7 @@ export const Sidebar = () => {
             ))}
           </div>
           {MODE_CAPTION[mode] && (
-            <p className="mode-caption" data-testid="mode-caption">{MODE_CAPTION[mode]}</p>
+            <p className="mode-caption" id="modeCaption" data-testid="mode-caption">{MODE_CAPTION[mode]}</p>
           )}
           {examLocked && (
             <>

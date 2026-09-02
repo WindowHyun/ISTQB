@@ -19,7 +19,10 @@ export const MobileTopBar = () => {
   })));
   const { appData, currentQuestions, answerKeyOf, total, answered, progressPercent } = useQuizSession();
   const isQuick = mode === 'quick';
-  const quick = computeQuickStats(currentQuestions, answers, answerKeyOf, index);
+  // 퀵일 때만 계산한다. 종전에는 모드와 무관하게 매 렌더 돌아, 시험 40문항이면 렌더마다
+  // 전 문항 정오답 판정을 다시 했다 — 이 컴포넌트는 답안·위치 변경마다 리렌더된다.
+  // (워크스페이스의 점수판도 같은 규칙으로 가드하고 있다.)
+  const quick = isQuick ? computeQuickStats(currentQuestions, answers, answerKeyOf, index) : null;
   const setTitle = isQuick
     ? '퀵 — 전 세트 랜덤'
     : (appData?.sets.find((s) => s.id === setId)?.title || '문제 풀이');
@@ -50,7 +53,7 @@ export const MobileTopBar = () => {
         <span className="mtb-chip">
           {mode === 'practice' && chapterFilter ? '집중 연습' : (MODE_LABEL[mode] || mode)}
         </span>
-        {isQuick ? (
+        {quick ? (
           // 퀵은 무한이라 분모(N/총계)도 진행 막대도 없고, 기록을 남기지 않아 시간도 재지 않는다.
           // 문제 화면의 점수판과 같은 값을 좁은 폭에 맞춰 줄여 놓는다.
           <>
