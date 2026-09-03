@@ -12,7 +12,8 @@ import {
   weightedRatePercent,
 } from '../../utils/chapterStats';
 import {
-  buildSetTimelines, buildMiniTestRounds, formatDeltaPp, attemptRatePercent, isSetLevelRound,
+  buildSetTimelines, buildMiniTestRounds, formatDeltaPp, attemptRatePercent,
+  isSetLevelRound, isPassGaugeRound,
 } from '../../utils/attemptStats';
 import { ConfirmButtons } from '../common/ConfirmButtons';
 import { MODE_LABEL } from '../../utils/modeLabel';
@@ -82,20 +83,26 @@ export const StatsDashboard = ({ histories, sets, duplicateGroups, duplicateChap
   // 비어 보이는 것은 사양대로다(퀵은 아무 기록도 남기지 않는다).
   const roundCount = Object.keys(histories).length;
 
-  // 요약은 '실전 회차'(세트 전체)만 센다.
+  // 요약은 합격 가늠이 목적이라 표본을 섞으면 안 된다(isPassGaugeRound 주석에 근거).
   // 종전에는 챕터 미니(10문항)까지 섞여, 미니에서 10/10을 받으면 실전 최고가 65%인데도
-  // "최고 정답률 100%"로 보였다. 합격 가늠이 목적인 지표라 표본을 섞으면 안 된다.
-  // 응시 횟수·평균·최고가 모두 같은 집합(isSetLevelRound)을 쓰므로 아래 타임라인의
-  // 회차 수와도 일치한다(종전엔 요약 5 / 타임라인 3으로 어긋났다).
+  // "최고 정답률 100%"로 보였다. 4지선다도 같은 이유로 빠진다 — CSTS에서 그 50문항이
+  // 정확히 합격선(100점 중 75점)만큼을 덮어, 여기 섞이면 불합격 점수가 합격 신호로 읽힌다.
   const summary = useMemo(() => {
-    const setLevel = Object.values(histories).filter(isSetLevelRound);
-    const scored = setLevel.filter((h) => h.total).map(attemptRatePercent);
+    const gauge = Object.values(histories).filter(isPassGaugeRound);
+    const scored = gauge.filter((h) => h.total).map(attemptRatePercent);
     if (!scored.length) return null;
     // 평균은 문항 수 가중(정답 합/출제 합) — 회차별 %의 단순 평균은
     // 문항 수가 다른 회차(랜덤 40 vs 시험 70)를 왜곡한다.
-    const avg = weightedRatePercent(setLevel);
+    const avg = weightedRatePercent(gauge);
     return { attempts: scored.length, avg: avg ?? 0, best: Math.max(...scored) };
   }, [histories]);
+
+  // 요약이 비었는데 타임라인에는 회차가 있는 경우 — 4지선다만 푼 사용자다.
+  // 설명 없이 자리를 비워 두면 "채점했는데 통계가 왜 안 뜨지"가 된다.
+  const gaugeEmptyWithRounds = useMemo(
+    () => !summary && Object.values(histories).some(isSetLevelRound),
+    [summary, histories],
+  );
 
   // 세트 제목 조회 — index.json에서 세트가 제거·개명되면 sets에서 못 찾는다.
   // 그때 setId를 그대로 쓰면 "istqb/sample-a.json" 같은 내부 경로가 사용자에게 보이므로,
@@ -183,12 +190,23 @@ export const StatsDashboard = ({ histories, sets, duplicateGroups, duplicateChap
                   <div><span>평균 정답률</span><strong>{summary.avg}%</strong></div>
                   <div><span>최고 정답률</span><strong>{summary.best}%</strong></div>
                 </div>
-                {/* 계산 기준은 종전에 title(툴팁)에만 있어 모바일에서 볼 수 없었다. */}
+                {/* 계산 기준은 종전에 title(툴팁)에만 있어 모바일에서 볼 수 없었다.
+                    아래 타임라인의 회차 수와 일부러 다를 수 있으므로(4지선다가 빠진다)
+                    무엇을 세는지 여기서 밝힌다 — 숫자만 어긋나면 그게 결함으로 읽힌다. */}
                 <p className="stats-hint stats-summary-note" data-testid="stats-summary-note">
-                  세트 전체를 푼 <strong>실전 회차</strong>만 셉니다(짧은 세션 제외).
+                  세트 전체를 푼 <strong>시험 회차</strong>만 셉니다 —
+                  {' '}<strong>4지선다</strong>는 진위형·서답형이 빠져 표본이 달라서 합격 가늠에 넣지 않아요
+                  (아래 회차 이력에서 모드별로 볼 수 있습니다).
                   평균은 문항 수로 가중해 계산합니다 — 정답 합 ÷ 출제 합.
                 </p>
               </>
+            )}
+            {gaugeEmptyWithRounds && (
+              // 4지선다만 푼 상태 — 요약이 통째로 비어 있는 이유를 그 자리에서 말한다.
+              <p className="stats-hint" data-testid="stats-gauge-empty">
+                아직 <strong>시험 회차</strong>가 없어요. 합격 가늠(평균·최고 정답률)은 시험 모드로
+                채점하면 나옵니다 — 4지선다 회차는 아래 회차 이력에 쌓이고 있어요.
+              </p>
             )}
 
             {chapterRows.length > 0 && (

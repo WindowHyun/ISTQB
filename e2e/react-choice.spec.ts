@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { openProduct, openSet, modeBtn, submitGrade, closeResult } from "./helpers";
+import { openProduct, openSet, modeBtn, submitGrade, closeResult, enterExam } from "./helpers";
 
 /**
  * 4지선다 — 현재 세트에서 **보기가 4개인 문항만** 골라 섞어 내고 채점하는 모드.
@@ -124,6 +124,42 @@ test.describe("4지선다 — 채점 모드의 규칙을 따른다", () => {
     await expect(stats).toBeVisible({ timeout: 20_000 });
     // 모드 이름이 없으면 타임라인에 모드 id('choice')가 영문으로 그대로 노출된다.
     await expect(stats, "회차가 기록되지 않았거나 모드 라벨이 없다").toContainText("4지선다");
+  });
+
+  test("합격 가늠(요약)에는 들어가지 않고, 회차 이력에는 남는다", async ({ page }) => {
+    // CSTS에서 4지선다 50문항은 100점 중 정확히 75점 — 합격선과 같은 몫이다.
+    // 요약에 섞이면 90%(=67.5점, 불합격)가 '합격 기준 75%' 배너 바로 아래에서
+    // 합격 신호로 읽힌다. 그래서 요약은 시험 회차만, 이력은 모드별로 전부 보여준다.
+    await openSet(page, "ISTQB", A);
+    await enterChoice(page);
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    await closeResult(page);
+
+    await page.getByTestId("stats-open").click();
+    const stats = page.getByTestId("stats-dashboard");
+    await expect(stats).toBeVisible({ timeout: 20_000 });
+    // 시험 회차가 하나도 없으므로 요약 블록 자체가 뜨지 않고, 그 이유를 밝힌다.
+    await expect(page.getByTestId("stats-summary-note"), "4지선다가 합격 가늠에 섞였다")
+      .toHaveCount(0);
+    await expect(page.getByTestId("stats-gauge-empty"), "요약이 이유 없이 비어 있다")
+      .toBeVisible();
+    // 회차는 타임라인에 그대로 남아 있어야 한다 — 여기서까지 빠지면 '기록된다'가 거짓이 된다.
+    await expect(page.getByTestId("stats-set-timeline")).toContainText("4지선다");
+    await page.keyboard.press("Escape");
+
+    // 시험을 한 번 채점하면 요약이 나타나고, 그 숫자는 시험 회차만 센다.
+    await enterExam(page);
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    await closeResult(page);
+    await page.getByTestId("stats-open").click();
+    await expect(page.getByTestId("stats-summary-note")).toBeVisible();
+    await expect(page.getByTestId("stats-gauge-empty")).toHaveCount(0);
+    await expect(
+      stats.locator(".stats-summary"),
+      "요약이 4지선다 회차까지 세고 있다(응시 1회여야 한다)",
+    ).toContainText("1");
   });
 
   test("여기서 틀린 문항은 오답 모드로 출제된다", async ({ page }) => {
