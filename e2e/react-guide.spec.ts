@@ -33,7 +33,10 @@ test.describe("사이트 사용법(사용설명서)", () => {
     await page.getByTestId("guide-open-settings").click();
     const guide = page.getByTestId("user-guide");
     await expect(guide).toBeVisible();
-    await expect(guide).toContainText("풀이 모드 4가지");
+    // 모드 개수를 못 박아 둔다 — 모드가 늘거나 줄 때 이 검사가 먼저 실패해
+    // 사용설명서를 함께 고치게 만든다(게이트 문구에 건 것과 같은 트립와이어다).
+    await expect(guide).toContainText("풀이 모드 5가지");
+    await expect(guide).toContainText("4지선다");
     // 설정 모달은 닫힌 상태여야 한다(모달 겹침 방지).
     await expect(page.getByRole("heading", { name: "설정" })).toHaveCount(0);
   });

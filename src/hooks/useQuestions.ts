@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../store/useQuizStore';
 import { loadIndex, loadSetQuestions, subscribeLoads } from '../utils/questionLoader';
 import { makeCanonicalIdResolver } from '../utils/chapterStats';
-import { gradeKeyFor } from '../utils/answerKey';
+import { gradeKeyFor, questionIdOf } from '../utils/answerKey';
 
 // Fisher–Yates shuffle: 균일 분포를 보장한다. (sort 비교자에 Math.random을 쓰면 편향됨)
 // 경계가 한 칸만 어긋나도(`* i` 또는 `i >= 0`) 조용히 편향된다 — 눈으로는 여전히
@@ -108,6 +108,23 @@ export interface QuickCandidate {
 }
 
 /**
+ * 4지선다 모드의 출제 대상 — 보기가 **정확히 4개**인 문항만.
+ *
+ * "보기가 있는 것"이 아니라 "4개인 것"이다. 진위형은 데이터상 options가 비어 있어(O/X는
+ * 화면에서 만든다) 자연히 빠지지만, ISTQB의 복수정답 9문항은 보기가 5개다 — '4지선다'라는
+ * 이름이 약속한 것과 다르고, 그 9문항만 정답을 여러 개 골라야 해서 규칙도 섞인다.
+ * 개수로 자르면 이 모드의 문항은 전부 "보기 4개 중 하나"가 되어 규칙이 하나로 남는다.
+ *
+ * 원본 순서를 그대로 유지한다 — 섞는 것은 호출부(useQuestions)의 몫이고, 여기서 함께 하면
+ * 순수 함수가 난수에 의존해 검사가 시드에 매인다.
+ */
+export const CHOICE_OPTION_COUNT = 4;
+
+export function buildChoicePool(questions: Question[]): Question[] {
+  return questions.filter((q) => (q.options?.length ?? 0) === CHOICE_OPTION_COUNT);
+}
+
+/**
  * 오답 모드가 다시 낼 문항 id — 이 세트의 시험 오답 + 폐지된 랜덤 모드의 오답(+구버전 단독 키).
  *
  * 'random' 키를 계속 읽는 이유: 랜덤 모드는 퀵에 흡수돼 사라졌지만 기존 사용자가 랜덤으로
@@ -123,6 +140,9 @@ export function reviewTargetIds(
 ): Set<string> {
   return new Set([
     ...(reviewIds[gradeKeyFor(setId, 'exam')] || []),
+    // 4지선다도 채점이 있는 모드다 — 여기서 빼면 그 오답이 오답 노트에는 보이는데
+    // 오답 모드에는 나오지 않는다(이 저장소가 여러 번 고친 불일치 유형이다).
+    ...(reviewIds[gradeKeyFor(setId, 'choice')] || []),
     // 레거시 — 폐지된 랜덤 모드가 남긴 오답(신규 생성 없음).
     ...(reviewIds[gradeKeyFor(setId, 'random')] || []),
     // 구버전 데이터 호환 — 모드가 붙기 전의 단독 키.
@@ -137,13 +157,15 @@ export function useQuestions() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   // 슬라이스 구독(O1) — 타이머 틱·답안 변경에 이 훅이 리렌더를 유발하지 않는다.
-  const { setId, mode, reviewIds, chapterFilter, reviewedOk, activeProduct, quickNonce } =
+  const { setId, mode, reviewIds, chapterFilter, reviewedOk, activeProduct, quickNonce, choiceNonce } =
     useQuizStore(useShallow((s) => ({
       setId: s.setId, mode: s.mode, reviewIds: s.reviewIds, chapterFilter: s.chapterFilter,
       reviewedOk: s.reviewedOk[s.setId],
       activeProduct: s.activeProduct,
       // 퀵 재추첨 트리거 — 순서 자체를 구독하지 않으므로 effect를 다시 돌릴 신호가 따로 필요하다.
       quickNonce: s.quickNonce,
+      // 4지선다 재추첨 트리거 — 같은 이유(clearAnswers가 순서를 버릴 때 effect가 다시 돌아야 한다).
+      choiceNonce: s.choiceNonce,
     })));
 
   // 다른 인스턴스의 "다시 시도"가 성공하면 이 인스턴스도 캐시에서 다시 읽어 복구한다 —
@@ -253,6 +275,25 @@ export function useQuestions() {
     let cancelled = false;
 
     function applyMode(questions: Question[]) {
+      if (mode === 'choice') {
+        // 보기 4개짜리만 골라 섞는다. 저장된 순서가 이 세트 것이면 그대로 이어푼다 —
+        // 매번 다시 섞으면 답안은 문항 id로 남는데 화면 순서와 커서만 어긋나, 사용자에겐
+        // "풀던 자리가 사라진" 것으로 보인다(폐지된 랜덤 모드가 겪은 문제다).
+        const pool = buildChoicePool(questions);
+        const byId = new Map(pool.map((q) => [questionIdOf(q), q]));
+        const saved = useQuizStore.getState().choiceDraw;
+        if (saved && saved.setId === setId) {
+          const restored = saved.ids
+            .map((id) => byId.get(id))
+            .filter((q): q is Question => !!q);
+          // 데이터가 바뀌어 남은 것이 하나도 없으면 저장본을 버리고 새로 섞는다.
+          if (restored.length) { setCurrentQuestions(restored); return; }
+        }
+        const order = shuffleQuestions(pool);
+        useQuizStore.getState().setChoiceDraw({ setId, ids: order.map(questionIdOf) });
+        setCurrentQuestions(order);
+        return;
+      }
       if (mode === 'review') {
         // 복습 대상 산정은 reviewTargetIds가 단일 원천이다(퀵 제외 사양은 그쪽 주석 참고).
         const ids = reviewTargetIds(reviewIds, setId);
@@ -289,7 +330,9 @@ export function useQuestions() {
         setCurrentQuestions([]);
       });
     return () => { cancelled = true; };
-  }, [appData, setId, mode, reviewIds, chapterFilter, reloadKey, reviewedOk]);
+    // choiceNonce: clearAnswers가 출제 순서를 버릴 때(= 새 회차) 이 effect가 다시 돌아야
+    // 새로 섞인다. 순서 자체는 구독하지 않으므로 신호가 따로 필요하다(퀵의 quickNonce와 같다).
+  }, [appData, setId, mode, reviewIds, chapterFilter, reloadKey, reviewedOk, choiceNonce]);
 
   // 실패 배너의 "다시 시도" — 에러를 지우고 두 로드 effect를 재실행한다.
   const retryLoad = () => {

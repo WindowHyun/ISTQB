@@ -180,7 +180,7 @@ export const App = () => {
                 기능이 바뀌면 사이드바·사용설명서보다 먼저 고쳐야 한다. 랜덤 폐지 때
                 UserGuide와 README는 고쳤는데 여기만 남아, 없는 모드와 없어진 24시간
                 임시 목록을 계속 광고했다(E2E가 게이트 문구를 보지 않아 통과했다). */}
-            <li><span className="gci-bullet" aria-hidden="true">·</span><span><strong>연습·시험·오답·퀵 4가지 모드</strong> — 즉시 채점 연습부터 제한시간이 있는 실전 CBT형 시험까지</span></li>
+            <li><span className="gci-bullet" aria-hidden="true">·</span><span><strong>연습·4지선다·시험·오답·퀵 5가지 모드</strong> — 즉시 채점 연습부터 제한시간이 있는 실전 CBT형 시험까지</span></li>
             <li><span className="gci-bullet" aria-hidden="true">·</span><span><strong>챕터별 약점 분석</strong> — ISTQB 6챕터·CSTS 6도메인 단위 정답률과 회차별 성장 추이</span></li>
             <li><span className="gci-bullet" aria-hidden="true">·</span><span><strong>오답노트 자동 누적</strong> — 세트별 전 회차 오답 합집합, 최근 시험 2회 연속 정답은 ✓ 극복 표시</span></li>
             <li><span className="gci-bullet" aria-hidden="true">·</span><span><strong>오프라인 PWA</strong> — 설치 후 인터넷 없이 전 세트 풀이, 진행 상태 자동 저장</span></li>

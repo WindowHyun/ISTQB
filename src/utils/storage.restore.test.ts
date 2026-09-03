@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { findGradedExamMatch, findGradedRoundMatch } from './storage';
+import { findGradedRoundMatch } from './storage';
 import type { ExamHistory } from '../store/useQuizStore';
 
 /**
@@ -114,13 +114,15 @@ describe('findGradedRoundMatch — 답안이 최신 채점 회차와 같은지',
     expect(findGradedRoundMatch(byId(h), SET, 'exam', noisy)).toBe(h);
   });
 
-  it('findGradedExamMatch는 시험·챕터 없음으로 위임한다', () => {
+  it('챕터 표식이 있는 과거 회차(폐지된 미니 시험)와 섞이지 않는다', () => {
+    // 표본이 다른 회차가 "그 회차 그대로"로 잡히면, 새 응시를 시작했는데도
+    // 채점 완료 안내가 떠 진행이 막힌다. 챕터 없음(null)으로만 비교한다.
     const mini = round({
       id: 'r-mini', mode: 'random', chapter: '테스트 기초',
       answers: { [`${SET}-random-Q1`]: ['a'] },
     });
     const exam = round({ id: 'r-exam' });
-    expect(findGradedExamMatch(byId(exam, mini), SET, exam.answers)).toBe(exam);
+    expect(findGradedRoundMatch(byId(exam, mini), SET, 'exam', exam.answers)).toBe(exam);
   });
 });
 

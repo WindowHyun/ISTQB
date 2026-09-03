@@ -14,8 +14,11 @@ import { isGradedMode, MODE_CAPTION } from '../../utils/modeLabel';
 
 // 랜덤은 퀵에 흡수돼 빠졌다 — 세트 안 무작위 출제와 전 세트 무작위 출제를 둘 다 두면
 // 사용자에게는 "무엇이 다른가"를 설명할 수 없는 두 버튼이 나란히 있는 것이었다.
-const MODE_LABELS: { mode: 'practice' | 'exam' | 'review'; label: string }[] = [
+// 4지선다는 세트 스코프(고른 세트에서 낸다)라 여기 들어간다 — 세트를 가로지르는 퀵이
+// 별도 진입로인 것과 갈리는 지점이다. 순서는 부담이 낮은 것부터: 연습 → 4지선다 → 시험 → 오답.
+const MODE_LABELS: { mode: 'practice' | 'choice' | 'exam' | 'review'; label: string }[] = [
   { mode: 'practice', label: '연습' },
+  { mode: 'choice', label: '4지선다' },
   { mode: 'exam', label: '시험' },
   { mode: 'review', label: '오답' },
 ];
@@ -112,17 +115,21 @@ export const Sidebar = () => {
       // 무력화되지 않게 한다. 단, "채점 완료" 상태의 시험 재클릭은 원클릭 재응시(초기화)로
       // 동작한다 — 모드 왕복 없이 다시 풀 수 있는 진입로(A5).
       const gradedNow = useQuizStore.getState().graded[gradeKeyFor(setId, mode)];
-      if (mode === 'exam' && gradedNow) {
-        // examStarted도 해제돼 시작 게이트가 다시 뜬다.
+      // 채점을 마친 모드를 다시 누르면 원클릭 재응시다(A5). 시험만 보던 것을 채점 모드
+      // 전체로 넓힌다 — 4지선다에서도 같은 조작이 같은 뜻이어야 하고, clearAnswers가
+      // 그 모드에 필요한 뒤처리(시험은 시작 게이트, 4지선다는 새 출제 순서)를 맡는다.
+      if (isGradedMode(mode) && gradedNow) {
         clearAnswers(setId, mode);
         beginSession();
       }
       closeDrawer();
       return;
     }
-    if (newMode === 'exam' && useQuizStore.getState().graded[gradeKeyFor(setId, 'exam')]) {
-      // 이미 채점한 시험으로 다시 들어오면 새로 풀 수 있게 초기화한다(#1).
-      clearAnswers(setId, 'exam');
+    if (isGradedMode(newMode) && useQuizStore.getState().graded[gradeKeyFor(setId, newMode)]) {
+      // 이미 채점한 모드로 다시 들어오면 새로 풀 수 있게 초기화한다(#1).
+      // 채점 모드 전체에 적용한다 — 4지선다만 빠지면 "들어왔는데 이미 채점돼 있어
+      // 아무것도 못 하는" 상태가 된다(보기는 잠기고 채점 버튼은 없다).
+      clearAnswers(setId, newMode);
     }
     setMode(newMode);
     beginSession();

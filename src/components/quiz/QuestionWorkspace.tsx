@@ -21,7 +21,7 @@ export const QuestionWorkspace = () => {
   const {
     index, setId, mode, setIndex, advanceQuick, startQuick, answers, tickTimer, startTimer, beginSession,
     navCollapsed, setNavCollapsed, setPaletteOpen, setResultOpen,
-    resumeNotice, setResumeNotice, chapterFilter, setChapterFilter,
+    resumeNotice, setResumeNotice, chapterFilter, setChapterFilter, setMode,
     setExamStarted, setDrawerOpen, activeProduct, setExamStartedAt, examStartedAtForSet,
     setConfirmExitExam, setPendingRestart,
   } = useQuizStore(useShallow((s) => ({
@@ -31,7 +31,7 @@ export const QuestionWorkspace = () => {
     navCollapsed: s.navCollapsed, setNavCollapsed: s.setNavCollapsed,
     setPaletteOpen: s.setPaletteOpen, setResultOpen: s.setResultOpen,
     resumeNotice: s.resumeNotice, setResumeNotice: s.setResumeNotice,
-    chapterFilter: s.chapterFilter, setChapterFilter: s.setChapterFilter,
+    chapterFilter: s.chapterFilter, setChapterFilter: s.setChapterFilter, setMode: s.setMode,
     setExamStarted: s.setExamStarted, setExamStartedAt: s.setExamStartedAt,
     setConfirmExitExam: s.setConfirmExitExam,
     setPendingRestart: s.setPendingRestart,
@@ -242,6 +242,22 @@ export const QuestionWorkspace = () => {
         ) : isEmptyReview ? (
           <article className="question-card">
             <p className="nav-summary">표시할 오답 문항이 없습니다.</p>
+          </article>
+        ) : isQuick ? (
+          // 퀵은 전 세트에서 뽑으므로 여기 오면 로딩 중이다 — 아래 스켈레톤이 맞다.
+          <article className="question-card skeleton-card" aria-busy="true" aria-label="문제 불러오는 중" data-testid="skeleton">
+            <div className="skeleton skeleton-line lg" />
+            <div className="skeleton skeleton-line md" />
+            <div className="skeleton skeleton-option" />
+          </article>
+        ) : mode === 'choice' ? (
+          // 이 세트에 보기 4개짜리 문항이 하나도 없는 경우. 현행 12세트에는 없지만(최소 15문항)
+          // 데이터가 바뀌면 생길 수 있고, 그때 스켈레톤만 돌면 "영원히 로딩 중"으로 보인다.
+          <article className="question-card" data-testid="choice-empty">
+            <p className="nav-summary">이 세트에는 보기 4개짜리 문항이 없습니다.</p>
+            <button type="button" className="primary" onClick={() => setMode('practice')}>
+              연습 모드로 보기
+            </button>
           </article>
         ) : (
           <article className="question-card skeleton-card" aria-busy="true" aria-label="문제 불러오는 중" data-testid="skeleton">

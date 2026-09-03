@@ -4,7 +4,11 @@ import { answerKeyPrefix, gradeKeyFor } from '../utils/answerKey';
 // quick: 제품의 전 세트를 통째로 섞어 한 문항씩 무한으로 푸는 모드(구 '랜덤'을 흡수했다).
 // 세트 하나에 매이지 않으므로 setId는 QUICK_SET_ID 센티넬을 쓴다
 // (실재하는 세트 id와 겹치지 않는다 — 계약은 단위 테스트로 고정).
-export type QuizMode = 'home' | 'exam' | 'practice' | 'review' | 'quick';
+//
+// choice: 현재 세트에서 **보기가 4개인 문항만** 골라 섞어 내고 채점하는 모드.
+// 세트 스코프라는 점에서 시험과 같지만 표본이 다르다 — 진위형·서답형·5지선다가 빠진다.
+// 그래서 답안 키도 회차도 시험과 별도 네임스페이스(`${setId}-choice-*`)를 쓴다.
+export type QuizMode = 'home' | 'exam' | 'practice' | 'review' | 'quick' | 'choice';
 
 /**
  * 이력 레코드가 가질 수 있는 모드 — 지금 고를 수 있는 모드에 폐지된 'random'을 더한 것.
@@ -30,7 +34,7 @@ export const QUICK_SET_ID = 'QUICK';
  *  2) 흔적 정리 — resetProgressForSets('이력 비우기')가 지울 키를 여기서 조립한다.
  *     빼면 예전 랜덤 답안·채점 상태가 지워지지 않고 저장소에 영영 남는다.
  */
-export const PLAY_MODES = ['exam', 'practice', 'random', 'review', 'quick'] as const;
+export const PLAY_MODES = ['exam', 'practice', 'random', 'review', 'quick', 'choice'] as const;
 
 export interface ExamHistory {
   id: string;
@@ -135,6 +139,20 @@ export interface QuizState {
   // 퀵 재추첨 트리거 — 증가하면 useQuestions가 현재 순서를 버리고 새로 섞는다.
   quickNonce: number;
 
+  /**
+   * 4지선다 모드의 출제 순서 — 그 세트에서 보기 4개짜리 문항만 골라 섞은 목록이다.
+   *
+   * 저장하는 이유는 퀵과 같다: 없으면 새로고침마다 다시 섞여, 답안은 문항 id로 남는데
+   * 화면의 순서와 커서(index)만 어긋난다 — 사용자에겐 "풀던 자리가 사라진" 것으로 보인다.
+   * (폐지된 랜덤 모드가 randomDraw로 같은 문제를 풀었다.)
+   *
+   * setId를 함께 두어 세트를 바꾸면 그 순서가 더는 맞지 않는다는 것을 알 수 있게 한다.
+   * 항목은 답안 키와 같은 식별자(questionIdOf)라 두 키 공간이 갈리지 않는다.
+   */
+  choiceDraw: { setId: string; ids: string[] } | null;
+  // 4지선다 재추첨 트리거 — 순서 자체를 구독하지 않으므로 effect를 다시 돌릴 신호가 따로 필요하다.
+  choiceNonce: number;
+
   // Actions
   setActiveProduct: (product: 'istqb' | 'csts') => void;
   setMode: (mode: QuizMode) => void;
@@ -186,6 +204,7 @@ export interface QuizState {
   // 세트 전환(교체 + 새 세션 + 모드별 후처리). 사이드바·확인 모달의 공용 진입점.
   commitSetChange: (setId: string) => void;
   setQuickDraw: (draw: QuizState['quickDraw']) => void;
+  setChoiceDraw: (draw: QuizState['choiceDraw']) => void;
   /** 퀵 진입/다시 시작 — 이전 진행을 비우고 전 세트를 새로 섞게 한다. */
   startQuick: () => void;
   /** 퀵 '다음 문제' — 커서를 앞으로만 옮긴다(되돌아갈 수 없는 것이 이 모드의 규칙이다). */
@@ -209,6 +228,9 @@ export const sessionScopeDefaults = () => ({
   // 퀵은 제품 스코프다 — 제품을 바꾸면 이전 제품 문항으로 이어풀기가 되지 않게 비운다.
   quickDraw: null as { certification: string; items: { id: string; setId: string }[] } | null,
   quickNonce: 0,
+  // 4지선다 순서도 제품 스코프다 — 세트 id는 제품마다 갈리므로 남겨 두면 맞지 않는 순서가 된다.
+  choiceDraw: null as { setId: string; ids: string[] } | null,
+  choiceNonce: 0,
 });
 
 export const useQuizStore = create<QuizState>((set, get) => ({
@@ -243,6 +265,8 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   reviewedOk: {},
   quickDraw: null,
   quickNonce: 0,
+  choiceDraw: null,
+  choiceNonce: 0,
 
   setActiveProduct: (activeProduct) => set({ activeProduct }),
   // 모드/세트가 바뀌면 챕터 필터는 의미를 잃으므로 함께 해제한다(필터는 현재 연습 세션 한정).
@@ -290,11 +314,18 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     // 제한시간 기준점도 함께 비운다 — 남겨두면 다음 응시 전까지 지난 회차의 시각이 떠 있다.
     const nextExamStartedAt = { ...state.examStartedAt };
     if (mode === 'exam') delete nextExamStartedAt[setId];
+    // 4지선다는 답안을 비우는 것이 곧 '새 회차'다 — 출제 순서도 함께 버려 새로 섞이게 한다.
+    // 이 액션이 새 회차의 단일 관문이라 여기 두면 호출부(설정 초기화·결과 모달의 다시 풀기·
+    // 이어풀기 배너의 처음부터·모드 재클릭)마다 재추첨을 복제하다 한 곳을 빠뜨릴 일이 없다.
+    // nonce를 함께 올리는 이유: useQuestions는 순서를 구독하지 않으므로 비우는 것만으로는
+    // effect가 다시 돌지 않아, 화면은 지운 순서를 그대로 들고 있게 된다.
+    const dropChoiceDraw = mode === 'choice' && state.choiceDraw?.setId === setId;
     return {
       answers: nextAnswers,
       graded: { ...state.graded, [gradeKeyFor(setId, mode)]: false },
       examStarted: nextExamStarted,
       examStartedAt: nextExamStartedAt,
+      ...(dropChoiceDraw ? { choiceDraw: null, choiceNonce: state.choiceNonce + 1 } : {}),
     };
   }),
   resetProgressForSets: (setIds) => set((state) => {
@@ -323,7 +354,13 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       delete examStartedAt[id];
       delete reviewedOk[id];
     }
-    return { answers, graded, reviewIds, examStarted, examStartedAt, reviewedOk };
+    // 지운 세트의 4지선다 출제 순서도 함께 버린다 — 답안만 지우고 순서를 남기면
+    // "초기화했는데 아까 그 순서로 이어서 나온다"가 된다(이 액션이 막으려는 유령 상태다).
+    const wipeChoice = !!state.choiceDraw && setIds.includes(state.choiceDraw.setId);
+    return {
+      answers, graded, reviewIds, examStarted, examStartedAt, reviewedOk,
+      ...(wipeChoice ? { choiceDraw: null, choiceNonce: state.choiceNonce + 1 } : {}),
+    };
   }),
   removeHistories: (ids) => set((state) => {
     const nextHistories = { ...state.histories };
@@ -388,6 +425,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     }
   },
   setQuickDraw: (quickDraw) => set({ quickDraw }),
+  setChoiceDraw: (choiceDraw) => set({ choiceDraw }),
   // 순서를 비워 새로 섞게 한다 — 진입할 때마다 같은 순서가 나오면 '랜덤'의 의미가 없다.
   startQuick: () => set((state) => {
     // 이전 퀵 세션의 답안을 반드시 비운다. 퀵의 setId·mode는 항상 같아서 답안 키 공간도

@@ -2,6 +2,7 @@ import { useQuizStore, QuizState, HistoryMode, ExamHistory, sessionScopeDefaults
 import debounce from 'lodash-es/debounce';
 import { showToast } from './toast';
 import { answerKeyPrefix, gradeKeyFor } from './answerKey';
+import { isGradedMode } from './modeLabel';
 
 const DB_NAME = "istqb-db";
 const STORE_NAME = "history";
@@ -232,7 +233,7 @@ export const HISTORY_MODES: HistoryMode[] = [...PLAY_MODES];
  * 진입할 수 없는 모드로 복원하면 출제 분기가 없어 빈 화면이 된다.
  * 저장값이 'random'인 사용자는 아래 restore에서 연습 모드로 내려받는다.
  */
-const VALID_MODES: string[] = ["home", "exam", "practice", "review", "quick"];
+const VALID_MODES: string[] = ["home", "exam", "practice", "review", "quick", "choice"];
 
 // 외부(IndexedDB 구버전 데이터·백업 파일) 이력을 정제한다 — sanitizeAnswers/sanitizeUiState와
 // 같은 계층. 필드를 검증하지 않으면 손상된 백업의 wrongItems 등이 그대로 상태에 들어가
@@ -409,6 +410,15 @@ export function sanitizeUiState(value: unknown): Partial<QuizState> {
       out.quickDraw = { certification: qd.certification, items };
     }
   }
+  // 4지선다 출제 순서 — 세트 id와 문항 id 목록이 온전할 때만 통과(손상·조작 값 방어).
+  // 세트가 없으면 그 순서가 어느 세트 것인지 알 수 없어 복원해도 맞출 수 없다.
+  if (isPlainObject(value.choiceDraw)) {
+    const cd = value.choiceDraw as UnknownRecord;
+    const ids = Array.isArray(cd.ids) ? stringArray(cd.ids) : [];
+    if (typeof cd.setId === 'string' && cd.setId && ids.length) {
+      out.choiceDraw = { setId: cd.setId, ids };
+    }
+  }
   // 구버전의 randomDraw(랜덤 추첨 스냅샷)는 랜덤 모드 폐지와 함께 사라졌다 — 통과시키지 않는다.
   return out;
 }
@@ -457,14 +467,8 @@ export function findGradedRoundMatch(
   return latest;
 }
 
-// 시험 전용 래퍼(기존 호출부 유지) — 세트 전체 시험 회차(챕터 없음)만 대상.
-export function findGradedExamMatch(
-  histories: Record<string, ExamHistory>,
-  setId: string,
-  answers: Record<string, string[]>,
-): ExamHistory | null {
-  return findGradedRoundMatch(histories, setId, 'exam', answers, null);
-}
+// findGradedExamMatch(시험 전용 래퍼)는 없앴다 — 복원의 중복 채점 가드를 채점 모드
+// 전체로 넓히면서 호출부가 0이 됐다. 모드를 인자로 받는 findGradedRoundMatch 하나만 둔다.
 
 export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts') {
   // 떠나는 제품의 채점 상태를 세션 캐시에 보관(제품 재방문 시 복원).
@@ -571,19 +575,24 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
       }
     } else {
       // 시험 모드로 복원했고 이전 답안이 남아 있으면 "이어풀기/새로 풀기" 선택 모달을 띄운다.
-      const hasExamProgress =
-        m === 'exam' &&
-        Object.keys(sanitizedAnswers).some((k) => k.startsWith(`${sid}-${m}-`));
-      // 복원한 시험 답안이 "최신 채점 회차의 답안"과 동일하면 이미 채점을 마친 회차다 —
+      // 복원한 답안이 "최신 채점 회차의 답안"과 동일하면 이미 채점을 마친 회차다 —
       // graded는 비영속(#1)이라 새로고침 후 미채점처럼 보이고, 이어풀기→재채점하면
       // 같은 답안이 중복 회차로 적립된다. 채점 상태를 복원하고 전용 안내 모달로 분기한다.
-      // (채점 후 시험 답안은 잠금돼 변할 수 없으므로 "답안 동일 = 그 회차 그대로"가 성립)
+      // (채점 후 답안은 잠금돼 변할 수 없으므로 "답안 동일 = 그 회차 그대로"가 성립)
+      //
+      // 채점이 있는 모드는 전부 이 위험을 갖는다 — 종전에는 시험만 막아, 4지선다처럼
+      // 나중에 붙는 채점 모드는 같은 구멍을 그대로 물려받게 돼 있었다. 판정을
+      // isGradedMode 하나에 맡겨 모드가 늘어도 빠지는 곳이 생기지 않게 한다.
+      const gradedMode = typeof m === 'string' && isGradedMode(m);
+      const hasGradedProgress =
+        gradedMode &&
+        Object.keys(sanitizedAnswers).some((k) => k.startsWith(answerKeyPrefix(sid, m as string)));
       const gradedMatch =
-        hasExamProgress && !store.graded[gradeKeyFor(sid, "exam")]
-          ? findGradedExamMatch(histories, sid, sanitizedAnswers)
+        hasGradedProgress && !store.graded[gradeKeyFor(sid, m as string)]
+          ? findGradedRoundMatch(histories, sid, m as HistoryMode, sanitizedAnswers)
           : null;
       if (gradedMatch) {
-        useQuizStore.getState().setGraded(gradeKeyFor(sid, 'exam'), true);
+        useQuizStore.getState().setGraded(gradeKeyFor(sid, m as string), true);
         useQuizStore.getState().setGradedResume({
           correct: gradedMatch.correct ?? null,
           total: gradedMatch.total ?? null,
@@ -591,6 +600,9 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
         store.setResumePrompt(false);
         store.setResumeNotice(false);
       } else {
+        // '이어풀기/새로 풀기' 선택 모달은 시험에만 띄운다 — 시작 게이트가 있는 모드라
+        // "지금 응시를 개시하는가"라는 갈림이 실재한다. 4지선다는 게이트가 없어 그냥 이어푼다.
+        const hasExamProgress = m === 'exam' && hasGradedProgress;
         store.setResumePrompt(hasExamProgress);
         // 선택 모달이 뜨는 경우엔 위치 배너는 띄우지 않는다(중복 방지). 그 외엔 첫 문항이 아니면 배너(#A).
         //
@@ -620,6 +632,8 @@ export const saveUiState = debounce((state: Partial<QuizState>) => {
       navCollapsed: state.navCollapsed,
       // 퀵 출제 순서 — 없으면 새로고침 시 다시 섞여 풀던 위치와 진행 집계가 사라진다.
       quickDraw: state.quickDraw,
+      // 4지선다 출제 순서 — 같은 이유. 답안은 문항 id로 남지만 순서와 커서는 여기 없으면 잃는다.
+      choiceDraw: state.choiceDraw,
       // 챕터 집중 연습의 필터 — 영속화하지 않으면 새로고침 시 전체 세트로 돌아가,
       // 필터가 걸린 줄 알고 있는 진행과 어긋난다. 배너의 '전체 보기'로 언제든 해제 가능.
       chapterFilter: state.chapterFilter,
@@ -694,7 +708,7 @@ function resetWriteBaseline(answers: Record<string, string[]>) {
 // 합칠 것과 합치지 말 것을 구분한다:
 // - 누적형(아래 MERGEABLE_UI_KEYS): 키마다 주인이 다른 기록이다. 회차 id·세트 id·채점
 //   키 단위로 다른 탭이 넣은 것을 보존해야 한다.
-// - 커서형(mode·setId·index·elapsedSeconds·navCollapsed·chapterFilter·quickDraw):
+// - 커서형(mode·setId·index·elapsedSeconds·navCollapsed·chapterFilter·quickDraw·choiceDraw):
 //   "지금 이 탭이 보고 있는 위치"다. 두 탭이 서로 다른 문항을 보고 있을 때
 //   합쳐진 커서는 어느 쪽에도 맞지 않으므로 마지막 쓰기가 이긴다(종전 동작 유지).
 const MERGEABLE_UI_KEYS = ['reviewIds', 'reviewedOk', 'examStartedAt'] as const;
@@ -867,6 +881,7 @@ export async function exportUserData() {
       reviewIds: state.reviewIds,
       navCollapsed: state.navCollapsed,
       quickDraw: state.quickDraw,
+      choiceDraw: state.choiceDraw,
       chapterFilter: state.chapterFilter,
       // 시험 제한시간의 벽시계 기준점. 빠뜨리면 응시 중에 만든 백업을 복원했을 때
       // QuestionWorkspace의 syncExamElapsed가 기준점을 못 찾아 아무 일도 하지 않고,
@@ -1107,6 +1122,7 @@ useQuizStore.subscribe((state, prevState) => {
     state.reviewIds !== prevState.reviewIds ||
     state.navCollapsed !== prevState.navCollapsed ||
     state.quickDraw !== prevState.quickDraw ||
+    state.choiceDraw !== prevState.choiceDraw ||
     state.chapterFilter !== prevState.chapterFilter ||
     // 시험 시작 시각이 잡히는 순간 즉시 저장한다 — 이걸 놓치면 앱을 껐다 켰을 때
     // 기준점이 없어 제한시간이 처음부터 다시 흐른다.

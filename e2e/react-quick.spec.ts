@@ -268,7 +268,10 @@ test.describe("퀵 — 없어진 것들", () => {
     await expect(card).toBeVisible({ timeout: 20_000 });
     await expect(card, "게이트가 폐지된 '랜덤' 모드를 안내한다").not.toContainText("랜덤");
     await expect(card, "게이트가 없어진 퀵 임시 목록(24시간)을 안내한다").not.toContainText("24시간");
-    await expect(card).toContainText("4가지 모드");
+    // 모드 개수를 박아 둔다 — 모드가 늘거나 줄 때 이 검사가 먼저 실패해 게이트를 함께
+    // 고치게 만든다(랜덤 폐지 때 게이트만 남았던 것이 정확히 이 신호가 없어서였다).
+    await expect(card).toContainText("5가지 모드");
+    await expect(card).toContainText("4지선다");
   });
 });
 

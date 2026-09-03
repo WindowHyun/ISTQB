@@ -44,7 +44,10 @@ describe('isGradedMode', () => {
   });
 
   it('GRADED_MODES의 모든 원소가 참이고, 그 밖은 전부 거짓이다', () => {
-    expect([...GRADED_MODES]).toEqual(['exam']);
+    // 채점(회차 기록)이 있는 모드는 시험과 4지선다 둘이다. 이 목록이 늘어난다는 것은
+    // 복원 시 중복 회차 가드(storage)·사이드바 재응시 경로가 함께 넓어진다는 뜻이라,
+    // 값 자체를 여기서 못 박아 무심코 늘어나는 것을 막는다.
+    expect([...GRADED_MODES]).toEqual(['exam', 'choice']);
     for (const m of GRADED_MODES) expect(isGradedMode(m)).toBe(true);
     const others = HISTORY_MODES.filter((m) => !(GRADED_MODES as readonly string[]).includes(m));
     for (const m of others) expect(isGradedMode(m), `${m}`).toBe(false);
@@ -54,7 +57,7 @@ describe('isGradedMode', () => {
 describe('MODE_LABEL', () => {
   it('모드별 라벨이 고정돼 있다', () => {
     expect(MODE_LABEL).toEqual({
-      practice: '연습', exam: '시험', review: '오답', quick: '퀵',
+      practice: '연습', exam: '시험', review: '오답', quick: '퀵', choice: '4지선다',
       // 폐지된 모드 — 신규 진입은 없지만 과거 회차를 이름 없이 표시하지 않으려면 라벨은 남는다.
       random: '랜덤',
     });

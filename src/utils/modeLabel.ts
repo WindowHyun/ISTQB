@@ -9,8 +9,10 @@
  * 퀵이 빠진 이유: 퀵은 한 문항씩 풀고 즉시 정답·해설을 보는 무한 모드가 됐다(랜덤 흡수).
  * 회차라는 단위가 없어져 채점할 대상 자체가 없다 — 기록도 남기지 않는다.
  * 랜덤이 빠진 이유: 모드 자체가 없어졌다(퀵으로 흡수).
+ * 4지선다가 들어간 이유: 세트에서 보기 4개짜리만 골라 섞어 낸 뒤 채점하는 모드다 —
+ * 회차라는 단위가 있고 이력에 남는다(시험과 같은 규칙, 표본만 다르다).
  */
-export const GRADED_MODES = ['exam'] as const;
+export const GRADED_MODES = ['exam', 'choice'] as const;
 export function isGradedMode(mode: string): boolean {
   return (GRADED_MODES as readonly string[]).includes(mode);
 }
@@ -20,6 +22,7 @@ export const MODE_LABEL: Record<string, string> = {
   exam: '시험',
   review: '오답',
   quick: '퀵',
+  choice: '4지선다',
   // 레거시 — 이력에만 남아 있는 모드(신규 생성 없음). 과거 회차를 통계·오답노트에서
   // 이름 없이 표시하지 않도록 라벨은 유지한다.
   random: '랜덤',
@@ -38,4 +41,7 @@ export const MODE_CAPTION: Record<string, string> = {
   exam: '채점 후 정답이 공개돼요. 응시 중에는 세트·모드 변경이 잠깁니다.',
   review: '틀린 문항만 모아 즉시 피드백으로 다시 풉니다.',
   quick: '지금은 ⚡ 퀵을 푸는 중이에요 — 위 모드를 고르면 세트 풀이로 돌아갑니다.',
+  // 표본이 시험과 다르다는 것을 먼저 말한다 — 같은 세트인데 문항 수가 적어 보이는 이유이고,
+  // 정답률을 시험 회차와 나란히 비교하면 안 되는 이유이기도 하다.
+  choice: '보기 4개짜리 문항만 섞어 냅니다. 채점하면 회차로 기록돼요.',
 };
