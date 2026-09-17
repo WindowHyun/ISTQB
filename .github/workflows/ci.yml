@@ -61,7 +61,7 @@ jobs:
       - name: Validate questions & content audits
         run: npm run verify
 
-  # 문제 데이터 ↔ 원본 PDF 정합성(텍스트 2,489조각 · 정답 626문항 · 밑줄 146곳).
+  # 문제 데이터 ↔ 원본 PDF 정합성(텍스트 2,491조각 · 정답 626문항 · 밑줄 146곳).
   # 스키마 검증(verify)과 달리 '내용'이 원본과 같은지를 PDF에서 독립 추출해 대조한다 —
   # 데이터 수정 커밋이 원문을 훼손하면 여기서 잡힌다.
   pdf-data:

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { buildQuickPool, drawQuick } from '../hooks/useQuestions';
 import { makeCanonicalIdResolver } from './chapterStats';
+import { isQuestionCorrect, shortAnswerCandidates } from './answer';
 
 /**
  * 모든 세트 검증 — 12세트 626문항을 세트 단위로 훑어 데이터 계약을 못 박는다.
@@ -20,6 +21,10 @@ interface Q {
   id?: string; number: number; type?: string; chapter?: string | null;
   options?: { key: string; text: string }[]; answer?: string[];
   answerParts?: { label: string; answer: string[] }[];
+}
+interface StemBlock {
+  type?: string; text?: string; src?: string;
+  items?: unknown[]; rows?: unknown[]; lines?: unknown[];
 }
 interface SetEntry { id: string; certification: string; title: string; path: string }
 
@@ -140,5 +145,73 @@ describe('모든 세트 — 재수록 그룹표 정합', () => {
       expect(seen.has(id), `${id} 중복 등록`).toBe(false);
       seen.add(id);
     }
+  });
+});
+
+/**
+ * 지문이 사라진 문항 — 데이터는 유효한데 화면에서 풀 수 없는 결함 클래스.
+ *
+ * CSTS 2018 18·19번이 "다음 설명에 …을 기술하시오"만 남고 그 아래 설명 문단이 통째로
+ * 빠져 있었다. 원본 PDF에서 지문이 별도 텍스트 박스라 추출 순서가 어긋나며 떨어져 나간
+ * 것인데, 기존 게이트는 전부 통과했다 — PDF 대조(verify-pdf-data.py)는 "JSON의 조각이
+ * PDF에 있는가"만 보므로 **JSON에서 빠진 것은 잡지 못한다.** 반대 방향을 여기서 막는다.
+ */
+describe('모든 세트 — 지문 없이 답을 요구하지 않는다', () => {
+  // 보기로 답을 고르는 문항(선택형)은 보기가 곧 "설명"이라 지문이 따로 없을 수 있다.
+  // 자유 입력·진위형은 지문이 없으면 물음 자체가 성립하지 않는다.
+  const PROMISES_PASSAGE = /(다음|아래|위)(의|은|는)?\s*(설명|내용|지문|사례|보기|프로그램|그림|표)|[<[【]\s*보기\s*[>\]】]|보기에서|지문에서|다음은 무엇/;
+
+  const hasBody = (q: Q & { stem?: StemBlock[]; figure?: string | null }) => {
+    const blocks = q.stem ?? [];
+    // 첫 텍스트 블록은 물음 그 자체다 — 그 뒤에 실제 내용이 하나라도 있어야 한다.
+    const [, ...rest] = blocks;
+    return Boolean(q.figure) || rest.some((b) =>
+      (b.text ?? '').trim() !== '' || (b.items?.length ?? 0) > 0
+      || (b.rows?.length ?? 0) > 0 || (b.lines?.length ?? 0) > 0 || Boolean(b.src));
+  };
+
+  it.each(loaded.map(({ set }) => set.id))('%s — 지문을 가리키는 물음에 지문이 붙어 있다', (setId) => {
+    const { questions } = loaded.find(({ set }) => set.id === setId)!;
+    const broken: string[] = [];
+    for (const q of questions as (Q & { stem?: StemBlock[]; figure?: string | null })[]) {
+      if (q.options?.length) continue;                    // 보기가 설명을 대신한다
+      const head = (q.stem ?? []).map((b) => b.text ?? '').join(' ');
+      if (!PROMISES_PASSAGE.test(head)) continue;
+      if (!hasBody(q)) broken.push(q.id!);
+    }
+    expect(broken, `지문이 비어 풀 수 없는 문항: ${broken.join(', ')}`).toEqual([]);
+  });
+});
+
+/**
+ * 수치 답의 단위 표기 — 원본 공개답안이 "50%"·"4개"처럼 단위를 붙여 적어 둔 문항에서,
+ * 값을 맞게 쓴 사람이 단위를 안 붙였다는 이유로 오답이 됐다(#단답형-단위).
+ * 판정은 answer.ts가 흡수하지만, 그 흡수가 **실제 데이터의 모든 수치 답에 닿는지**는
+ * 데이터를 훑어야만 알 수 있다.
+ */
+describe('모든 세트 — 수치 서답형은 단위 표기에 걸리지 않는다', () => {
+  const UNIT_TAIL = /^([0-9]+(?:\.[0-9]+)?)(%|％|개|일|명|점|회|번|건|배|단계|시간|분|초)$/;
+
+  const numericAnswers = loaded.flatMap(({ questions }) =>
+    questions
+      .filter((q) => q.type === 'short_answer' && !q.answerParts?.length)
+      .flatMap((q) => [...new Set(shortAnswerCandidates(q.answer ?? []).map((c) => c.replace(/\s+/g, '')))]
+        .filter((c) => UNIT_TAIL.test(c))
+        .map((c) => ({ id: q.id!, answer: q.answer ?? [], candidate: c }))));
+
+  it('단위가 붙은 수치 정답이 실제로 존재한다(검사가 헛돌지 않는다)', () => {
+    expect(numericAnswers.length).toBeGreaterThan(0);
+  });
+
+  it.each(numericAnswers.map((n) => [n.id, n.candidate, n.answer] as const))(
+    '%s — "%s"는 단위를 빼고 써도 정답이다', (_id, candidate, answer) => {
+      const bare = UNIT_TAIL.exec(candidate)![1];
+      expect(isQuestionCorrect(answer as string[], [bare], 'short_answer')).toBe(true);
+      expect(isQuestionCorrect(answer as string[], [candidate], 'short_answer')).toBe(true);
+    });
+
+  it('값이 다르면 단위를 맞춰 써도 오답이다', () => {
+    expect(isQuestionCorrect(['50%'], ['60'], 'short_answer')).toBe(false);
+    expect(isQuestionCorrect(['4개'], ['5개'], 'short_answer')).toBe(false);
   });
 });
