@@ -19,6 +19,7 @@ export interface QuickScorable {
   type?: string;
   answer: string[];
   answerParts?: AnswerPart[];
+  acceptedAnswers?: string[];
   /** 복수정답 판정에만 쓴다 — 보기가 있고 정답이 둘 이상이면 다 고를 때까지 미확정이다. */
   options?: { key: string; text: string }[];
 }
@@ -114,7 +115,7 @@ export function computeQuickStats(
     // 아직 보지도 않은 문항이 '정답/오답'으로 먼저 분류된다.
     if (!isQuickCommitted(q, selected) || !isGraded(key)) continue;
     solved += 1;
-    if (isQuestionCorrect(q.answer, selected, q.type, q.answerParts)) {
+    if (isQuestionCorrect(q.answer, selected, q.type, q.answerParts, q.acceptedAnswers)) {
       correct += 1;
       streak += 1;
       if (streak > best) best = streak;

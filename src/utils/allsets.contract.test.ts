@@ -21,6 +21,7 @@ interface Q {
   id?: string; number: number; type?: string; chapter?: string | null;
   options?: { key: string; text: string }[]; answer?: string[];
   answerParts?: { label: string; answer: string[] }[];
+  acceptedAnswers?: string[];
 }
 interface StemBlock {
   type?: string; text?: string; src?: string;
@@ -213,5 +214,75 @@ describe('모든 세트 — 수치 서답형은 단위 표기에 걸리지 않�
   it('값이 다르면 단위를 맞춰 써도 오답이다', () => {
     expect(isQuestionCorrect(['50%'], ['60'], 'short_answer')).toBe(false);
     expect(isQuestionCorrect(['4개'], ['5개'], 'short_answer')).toBe(false);
+  });
+});
+
+/**
+ * 세트 간 정답키 통일 — 같은 개념을 묻는 서답형이 세트마다 인정 범위가 달라,
+ * 한 세트에서 맞던 입력이 다른 세트에서 오답이 되던 결함 클래스.
+ *
+ * 원본 공개답안이 세트마다 정답을 다르게 적어 둔 데서 온다(예: 2402-64는
+ * "재테스팅 / retesting / 재테스트 / retest", 2405-63은 "재테스팅(Re-testing)"만).
+ * 화면의 "정답"은 answer를 그대로 보여 주므로 answer는 공개답안 표기 그대로 두고,
+ * 다른 세트의 공개답안이 인정한 표기를 acceptedAnswers로 얹어 채점만 맞췄다.
+ *
+ * 세트가 늘거나 정답키를 손볼 때 다시 갈라지지 않도록, 그룹별 인정 집합이 정확히
+ * 같은지를 계약으로 고정한다.
+ */
+describe('모든 세트 — 같은 개념의 서답형은 인정 범위가 같다', () => {
+  const CONCEPT_GROUPS: Record<string, string[]> = {
+    '회귀/리그레션 테스팅': [
+      'CSTS-EL-2019-062', 'CSTS-FL-2404-068', 'CSTS-FL-2405-068', 'CSTS-EL-SW-EXAMPLE-068'],
+    '신뢰성': ['CSTS-EL-2019-070', 'CSTS-FL-2403-063', 'CSTS-FL-2404-062', 'CSTS-FL-2405-061'],
+    '재테스팅': ['CSTS-FL-2402-064', 'CSTS-FL-2405-063', 'CSTS-EL-SW-EXAMPLE-064'],
+    '동등 분할': ['CSTS-FL-2402-067', 'CSTS-FL-2403-066'],
+    '테스트 스크립트': ['CSTS-FL-2403-061', 'CSTS-EL-SW-EXAMPLE-061'],
+    '결함 심각도': ['CSTS-FL-2404-069', 'CSTS-EL-SW-EXAMPLE-070'],
+    '조건/결정 커버리지': ['CSTS-EL-2019-064', 'CSTS-FL-2405-065'],
+    'V 모델': ['CSTS-FL-2403-064', 'CSTS-FL-2404-064'],
+  };
+
+  const byId = new Map(loaded.flatMap(({ questions }) => questions.map((q) => [q.id!, q] as const)));
+
+  const acceptedSet = (q: Q) =>
+    new Set(shortAnswerCandidates([...(q.answer ?? []), ...(q.acceptedAnswers ?? [])])
+      .map((c) => c.replace(/\s+/g, '').toLowerCase())
+      .filter((c) => c !== ''));
+
+  it.each(Object.entries(CONCEPT_GROUPS))('%s — 한 세트에서 맞는 입력은 다른 세트에서도 맞는다', (_g, ids) => {
+    const sets = ids.map((id) => {
+      const q = byId.get(id);
+      expect(q, `${id} 없음`).toBeDefined();
+      expect(q!.type, `${id}는 서답형이 아니다`).toBe('short_answer');
+      return { id, accepted: acceptedSet(q!) };
+    });
+    const union = new Set(sets.flatMap((s) => [...s.accepted]));
+    for (const { id, accepted } of sets) {
+      const missing = [...union].filter((c) => !accepted.has(c)).sort();
+      expect(missing, `${id}에서만 오답이 되는 입력: ${missing.join(', ')}`).toEqual([]);
+    }
+  });
+
+  // 통일이 "아무 입력이나 받는다"로 새지 않았는지 — 개념이 다른 답은 여전히 오답이다.
+  it('다른 개념의 답은 인정하지 않는다', () => {
+    const q = byId.get('CSTS-FL-2405-065')!;
+    for (const wrong of ['분기', '구문', '문장 커버리지', '다중 조건 커버리지']) {
+      expect(isQuestionCorrect(q.answer ?? [], [wrong], 'short_answer', undefined, q.acceptedAnswers),
+        `"${wrong}"이 정답으로 인정됨`).toBe(false);
+    }
+    const v = byId.get('CSTS-FL-2403-064')!;
+    for (const wrong of ['폭포수 모델', '애자일', 'W 모델']) {
+      expect(isQuestionCorrect(v.answer ?? [], [wrong], 'short_answer', undefined, v.acceptedAnswers),
+        `"${wrong}"이 정답으로 인정됨`).toBe(false);
+    }
+  });
+
+  // acceptedAnswers는 채점 전용이다 — 화면의 "정답"(answer)까지 동의어로 불어나면
+  // 공개답안 표기가 아니게 된다(QuestionCard가 answer를 그대로 이어 붙여 보여 준다).
+  it('acceptedAnswers를 쓴 문항도 화면에 보이는 정답은 공개답안 표기 그대로다', () => {
+    const shown = (id: string) => (byId.get(id)!.answer ?? []).join(', ');
+    expect(shown('CSTS-FL-2405-063')).toBe('재테스팅(Re-testing)');
+    expect(shown('CSTS-FL-2405-068')).toBe('리그레션, 회귀');
+    expect(shown('CSTS-FL-2403-066')).toBe('동등 분할, Equivalence partitioning');
   });
 });

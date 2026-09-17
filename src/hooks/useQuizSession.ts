@@ -212,7 +212,7 @@ export function useQuizSession() {
     // 방금 채점한 문항은 아직 메모(gradableQuestions)에 없다 — 상태 갱신은 다음 렌더다.
     const gradedQs = [...gradableQuestions, currentQuestion];
     const wrongQs = gradedQs.filter((q) =>
-      !isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts));
+      !isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts, q.acceptedAnswers));
     const snapshot = useQuizStore.getState();
     addQuickRound(buildRoundHistory({
       setId,

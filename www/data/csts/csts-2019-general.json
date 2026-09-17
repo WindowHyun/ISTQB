@@ -2725,7 +2725,15 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "회귀(Regression) 테스트",
-      "chapter": "소프트웨어 개발과 테스트"
+      "chapter": "소프트웨어 개발과 테스트",
+      "acceptedAnswers": [
+        "회귀",
+        "리그레션",
+        "리그레션 테스트",
+        "리그레션 테스팅",
+        "회귀 테스팅",
+        "regression testing"
+      ]
     },
     {
       "id": "CSTS-EL-2019-063",
@@ -2782,7 +2790,8 @@
       ],
       "options": [],
       "answer": [
-        "조건/결정(분기) 커버리지"
+        "조건/결정 커버리지",
+        "조건/분기 커버리지"
       ],
       "explanation": [
         {
@@ -2794,7 +2803,15 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "조건/결정(분기) 커버리지",
-      "chapter": "테스트 기법"
+      "chapter": "테스트 기법",
+      "acceptedAnswers": [
+        "결정/조건 커버리지",
+        "분기/조건 커버리지",
+        "조건/결정",
+        "결정/조건",
+        "조건/분기",
+        "분기/조건"
+      ]
     },
     {
       "id": "CSTS-EL-2019-065",

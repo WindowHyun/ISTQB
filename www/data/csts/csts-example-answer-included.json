@@ -2832,7 +2832,11 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "재테스팅 / retesting / 재테스트 / retest",
-      "chapter": "소프트웨어 개발과 테스트"
+      "chapter": "소프트웨어 개발과 테스트",
+      "acceptedAnswers": [
+        "Re-testing",
+        "재테스팅(Re-testing)"
+      ]
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-065",
@@ -2981,7 +2985,16 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "리그레션 또는 회귀",
-      "chapter": "소프트웨어 개발과 테스트"
+      "chapter": "소프트웨어 개발과 테스트",
+      "acceptedAnswers": [
+        "회귀(Regression) 테스트",
+        "regression",
+        "regression testing",
+        "리그레션 테스트",
+        "리그레션 테스팅",
+        "회귀 테스트",
+        "회귀 테스팅"
+      ]
     },
     {
       "id": "CSTS-EL-SW-EXAMPLE-069",
@@ -3075,7 +3088,11 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "심각도(결함 심각도)",
-      "chapter": "테스트 관리"
+      "chapter": "테스트 관리",
+      "acceptedAnswers": [
+        "심각도",
+        "결함 심각도"
+      ]
     }
   ]
 }

@@ -2713,7 +2713,11 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "신뢰성",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "소프트웨어 테스트 기초",
+      "acceptedAnswers": [
+        "신뢰성(Reliability)",
+        "reliability"
+      ]
     },
     {
       "id": "CSTS-FL-2404-063",
@@ -2772,7 +2776,12 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "V 모델, V&V 모델, Verification & Validation 모델",
-      "chapter": "소프트웨어 개발과 테스트"
+      "chapter": "소프트웨어 개발과 테스트",
+      "acceptedAnswers": [
+        "V&V",
+        "브이모델",
+        "브이 모델"
+      ]
     },
     {
       "id": "CSTS-FL-2404-065",
@@ -2896,7 +2905,14 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "리그레션 테스팅 / regression testing / 회귀 테스트 / 회귀 테스팅",
-      "chapter": "소프트웨어 개발과 테스트"
+      "chapter": "소프트웨어 개발과 테스트",
+      "acceptedAnswers": [
+        "회귀",
+        "리그레션",
+        "리그레션 테스트",
+        "regression",
+        "회귀(Regression) 테스트"
+      ]
     },
     {
       "id": "CSTS-FL-2404-069",
@@ -2948,7 +2964,10 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "심각도(결함 심각도),",
-      "chapter": "테스트 관리"
+      "chapter": "테스트 관리",
+      "acceptedAnswers": [
+        "심각도(결함 심각도)"
+      ]
     },
     {
       "id": "CSTS-FL-2404-070",

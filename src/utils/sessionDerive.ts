@@ -69,7 +69,7 @@ export function tallySession(
   questions.forEach((q, i) => {
     const selected = answers[answerKeyOf(q)] || [];
     if (isAnsweredInMode(mode, q, selected)) answered += 1;
-    if (isQuestionCorrect(q.answer, selected, q.type, q.answerParts)) correctCount += 1;
+    if (isQuestionCorrect(q.answer, selected, q.type, q.answerParts, q.acceptedAnswers)) correctCount += 1;
     else wrongQuestions.push({ q, i });
   });
   return { answered, correctCount, wrongQuestions };
@@ -82,7 +82,7 @@ export function selectCorrectQuestions(
   answerKeyOf: (q: Question) => string,
 ): Question[] {
   return questions.filter((q) =>
-    isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts));
+    isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts, q.acceptedAnswers));
 }
 
 export interface ExamStage {

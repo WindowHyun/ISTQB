@@ -97,12 +97,22 @@ export interface AnswerPart {
 //   (수치 답은 단위 표기 차이를 흡수한다 — matchesShortAnswer).
 //   parts(다답형: 서로 다른 답을 여러 칸에서 요구, 예 "동등분할 4개·경계값 7개")가 주어지면
 //   각 칸 selected[i]가 해당 파트 허용답과 모두 일치해야 정답이다(반쪽 답은 오답).
+//   accepted(데이터의 acceptedAnswers)는 **채점에서만** 더 인정하는 표기다 — 아래 설명 참고.
 // - 그 외(multiple_choice / true_false): 키 배열 비교(isAnswerCorrect).
+//
+// answer와 accepted를 가른 이유: 화면의 "정답"은 answer를 그대로 이어 붙여 보여 준다
+// (QuestionCard). 같은 개념을 묻는 문항인데 세트마다 공개답안이 적어 둔 표기가 달라
+// (예: 2405-63 "재테스팅(Re-testing)" vs 2402-64 "재테스팅 / retesting / 재테스트 / retest")
+// 한쪽에서 맞던 입력이 다른 쪽에서 오답이 됐는데, 이를 answer에 전부 밀어 넣으면 이번엔
+// 화면의 정답 줄이 동의어 나열로 길어진다. answer는 공개답안 표기(표시) 그대로 두고,
+// 세트 간 통일을 위해 더 인정하는 표기만 accepted로 받는다.
+// 다답형(parts)에는 적용하지 않는다 — 칸마다 허용답이 따로 있어 칸 단위로 적어야 한다.
 export function isQuestionCorrect(
   answer: string[],
   selected: string[],
   type?: string,
   parts?: AnswerPart[],
+  accepted?: string[],
 ): boolean {
   if (type === 'short_answer') {
     if (parts && parts.length) {
@@ -116,7 +126,8 @@ export function isQuestionCorrect(
     const got = normalizeText(selected[0] || '');
     if (!got) return false;
     if (!Array.isArray(answer)) return false;
-    return shortAnswerCandidates(answer).some((c) => matchesShortAnswer(c, got));
+    const keys = Array.isArray(accepted) && accepted.length ? [...answer, ...accepted] : answer;
+    return shortAnswerCandidates(keys).some((c) => matchesShortAnswer(c, got));
   }
   return isAnswerCorrect(answer, selected);
 }

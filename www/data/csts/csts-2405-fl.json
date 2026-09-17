@@ -2681,7 +2681,10 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "신뢰성, reliability",
-      "chapter": "소프트웨어 테스트 기초"
+      "chapter": "소프트웨어 테스트 기초",
+      "acceptedAnswers": [
+        "신뢰성(Reliability)"
+      ]
     },
     {
       "id": "CSTS-FL-2405-062",
@@ -2746,7 +2749,12 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "재테스팅(Re-testing)",
-      "chapter": "소프트웨어 개발과 테스트"
+      "chapter": "소프트웨어 개발과 테스트",
+      "acceptedAnswers": [
+        "retesting",
+        "재테스트",
+        "retest"
+      ]
     },
     {
       "id": "CSTS-FL-2405-064",
@@ -2831,7 +2839,13 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "결정/조건, 조건/분기 및 / 기준 좌우가 바뀌어도 정답",
-      "chapter": "테스트 기법"
+      "chapter": "테스트 기법",
+      "acceptedAnswers": [
+        "결정/조건 커버리지",
+        "조건/결정 커버리지",
+        "조건/분기 커버리지",
+        "분기/조건 커버리지"
+      ]
     },
     {
       "id": "CSTS-FL-2405-066",
@@ -2875,19 +2889,31 @@
       "answerParts": [
         {
           "label": "1단계",
-          "answer": ["나", "(나)"]
+          "answer": [
+            "나",
+            "(나)"
+          ]
         },
         {
           "label": "2단계",
-          "answer": ["라", "(라)"]
+          "answer": [
+            "라",
+            "(라)"
+          ]
         },
         {
           "label": "3단계",
-          "answer": ["가", "(가)"]
+          "answer": [
+            "가",
+            "(가)"
+          ]
         },
         {
           "label": "4단계",
-          "answer": ["다", "(다)"]
+          "answer": [
+            "다",
+            "(다)"
+          ]
         }
       ],
       "explanation": [
@@ -2952,11 +2978,17 @@
       "answerParts": [
         {
           "label": "동등 분할",
-          "answer": ["4", "4개"]
+          "answer": [
+            "4",
+            "4개"
+          ]
         },
         {
           "label": "경계값 분석",
-          "answer": ["7", "7개"]
+          "answer": [
+            "7",
+            "7개"
+          ]
         }
       ],
       "explanation": [
@@ -3000,7 +3032,16 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "리그레션 또는 회귀",
-      "chapter": "소프트웨어 개발과 테스트"
+      "chapter": "소프트웨어 개발과 테스트",
+      "acceptedAnswers": [
+        "회귀(Regression) 테스트",
+        "regression",
+        "regression testing",
+        "리그레션 테스트",
+        "리그레션 테스팅",
+        "회귀 테스트",
+        "회귀 테스팅"
+      ]
     },
     {
       "id": "CSTS-FL-2405-069",

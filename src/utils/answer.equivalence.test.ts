@@ -227,3 +227,44 @@ describe('matchesShortAnswer — 흡수 경계', () => {
     expect(correct('50개', ['50퍼센트'])).toBe(false);
   });
 });
+
+// acceptedAnswers — 화면의 "정답"(answer)은 공개답안 표기 그대로 두고, 채점에서만 더 인정하는 표기.
+// 세트마다 공개답안이 적어 둔 표기가 달라 한쪽에서만 오답이 되던 것을 맞추는 용도다.
+describe('동등분할: 채점 전용 허용 표기(acceptedAnswers)', () => {
+  const answer = ['재테스팅(Re-testing)'];
+  const accepted = ['retesting', '재테스트', 'retest'];
+  const grade = (input: string) => isQuestionCorrect(answer, [input], SA, undefined, accepted);
+
+  it.each([['공개답안 표기', '재테스팅(Re-testing)'], ['괄호 제거형', '재테스팅'],
+    ['괄호 안', 'Re-testing'], ['추가 표기', '재테스트'], ['추가 영문', 'retesting'],
+    ['추가 영문 대문자', 'RETEST']])('%s: "%s"', (_l, input) => {
+    expect(grade(input)).toBe(true);
+  });
+
+  it('추가 표기를 주지 않으면 종전대로 answer만 인정한다', () => {
+    expect(isQuestionCorrect(answer, ['재테스트'], SA)).toBe(false);
+    expect(isQuestionCorrect(answer, ['재테스팅'], SA)).toBe(true);
+  });
+
+  it('추가 표기가 있어도 개념이 다른 답은 오답이다', () => {
+    expect(grade('리그레션')).toBe(false);
+    expect(grade('회귀 테스트')).toBe(false);
+    expect(grade('')).toBe(false);
+  });
+
+  it('빈 배열·undefined는 종전 동작과 같다', () => {
+    expect(isQuestionCorrect(answer, ['재테스트'], SA, undefined, [])).toBe(false);
+    expect(isQuestionCorrect(answer, ['재테스트'], SA, undefined, undefined)).toBe(false);
+  });
+
+  it('다답형(parts)에는 적용하지 않는다 — 칸별 허용답이 따로 있다', () => {
+    const parts = [{ label: '가', answer: ['4'] }, { label: '나', answer: ['7'] }];
+    expect(isQuestionCorrect([], ['4', '7'], SA, parts, ['99'])).toBe(true);
+    expect(isQuestionCorrect([], ['99', '7'], SA, parts, ['99'])).toBe(false);
+  });
+
+  it('선택형에는 영향이 없다', () => {
+    expect(isQuestionCorrect(['a'], ['b'], 'multiple_choice', undefined, ['b'])).toBe(false);
+    expect(isQuestionCorrect(['a'], ['a'], 'multiple_choice', undefined, ['b'])).toBe(true);
+  });
+});
