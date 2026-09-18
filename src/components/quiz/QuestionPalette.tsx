@@ -37,7 +37,7 @@ export const QuestionPalette = ({ withId, onJump }: QuestionPaletteProps) => {
         const selected = answers[answerKeyOf(q)] || [];
         const classes: string[] = [];
         if (i === safeIndex) classes.push('current');
-        if (isGraded) classes.push(isQuestionCorrect(q.answer, selected, q.type, q.answerParts) ? 'correct' : 'missed');
+        if (isGraded) classes.push(isQuestionCorrect(q.answer, selected, q.type, q.answerParts, q.acceptedAnswers) ? 'correct' : 'missed');
         // '답함' 색의 기준은 모드가 정한다 — 퀵에서 복수정답을 하나만 고른 문항은 아직
         // 확정이 아니라 점수판·채점 회차에 들어가지 않는다. 여기서만 답한 색으로 칠하면
         // 사용자는 답한 것으로 보이던 문항이 결과에서 사라지는 것을 겪는다(isAnsweredInMode).

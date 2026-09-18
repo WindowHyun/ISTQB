@@ -123,4 +123,40 @@ test.describe("문항 유형", () => {
     expect(correct).toBeGreaterThanOrEqual(1);
     expect(wrong).toBeGreaterThanOrEqual(0);
   });
+
+  test("단답형: 수치 답은 단위를 붙이든 빼든 정답이다", async ({ page }) => {
+    // 회귀: 공개답안이 '50%'로 적어 둔 문항에서 '50'만 쓰면 오답 처리됐다.
+    await openSet(page, "CSTS", "CSTS-EL-2018");
+    await modeBtn(page, "연습").click();
+    await gotoQuestion(page, 20); // 문장 커버리지는 얼마인가 — 정답 '50%'
+    await page.locator(".short-answer-input").fill("50");
+    await page.getByRole("button", { name: "정답 확인" }).click();
+    await expect(page.locator("#feedback")).toContainText("정답입니다");
+    await expect(page.locator("#feedback")).toHaveClass(/\bcorrect\b/);
+  });
+
+  test("단답형: 다른 세트 공개답안이 인정한 표기도 정답이다(acceptedAnswers)", async ({ page }) => {
+    // 회귀: 2405-63은 공개답안이 '재테스팅(Re-testing)'뿐이라 '재테스트'가 오답이었다.
+    // 같은 개념인 2402-64·EXAMPLE-64 공개답안은 '재테스트 / retest'도 인정한다.
+    // 데이터의 acceptedAnswers가 로더→채점까지 실제로 닿는지는 여기서만 증명된다.
+    await openSet(page, "CSTS", "CSTS-FL-2405");
+    await modeBtn(page, "연습").click();
+    await gotoQuestion(page, 63);
+    await page.locator(".short-answer-input").fill("재테스트");
+    await page.getByRole("button", { name: "정답 확인" }).click();
+    await expect(page.locator("#feedback")).toContainText("정답입니다");
+    // 화면의 "정답"은 공개답안 표기 그대로다 — 동의어로 불어나지 않는다.
+    await expect(page.locator("#feedback")).toContainText("재테스팅(Re-testing)");
+  });
+
+  test("단답형: 지문이 빠져 답할 수 없던 문항에 지문이 붙어 있다", async ({ page }) => {
+    // 회귀: '다음은 무엇에 대한 설명인지 기술하시오'만 뜨고 설명 문단이 없었다.
+    await openSet(page, "CSTS", "CSTS-EL-2018");
+    await modeBtn(page, "연습").click();
+    await gotoQuestion(page, 19);
+    await expect(page.locator("#questionStem")).toContainText("구조기반 테스트 커버리지 중 테스트 강도가 가장 높으며");
+    await page.locator(".short-answer-input").fill("다중 조건 커버리지");
+    await page.getByRole("button", { name: "정답 확인" }).click();
+    await expect(page.locator("#feedback")).toContainText("정답입니다");
+  });
 });

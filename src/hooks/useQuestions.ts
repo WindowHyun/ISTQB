@@ -29,6 +29,9 @@ export interface Question {
   // 있으면 QuestionCard가 라벨별 입력 칸을 렌더하고 채점은 모든 칸 일치를 요구한다.
   // answer(단일 문자열)는 PDF 대조·폴백용으로 유지한다.
   answerParts?: { label: string; answer: string[] }[];
+  // 채점에서만 더 인정하는 표기(표시에는 쓰지 않는다). 세트마다 공개답안 표기가 갈려
+  // 같은 개념인데 한쪽에서만 오답이 되던 것을 여기서 맞춘다 — answer.ts의 설명 참고.
+  acceptedAnswers?: string[];
   explanation?: unknown;
   figure?: string | null;
   // 대단원 분류(Phase 0, 약점 분석용). taxonomy.json의 챕터명 또는 null(미태깅).

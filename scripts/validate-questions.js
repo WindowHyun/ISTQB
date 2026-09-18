@@ -148,6 +148,28 @@ function validateQuestion(q, filePath, allIds, allNumbers) {
       }
     }
 
+    // (신규) acceptedAnswers 형식 검증 — 화면의 "정답"은 answer만 쓰고, 여기 적은 표기는
+    // 채점에서만 더 인정한다(세트 간 정답키 통일용). 서답형 전용이고, answer와 겹치면
+    // 늘어난 것이 없으니 중복으로 본다.
+    if (q.acceptedAnswers !== undefined) {
+      if (!Array.isArray(q.acceptedAnswers) || q.acceptedAnswers.length === 0
+          || q.acceptedAnswers.some((x) => typeof x !== 'string' || x.trim() === '')) {
+        log('ERROR', filePath, qId, `acceptedAnswers는 비어 있지 않은 문자열 배열이어야 함`);
+      } else if (q.type !== 'short_answer') {
+        log('ERROR', filePath, qId, `acceptedAnswers는 서답형(short_answer)에만 쓸 수 있음 (type=${q.type})`);
+      } else if (hasParts) {
+        log('ERROR', filePath, qId, `다답형(answerParts)에는 acceptedAnswers를 쓸 수 없음 — 칸별 answer에 적어야 함`);
+      } else {
+        const norm = (v) => String(v).replace(/\s+/g, '').toLowerCase();
+        const shown = new Set(answers.map(norm));
+        for (const a of q.acceptedAnswers) {
+          if (shown.has(norm(a))) {
+            log('WARNING', filePath, qId, `acceptedAnswers 항목이 answer와 같음 — 지워도 채점이 같다: ${a.slice(0, 40)}`);
+          }
+        }
+      }
+    }
+
     // (신규) answerParts(다답형) 형식 검증 — 각 파트는 label(문자열)과 비어있지 않은 answer 배열을 가져야 한다.
     if (q.answerParts !== undefined) {
       if (!Array.isArray(q.answerParts) || q.answerParts.length < 2) {

@@ -141,7 +141,7 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
     setShowFeedback(true);
   };
 
-  const correct = isQuestionCorrect(question.answer, selected, question.type, parts);
+  const correct = isQuestionCorrect(question.answer, selected, question.type, parts, question.acceptedAnswers);
   const answerDisplay = isMultiPart
     ? parts!.map((p) => `${p.label} ${p.answer[0] ?? ''}`).join(' · ')
     : formatAnswerList(question.answer);

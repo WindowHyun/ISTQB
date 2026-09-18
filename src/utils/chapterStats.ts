@@ -47,7 +47,7 @@ export function buildChapterStats(
     const cell = (stats[q.chapter] ||= { c: 0, t: 0 });
     const ids = (byQuestion[q.chapter] ||= { ok: [], no: [] });
     cell.t += 1;
-    if (isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts)) {
+    if (isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts, q.acceptedAnswers)) {
       cell.c += 1;
       ids.ok.push(questionKey(q));
     } else {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isQuestionCorrect, isAnswered, normalizeText } from './answer';
+import { isQuestionCorrect, isAnswered, matchesShortAnswer, normalizeText } from './answer';
 
 // 동등분할 — "같은 답으로 취급돼야 하는 입력들"을 한 묶음으로 보고 대표값을 찍는다.
 // 기존 테스트는 정답 문자열을 그대로 넣는 경우만 다뤘다. 사람이 실제로 치는 입력은
@@ -153,5 +153,118 @@ describe('동등분할: 선택형 키 비교', () => {
   it('정답 키가 손상된 문항은 오답 처리한다(빈 선택이 정답이 되지 않는다)', () => {
     expect(isQuestionCorrect([], [])).toBe(false);
     expect(isQuestionCorrect(undefined as unknown as string[], [])).toBe(false);
+  });
+});
+
+// 수치 답의 단위 표기 — 원본 공개답안이 "50%"·"4개"처럼 단위를 붙여 적어 둔 탓에,
+// 값을 맞게 쓰고도 단위를 안 붙였다는 이유로 오답이 나던 구간.
+describe('동등분할: 수치 답의 단위 표기', () => {
+  it.each([
+    ['퍼센트를 생략', '50', ['50%']],
+    ['퍼센트를 붙임', '50%', ['50%']],
+    ['전각 퍼센트', '50％', ['50%']],
+    ['개수 단위를 생략', '4', ['4개']],
+    ['개수 단위를 붙임', '4개', ['4개']],
+    ['날짜 단위를 생략', '17', ['17일']],
+    ['소수 + 퍼센트 생략', '98.2', ['0.982', '98.2%', '982/1000']],
+    ['소수 표기 그대로', '0.982', ['0.982', '98.2%', '982/1000']],
+    ['분수 표기 그대로', '982/1000', ['0.982', '98.2%', '982/1000']],
+  ])('%s: "%s"', (_label, input, answer) => {
+    expect(correct(input, answer as string[])).toBe(true);
+  });
+
+  it('값이 다르면 단위를 맞춰도 오답이다', () => {
+    expect(correct('60', ['50%'])).toBe(false);
+    expect(correct('60%', ['50%'])).toBe(false);
+    expect(correct('5개', ['4개'])).toBe(false);
+  });
+
+  // 단위 흡수를 "숫자면 무조건 같다"로 넓히면 채점이 무의미해진다 — 경계를 못 박는다.
+  it('서로 다른 단위를 붙인 입력은 인정하지 않는다', () => {
+    expect(correct('50개', ['50%'])).toBe(false);
+    expect(correct('4%', ['4개'])).toBe(false);
+    expect(correct('17개', ['17일'])).toBe(false);
+  });
+
+  it('수치가 아닌 답은 종전대로 완전일치만 인정한다', () => {
+    expect(correct('구조', ['구조기반'])).toBe(false);
+    expect(correct('50', ['테스트 계획서'])).toBe(false);
+    expect(correct('0.982', ['982/1000'])).toBe(false); // 분수는 수치 꼴이 아니다
+  });
+
+  it('부호·지수 표기는 수치로 보지 않는다(정답키가 그런 꼴로 들어올 일이 없다)', () => {
+    expect(correct('-50', ['50%'])).toBe(false);
+    expect(correct('5e1', ['50%'])).toBe(false);
+    expect(correct('+50', ['50%'])).toBe(false);
+  });
+
+  it('선행 0·소수점 꼬리 차이는 같은 값으로 본다', () => {
+    expect(correct('050', ['50%'])).toBe(true);
+    expect(correct('50.0', ['50%'])).toBe(true);
+  });
+});
+
+// matchesShortAnswer의 경계 — 단위 흡수가 "숫자면 같다"로 새지 않는지 직접 고정한다.
+// isQuestionCorrect를 통해서만 보면 이 방어들은 뮤테이션에 살아남는다(호출부가 이미 막으므로
+// 지워도 결과가 같아 보인다) — shortAnswerCandidates를 export한 것과 같은 이유다.
+describe('matchesShortAnswer — 흡수 경계', () => {
+  it('빈 후보는 어떤 입력과도 맞지 않는다', () => {
+    expect(matchesShortAnswer('', '')).toBe(false);
+    expect(matchesShortAnswer('   ', '')).toBe(false);
+    expect(matchesShortAnswer('', '50')).toBe(false);
+  });
+
+  it('배정밀도로 표현할 수 없이 큰 값은 같다고 보지 않는다', () => {
+    // 둘 다 Number()로는 Infinity가 된다 — 유한성 검사가 없으면 서로 다른 값이 같아진다.
+    const got = `1${'0'.repeat(400)}`;
+    expect(matchesShortAnswer(`5${'0'.repeat(400)}%`, got)).toBe(false);
+  });
+
+  it('전각·한글 퍼센트는 %와 같은 단위로 접히되, 다른 단위와 섞이지 않는다', () => {
+    expect(correct('50', ['50％'])).toBe(true);
+    expect(correct('50%', ['50％'])).toBe(true);
+    expect(correct('50개', ['50％'])).toBe(false);
+    expect(correct('50개', ['50퍼센트'])).toBe(false);
+  });
+});
+
+// acceptedAnswers — 화면의 "정답"(answer)은 공개답안 표기 그대로 두고, 채점에서만 더 인정하는 표기.
+// 세트마다 공개답안이 적어 둔 표기가 달라 한쪽에서만 오답이 되던 것을 맞추는 용도다.
+describe('동등분할: 채점 전용 허용 표기(acceptedAnswers)', () => {
+  const answer = ['재테스팅(Re-testing)'];
+  const accepted = ['retesting', '재테스트', 'retest'];
+  const grade = (input: string) => isQuestionCorrect(answer, [input], SA, undefined, accepted);
+
+  it.each([['공개답안 표기', '재테스팅(Re-testing)'], ['괄호 제거형', '재테스팅'],
+    ['괄호 안', 'Re-testing'], ['추가 표기', '재테스트'], ['추가 영문', 'retesting'],
+    ['추가 영문 대문자', 'RETEST']])('%s: "%s"', (_l, input) => {
+    expect(grade(input)).toBe(true);
+  });
+
+  it('추가 표기를 주지 않으면 종전대로 answer만 인정한다', () => {
+    expect(isQuestionCorrect(answer, ['재테스트'], SA)).toBe(false);
+    expect(isQuestionCorrect(answer, ['재테스팅'], SA)).toBe(true);
+  });
+
+  it('추가 표기가 있어도 개념이 다른 답은 오답이다', () => {
+    expect(grade('리그레션')).toBe(false);
+    expect(grade('회귀 테스트')).toBe(false);
+    expect(grade('')).toBe(false);
+  });
+
+  it('빈 배열·undefined는 종전 동작과 같다', () => {
+    expect(isQuestionCorrect(answer, ['재테스트'], SA, undefined, [])).toBe(false);
+    expect(isQuestionCorrect(answer, ['재테스트'], SA, undefined, undefined)).toBe(false);
+  });
+
+  it('다답형(parts)에는 적용하지 않는다 — 칸별 허용답이 따로 있다', () => {
+    const parts = [{ label: '가', answer: ['4'] }, { label: '나', answer: ['7'] }];
+    expect(isQuestionCorrect([], ['4', '7'], SA, parts, ['99'])).toBe(true);
+    expect(isQuestionCorrect([], ['99', '7'], SA, parts, ['99'])).toBe(false);
+  });
+
+  it('선택형에는 영향이 없다', () => {
+    expect(isQuestionCorrect(['a'], ['b'], 'multiple_choice', undefined, ['b'])).toBe(false);
+    expect(isQuestionCorrect(['a'], ['a'], 'multiple_choice', undefined, ['b'])).toBe(true);
   });
 });

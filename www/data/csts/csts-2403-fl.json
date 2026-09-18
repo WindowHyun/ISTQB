@@ -2703,7 +2703,10 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "테스트 스크립트, test script, 스크립트(부분점수 0.7)",
-      "chapter": "테스트 프로세스와 도구"
+      "chapter": "테스트 프로세스와 도구",
+      "acceptedAnswers": [
+        "Script"
+      ]
     },
     {
       "id": "CSTS-FL-2403-062",
@@ -2821,7 +2824,12 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "V&V, 브이모델",
-      "chapter": "소프트웨어 개발과 테스트"
+      "chapter": "소프트웨어 개발과 테스트",
+      "acceptedAnswers": [
+        "V 모델",
+        "V&V 모델",
+        "Verification & Validation 모델"
+      ]
     },
     {
       "id": "CSTS-FL-2403-065",
@@ -2883,7 +2891,12 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "동등 분할(클래스), Equivalence partitioning",
-      "chapter": "테스트 기법"
+      "chapter": "테스트 기법",
+      "acceptedAnswers": [
+        "동치 분할",
+        "동등 클래스 분할",
+        "등가 분할"
+      ]
     },
     {
       "id": "CSTS-FL-2403-067",

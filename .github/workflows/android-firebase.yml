@@ -56,6 +56,13 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # 액션 기본값은 `tools platform-tools`인데, 구글이 SDK 저장소에서 레거시 `tools`
+          # 패키지를 내렸다. sdkmanager가 "Failed to find package 'tools'"로 죽으면서
+          # 이 잡이 통째로 실패한다(CI run #298은 통과, #299부터 실패 — 우리 코드 변경과
+          # 무관한 업스트림 변화다). 필요한 것은 platform-tools뿐이고, 빌드에 쓰이는
+          # platforms·build-tools는 라이선스 동의 후 AGP가 알아서 내려받는다.
+          packages: "platform-tools"
 
       - name: Capacitor sync (dist → android)
         run: npx cap sync android

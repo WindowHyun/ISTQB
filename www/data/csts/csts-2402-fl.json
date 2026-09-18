@@ -2904,7 +2904,11 @@
       "difficulty": "normal",
       "figure": null,
       "answerText": "재테스팅 / retesting / 재테스트 / retest",
-      "chapter": "소프트웨어 개발과 테스트"
+      "chapter": "소프트웨어 개발과 테스트",
+      "acceptedAnswers": [
+        "Re-testing",
+        "재테스팅(Re-testing)"
+      ]
     },
     {
       "id": "CSTS-FL-2402-065",

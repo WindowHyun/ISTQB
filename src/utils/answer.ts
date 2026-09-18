@@ -48,6 +48,44 @@ export function shortAnswerCandidates(answer: string[]): string[] {
   return out;
 }
 
+// 수치 답의 단위 표기 흔들림 — "50%"를 "50"으로, "4개"를 "4"로 쓰는 것은 같은 답이다.
+// 원본 공개답안이 단위를 붙여 적어 둔 문항(CSTS 2018-20·2019-65·66·67, 2402-63,
+// 2403-68, 2404-67, 2405-64, SW-EXAMPLE-66)에서, 값을 맞게 쓴 사람이 단위를 안 붙였다는
+// 이유로 오답 처리됐다. 반대(정답키는 "4", 입력은 "4개")도 같은 이유로 인정한다.
+//
+// 인정 범위를 좁게 둔다 — 문항이 단위를 지정하므로 값만 맞으면 되지만, 서로 **다른** 단위를
+// 붙인 입력("50%" vs "50개")까지 같게 보면 채점이 무의미해진다. 그래서 단위가 양쪽 다
+// 있을 때는 같아야 하고, 한쪽이 비어 있을 때만 값으로 비교한다.
+const NUMERIC_UNITS = '%|％|퍼센트|개|일|명|점|회|번|건|배|단계|시간|분|초';
+const NUMERIC_WITH_UNIT = new RegExp(`^([0-9]+(?:\\.[0-9]+)?)(${NUMERIC_UNITS})?$`);
+// 같은 단위의 다른 표기는 하나로 접는다 — 전각 퍼센트는 한글 IME에서 흔히 나온다.
+const UNIT_ALIASES: Record<string, string> = { '％': '%', '퍼센트': '%' };
+
+// 정규화된 문자열이 "숫자(+단위)" 꼴이면 값과 단위로 쪼갠다. 아니면 null.
+// 값은 선행 0·소수 표기 차이("50" vs "050" vs "50.0")까지 같게 보도록 수치로 비교한다.
+// 부호·지수 표기(-50, 5e1)는 일부러 받지 않는다 — 정답키가 그런 꼴로 들어올 일이 없고,
+// 넓힐수록 "숫자면 같다"에 가까워져 채점이 헐거워진다.
+function numericWithUnit(normalized: string): { value: number; unit: string } | null {
+  const m = NUMERIC_WITH_UNIT.exec(normalized);
+  if (!m) return null;
+  const value = Number(m[1]);
+  if (!Number.isFinite(value)) return null;
+  const unit = m[2] ?? '';
+  return { value, unit: UNIT_ALIASES[unit] ?? unit };
+}
+
+// 정규화 후 완전일치가 아니어도, 단위만 다른 같은 수치면 정답으로 인정한다.
+export function matchesShortAnswer(candidate: string, got: string): boolean {
+  const c = normalizeText(candidate);
+  if (c === '') return false;
+  if (c === got) return true;
+  const a = numericWithUnit(c);
+  const b = numericWithUnit(got);
+  if (!a || !b) return false;
+  if (a.unit && b.unit && a.unit !== b.unit) return false;
+  return a.value === b.value;
+}
+
 // 다답형 서답형의 한 입력 칸(파트) — 라벨 + 그 칸에서 허용하는 정답 동의어들.
 export interface AnswerPart {
   label: string;
@@ -55,15 +93,26 @@ export interface AnswerPart {
 }
 
 // 문제 유형별 정답 판정.
-// - short_answer: 입력 텍스트를 정규화해 허용답 후보(shortAnswerCandidates) 중 하나와 일치하면 정답.
+// - short_answer: 입력 텍스트를 정규화해 허용답 후보(shortAnswerCandidates) 중 하나와 일치하면 정답
+//   (수치 답은 단위 표기 차이를 흡수한다 — matchesShortAnswer).
 //   parts(다답형: 서로 다른 답을 여러 칸에서 요구, 예 "동등분할 4개·경계값 7개")가 주어지면
 //   각 칸 selected[i]가 해당 파트 허용답과 모두 일치해야 정답이다(반쪽 답은 오답).
+//   accepted(데이터의 acceptedAnswers)는 **채점에서만** 더 인정하는 표기다 — 아래 설명 참고.
 // - 그 외(multiple_choice / true_false): 키 배열 비교(isAnswerCorrect).
+//
+// answer와 accepted를 가른 이유: 화면의 "정답"은 answer를 그대로 이어 붙여 보여 준다
+// (QuestionCard). 같은 개념을 묻는 문항인데 세트마다 공개답안이 적어 둔 표기가 달라
+// (예: 2405-63 "재테스팅(Re-testing)" vs 2402-64 "재테스팅 / retesting / 재테스트 / retest")
+// 한쪽에서 맞던 입력이 다른 쪽에서 오답이 됐는데, 이를 answer에 전부 밀어 넣으면 이번엔
+// 화면의 정답 줄이 동의어 나열로 길어진다. answer는 공개답안 표기(표시) 그대로 두고,
+// 세트 간 통일을 위해 더 인정하는 표기만 accepted로 받는다.
+// 다답형(parts)에는 적용하지 않는다 — 칸마다 허용답이 따로 있어 칸 단위로 적어야 한다.
 export function isQuestionCorrect(
   answer: string[],
   selected: string[],
   type?: string,
   parts?: AnswerPart[],
+  accepted?: string[],
 ): boolean {
   if (type === 'short_answer') {
     if (parts && parts.length) {
@@ -71,13 +120,14 @@ export function isQuestionCorrect(
       return parts.every((p, i) => {
         const got = normalizeText(selected[i] || '');
         if (!got) return false;
-        return shortAnswerCandidates(p.answer).some((c) => c !== '' && normalizeText(c) === got);
+        return shortAnswerCandidates(p.answer).some((c) => matchesShortAnswer(c, got));
       });
     }
     const got = normalizeText(selected[0] || '');
     if (!got) return false;
     if (!Array.isArray(answer)) return false;
-    return shortAnswerCandidates(answer).some((c) => c !== '' && normalizeText(c) === got);
+    const keys = Array.isArray(accepted) && accepted.length ? [...answer, ...accepted] : answer;
+    return shortAnswerCandidates(keys).some((c) => matchesShortAnswer(c, got));
   }
   return isAnswerCorrect(answer, selected);
 }
