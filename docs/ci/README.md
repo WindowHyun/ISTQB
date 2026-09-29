@@ -4,7 +4,7 @@
 
 | 워크플로 | 트리거 | 하는 일 |
 | --- | --- | --- |
-| `ci.yml` | main push · PR · 수동 | 머지 게이트. 잡 14개 병렬(아래) |
+| `ci.yml` | main push · PR · 수동 | 머지 게이트. 잡 15개 병렬(아래) |
 | `daily-e2e.yml` | 매일 KST 09:17 · 수동 | PR 게이트에서 뺀 무거운 검사 + main 기준 드리프트 감시. 실패하면 추적 이슈 |
 | `android-firebase.yml` | 수동 · `v*` 태그 | APK 빌드 → Firebase App Distribution. 절차는 [`../firebase-app-distribution.md`](../firebase-app-distribution.md) |
 
@@ -21,6 +21,7 @@
 | `build` | `build` + `size` | 번들 예산(gzip JS 140KB·CSS 12KB, 서비스워커 포함) |
 | `android-build` | `build` → `cap sync` → 낡은 `android/` 검사 → `assembleDebug` | 네이티브 컴파일·JS 브리지 시그니처 |
 | `e2e` | `npm run test:e2e` | 기능 E2E(`react` 프로젝트) |
+| `e2e-sweep` | `explore-fullsweep` · `explore-fullgrade` | 626문항 전수 렌더·12세트 완주. **경로 필터** — 데이터·렌더 경로가 바뀐 PR만 |
 | `nonfunctional` | `npm run test:nf` | 성능·오프라인·타이머·저장 내구성. 시간 예산은 CI에서 2~3배 완화 |
 | `apk` | `npm run test:apk` | Pixel 7 + WebView UA + 안전영역 주입 모사 |
 | `audit` | `npm audit --omit=dev --audit-level=high` | 배포 번들 의존성의 high+ 취약점 |
@@ -29,7 +30,7 @@
 
 ### 알아야 할 것
 
-- **경로 필터:** `mutation-storage`는 늘 실행돼 초록으로 끝나지만, Stryker 단계는 `scripts/changed-areas.js`가 저장 계층 변경을 감지했을 때만 돈다. 경로 필터 밖의 테스트 변경이 만드는 점수 드리프트는 `daily-e2e.yml`이 main에서 잡는다. 분류 규칙을 바꾸면 `scripts/changed-areas.test.ts`도 함께 고친다.
+- **경로 필터:** `mutation-storage`와 `e2e-sweep`은 늘 실행돼 초록으로 끝나지만, 무거운 단계는 `scripts/changed-areas.js`가 해당 영역(`mutationStorage` · `sweep`) 변경을 감지했을 때만 돈다. 필터 밖의 변경이 만드는 드리프트는 `daily-e2e.yml`이 main에서 잡는다. 분류 규칙을 바꾸면 `scripts/changed-areas.test.ts`도 함께 고친다.
 - **`audit`가 `--omit=dev`인 이유:** 사용자에게 나가는 것은 프로덕션 의존성뿐이다. 이 게이트가 의미를 가지려면 `package.json` 분류가 정확해야 한다 — 빌드·테스트 전용 패키지가 `dependencies`에 들어가면 배포되지도 않는 패키지의 권고로 CI가 막힌다(실제로 `vite → postcss → nanoid`로 막힌 적이 있다).
 - **`codeql`:** 이 잡만 `security-events: write` 권한을 받는다. 저장소 설정에서 CodeQL default setup을 켜면 이 워크플로와 충돌하므로 둘 중 하나만 쓴다.
 - **잡 timeout과 스펙 예산:** `스펙 최대 test.setTimeout × 2(CI 재시도) + 정상 스위트 시간 < 잡 timeout`. 깨지면 멈춘 스펙이 예산을 태우는 동안 잡이 먼저 잘려 로그에 원인이 남지 않는다. 자세한 것은 [`../harness/testing.md`](../harness/testing.md).
@@ -37,6 +38,7 @@
 
 ## `daily-e2e.yml`
 
+- 잡: 기능 E2E · 탐색 E2E(`explore` 전체 — 몽키·전수 스윕·페어와이즈 등, PR 게이트 밖) · 비기능 · 저장 계층 뮤테이션.
 - 실패 알림은 **예약 실행일 때만** 나간다(`workflow_dispatch`로 손으로 돌리다 이슈가 열리지 않게). `daily-e2e-failure` 라벨이 붙은 열린 이슈가 있으면 거기에 코멘트를 달고, 없으면 새로 연다. 원인을 고친 뒤 이슈를 닫는다.
 - APK 스위트는 여기서 돌리지 않는다 — 러너·의존성 드리프트에 노출되는 면이 기능 E2E와 겹친다.
 - 저장소에 60일 동안 활동이 없으면 GitHub이 예약 트리거를 자동으로 끈다.

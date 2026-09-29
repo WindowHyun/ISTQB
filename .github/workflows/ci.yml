@@ -266,28 +266,14 @@ jobs:
           chmod +x android/gradlew
           cd android && ./gradlew assembleDebug --no-daemon
 
-  # timeout 30분인 이유는 "스위트가 30분 걸려서"가 아니라 **최악의 경우가 그 안에 들어오게
-  # 하려고**다. 정상 실행은 ~11~13분이고(main #270: 417건 11분 23초), 남은 여유는 CI의
-  # `retries: 1`이 한 번 붙는 경우를 위한 것이다.
+  # 기능 E2E(react 프로젝트). 탐색형(몽키·전수 스윕·페어와이즈·교차 정합)은 explore 프로젝트로
+  # 분리해 아래 e2e-sweep(데이터·렌더 경로가 바뀐 PR만)과 daily-e2e.yml(매일)에서 돈다.
+  # 몽키 하나가 이 스위트 워커 시간의 27%를 쓰고 있었다(2026-09-29 로컬 실측).
   #
-  # 그래서 지켜야 할 부등식이 하나 있다:
-  #
-  #     스펙 최대 예산 × 2(재시도) + 정상 스위트 시간  <  이 잡의 timeout
-  #     7분 × 2 + 13분 = 27분  <  30분  ✓
-  #
-  # 이것이 깨져 있으면 무거운 스펙이 한 번 멈출 때 잡이 벽시계로 잘리고, 그때는 Playwright가
-  # 리포트를 쓰기 전이라 **원인이 한 줄도 안 남는다**. #256·#257·#266이 정확히 그렇게
-  # 잘렸고(정상 12분 / 실패 20:20) 무엇이 걸렸는지 알 수 없었다. 종전에는 스펙 예산이
-  # 15~30분이라 부등식이 성립할 수 없었다 — timeout을 20→30분으로 올려도 마찬가지였다.
-  # 그래서 timeout이 아니라 **스펙 예산 쪽**을 실측 기반으로 조였다(각 스펙 주석 참고):
-  #   react-fullsweep 30분→5분(실측 43초) · react-fullgrade 30분→5분(1.2분)
-  #   react-monkey 15분→7분(1.7~2.2분) · react-pairwise 15분→5분(1.1분)
-  #   react-transition-quick 15분→5분(46초)
-  # 이제 멈춘 스펙은 자기 예산에서 죽으면서 trace·error-context를 남긴다.
-  #
-  # 스펙 예산을 올릴 일이 생기면 위 부등식을 다시 계산한다.
-  # (참고: react-webkit-motion을 이 잡의 근본 비용으로 본 적이 있는데 틀린 진단이었다 —
-  #  main은 그 스펙을 포함하고도 11분이었다. 실제 비용은 무거운 스펙의 간헐적 멈춤이다.)
+  # timeout은 예산 부등식으로 정한다: 스펙 최대 test.setTimeout × 2(재시도) + 정상 시간 < timeout.
+  # 현재 최대 예산은 react-quick-ux의 400초 → 6.7분 × 2 + 정상 ~8분 ≈ 21분 < 30분.
+  # 깨지면 멈춘 스펙이 예산을 태우는 동안 잡이 먼저 잘려 원인이 남지 않는다
+  # (경위: docs/decisions/e2e-test-budget.md).
   e2e:
     name: E2E smoke (Playwright)
     runs-on: ubuntu-latest
@@ -318,6 +304,59 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # 626문항 전수 렌더 스윕·12세트 완주 채점 — 데이터나 문항을 그리는 경로가 바뀐 PR에서만 돈다
+  # (영역 판정: scripts/changed-areas.js의 sweep). 잡은 늘 실행돼 초록으로 끝나므로 필수 체크로
+  # 걸려 있어도 막히지 않는다. main에서는 daily-e2e.yml이 explore 전체를 매일 돌린다.
+  # 예산: 스펙 최대 300초 × 2 + 정상 ~3분 ≈ 13분 < 20분.
+  e2e-sweep:
+    name: E2E sweep (data · render paths)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Detect changed areas
+        id: areas
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before || '' }}
+        run: node scripts/changed-areas.js --base "$BASE" --github-output
+      - name: Setup Node
+        if: ${{ steps.areas.outputs.sweep == 'true' }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        if: ${{ steps.areas.outputs.sweep == 'true' }}
+        run: npm ci
+      - name: Cache Playwright browsers
+        if: ${{ steps.areas.outputs.sweep == 'true' }}
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+      - name: Install Playwright (chromium + system deps)
+        if: ${{ steps.areas.outputs.sweep == 'true' }}
+        run: npx playwright install --with-deps chromium
+      - name: Run full sweep + full grade
+        if: ${{ steps.areas.outputs.sweep == 'true' }}
+        run: npx playwright test --project=explore e2e/explore-fullsweep.spec.ts e2e/explore-fullgrade.spec.ts
+      - name: Skipped — data and render paths unchanged
+        if: ${{ steps.areas.outputs.sweep != 'true' }}
+        run: echo "데이터·렌더 경로 변경 없음 — 전수 스윕 생략(main 야간 실행이 담당)." >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload Playwright report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-sweep
           path: playwright-report/
           retention-days: 7
           if-no-files-found: ignore

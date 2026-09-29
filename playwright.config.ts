@@ -26,6 +26,14 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], baseURL: REACT_URL },
     },
     {
+      // 탐색형(explore-*.spec.ts) — 몽키·전수 스윕·완주 채점·페어와이즈·교차 정합·시드 랜덤.
+      // 변경과 무관하게 넓게 훑는 검사라 PR 게이트(react)에서 뺐다. daily-e2e.yml이 매일 돌리고,
+      // 전수 스윕·완주 채점은 데이터·렌더 경로가 바뀐 PR에서도 돈다(ci.yml e2e-sweep).
+      name: "explore",
+      testMatch: /explore-.*\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"], baseURL: REACT_URL },
+    },
+    {
       // 비기능(성능·부하·메모리·복원력) — 전용 CI 잡에서 `--project=nonfunctional`로 실행.
       name: "nonfunctional",
       testMatch: /(^|\/)nonfunctional\.spec\.ts$/,
