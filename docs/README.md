@@ -39,6 +39,7 @@
 | [`code-audit-2026-08-18.md`](./code-audit-2026-08-18.md) | 2026-08-18~20 | 같은 점검의 상세 근거·재현 절차 |
 | [`project-history.html`](./project-history.html) | 갱신 중 | 진행 기록(테스트·기획·커밋) |
 | [`commit-dashboard.html`](./commit-dashboard.html) | 2026-07-30 | 커밋·이슈 대시보드 |
+| [`slimming-report-2026-09-29.md`](./slimming-report-2026-09-29.md) | 2026-09-29 | 문서·E2E·CI 축소안과 Opus 5.5용 AGENTS.md·하네스 재설계안(제안만, 미적용) |
 
 ## 아카이브 — [`archive/`](./archive/)
 
