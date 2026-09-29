@@ -20,11 +20,14 @@ JS 브리지는 `android.md`의 계약 표가 정본이다. 웹과 네이티브�
 
 ## 검증
 
+`npm run check:changed`가 변경 파일(origin/main 대비 + 커밋 안 한 변경)로 영역을 판정해 아래 표의 명령을 골라 실행한다. `--dry-run`은 고른 명령만 보여 주고, `--skip-slow`는 저장 계층 뮤테이션·탐색 E2E를 뺀다. 판정 규칙은 `scripts/changed-areas.js`이고 CI 경로 필터와 같다.
+
 | 변경 | 명령 |
 | --- | --- |
 | 코드 전반 | `npm run lint && npm run typecheck && npm run typecheck:test && npm test` |
 | 데이터(`www/data/**`) | 위 + `npm run verify && python3 scripts/verify-pdf-data.py` |
 | UI·앱 동작 | 위 + `npm run test:e2e` |
+| 데이터·문항 렌더 경로(`parser.tsx`·`QuestionCard`·채점) | 위 + `npm run test:explore`(626문항 전수 스윕 포함) |
 | 모바일 레이아웃·안전영역·터치 타깃 | 위 + `npm run test:apk` |
 | 성능·오프라인·저장 내구성 | 위 + `npm run test:nf` |
 | 채점·통계 순수 로직(`stryker.config.json`의 `mutate`) | 위 + `npm run test:mutation` |

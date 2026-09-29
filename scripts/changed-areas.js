@@ -56,7 +56,8 @@ function classify(files) {
     if (GLOBAL.some((r) => r.test(f))) { all(); continue; }
     if (INERT.some((r) => r.test(f))) continue;
     if (MUTATION_STORAGE.some((r) => r.test(f))) on.mutationStorage = true;
-    if (SWEEP.some((r) => r.test(f))) on.sweep = true;
+    // 테스트 파일은 스윕 대상이 아니다 — 화면·채점 경로를 바꾸지 않는다(scoring.test.ts 등).
+    if (!/\.test\.tsx?$/.test(f) && SWEEP.some((r) => r.test(f))) on.sweep = true;
 
     if (/\.test\.tsx?$/.test(f)) { on.unit = true; continue; }
     if (/^www\/(data|images)\//.test(f) || /^scripts\//.test(f)) { on.data = true; continue; }
