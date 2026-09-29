@@ -1,7 +1,7 @@
 # 실 배포 플레이북
 
 **대상 독자**: 이 저장소를 실제 사용자에게 내보내는 사람.
-**기존 문서와의 관계**: [`harness/release-harness.md`](./harness/release-harness.md)가 "전달 전 무엇을 검증할 것인가"라면, 이 문서는 **"검증이 끝난 뒤 실제로 어떻게 내보내는가"** 를 다룹니다. 하네스가 끝나는 지점에서 이 문서가 시작합니다.
+**기존 문서와의 관계**: 변경 단위의 검증은 [`../AGENTS.md`](../AGENTS.md)와 [`harness/`](./harness/)가 다룹니다. 이 문서는 여러 변경을 모아 **실제로 내보낼 때**의 점검과 절차입니다.
 
 배포 대상은 둘이고 **서로 독립**입니다.
 
@@ -53,6 +53,8 @@ npm run test:nf     # 비기능
 | 배포 대상 커밋 | `main`에 있고, CI가 **그 커밋에서** 통과했을 것 |
 | 생성 산출물 미커밋 | `node_modules/` · `android/**/build/` · `android/local.properties` · `*.apk` · `*.aab` · `*.jks` · `*.keystore` |
 | 엔진·렌더링 변경 | 아래 [7. 실기기 Safari 확인](#7-실기기-safari-확인) |
+
+생성 산출물이 섞이지 않았는지, 이번 릴리스가 어느 영역(데이터·UI·앱 로직·Android·문서)을 건드렸는지 `git diff --stat <직전 태그>..main`으로 보고 영역별 추가 점검(`AGENTS.md` 검증 표)을 확인합니다. 의존성을 추가했다면 `dependencies`/`devDependencies` 분류도 봅니다.
 
 `git status`가 깨끗한지 확인하고, **PR CI가 아니라 `main`의 CI**를 봅니다. PR CI는 병합 결과가 아니라 브랜치를 검증합니다.
 

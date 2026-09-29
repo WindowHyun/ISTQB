@@ -12,6 +12,11 @@ export default defineConfig({
   reporter: process.env.CI ? [["html", { open: "never" }]] : "list",
   use: {
     trace: "on-first-retry",
+    // 설치된 Chromium 빌드가 @playwright/test가 요구하는 빌드와 다른 환경(클라우드 컨테이너 등)에서
+    // 실행 파일을 직접 지정한다. CI는 설정하지 않는다(버전에 맞는 브라우저를 설치한다).
+    ...(process.env.PW_CHROMIUM_PATH
+      ? { launchOptions: { executablePath: process.env.PW_CHROMIUM_PATH } }
+      : {}),
   },
   projects: [
     {

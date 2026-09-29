@@ -1,7 +1,6 @@
 # 문서 색인
 
 이 폴더의 문서가 무엇을 담당하는지, **어떤 상황에서 어느 것을 여는지**를 정리합니다.
-`docs/ci/`와 `docs/harness/`에는 각자의 색인이 따로 있습니다.
 
 > 이 색인이 생긴 이유: 문서가 20개가 되도록 `docs/` 최상위에 목록이 없어, 어디서도
 > 링크되지 않는 문서가 셋 생겼습니다(그중 하나는 계속 갱신되고 있는데도 길이 없었습니다).
@@ -11,22 +10,31 @@
 
 | 무엇을 고치나 | 문서 |
 | --- | --- |
-| 무엇이든 — 먼저 읽는 라우팅 | [`../AGENTS.md`](../AGENTS.md) |
-| 하네스 전략 전체와 검사 규약 | [`harness/README.md`](./harness/README.md) |
-| 문제 데이터·정답·선택지·해설·이미지 | [`harness/data-harness.md`](./harness/data-harness.md) |
-| UI·CSS·렌더링·표·반응형 | [`harness/ui-render-harness.md`](./harness/ui-render-harness.md) |
-| 풀이 모드·채점·통계·상태 저장 | [`harness/app-logic-harness.md`](./harness/app-logic-harness.md) |
-| Android·Capacitor·APK·**JS 브리지** | [`harness/android-build-harness.md`](./harness/android-build-harness.md) |
-| 릴리스 전 검증(여러 영역에 걸친 변경) | [`harness/release-harness.md`](./harness/release-harness.md) |
+| 무엇이든 — 먼저 읽는 라우팅·검증 표 | [`../AGENTS.md`](../AGENTS.md) |
+| 문제 데이터·정답·선택지·해설·이미지 | [`harness/data.md`](./harness/data.md) |
+| UI·CSS·렌더링·표·반응형 | [`harness/ui-render.md`](./harness/ui-render.md) |
+| 풀이 모드·채점·통계·상태 저장 | [`harness/app-logic.md`](./harness/app-logic.md) |
+| Android·Capacitor·APK·JS 브리지 | [`harness/android.md`](./harness/android.md) |
+| 테스트·E2E·뮤테이션·CI | [`harness/testing.md`](./harness/testing.md) |
 
 ## 검증과 배포
 
 | 알고 싶은 것 | 문서 |
 | --- | --- |
-| E2E가 **무엇을** 테스트하나(전제·행위·기대) | [`e2e-test-scenarios.md`](./e2e-test-scenarios.md) |
-| CI가 **어떻게** 도나(워크플로별 동작) | [`ci/README.md`](./ci/README.md) |
-| 검증이 끝난 뒤 **실제로 내보내는** 절차 | [`release-playbook.md`](./release-playbook.md) |
-| APK를 테스터에게 배포하는 방법 | [`firebase-app-distribution.md`](./firebase-app-distribution.md) |
+| E2E 스펙이 무엇을 덮나 | [`e2e-test-scenarios.md`](./e2e-test-scenarios.md) |
+| CI 워크플로 | [`ci/README.md`](./ci/README.md) |
+| 릴리스 점검과 배포 절차 | [`release-playbook.md`](./release-playbook.md) |
+| APK를 테스터에게 배포 | [`firebase-app-distribution.md`](./firebase-app-distribution.md) |
+
+## 결정 기록 — [`decisions/`](./decisions/)
+
+현행 규칙의 **경위와 당시 실측**입니다. 규칙 문서는 한 줄 근거와 함께 여기로 링크합니다.
+
+| 문서 | 내용 |
+| --- | --- |
+| [`decisions/mutation-gates.md`](./decisions/mutation-gates.md) | 뮤테이션 게이트 분리, 저장 계층 래칫 라운드별 실측 |
+| [`decisions/e2e-test-budget.md`](./decisions/e2e-test-budget.md) | 스펙 예산과 잡 타임아웃 부등식이 생긴 사건 |
+| [`decisions/webkit-render-cost.md`](./decisions/webkit-render-cost.md) | WebKit 렌더 비용 측정, Safari 게이트 제거 |
 
 ## 점검 기록
 
