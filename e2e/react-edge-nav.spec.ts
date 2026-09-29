@@ -1,5 +1,5 @@
-import { test, expect } from "@playwright/test";
-import { openSet, gotoQuestion } from "./helpers";
+import { test, expect } from "./fixtures";
+import { gotoQuestion, openProduct, openSet } from "./helpers";
 
 // 엣지: 경계 네비게이션(첫/끝 문항, 키보드, 팔레트, 입력 포커스).
 test.describe("엣지-네비게이션", () => {
@@ -105,5 +105,47 @@ test.describe("엣지-네비게이션", () => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await gotoQuestion(page, 5);
     await expect(page.locator(".palette-summary")).toContainText("5 / 40");
+  });
+
+  // react-navigation에서 옮김(나머지는 이 파일과 중복이라 삭제)
+  test("다음 버튼으로 다음 문항으로 이동한다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    const before = await page.locator("#questionTitle").textContent();
+    await page.locator("#nextBtn").click();
+    await expect(page.locator("#questionTitle")).not.toHaveText(before || "");
+  });
+
+  test("이전 버튼으로 이전 문항으로 돌아간다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await page.locator("#nextBtn").click();
+    const mid = await page.locator("#questionTitle").textContent();
+    await page.locator("#prevBtn").click();
+    await expect(page.locator("#questionTitle")).not.toHaveText(mid || "");
+  });
+
+  test("팔레트: 답을 고르면 해당 번호가 answered 상태가 된다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    expect(await page.locator("#questionNav button.answered").count()).toBe(0);
+    await page.locator("#options .option").first().click();
+    expect(await page.locator("#questionNav button.answered").count()).toBeGreaterThanOrEqual(1);
+  });
+
+  // react-features에서 옮김
+  test("세트 드롭다운에 문항 수가 표시된다", async ({ page }) => {
+    await openProduct(page, "ISTQB");
+    await expect
+      .poll(() => page.locator("#examSelect option").first().textContent())
+      .toMatch(/문항/);
+  });
+
+  // react-layout에서 옮김
+  test("데스크톱: '문항 이동' 모달로 문항을 옮긴다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await page.getByTestId("palette-jump-btn").click();
+    const sheet = page.getByTestId("palette-jump");
+    await expect(sheet).toBeVisible();
+    await sheet.locator("button", { hasText: /^5$/ }).click();
+    await expect(sheet).toHaveCount(0); // 선택 후 닫힘
+    await expect(page.locator("#questionNav button.current")).toHaveText("5");
   });
 });

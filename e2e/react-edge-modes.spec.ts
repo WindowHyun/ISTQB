@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { closeResult, completeAttempt, enterExam, enterMiniTest, modeBtn, openSet, submitGrade } from "./helpers";
 
 // 엣지: 모드 전환(격리·리셋·잠금·빈 오답).
@@ -250,5 +250,15 @@ test.describe("시험 시작 게이트·응시 중 잠금", () => {
     await expect(page.locator("#questionTitle")).toContainText("문제 2");
     // 여전히 응시 중 잠금 상태(세트 비활성) 유지.
     await expect(page.getByTestId("set-select")).toBeDisabled();
+  });
+
+  // react-modes에서 옮김(나머지는 이 파일·edge-grade·transition과 중복)
+  test("오답이 없으면 '오답 다시 풀기'가 모드를 유지하고 안내 토스트를 띄운다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-B"); // 채점 이력 없는 초기 상태(연습 모드)
+    await page.getByRole("button", { name: "오답 다시 풀기" }).click();
+    await expect(page.getByTestId("toast")).toContainText("오답이 없습니다");
+    // 오답 모드로 이동하지 않고 연습 모드가 유지된다.
+    await expect(page.locator('.segmented button[data-mode="practice"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator("#questionStem")).toBeVisible();
   });
 });

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { openProduct, openSet } from "./helpers";
 
 // 접근성(ARIA/키보드/포커스) — 레거시 대비 회귀 방지(#66).
@@ -94,5 +94,23 @@ test.describe("접근성", () => {
       return min;
     });
     expect(worst).toBeGreaterThanOrEqual(3);
+  });
+
+  // react-features에서 옮김
+  test("그림 클릭 라이트박스는 닫기 버튼에 포커스가 가고 Tab이 갇힌다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    // figure 문항(23번)으로 이동
+    const nav = page.locator("#questionNav button");
+    const n = await nav.count();
+    for (let i = 0; i < n; i++) {
+      if (((await nav.nth(i).textContent()) || "").trim() === "23") { await nav.nth(i).click(); break; }
+    }
+    await page.locator("#questionFigure img, #questionStem img").first().click();
+    await expect(page.getByTestId("figure-lightbox")).toBeVisible();
+    // 닫기 버튼에 포커스
+    await expect(page.locator(".figure-lightbox-close")).toBeFocused();
+    // Tab 눌러도 포커스가 모달 밖으로 나가지 않음
+    await page.keyboard.press("Tab");
+    await expect(page.locator(".figure-lightbox-close")).toBeFocused();
   });
 });

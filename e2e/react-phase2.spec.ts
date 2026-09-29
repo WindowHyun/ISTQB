@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { enterExam, modeBtn, openSet, submitGrade } from "./helpers";
 
 // Phase 2 — 학습 누적: 결과 모달의 "직전 회차 대비" 비교 + 학습 통계의 세트별 회차 타임라인.

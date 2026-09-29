@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { completeAttempt, enterExam, enterMiniTest, gotoQuestion, modeBtn, openProduct, openSet, submitGrade } from "./helpers";
 
 // 학습 UX 개선: 이어풀기 배너(A) · 제출 전 검토(E) · 오답 해설(F) · 피드백 aria-live(I).

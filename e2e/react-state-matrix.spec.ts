@@ -1,4 +1,4 @@
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, Page } from "./fixtures";
 import { openProduct } from "./helpers";
 
 const note = (s: string) => console.log("· " + s);

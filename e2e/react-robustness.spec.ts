@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { openProduct } from "./helpers";
 
 const note = (s: string) => console.log("· " + s);
@@ -177,4 +177,15 @@ test("주입: 응시 중에 음수 elapsedSeconds를 밀어 넣으면", async ({
   const secs = (t: string) => t.split(":").map(Number).reverse().reduce((a, v, i) => a + v * 60 ** i, 0);
   expect(secs(settled)).toBeLessThanOrEqual(3600);
   expect(secs(immediate)).toBeLessThanOrEqual(3600); // 한 틱이라도 제한을 넘겨 보이면 안 된다
+});
+
+// react-final에서 옮김 — 로딩 지연 중 빈 화면 대신 스켈레톤
+test("세트 로딩이 지연되면 스켈레톤이 노출된다", async ({ page }) => {
+  await page.route("**/data/istqb/sample-a.json", async (route) => {
+    await new Promise((r) => setTimeout(r, 1500));
+    route.continue();
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "ISTQB" }).click();
+  await expect(page.getByTestId("skeleton")).toBeVisible({ timeout: 4_000 });
 });

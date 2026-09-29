@@ -1,4 +1,4 @@
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, Page } from "./fixtures";
 import { enterExam, openSet } from "./helpers";
 
 // 남은 시간(#timerText)을 초로 읽는다 — "59:58" 또는 "1:00:00" 양쪽 표기를 다룬다.

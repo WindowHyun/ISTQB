@@ -1,5 +1,5 @@
-import { test, expect } from "@playwright/test";
-import { openSet, openProduct, gotoQuestion } from "./helpers";
+import { test, expect } from "./fixtures";
+import { gotoQuestion, modeBtn, openProduct, openSet } from "./helpers";
 
 const figureImg = "#questionFigure img, #questionStem img";
 
@@ -156,5 +156,31 @@ test.describe("엣지-콘텐츠 표시 수정 회귀", () => {
     const stem = page.locator("#questionStem");
     await expect(stem).toContainText("1.1 기능 1");
     expect(await stem.locator(".indent-1").count()).toBeGreaterThanOrEqual(4); // 1.1·1.2·2.1·2.2·2.3
+  });
+
+  // react-debug에서 옮김(나머지는 이 파일과 중복)
+  test("'끄기'를 누르면 콘솔이 사라지고 새로고침해도 꺼져 있다", async ({ page }) => {
+    await page.goto("/?debug");
+    await page.getByTestId("debug-fab").click();
+    await page.getByTestId("debug-off").click();
+    await expect(page.getByTestId("debug-fab")).toHaveCount(0);
+    await page.goto("/");
+    await expect(page.getByTestId("debug-fab")).toHaveCount(0);
+  });
+
+  // react-content에서 옮김(나머지는 이 파일·edge-figtable·edge-nav와 중복)
+  test("가/나/다/라 항목이 모두 렌더된다", async ({ page }) => {
+    await openSet(page, "CSTS", "CSTS-EL-2018");
+    await gotoQuestion(page, 10);
+    const stem = (await page.locator("#questionStem").textContent()) || "";
+    for (const m of ["가.", "나.", "다.", "라."]) expect(stem).toContain(m);
+  });
+
+  test("연습 모드 피드백에 해설(explanation)이 표시된다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "연습").click();
+    await page.locator("#options .option").first().click();
+    await expect(page.locator("#feedback .feedback-body")).toBeVisible({ timeout: 4_000 });
+    expect(((await page.locator("#feedback .feedback-body").textContent()) || "").trim().length).toBeGreaterThan(0);
   });
 });

@@ -1,5 +1,5 @@
-import { test, expect, Page } from "@playwright/test";
-import { openProduct, enterQuick, quickStat, answerCurrent, selectCurrent, goNextQuestion } from "./helpers";
+import { test, expect, Page } from "./fixtures";
+import { answerCurrent, enterQuick, goNextQuestion, openProduct, pinQuickDraw, quickStat, selectCurrent } from "./helpers";
 
 /** 퀵 진입 UI 계약 — 패널 위치, 세트 컨트롤 부재, 헤더 점수판, 결과 모달의 오답노트 진입로 제거. */
 
@@ -305,6 +305,8 @@ test("퀵: 복수정답을 일부만 고르면 점수판이 '답함'으로 세�
  */
 test("퀵에서는 문항 이동(점프)과 팔레트가 사라지고 ‹ › 만 남는다", async ({ page }) => {
   await page.goto("/");
+  // 아래에서 이동을 제목으로 판정하므로 추첨을 못 박는다(pinQuickDraw 주석 참고).
+  await pinQuickDraw(page);
   await openProduct(page, "ISTQB");
 
   // 연습에서는 셋 다 있다 — 퀵에서만 빠지는 것임을 같은 검사 안에서 못박는다.
@@ -349,18 +351,8 @@ test("퀵: 한 문항을 채점하면 그 자리에서 정답이 열리고 버�
   // 실측으로 25회 중 1회가 "문제 9 → 문제 9"로 뽑혀 이 단언이 실패했다.
   // 같은 파일의 복수정답 검사와 같은 방법으로 추첨을 못 박는다(quickDraw — 새로고침
   // 이어풀기가 쓰는 그 경로). 한 세트의 연속 번호 두 문항이면 번호가 겹칠 수 없다.
-  await page.evaluate(() => {
-    localStorage.clear();
-    localStorage.setItem("istqb-fl-v4-sample-ui-state", JSON.stringify({
-      quickDraw: {
-        certification: "istqb",
-        items: [
-          { id: "ISTQB-FL-V4-A-001", setId: "ISTQB-FL-V4-A" }, // 문제 1
-          { id: "ISTQB-FL-V4-A-002", setId: "ISTQB-FL-V4-A" }, // 문제 2
-        ],
-      },
-    }));
-  });
+  await page.evaluate(() => localStorage.clear());
+  await pinQuickDraw(page); // 문제 1 · 문제 2
   await enterQuick(page, "ISTQB");
 
   const grade = page.getByTestId("quick-grade-btn");
@@ -432,6 +424,8 @@ test("퀵에는 앞으로 가는 ›가 없고, → 키도 채점 전에는 움�
   test.setTimeout(300_000);
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
+  // 아래에서 이동을 제목으로 판정하므로 추첨을 못 박는다(pinQuickDraw 주석 참고).
+  await pinQuickDraw(page);
   await openProduct(page, "ISTQB");
 
   // 연습에는 있다 — 퀵에서만 빠지는 것임을 같은 검사에서 못박는다.

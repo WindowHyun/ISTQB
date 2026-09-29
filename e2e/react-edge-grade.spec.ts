@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { enterExam, gotoQuestion, modeBtn, openSet, submitGrade } from "./helpers";
 
 // 엣지: 채점(미응답 확인·컷스코어·복수정답·진위형·단답형).

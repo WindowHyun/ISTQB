@@ -1,4 +1,4 @@
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, Page } from "./fixtures";
 import { openProduct, enterQuick, quickStat, answerCurrent, quickNext } from "./helpers";
 
 // 퀵 랜덤 — 제품의 전 세트를 섞어 한 문항씩 내는 모드(끝을 정해 두지 않는다).
@@ -139,7 +139,7 @@ test.describe("퀵 랜덤", () => {
     // 실전 회차가 하나도 없으므로 요약 블록 자체가 뜨지 않아야 한다.
     await expect(page.locator(".stats-summary")).toHaveCount(0);
     // 사양 변경: 퀵은 회차 기록을 남기지 않는다 — 짧은 세션 목록에도 나오지 않는다.
-    // (오답만 24시간 임시로 오답노트의 퀵 섹션에 남는다: react-quick-wrongnote.spec.ts)
+    // (오답만 24시간 임시로 오답노트의 퀵 섹션에 남는다: 이 파일의 '퀵 오답' 부분)
     await expect(page.getByTestId("stats-mini-rounds")).toHaveCount(0);
   });
 

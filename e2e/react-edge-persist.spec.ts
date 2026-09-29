@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { modeBtn, openProduct, openSet } from "./helpers";
 
 // 엣지: 영속성·복원·가져오기/내보내기·테마/콘솔 지속.
@@ -85,13 +85,15 @@ test.describe("엣지-영속성", () => {
     await expect(page.getByTestId("toast")).toBeVisible({ timeout: 5_000 });
     await expect(page.locator(".workspace")).toBeVisible();
   });
-  test("현재 모드 답안 초기화는 2단계 확인 후 동작한다", async ({ page }) => {
+  test("'선택 답안 초기화'가 2단계 확인 후 동작하고 완료 토스트를 띄운다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await page.locator("#options .option").first().click();
     expect(await page.locator("#questionNav button.answered").count()).toBeGreaterThanOrEqual(1);
     await page.getByRole("button", { name: /설정/ }).click();
     await page.getByRole("button", { name: "현재 모드 답안 초기화" }).click();
     await page.getByTestId("confirm-reset-yes").click();
+    // 완료 피드백 토스트 — 없으면 삭제가 됐는지 사용자가 알 수 없다(회귀 고정).
+    await expect(page.getByTestId("toast")).toContainText("초기화했습니다");
     await page.waitForTimeout(300);
     expect(await page.locator("#questionNav button.answered").count()).toBe(0);
   });

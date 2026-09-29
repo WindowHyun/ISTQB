@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { enterExam, openProduct, openSet, submitGrade } from "./helpers";
 
 // 반응형(모바일/태블릿 뷰포트)에서 핵심 동작.

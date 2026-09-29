@@ -1,4 +1,4 @@
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, Page } from "./fixtures";
 import { openProduct, answerCurrent } from "./helpers";
 
 /**
@@ -258,7 +258,7 @@ async function goAny(page: Page, m: AnyMode) {
 }
 
 test("전이 전수: 4모드 16개 순서쌍을 모두 밟아도 앱이 살아 있다", async ({ page }) => {
-  // 예산 5분(실측 46초 단독). 잡 타임아웃보다 작게 두는 이유는 react-fullsweep 주석 참고.
+  // 예산 5분(실측 46초 단독). 잡 타임아웃보다 작게 두는 이유는 explore-fullsweep 주석 참고.
   test.setTimeout(300_000);
   const errs: string[] = [];
   page.on("pageerror", (e) => errs.push(String(e).slice(0, 160)));

@@ -1,4 +1,4 @@
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, Page } from "./fixtures";
 import { enterExam, modeBtn, openSet, submitGrade } from "./helpers";
 
 // Phase 3: 챕터별 약점 분석·챕터 집중 연습·오답노트 전 회차 합산.

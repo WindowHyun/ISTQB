@@ -1,4 +1,4 @@
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, Page } from "./fixtures";
 
 // 전수 렌더 테스트 — 모든 세트의 모든 문항을 실제로 렌더해 보고 검사한다.
 //

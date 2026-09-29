@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { enterExam, gotoQuestion, modeBtn, openSet, submitGrade } from "./helpers";
 
 // 문항 유형별(객관식 복수정답/진위형/단답형) 답안 UI.
@@ -158,5 +158,27 @@ test.describe("문항 유형", () => {
     await page.locator(".short-answer-input").fill("다중 조건 커버리지");
     await page.getByRole("button", { name: "정답 확인" }).click();
     await expect(page.locator("#feedback")).toContainText("정답입니다");
+  });
+});
+
+// 서답형 정답 표기 — 대문자로 강제하면 "회귀(Regression) 테스트"가
+// "회귀(REGRESSION) 테스트"가 돼 정답 표기가 왜곡된다(선택형 키만 대문자).
+test.describe("정답 표기", () => {
+  test("서답형 정답은 원문 대소문자를 유지한다", async ({ page }) => {
+    await openSet(page, "CSTS", "CSTS-FL-2402");
+    await modeBtn(page, "연습").click();
+    await gotoQuestion(page, 61); // 단답형 — 정답 "구조기반 / Structure-based Test"
+    await page.locator(".short-answer-input").fill("아무거나");
+    await page.getByRole("button", { name: "정답 확인" }).click();
+    const feedback = page.locator("#feedback");
+    await expect(feedback).toBeVisible({ timeout: 4_000 });
+    await expect(feedback).toContainText("Structure-based Test");
+    await expect(feedback).not.toContainText("STRUCTURE-BASED TEST");
+  });
+
+  test("선택형 보기 키는 그대로 대문자로 보여준다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await page.locator("#options .option").first().click();
+    await expect(page.locator("#feedback")).toContainText(/정답 [A-E]/);
   });
 });

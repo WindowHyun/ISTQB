@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { openProduct } from "./helpers";
 
 // 이슈·보완점 제보 링크 — 게이트 하단·사이드바 두 진입점 모두 구글시트를

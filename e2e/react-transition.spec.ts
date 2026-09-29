@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { completeAttempt, enterExam, enterMiniTest, modeBtn, openProduct, openSet, submitGrade } from "./helpers";
 
 // 상태 전이(State Transition) 전수조사 — 상태 × 이벤트 매트릭스를 경로 단위로 검증.

@@ -8,7 +8,7 @@ import { isQuestionCorrect, shortAnswerCandidates } from './answer';
 /**
  * 모든 세트 검증 — 12세트 626문항을 세트 단위로 훑어 데이터 계약을 못 박는다.
  *
- * 렌더·채점의 전수 검사는 E2E(react-fullsweep / react-fullgrade)가 한다. 여기서는
+ * 렌더·채점의 전수 검사는 E2E(explore-fullsweep / explore-fullgrade)가 한다. 여기서는
  * 브라우저를 띄우지 않고 확인할 수 있는 구조적 계약을 본다 — 세트가 하나 늘거나
  * 문항이 수정될 때 조용히 깨질 수 있는 것들이다.
  */

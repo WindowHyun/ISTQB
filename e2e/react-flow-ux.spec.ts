@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { completeAttempt, enterExam, modeBtn, openSet, submitGrade, closeResult } from "./helpers";
 
 // 흐름·기획 개선(S1~S6) — 응시 포기, 채점 완료 회차 새로고침 가드, 챕터 미니 시험
@@ -140,7 +140,7 @@ test.describe("챕터 미니 시험(S3)", () => {
     await page.getByTestId("stats-open").click();
     await page.getByTestId("chapter-minitest-btn").first().click();
     await expect(page.getByTestId("chapter-filter-banner")).toBeVisible();
-    // 미니 시험에서는 버튼 이름이 결과를 예고한다(연습에서는 그냥 '전체 보기' — react-weakness).
+    // 미니 시험에서는 버튼 이름이 결과를 예고한다(연습에서는 그냥 '전체 보기' — react-stats).
     const clear = page.getByTestId("chapter-filter-clear");
     await expect(clear).toHaveText("연습으로 전체 보기");
     await page.locator("#options .option").first().click(); // 1문항 응답 후 나간다

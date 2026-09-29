@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { enterExam, openProduct, openSet, submitGrade } from "./helpers";
 
 // 엣지: 반응형(모바일 드로어·하단바·점프핀·소형 뷰포트).
@@ -100,6 +100,13 @@ test.describe("엣지-반응형", () => {
       expect(box!.height).toBeLessThan(45);
       const prac = await page.getByTestId("chapter-practice-btn").first().boundingBox();
       expect(prac!.height).toBeLessThan(45);
+    });
+    // react-layout에서 옮김
+    test("모드 변경 시 드로어가 자동으로 닫힌다", async ({ page }) => {
+      await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+      await page.getByTestId("drawer-open").click();
+      await enterExam(page);
+      await expect(page.locator(".app-shell")).toHaveAttribute("data-drawer", "closed");
     });
   });
 

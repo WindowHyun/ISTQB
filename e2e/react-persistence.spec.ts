@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { enterExam, openProduct, openSet } from "./helpers";
 
 // 영속성(새로고침 복원) + 기록 내보내기/가져오기.

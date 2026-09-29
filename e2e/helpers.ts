@@ -144,6 +144,24 @@ export async function enterMiniTest(page: Page) {
 }
 
 /**
+ * 퀵 추첨을 못 박는다 — 새로고침 이어풀기가 쓰는 저장 경로(`quickDraw`)에 직접 넣는다.
+ * 제품 선택 게이트에서, `openProduct`·`enterQuick` 전에 부른다.
+ *
+ * '다음 문항으로 넘어갔나'를 `#questionTitle`로 판정하는 퀵 검사는 반드시 이걸 쓴다.
+ * 제목은 원본 세트의 번호라 전 세트를 섞는 퀵에서는 연속한 두 문항이 같은 번호일 수 있고,
+ * 그러면 이동이 됐는데도 단언이 실패한다(실측: 25회 중 1회 "문제 9 → 문제 9",
+ * 2026-09-29 전체 실행에서 "문제 11 → 문제 11"). 한 세트의 연속 번호면 겹칠 수 없다.
+ */
+export async function pinQuickDraw(page: Page, ids: string[] = ["ISTQB-FL-V4-A-001", "ISTQB-FL-V4-A-002"]) {
+  const items = ids.map((id) => ({ id, setId: id.replace(/-\d+$/, "") }));
+  await page.evaluate((drawn) => {
+    localStorage.setItem("istqb-fl-v4-sample-ui-state", JSON.stringify({
+      quickDraw: { certification: "istqb", items: drawn },
+    }));
+  }, items);
+}
+
+/**
  * 퀵 진입 — 모드 세그먼트가 유일한 진입로다.
  *
  * 종전에는 문항 수 콤보(#quickSize)에서 10·15·20을 고르고 '시작'을 누르는 두 단계였다.
@@ -196,7 +214,7 @@ export function quickStat(page: Page, cell: "solved" | "correct" | "wrong" | "st
  * **잠김을 종료 신호로 삼아** 하나씩 늘려 가며 누른다.
  *
  * ── 이 헬퍼를 복사하지 말 것 ──────────────────────────────────────────────
- * 종전에는 같은 이름의 사본이 `react-quick-resilience`·`react-consistency`에 하나씩 더
+ * 종전에는 같은 이름의 사본이 `react-quick`(구 quick-resilience)·`explore-consistency`에 하나씩 더
  * 있었고, 셋이 서로 다른 교훈만 배운 채 갈라졌다. 사본 하나는 '유형이 뜰 때까지 기다린다'를,
  * 원본은 '서답형은 확인 버튼을 눌러야 확정된다'를 배웠지만 **복수정답은 아무도 몰랐다.**
  * 그래서 원본을 고쳐도 사본을 쓰는 스펙은 그대로 깨졌다(퀵 첫 문항이 복수정답으로 뽑히는
