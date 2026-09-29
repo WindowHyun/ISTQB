@@ -16,7 +16,7 @@ Playwright 프로젝트는 **4개**다 — `react`(기능·Chromium) · `nonfunc
 > 대상: React 앱(`index.vite.html` → Vercel `dist` 배포본). Playwright로 자동화.
 > 실행: 기능 `npm run test:e2e`(`react` 프로젝트) · 비기능 `npm run test:nf` · APK/WebView `npm run test:apk`.
 > 네 프로젝트 모두 CI 게이트다 — 잡은 셋이고(`e2e` · `nonfunctional` · `apk`), `apk` 잡이 `apk`·`apk-nf`를 함께 돌린다.
-> CI 실행 메커니즘(빌드·서버 기동·병렬·재시도)은 [`ci/ci.md`](./ci/ci.md) 참고.
+> CI 실행 메커니즘(빌드·서버 기동·병렬·재시도)은 [`ci/README.md`](./ci/README.md) 참고.
 > 공용 헬퍼: `e2e/helpers.ts` (`openProduct`, `openSet`, `modeBtn`, `gotoQuestion`, `submitGrade`).
 > 표기: G(전제) / W(행위) / T(기대).
 

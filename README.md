@@ -54,7 +54,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 | 테스트 설계 | 모드·문항유형·네비·설정·영속성·엣지(경계·격리·복원·대용량 import)·표/그림·반응형·접근성으로 시나리오 분해 | [`docs/e2e-test-scenarios.md`](docs/e2e-test-scenarios.md) |
 | 회귀 방지 | 결함 수정마다 회귀 테스트 추가(수정 전 실패 확인), CI 머지 게이트 | 파서 회귀 케이스, 14-job CI |
 | 결함 발견·RCA | **PDF 원본 ↔ 앱 렌더 전수 대조**로 결함 식별, 반복 결함 근본원인 분석 | 아래 [Case Studies](#결함-발견--근본원인-분석-case-studies) |
-| 결함 관리 | GitHub Issues 등록·추적 + 커밋/이슈 대시보드 | `docs/commit-dashboard.html` |
+| 결함 관리 | GitHub Issues 등록·추적 + 커밋/이슈 대시보드 | `docs/archive/commit-dashboard.html` |
 | 데이터 품질 검증 | 626문항 정답/이미지/스키마 자동 검증 스크립트 | `npm run verify` |
 | 크로스플랫폼/반응형 | 모바일(375)·태블릿(768) 뷰포트 E2E + **APK WebView 프로파일**(안전영역·제스처바·터치 타깃) | `e2e/react-responsive.spec.ts`, `e2e/apk-functional.spec.ts` |
 | 접근성(A11y) | aria-pressed/current·role·키보드·aria-live 검증 + **axe-core WCAG 2.1 AA 자동 스캔**(라이트/다크·모바일·코드블록) | `e2e/react-a11y.spec.ts`, `e2e/react-a11y-axe.spec.ts` |

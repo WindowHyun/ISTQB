@@ -14,7 +14,7 @@ APK에는 이제 **React 앱(`dist`)** 이 번들된다(`capacitor.config.json`�
    - 패키지명: `com.local.istqbfl` (== `capacitor.config.json`의 `appId`)
    - 등록 후 **앱 ID** 확보(형식: `1:1234567890:android:abcdef…`) → `FIREBASE_ANDROID_APP_ID`
 2. **App Distribution 활성화**: Firebase 콘솔 → Release & Monitor → App Distribution
-3. **테스터 그룹** 생성(예: `testers`) + 테스터 이메일 등록
+3. **테스터 그룹** 생성 + 테스터 이메일 등록. 워크플로 기본 그룹은 `WiseStoneT`다(`android-firebase.yml`의 `groups` 기본값) — 다른 이름을 쓰면 실행할 때 입력한다
 4. **서비스 계정 키** 발급(자동화용):
    - Firebase 콘솔 → 프로젝트 설정 → 서비스 계정 → 새 비공개 키 생성(JSON 다운로드)
    - GCP IAM에서 해당 서비스 계정에 **"Firebase App Distribution Admin"** 역할 부여
@@ -22,17 +22,7 @@ APK에는 이제 **React 앱(`dist`)** 이 번들된다(`capacitor.config.json`�
 
 ---
 
-## 1. 이 저장소에서 이미 끝난 부분 (SDK 불필요)
-
-- ✅ `webDir`를 `dist`로 전환 → APK가 **새 React 앱**을 담음
-- ✅ `npm run build` + `npx cap sync android` 로 `android/app/src/main/assets/public/`에 React 앱 주입(빌드 직전 상태)
-- ✅ CI 워크플로 `.github/workflows/android-firebase.yml` 작성
-
-남은 것은 **APK 컴파일(Android SDK 필요)** 과 **Firebase 업로드** 뿐.
-
----
-
-## 2. 로컬에서 직접 빌드·배포 (Android SDK 보유 시)
+## 1. 로컬에서 직접 빌드·배포 (Android SDK 보유 시)
 
 ```bash
 # (1) 웹 빌드 + 안드로이드 동기화
@@ -50,7 +40,7 @@ firebase login
 firebase appdistribution:distribute \
   android/app/build/outputs/apk/debug/app-debug.apk \
   --app "<FIREBASE_ANDROID_APP_ID>" \
-  --groups "testers" \
+  --groups "WiseStoneT" \
   --release-notes "새 빌드(React 앱)"
 ```
 
@@ -59,7 +49,7 @@ firebase appdistribution:distribute \
 
 ---
 
-## 3. GitHub Actions로 자동화 (SDK 없는 환경에서도 CI가 빌드)
+## 2. GitHub Actions로 자동화 (SDK 없는 환경에서도 CI가 빌드)
 
 워크플로: **`.github/workflows/android-firebase.yml`** (웹빌드 → cap sync → APK → 업로드)
 
@@ -68,6 +58,7 @@ firebase appdistribution:distribute \
    |--------|----|
    | `FIREBASE_ANDROID_APP_ID` | Firebase 안드로이드 앱 ID |
    | `FIREBASE_SERVICE_ACCOUNT_JSON` | 서비스 계정 키 JSON 전체 |
+   | (선택) `ANDROID_KEYSTORE_BASE64` · `KEYSTORE_PASSWORD` · `KEY_ALIAS` · `KEY_PASSWORD` | release 서명 — 아래 '3. 알아둘 점'의 APK 서명 참고 |
 2. **실행**: Actions 탭 → "Android → Firebase App Distribution" → **Run workflow**
    - 입력: 릴리스 노트, 테스터 그룹
    - 또는 `v*` 태그를 푸시하면 자동 실행
@@ -75,7 +66,7 @@ firebase appdistribution:distribute \
 
 ---
 
-## 4. 알아둘 점 (권장/주의)
+## 3. 알아둘 점 (권장/주의)
 
 - **서비스워커**: React 앱은 PWA 서비스워커(`sw.js`)와 업데이트 배너를 포함한다. APK처럼
   **번들된 환경에선 SW 캐시가 불필요·혼란 요소**가 될 수 있다(앱 갱신은 APK 교체로 함).
@@ -84,8 +75,6 @@ firebase appdistribution:distribute \
 - **데이터/이미지 경로**: React 앱은 `/images/…` 절대경로와 상대 `data/index.json`을 쓰며,
   `cap sync`가 `dist`의 `data/`·`images/`·`csts-figures/` 등을 함께 번들하므로 오프라인에서도
   동작한다(번들 후 실기기 1회 점검 권장).
-- **레거시 분리**: 루트 `service-worker.js`(tombstone)·`www/`(레거시 바닐라 앱)은 그대로 둔다.
-  웹 운영 배포(Vercel)는 영향 없음.
 - **APK 서명 — 고정하지 않으면 매번 '삭제 후 설치'가 된다.**
 
   debug APK는 러너가 그때그때 만드는 임시 키로 서명된다. 러너는 실행마다 새로 만들어지므로
