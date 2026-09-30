@@ -185,6 +185,34 @@ describe('모든 세트 — 지문 없이 답을 요구하지 않는다', () => 
 });
 
 /**
+ * 빈칸이 지문에서 잘리지 않았다 — "빈칸에 공통으로 들어갈 …"을 묻는 서답형은 지문에 빈칸이
+ * 둘 이상 있어야 한다(한 곳뿐이면 "공통"이 성립하지 않는다). CSTS 2404FL 70번이 지문의 첫 문장
+ * 중간에서 끊겨(…"을 정리한") 나머지 두 문장과 빈칸 둘이 화면에서 사라져 있었다. PDF 대조
+ * (verify-pdf-data.py)는 JSON에 있는 조각이 PDF에 있는지만 보므로 끊긴 지문은 통과한다.
+ * 빈칸이 그림 안에 있는 문항(`figure` 또는 이미지 블록)은 텍스트로 셀 수 없어 제외한다.
+ */
+describe('모든 세트 — 공통 빈칸 문항은 빈칸이 지문에 모두 남아 있다', () => {
+  type Stemmed = Q & { stem?: StemBlock[]; figure?: string | null };
+  const COMMON_BLANK = /공통(으로)?\s*들어갈/;
+  const BLANK = /\(\s*\)/g;
+  const hasImage = (q: Stemmed) => Boolean(q.figure) || (q.stem ?? []).some((b) => b.type === 'image' || b.src);
+  const common = loaded.flatMap(({ set, questions }) => (questions as Stemmed[])
+    .filter((q) => q.type === 'short_answer' && COMMON_BLANK.test(JSON.stringify(q.stem ?? [])))
+    .map((q) => ({ setId: set.id, q })));
+  const blanksOf = (q: Stemmed) => (JSON.stringify(q.stem ?? []).match(BLANK) ?? []).length;
+
+  it('텍스트로 빈칸을 세는 문항이 실제로 존재한다(검사가 헛돌지 않는다)', () => {
+    expect(common.filter(({ q }) => !hasImage(q) && blanksOf(q) >= 2).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('그림 없이 "공통으로 들어갈"을 묻는 문항은 빈칸이 둘 이상이다', () => {
+    const broken = common.filter(({ q }) => !hasImage(q) && blanksOf(q) < 2)
+      .map(({ setId, q }) => `${setId}/${q.id}(빈칸 ${blanksOf(q)}개)`);
+    expect(broken, `지문이 잘려 빈칸이 모자란 문항: ${broken.join(', ')}`).toEqual([]);
+  });
+});
+
+/**
  * 수치 답의 단위 표기 — 원본 공개답안이 "50%"·"4개"처럼 단위를 붙여 적어 둔 문항에서,
  * 값을 맞게 쓴 사람이 단위를 안 붙였다는 이유로 오답이 됐다(#단답형-단위).
  * 판정은 answer.ts가 흡수하지만, 그 흡수가 **실제 데이터의 모든 수치 답에 닿는지**는
