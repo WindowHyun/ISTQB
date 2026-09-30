@@ -15,7 +15,7 @@
 const { execFileSync } = require("child_process");
 const fs = require("fs");
 
-const AREAS = ["data", "ui", "logic", "android", "e2e", "unit", "sweep", "mutationStorage"];
+const AREAS = ["data", "ui", "logic", "android", "native", "e2e", "unit", "sweep", "mutationStorage"];
 
 // 전 영역을 켜는 파일 — 빌드·테스트 도구 체인 자체.
 const GLOBAL = [
@@ -62,7 +62,13 @@ function classify(files) {
     if (/\.test\.tsx?$/.test(f)) { on.unit = true; continue; }
     if (/^www\/(data|images)\//.test(f) || /^scripts\//.test(f)) { on.data = true; continue; }
     if (/^e2e\//.test(f)) { on.e2e = true; continue; }
-    if (/^(android\/|capacitor\.config\.json$)/.test(f)) { on.android = true; continue; }
+    if (/^(android\/|capacitor\.config\.json$)/.test(f)) {
+      on.android = true;
+      // 네이티브 프로젝트(Java·Gradle·매니페스트·리소스) — Gradle 컴파일이 필요하다.
+      // assets/public은 cap:sync가 dist에서 복사해 넣는 웹 산출물이라 제외한다.
+      if (/^android\//.test(f) && !/^android\/app\/src\/main\/assets\//.test(f)) on.native = true;
+      continue;
+    }
     if (/^src\/utils\/parser\.tsx$/.test(f) || /^src\/(components|app|styles)\//.test(f)
       || /^(index\.vite\.html|public\/)/.test(f)) { on.ui = true; continue; }
     if (/^(src\/|middleware\.ts$)/.test(f)) { on.logic = true; continue; }

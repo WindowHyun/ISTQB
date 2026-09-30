@@ -42,6 +42,9 @@ function plan(areas, { skipSlow = false } = {}) {
     steps.push(["npm", ["run", "build"]]);
     steps.push(["npm", ["run", "cap:sync"]]);
   }
+  // 네이티브 변경은 컴파일까지 해야 검증이다 — 안내만 찍으면 Java·Gradle 오류가 이 명령을
+  // 통과한다. Android SDK가 없는 환경에서는 여기서 실패하고, 그 사실이 보고에 남아야 한다.
+  if (areas.native) steps.push(["./gradlew", ["assembleDebug"], { cwd: "android" }]);
   return steps;
 }
 
@@ -54,15 +57,16 @@ function run(argv) {
     return 0;
   }
   console.log("[check:changed] 실행할 명령:");
-  for (const [cmd, args] of steps) console.log(`  ${cmd} ${args.join(" ")}`);
-  if (areas.android) console.log("  (네이티브 코드를 바꿨다면 추가로: cd android && ./gradlew assembleDebug)");
+  const show = ([cmd, args, opts]) => `${opts && opts.cwd ? `(cd ${opts.cwd}) ` : ""}${cmd} ${args.join(" ")}`;
+  for (const step of steps) console.log(`  ${show(step)}`);
   if (argv.includes("--dry-run")) return 0;
 
-  for (const [cmd, args] of steps) {
-    console.log(`\n[check:changed] ▶ ${cmd} ${args.join(" ")}`);
-    const r = spawnSync(cmd, args, { stdio: "inherit" });
+  for (const step of steps) {
+    const [cmd, args, opts] = step;
+    console.log(`\n[check:changed] ▶ ${show(step)}`);
+    const r = spawnSync(cmd, args, { stdio: "inherit", ...(opts || {}) });
     if (r.status !== 0) {
-      console.error(`\n[check:changed] ✗ 실패: ${cmd} ${args.join(" ")}`);
+      console.error(`\n[check:changed] ✗ 실패: ${show(step)}`);
       return r.status || 1;
     }
   }

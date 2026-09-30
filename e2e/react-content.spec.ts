@@ -169,6 +169,18 @@ test.describe("엣지-콘텐츠 표시 수정 회귀", () => {
   });
 
   // react-content에서 옮김(나머지는 이 파일·edge-figtable·edge-nav와 중복)
+  // 진행률 막대(#progressFill)를 보는 E2E는 이것뿐이다 — 텍스트(#progressText)나 순수 계산
+  // (progressPercent)만 보면 사이드바 막대와의 배선이 끊겨도 통과한다.
+  test("답을 고르면 진행률 텍스트와 막대가 갱신된다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await expect(page.locator("#progressText")).toContainText("0 /");
+    await page.locator("#options .option").first().click();
+    await expect(page.locator("#progressText")).not.toContainText("0 /");
+    await expect
+      .poll(() => page.locator("#progressFill").evaluate((el) => (el as HTMLElement).style.width))
+      .not.toBe("0%");
+  });
+
   test("가/나/다/라 항목이 모두 렌더된다", async ({ page }) => {
     await openSet(page, "CSTS", "CSTS-EL-2018");
     await gotoQuestion(page, 10);

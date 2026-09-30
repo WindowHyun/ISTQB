@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 
 const require_ = createRequire(import.meta.url);
 const { plan } = require_('./check-changed.js') as {
-  plan: (areas: Record<string, boolean>, opts?: { skipSlow?: boolean }) => [string, string[]][];
+  plan: (areas: Record<string, boolean>, opts?: { skipSlow?: boolean }) => [string, string[], { cwd?: string }?][];
 };
 const { classify } = require_('./changed-areas.js') as {
   classify: (files: string[]) => Record<string, boolean>;
@@ -54,5 +54,19 @@ describe('check:changed — 영역 → 검증 명령', () => {
     const c = cmds(['android/app/src/main/java/com/local/istqbfl/MainActivity.java']);
     expect(c.indexOf('npm run build')).toBeLessThan(c.indexOf('npm run cap:sync'));
     expect(c.find((x) => x.startsWith('npx playwright'))).toContain('--project=apk');
+  });
+
+  it('네이티브 변경은 cap:sync 뒤에 android/에서 Gradle 컴파일까지 실행한다', () => {
+    const steps = plan(classify(['android/app/src/main/java/com/local/istqbfl/MainActivity.java']));
+    const i = steps.findIndex(([c, a]) => c === './gradlew' && a[0] === 'assembleDebug');
+    expect(i, '네이티브 변경인데 Gradle을 돌리지 않는다').toBeGreaterThan(-1);
+    expect(steps[i][2]?.cwd).toBe('android');
+    expect(i).toBeGreaterThan(steps.findIndex(([c, a]) => c === 'npm' && a[1] === 'cap:sync'));
+  });
+
+  it('cap:sync가 채우는 assets/public·Capacitor 설정만 바뀌면 Gradle은 돌리지 않는다', () => {
+    for (const f of ['android/app/src/main/assets/public/index.html', 'capacitor.config.json']) {
+      expect(cmds([f]).some((x) => x.startsWith('./gradlew')), f).toBe(false);
+    }
   });
 });

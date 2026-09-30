@@ -58,5 +58,6 @@ describe('changed-areas — 변경 파일 → 검증 영역', () => {
     expect(onOf(['src/hooks/useQuizSession.ts'])).toEqual(['logic']);
     expect(onOf(['e2e/helpers.ts'])).toEqual(['e2e']);
     expect(onOf(['capacitor.config.json'])).toEqual(['android']);
+    expect(onOf(['android/app/build.gradle'])).toEqual(['android', 'native']);
   });
 });
