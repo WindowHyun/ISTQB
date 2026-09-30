@@ -1,5 +1,5 @@
 import { test, expect, Page } from "./fixtures";
-import { answerCurrent, openProduct, waitForList, goNextQuestion } from "./helpers";
+import { answerCurrent, flushSaves, goNextQuestion, openProduct, waitForList } from "./helpers";
 
 /**
  * 정합성 테스트 — 같은 사실이 화면마다 같은 값으로 보이는가.
@@ -194,8 +194,8 @@ test("정합성: 오답 수가 결과·오답노트·재풀이에서 어긋나�
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   await answerAll(page, 12); // 퀵은 문항마다 채점한다(answerAll이 그 흐름을 밟는다)
   // 퀵 오답 수는 저장된 퀵 회차에서 읽는다 — 이 모드에는 결과 요약 모달이 없다.
-  // 저장은 500ms 디바운스라 잠깐 기다린 뒤 읽는다.
-  await page.waitForTimeout(900);
+  // 저장은 500ms 디바운스라 대기 중인 저장을 먼저 내보낸 뒤 읽는다.
+  await flushSaves(page);
   const quickWrong = await page.evaluate(() => {
     for (const k of Object.keys(localStorage)) {
       if (!k.endsWith("-ui-state")) continue;
@@ -258,7 +258,7 @@ test("정합성: 진행률과 문항 팔레트의 '답함' 개수가 같다", as
   // 무턱대고 누르면 팔레트가 사라져 검사가 0건으로 무력해진다. 없을 때만 연다.
   if ((await page.locator(".question-nav button").count()) === 0) {
     await page.getByTestId("palette-toggle").click();
-    await page.waitForTimeout(400);
+    await expect(page.locator(".question-nav button").first()).toBeVisible();
   }
   // 팔레트는 .question-nav 안의 버튼에 answered/unanswered 클래스를 붙인다.
   // 셀렉터가 어긋나면 0이 나와 검사가 조용히 무력해지므로, 버튼이 실제로 있는지 먼저 본다.

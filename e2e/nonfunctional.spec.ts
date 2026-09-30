@@ -12,6 +12,16 @@ const A = "ISTQB-FL-V4-A"; // 40문항
 const CI = !!process.env.CI;
 const budget = (local: number, ci: number) => (CI ? ci : local);
 
+/**
+ * 서비스워커가 activated가 될 때까지. `serviceWorker.ready`는 activating 중에도 풀리는데,
+ * precache는 install 단계에서 채워지므로 activated면 캐시 적재가 끝났다는 뜻이다.
+ * 종전에는 ready 뒤에 1~1.5초를 기다렸다.
+ */
+async function waitForActivatedWorker(page: import("@playwright/test").Page) {
+  await expect.poll(() => page.evaluate(async () => (await navigator.serviceWorker.ready).active?.state),
+    { timeout: 15_000, message: "서비스워커가 activated에 이르지 못했다" }).toBe("activated");
+}
+
 function note(testInfo: import("@playwright/test").TestInfo, key: string, value: string) {
   testInfo.annotations.push({ type: key, description: value });
   console.log(`[NF] ${testInfo.title.split(" ")[0]} · ${key} = ${value}`);
@@ -160,6 +170,7 @@ test.describe("비기능 · 부하/스트레스·메모리", () => {
       // 시험은 시작 게이트가 끼어 순수한 '고속 전환'이 아니게 되므로 뺀다.
       for (const m of ["연습", "퀵", "오답", "연습"] as const) {
         await modeBtn(page, m).click();
+        // eslint-disable-next-line no-restricted-syntax -- 입력 간격 자체가 시나리오다(30ms 간격 고속 전환 스트레스).
         await page.waitForTimeout(30);
       }
     }
@@ -195,6 +206,7 @@ test.describe("비기능 · 정확도/복원력", () => {
       return t.trim().split(":").map(Number).reduce((acc, v) => acc * 60 + v, 0);
     };
     const s0 = await read();
+    // eslint-disable-next-line no-restricted-syntax -- 벽시계 3초가 측정 대상이다(표시가 3초만큼 움직였는가).
     await page.waitForTimeout(3000);
     // 시험 모드는 제한시간 카운트다운이므로 3초 '감소'해야 한다(연습 모드의 경과 증가와 대칭).
     const drift = Math.abs((s0 - (await read())) - 3);
@@ -220,7 +232,7 @@ test.describe("비기능 · 정확도/복원력", () => {
       testInfo.annotations.push({ type: "skip-reason", description: "SW 미활성 — 오프라인 검증 생략" });
       return;
     }
-    await page.waitForTimeout(1000);
+    await waitForActivatedWorker(page);
     await context.setOffline(true);
     try {
       await page.reload({ waitUntil: "domcontentloaded" });
@@ -254,7 +266,7 @@ test.describe("비기능 · 정확도/복원력", () => {
       testInfo.annotations.push({ type: "skip-reason", description: "SW 미활성 — 오프라인 검증 생략" });
       return;
     }
-    await page.waitForTimeout(1500); // precache 적재 여유
+    await waitForActivatedWorker(page);
 
     const failed: string[] = [];
     page.on("requestfailed", (r) => { if (/\.json$/.test(r.url())) failed.push(r.url()); });
@@ -315,7 +327,6 @@ test.describe("비기능 · 정확도/복원력", () => {
       await page.locator("#options .option").first().click();
       await page.locator("#nextBtn").click();
     }
-    await page.waitForTimeout(800); // debounce(500ms) flush 여유
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 15_000 });

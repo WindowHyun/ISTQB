@@ -21,7 +21,12 @@
 - 진입·대기는 `e2e/helpers.ts`의 헬퍼(`openProduct`·`openSet`·`waitForList`·`expectMode`)를 쓴다. 헬퍼 상단 주석이 단언 규약의 정본이다.
 - `#questionStem`이 보인다는 것은 상태 단언이 아니다(모든 모드에서 보인다). 모드는 `expectMode`, 세트는 셀렉트 값, 채점은 결과 모달·점수를 직접 읽는다.
 - 출제 목록은 비동기로 온다. 진입 완료는 `data-list-mode|set|chapter`로 기다린다(`waitForList`).
-- `waitForTimeout` 대신 `expect.poll`이나 상태 단언으로 기다린다.
+- `page.waitForTimeout`은 lint가 막는다(`eslint.config.mjs`). 상태를 기다린다:
+  - 화면 상태 → 자동 재시도 단언(`toHaveText`·`toHaveCount`)이나 `expect.poll`
+  - 전환·애니메이션·뷰포트 변경 뒤 레이아웃을 잴 때 → `settle(page)`, 모달 처리 뒤 모드가 자리 잡을 때 → `settleMode(page)`
+  - localStorage를 직접 읽을 때 → `flushSaves(page)`(앱이 화면을 숨길 때 타는 flushPersist 경로를 태운다)
+  - "시간이 지나도 아무 일이 없다"는 부정 단언·시간 측정처럼 대기 자체가 검사일 때만 `// eslint-disable-next-line no-restricted-syntax -- <이유>`
+- **새로고침 전에는 기다리지 않는다.** 앱은 페이지를 내리는 순간 저장을 flush한다. 새로고침 전 고정 대기는 디바운스 저장이 먼저 끝나게 해 그 경로를 가린다 — 실제로 `flushPersist`를 빼도 NF11("즉시 reload에도 답안 보존")이 800ms 대기 덕분에 통과하고 있었다. 반대로 "상태 변경이 디바운스 저장을 스스로 촉발하는가"를 보는 검사는 새로고침 **전에** 저장소를 `expect.poll`로 확인한다(새로고침 순간의 flush는 상태 전체를 저장해 구독 누락을 가린다).
 - 페이지 오류 0건은 `e2e/fixtures.ts`의 `test`가 모든 테스트에 자동으로 검사한다. 스펙은 `@playwright/test` 대신 `./fixtures`에서 `test`·`expect`를 가져온다.
 - 긴 루프를 도는 스펙은 첫머리에 `page.setDefaultTimeout(...)`을 둔다(Playwright의 `actionTimeout` 기본값은 무제한). 진단 흔적은 루프 첫머리에서 주기적으로 출력한다.
 

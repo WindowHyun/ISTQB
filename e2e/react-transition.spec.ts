@@ -74,7 +74,6 @@ test.describe("전이 — S1 연습", () => {
   test("T9: 연습 새로고침 → 재선택 시 모달 없이 복원", async ({ page }) => {
     await openSet(page, "ISTQB", A);
     await page.locator("#options .option").first().click();
-    await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
@@ -141,7 +140,6 @@ test.describe("전이 — S2E 시험(게이트→응시중→채점후)", () => 
     await openSet(page, "ISTQB", A);
     await enterExam(page);
     await page.locator("#options .option").first().click();
-    await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
@@ -151,7 +149,6 @@ test.describe("전이 — S2E 시험(게이트→응시중→채점후)", () => 
     // 재응시는 '새 회차 시작' 경유 — 같은 답안 재채점으로 회차가 중복 적립되지 않는다.
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
-    await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
@@ -164,7 +161,6 @@ test.describe("전이 — S2E 시험(게이트→응시중→채점후)", () => 
     await openSet(page, "ISTQB", A);
     await enterExam(page);
     await page.locator("#options .option").first().click();
-    await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
@@ -216,7 +212,6 @@ test.describe("전이 — S3 랜덤 / S4 오답", () => {
     await page.locator("#options .option").first().click();
     await expect(page.locator("#progressText")).toContainText("2 /");
     const titleBefore = await page.locator("#questionTitle").textContent();
-    await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
@@ -241,7 +236,6 @@ test.describe("전이 — S3 랜덤 / S4 오답", () => {
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
     await page.getByRole("button", { name: "오답 다시 풀기" }).click(); // T29
-    await page.waitForTimeout(300);
     await expect(page.locator('.segmented button[data-mode="review"]')).toHaveAttribute("aria-pressed", "true");
     const reviewCount = await page.locator("#questionNav button").count();
     expect(reviewCount).toBeGreaterThan(0); // 틀린 문항만(T36)
@@ -252,7 +246,6 @@ test.describe("전이 — 제품 간 격리", () => {
   test("T38: ISTQB↔CSTS 왕복 — 답안·상태 격리 및 복원", async ({ page }) => {
     await openSet(page, "ISTQB", A);
     await page.locator("#options .option").first().click(); // ISTQB 연습 1답
-    await page.waitForTimeout(800);
     // CSTS로 전환
     await page.getByRole("button", { name: /설정/ }).click();
     await page.getByRole("button", { name: "처음 화면으로" }).click();

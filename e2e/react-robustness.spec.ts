@@ -32,16 +32,18 @@ test("주입: 음수 elapsedSeconds 백업으로 제한시간을 늘릴 수 있�
   });
   await expect(page.getByTestId("import-confirm-modal")).toBeVisible();
   await page.getByTestId("import-confirm").click();
-  await page.waitForTimeout(800);
+  await expect(page.getByTestId("toast")).toBeVisible({ timeout: 8_000 }); // 가져오기 결과
   await page.keyboard.press("Escape");
 
   await page.locator('.segmented button[data-mode="exam"]').click();
   const gate = page.getByTestId("exam-start-btn");
   if (await gate.count()) await gate.click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-  await page.waitForTimeout(600);
+  // 한 번 틱할 때까지 — 주입된 경과 시간이 표시에 반영된 뒤에 읽는다(틱 전 값은 기본값이다).
+  const timer = page.locator("#timerText");
+  await expect(timer).not.toHaveText(await timer.innerText(), { timeout: 5_000 });
 
-  const shown = await page.locator("#timerText").innerText();
+  const shown = await timer.innerText();
   const secs = shown.split(":").map(Number).reverse().reduce((a, v, i) => a + v * 60 ** i, 0);
   note(`주입 후 표시된 남은 시간: ${shown} (${secs}초) — 제한은 3600초`);
   // 남은 시간이 제한시간을 넘으면 새 시험을 시작하기만 해도 제한시간이 무력화된다.
@@ -170,7 +172,8 @@ test("주입: 응시 중에 음수 elapsedSeconds를 밀어 넣으면", async ({
 
   const immediate = await page.locator("#timerText").innerText();
   note(`복원 직후(틱 이전): ${immediate}`);
-  await page.waitForTimeout(1500);
+  // 한 번 틱할 때까지(틱이 복원된 기준점으로 값을 다시 계산한다).
+  await expect(page.locator("#timerText")).not.toHaveText(immediate, { timeout: 5_000 });
   const settled = await page.locator("#timerText").innerText();
   note(`1.5초 후(틱 이후): ${settled}`);
 

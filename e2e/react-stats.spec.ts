@@ -1,5 +1,5 @@
 import { expect, Page, test } from "./fixtures";
-import { enterExam, modeBtn, openProduct, openSet, submitGrade } from "./helpers";
+import { enterExam, modeBtn, openProduct, openSet, settle, submitGrade } from "./helpers";
 
 // 학습 통계 — 요약·회차 타임라인·약점 분석·챕터 분모.
 
@@ -133,7 +133,7 @@ test.describe("학습 통계", () => {
     await seedHistories(page, MIXED);
     await openStats(page);
     await page.setViewportSize({ width: 390, height: 900 });
-    await page.waitForTimeout(150);
+    await settle(page);
     const worst = await page.locator(".stl-rounds li").evaluateAll((els) => {
       let maxLines = 1;
       for (const el of els) {
@@ -223,7 +223,7 @@ test.describe("약점 분석 표본", () => {
     await page.getByTestId("stats-open").click();
     await expect(page.getByTestId("stats-dashboard")).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.waitForTimeout(150);
+    await settle(page);
 
     // 줄 수를 세는 대신 '어절이 두 줄에 걸쳐 있는가'를 직접 본다 — 이름이 길어 두 줄이
     // 되는 것 자체는 정상이고, 문제는 "테스 / 트"처럼 어절 내부가 끊기는 것이다.

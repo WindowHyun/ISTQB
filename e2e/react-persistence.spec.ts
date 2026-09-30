@@ -19,7 +19,6 @@ test.describe("엣지-영속성", () => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await modeBtn(page, "연습").click();
     await page.locator("#options .option").first().click();
-    await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
@@ -28,7 +27,6 @@ test.describe("엣지-영속성", () => {
 
   test("세트를 바꾼 뒤 새로고침해도 같은 세트가 유지된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-B");
-    await page.waitForTimeout(700);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#examSelect")).toHaveValue("ISTQB-FL-V4-B");
@@ -55,8 +53,7 @@ test.describe("엣지-영속성", () => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await modeBtn(page, "연습").click();
     await page.locator("#options .option").first().click();
-    await page.waitForTimeout(700);
-    // 처음 화면으로 → CSTS
+    // 처음 화면으로 → CSTS (게이트로 나가는 순간 대기 중인 저장을 flushPersist가 내보낸다)
     await page.getByRole("button", { name: /설정/ }).click();
     await page.getByRole("button", { name: /처음 화면/ }).click();
     await page.getByRole("button", { name: "CSTS" }).click();
@@ -100,8 +97,7 @@ test.describe("엣지-영속성", () => {
     await page.getByTestId("confirm-reset-yes").click();
     // 완료 피드백 토스트 — 없으면 삭제가 됐는지 사용자가 알 수 없다(회귀 고정).
     await expect(page.getByTestId("toast")).toContainText("초기화했습니다");
-    await page.waitForTimeout(300);
-    expect(await page.locator("#questionNav button.answered").count()).toBe(0);
+    await expect(page.locator("#questionNav button.answered")).toHaveCount(0);
   });
 
   test("?debug 플래그는 새로고침 후에도 유지된다", async ({ page }) => {
@@ -146,7 +142,6 @@ test.describe("엣지-영속성", () => {
       await page.locator("#options .option").first().click();
       await page.locator("#nextBtn").click();
     }
-    await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
@@ -172,7 +167,7 @@ test.describe("영속성/백업", () => {
   test("내보내기→초기화→가져오기 라운드트립으로 답안이 복원된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await page.locator("#options .option").first().click();
-    await page.waitForTimeout(800);
+    // 내보내기는 저장소가 아니라 메모리 상태를 읽는다 — 저장을 기다릴 필요가 없다.
     // 설정 모달을 한 번만 열고 export → 초기화 → import 를 모달 안에서 처리.
     await page.getByRole("button", { name: /설정/ }).click();
     const [download] = await Promise.all([
@@ -182,26 +177,22 @@ test.describe("영속성/백업", () => {
     const filePath = await download.path();
     await page.getByRole("button", { name: "현재 모드 답안 초기화" }).click();
     await page.getByTestId("confirm-reset-yes").click();
-    await page.waitForTimeout(300);
-    expect(await page.locator("#questionNav button.answered").count()).toBe(0);
+    await expect(page.locator("#questionNav button.answered")).toHaveCount(0);
     await page.locator('input[type="file"][accept=".json"]').setInputFiles(filePath as string);
     // 가져오기는 적용 전에 정책 확인을 거친다(D2).
     await page.getByTestId("import-confirm").click();
-    await page.waitForTimeout(800);
-    expect(await page.locator("#questionNav button.answered").count()).toBeGreaterThanOrEqual(1);
+    await expect.poll(() => page.locator("#questionNav button.answered").count()).toBeGreaterThanOrEqual(1);
   });
 
   test("시험 모드 답안도 새로고침 후 복원된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await enterExam(page);
     await page.locator("#options .option").first().click();
-    await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
     await page.getByTestId("resume-keep").click(); // 이어풀기 선택(답안 유지)
-    await page.waitForTimeout(400);
-    expect(await page.locator("#questionNav button.answered").count()).toBeGreaterThanOrEqual(1);
+    await expect.poll(() => page.locator("#questionNav button.answered").count()).toBeGreaterThanOrEqual(1);
   });
 });
 

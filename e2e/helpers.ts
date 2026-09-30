@@ -297,6 +297,10 @@ export async function gradeQuickIfNeeded(page: Page) {
   if (!grade) return;
   if (await grade.isDisabled()) return; // 답이 덜 찼다(복수정답을 다 고르지 못한 경우)
   await grade.click();
+  // 채점이 반영될 때까지 — 같은 자리의 버튼이 '다음 문제'로 바뀌어 채점 버튼이 사라진다.
+  // 이걸 기다리지 않으면 부르는 쪽이 곧바로 quickNext를 찾다가 '아직 없음'으로 읽는다.
+  await expect.poll(async () => (await quickButton(page, "grade")) === null,
+    { message: "채점했는데 채점 버튼이 사라지지 않는다" }).toBe(true);
 }
 
 /**
@@ -307,6 +311,10 @@ export async function quickNext(page: Page): Promise<boolean> {
   const next = await quickButton(page, "next");
   if (!next) return false;
   await next.click();
+  // 다음 문항이 실릴 때까지 — 새 문항은 미채점이라 채점 버튼이 다시 생긴다. 이걸 기다리지
+  // 않으면 부르는 쪽이 방금 떠난 문항의 유형·보기를 읽는다(종전에는 60~150ms 대기로 가렸다).
+  await expect.poll(async () => (await quickButton(page, "grade")) !== null,
+    { message: "다음 문제를 눌렀는데 새 문항이 실리지 않는다" }).toBe(true);
   return true;
 }
 
@@ -355,11 +363,74 @@ export async function gotoQuestion(page: Page, num: number) {
   for (let i = 0; i < total; i++) {
     if (((await nav.nth(i).textContent()) || "").trim() === String(num)) {
       await nav.nth(i).click();
-      await page.waitForTimeout(80);
+      // 이동이 반영될 때까지 — 팔레트의 현재 표시(aria-current)가 그 번호로 옮겨 온다.
+      await expect(nav.nth(i)).toHaveAttribute("aria-current", /.+/);
       return;
     }
   }
   throw new Error("문항 번호를 찾지 못함: " + num);
+}
+
+/**
+ * 화면이 자리 잡을 때까지 — 진행 중인 CSS 전환·애니메이션(드로어 슬라이드, 모달 페이드)이
+ * 끝나고, 뷰포트를 바꿨다면 새 레이아웃으로 한 프레임 그려진 뒤.
+ *
+ * 레이아웃을 재거나(boundingBox·줄 수) axe로 대비를 스캔하기 전에 쓴다. 종전에는 그 자리에
+ * 120~400ms 고정 대기가 있었다 — 전환 시간이 바뀌거나 러너가 느리면 반쯤 열린 드로어를
+ * 재고, 빠르면 시간을 버렸다.
+ */
+export async function settle(page: Page) {
+  await page.evaluate(async () => {
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined)));
+  });
+}
+
+/**
+ * 모달·확인창을 처리한 뒤 화면이 새 모드로 자리 잡을 때까지 — 눌린 모드 세그먼트와
+ * 워크스페이스에 실린 목록의 모드(data-list-mode)가 같아지고 전환이 끝난다.
+ * 결과가 "모드가 바뀌었다"든 "취소돼 그대로다"든 똑같이 기다린다(탐색형 스펙용).
+ */
+export async function settleMode(page: Page) {
+  await expect.poll(() => page.evaluate(() => {
+    const pressed = document.querySelector('.segmented button[aria-pressed="true"]')?.getAttribute("data-mode");
+    const listed = document.querySelector(".workspace")?.getAttribute("data-list-mode");
+    return !pressed || !listed || pressed === listed;
+  }), { message: "눌린 모드와 실린 목록의 모드가 끝내 맞지 않는다" }).toBe(true);
+  await settle(page);
+}
+
+/**
+ * 대기 중인 저장을 지금 내보낸다 — 사용자가 앱을 잠깐 전환했다 돌아온 것과 같다.
+ *
+ * 앱은 화면이 숨겨지는 순간(visibilitychange → hidden) flushPersist로 디바운스 저장을 즉시
+ * 쓴다(QuestionWorkspace). 그 실제 경로를 태운다. **저장소(localStorage)를 직접 읽는 단언
+ * 앞에서** 쓴다 — 종전에는 "디바운스 500ms를 넘기겠지" 하고 900ms를 기다렸다.
+ * 화면 상태를 보는 단언에는 필요 없다(스토어는 즉시 바뀐다).
+ */
+export async function flushSaves(page: Page) {
+  await page.evaluate(() => {
+    const set = (hidden: boolean) => {
+      Object.defineProperty(document, "hidden", { configurable: true, get: () => hidden });
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true, get: () => (hidden ? "hidden" : "visible"),
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+    };
+    set(true);
+    set(false);
+    // 인스턴스에 덮어쓴 값을 걷어 원래(Document.prototype) 게터로 돌린다.
+    Reflect.deleteProperty(document, "hidden");
+    Reflect.deleteProperty(document, "visibilityState");
+  });
+}
+
+/** 오답 모드로 들어가 목록이 실릴 때까지 — 진행률의 분모가 곧 오답 대상 수다. */
+export async function reviewTotal(page: Page): Promise<number> {
+  await page.locator('.segmented button[data-mode="review"]').click();
+  await waitForList(page, { mode: "review" });
+  const text = (await page.locator("#progressText").textContent()) ?? "";
+  return Number(text.match(/\/\s*(\d+)/)?.[1] ?? 0);
 }
 
 // 가져오기는 적용 전에 정책 확인 모달을 거친다(D2) — 파일만 넣으면 아무 일도 일어나지 않는다.
@@ -380,6 +451,7 @@ export async function gotoStable(page: Page, url = "/") {
     await page.goto(url);
   } catch (e) {
     if (!String(e).includes("ERR_ABORTED")) throw e;
+    // eslint-disable-next-line no-restricted-syntax -- 재시도 전 백오프다. 기다릴 앱 상태가 없다(서버 쪽 끊김).
     await page.waitForTimeout(1000);
     await page.goto(url);
   }

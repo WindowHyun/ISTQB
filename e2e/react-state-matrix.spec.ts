@@ -1,5 +1,5 @@
 import { test, expect, Page } from "./fixtures";
-import { openProduct } from "./helpers";
+import { openProduct, settle, settleMode } from "./helpers";
 
 const note = (s: string) => console.log("· " + s);
 const problems: string[] = [];
@@ -46,7 +46,7 @@ async function goMode(page: Page, mode: Mode, accept: boolean) {
       await btn.click({ timeout: 2000 }).catch(() => {});
     }
   }
-  await page.waitForTimeout(120);
+  await settleMode(page);
 }
 
 test("상태 전이: 시험 미시작에서 전 모드로 나갔다 돌아오기", async ({ page }) => {
@@ -129,12 +129,14 @@ test("상태 전이: 채점 완료 후 전 모드 왕복과 세트 변경", asyn
   // 채점된 시험에서 세트를 바꾸면 새 세트는 '미채점'이어야 한다 —
   // 채점 상태가 새어 나가면 풀지도 않은 세트가 완료로 보인다.
   await page.locator("#examSelect").selectOption("ISTQB-FL-V4-B");
-  await page.waitForTimeout(400);
+  await settle(page); // 세트 변경이 띄우는 확인 모달이 자리 잡을 때까지
   for (const id of ["pending-set-change-modal", "graded-resume-modal"]) {
     const m = page.getByTestId(id);
     if (await m.count()) await m.locator("button").last().click().catch(() => {});
   }
-  await page.waitForTimeout(400);
+  // 새 세트의 목록이 실릴 때까지. 실리지 않으면 아래 상태 판독이 그 결함을 문제로 적는다.
+  await expect(page.locator(".workspace")).toHaveAttribute("data-list-set", "ISTQB-FL-V4-B").catch(() => {});
+  await settleMode(page);
   const newSet = await state(page);
   note(`세트 변경 후: ${JSON.stringify(newSet)}`);
   if (newSet.setId === "ISTQB-FL-V4-B" && newSet.graded) {

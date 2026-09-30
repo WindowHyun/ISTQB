@@ -1,6 +1,6 @@
 import { test, expect, Page } from "./fixtures";
 import AxeBuilder from "@axe-core/playwright";
-import { openProduct, openSet, gotoQuestion } from "./helpers";
+import { gotoQuestion, openProduct, openSet, settle } from "./helpers";
 
 const note = (s: string) => console.log("· " + s);
 
@@ -112,7 +112,8 @@ test("axe: 다크 모드 + 모바일 390px", async ({ page }) => {
   await page.getByRole("button", { name: "CSTS" }).click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   await page.locator("#options .option").first().click();
-  await page.waitForTimeout(300);
+  await expect(page.locator("#questionNav button.answered").first()).toBeVisible();
+  await settle(page);
   await scan(page, "다크-데스크톱-팔레트(답한 뒤)", found);
 
   // 뒤따르는 검사들은 모바일 전용 컨트롤(점프 핀 등)을 만지므로 폭을 되돌린다 —
