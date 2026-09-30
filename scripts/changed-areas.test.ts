@@ -49,13 +49,20 @@ describe('changed-areas — 변경 파일 → 검증 영역', () => {
     expect(onOf(['src/utils/parser.tsx'])).toEqual(['sweep', 'ui']);
   });
 
+  it('출제 목록·채점 흐름 훅은 logic이면서 전수 스윕 대상이다', () => {
+    for (const f of ['src/hooks/useQuestions.ts', 'src/hooks/useQuizSession.ts', 'src/utils/sessionDerive.ts']) {
+      expect(onOf([f]), f).toEqual(['logic', 'sweep']);
+    }
+    expect(onOf(['src/hooks/useTheme.ts'])).toEqual(['logic']);
+  });
+
   it('렌더·채점 경로의 유닛 테스트만 바뀌면 스윕을 켜지 않는다', () => {
     expect(onOf(['src/utils/scoring.test.ts', 'src/utils/parser.render.test.ts'])).toEqual(['unit']);
   });
 
   it('컴포넌트는 ui, 훅·유틸은 logic, e2e는 e2e, 안드로이드는 android', () => {
     expect(onOf(['src/components/stats/StatsDashboard.tsx'])).toEqual(['ui']);
-    expect(onOf(['src/hooks/useQuizSession.ts'])).toEqual(['logic']);
+    expect(onOf(['src/hooks/useBackDismiss.ts'])).toEqual(['logic']);
     expect(onOf(['e2e/helpers.ts'])).toEqual(['e2e']);
     expect(onOf(['capacitor.config.json'])).toEqual(['android']);
     expect(onOf(['android/app/build.gradle'])).toEqual(['android', 'native']);

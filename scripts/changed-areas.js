@@ -45,8 +45,11 @@ const MUTATION_STORAGE = [
 // 화면·채점으로 옮기는 경로.
 const SWEEP = [
   /^www\/(data|images)\//,
-  /^src\/utils\/(parser|questionLoader|scoring|answer)[^/]*\.tsx?$/,
+  /^src\/utils\/(parser|questionLoader|scoring|answer|sessionDerive)[^/]*\.tsx?$/,
   /^src\/components\/quiz\/QuestionCard\.tsx$/,
+  // 출제 목록을 조립하는 훅과 채점 흐름을 도는 훅(파생 계산은 sessionDerive로 꺼내 두었다).
+  // 세트에서 문항이 빠지거나 완주 채점이 깨지는 회귀는 전수 스윕·완주 채점만 잡는다.
+  /^src\/hooks\/(useQuestions|useQuizSession)\.ts$/,
 ];
 
 function classify(files) {
