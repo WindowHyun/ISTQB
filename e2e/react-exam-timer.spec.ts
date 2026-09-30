@@ -1,5 +1,5 @@
-import { test, expect, Page } from "@playwright/test";
-import { enterExam, openSet } from "./helpers";
+import { test, expect, Page } from "./fixtures";
+import { enterExam, modeBtn, openSet } from "./helpers";
 
 // 남은 시간(#timerText)을 초로 읽는다 — "59:58" 또는 "1:00:00" 양쪽 표기를 다룬다.
 async function remainingSeconds(page: Page): Promise<number> {
@@ -74,5 +74,42 @@ test.describe("시험 제한시간", () => {
     });
     expect(rounds).toHaveLength(1);
     expect(rounds[0].total).toBe(40); // 0이 아니어야 한다
+  });
+});
+
+// react-flow-ux에서 옮김 — 제한시간 기능을 한 파일에서 본다
+test.describe("시험 제한시간(자격증별)", () => {
+  test("ISTQB 시험은 60분 카운트다운으로 시작하고 게이트에 제한시간을 안내한다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "시험").click();
+    // 시작 게이트에 제한시간 안내가 보인다.
+    const gate = page.getByTestId("exam-start-gate");
+    await expect(gate).toContainText("제한시간 60분");
+    await expect(gate).toContainText("자동으로 제출");
+    await page.getByTestId("exam-start-btn").click();
+    // 경과가 아니라 남은 시간(60분 부근)이 표시된다. TimerClock은 사이드바·모바일 상단바
+    // 두 곳에 렌더되므로 사이드바(#timerText)로 범위를 좁힌다.
+    const remaining = page.locator("#timerText").getByTestId("timer-remaining");
+    await expect(remaining).toBeVisible();
+    await expect(remaining).toHaveText(/^(1:00:00|59:5\d)$/);
+  });
+
+  test("CSTS 시험은 90분으로 안내되고 남은 시간이 줄어든다", async ({ page }) => {
+    await openSet(page, "CSTS", "CSTS-FL-2402");
+    await modeBtn(page, "시험").click();
+    await expect(page.getByTestId("exam-start-gate")).toContainText("제한시간 90분");
+    await page.getByTestId("exam-start-btn").click();
+    const remaining = page.locator("#timerText").getByTestId("timer-remaining");
+    await expect(remaining).toHaveText(/^1:(29|30):\d\d$/); // 90분에서 카운트다운
+    const first = await remaining.textContent();
+    await page.waitForTimeout(2200);
+    expect(await remaining.textContent()).not.toBe(first); // 실제로 감소한다
+  });
+
+  test("연습 모드는 제한시간이 없어 경과 시간을 그대로 센다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await modeBtn(page, "연습").click();
+    await expect(page.locator("#timerText").getByTestId("timer-remaining")).toHaveCount(0);
+    await expect(page.locator("#timerText")).toHaveText(/^\d\d:\d\d$/);
   });
 });

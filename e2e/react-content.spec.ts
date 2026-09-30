@@ -1,35 +1,184 @@
-import { test, expect } from "@playwright/test";
-import { openSet, modeBtn, gotoQuestion } from "./helpers";
+import { test, expect } from "./fixtures";
+import { gotoQuestion, modeBtn, openProduct, openSet } from "./helpers";
 
-// 콘텐츠 렌더링(그림/표/목록/진행률/해설) + 무결성.
-test.describe("콘텐츠 렌더링", () => {
-  test("그림 문항: figure 이미지가 로드된다", async ({ page }) => {
+const figureImg = "#questionFigure img, #questionStem img";
+
+// 엣지: 콘텐츠 렌더링·라이트박스·콘솔·토스트.
+test.describe("엣지-콘텐츠", () => {
+  test("그림 문항(Q23)의 figure 이미지가 로드된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await gotoQuestion(page, 23); // 상태 전이 다이어그램
-    const img = page.locator("#questionFigure img, #questionStem img").first();
+    await gotoQuestion(page, 23);
+    const img = page.locator(figureImg).first();
     await expect(img).toBeVisible();
-    const ok = await img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0);
-    expect(ok).toBe(true);
+    expect(await img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
   });
 
-  test("그림 클릭 시 새 탭이 아니라 앱 내 라이트박스가 열린다", async ({ page }) => {
+  test("그림 클릭 시 앱 내 라이트박스가 열린다(새 탭 아님)", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await gotoQuestion(page, 23);
     const before = page.context().pages().length;
-    await page.locator("#questionFigure img, #questionStem img").first().click();
+    await page.locator(figureImg).first().click();
     await expect(page.getByTestId("figure-lightbox")).toBeVisible({ timeout: 5_000 });
-    // 새 페이지(탭)가 열리지 않았는지 확인
     expect(page.context().pages().length).toBe(before);
-    // Esc로 닫힘
+  });
+
+  test("라이트박스는 Esc로 닫힌다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await gotoQuestion(page, 23);
+    await page.locator(figureImg).first().click();
+    await expect(page.getByTestId("figure-lightbox")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("figure-lightbox")).toHaveCount(0);
   });
 
-  test("보기의 마크다운 표가 HTML <table>로 렌더된다", async ({ page }) => {
-    await openSet(page, "CSTS", "CSTS-FL-2404");
-    await gotoQuestion(page, 33);
-    expect(await page.locator("#options .data-table").count()).toBeGreaterThanOrEqual(1);
-    await expect(page.locator("#options")).not.toContainText("|---|");
+  test("라이트박스는 ✕ 버튼으로 닫힌다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await gotoQuestion(page, 23);
+    await page.locator(figureImg).first().click();
+    await page.locator(".figure-lightbox-close").click();
+    await expect(page.getByTestId("figure-lightbox")).toHaveCount(0);
+  });
+
+  test("라이트박스는 배경 클릭으로 닫힌다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await gotoQuestion(page, 23);
+    await page.locator(figureImg).first().click();
+    await page.getByTestId("figure-lightbox").click({ position: { x: 6, y: 6 } });
+    await expect(page.getByTestId("figure-lightbox")).toHaveCount(0);
+  });
+
+  test("라이트박스가 열리면 body 스크롤이 잠기고 닫으면 복원된다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await gotoQuestion(page, 23);
+    await page.locator(figureImg).first().click();
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe("hidden");
+    await page.keyboard.press("Escape");
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).not.toBe("hidden");
+  });
+  test("기본 상태에서는 화면 콘솔 버튼이 없다", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("debug-fab")).toHaveCount(0);
+  });
+
+  test("?debug 진입 시 console.log가 콘솔에 캡처된다", async ({ page }) => {
+    await page.goto("/?debug");
+    await expect(page.getByTestId("debug-fab")).toBeVisible({ timeout: 8_000 });
+    await page.evaluate(() => console.log("EDGE_LOG_MARK"));
+    await page.getByTestId("debug-fab").click();
+    await expect(page.getByTestId("debug-body")).toContainText("EDGE_LOG_MARK", { timeout: 4_000 });
+  });
+
+  test("?debug 진입 시 console.error도 캡처된다", async ({ page }) => {
+    await page.goto("/?debug");
+    await expect(page.getByTestId("debug-fab")).toBeVisible({ timeout: 8_000 });
+    await page.evaluate(() => console.error("EDGE_ERR_MARK"));
+    await page.getByTestId("debug-fab").click();
+    await expect(page.getByTestId("debug-body")).toContainText("EDGE_ERR_MARK", { timeout: 4_000 });
+  });
+
+  test("콘솔 '비우기'로 로그가 지워진다", async ({ page }) => {
+    await page.goto("/?debug");
+    await page.evaluate(() => console.log("WILL_BE_CLEARED"));
+    await page.getByTestId("debug-fab").click();
+    await expect(page.getByTestId("debug-body")).toContainText("WILL_BE_CLEARED");
+    await page.getByTestId("debug-clear").click();
+    await expect(page.getByTestId("debug-body")).not.toContainText("WILL_BE_CLEARED");
+  });
+
+  test("잘못된 가져오기 토스트는 클릭하면 사라진다", async ({ page }) => {
+    await openProduct(page, "ISTQB");
+    await page.getByRole("button", { name: /설정/ }).click();
+    await page.locator('input[type="file"][accept=".json"]').setInputFiles({
+      name: "bad.json", mimeType: "application/json", buffer: Buffer.from("{nope", "utf-8"),
+    });
+    // 가져오기는 적용 전에 정책 확인을 거친다(D2).
+    await page.getByTestId("import-confirm").click();
+    const toast = page.getByTestId("toast");
+    await expect(toast).toBeVisible({ timeout: 5_000 });
+    await toast.click();
+    await expect(toast).toHaveCount(0, { timeout: 3_000 });
+  });
+});
+
+// 콘텐츠 표시 수정 회귀 — 사용자 신고 문항(2402 Q2·2405 Q38/Q63·D Q29·요구사항 트리 들여쓰기).
+test.describe("엣지-콘텐츠 표시 수정 회귀", () => {
+  test("CSTS 2402 Q2: 각주 '…의미한다.'가 줄바꿈 없이 이어진다", async ({ page }) => {
+    await openSet(page, "CSTS", "CSTS-FL-2402");
+    await gotoQuestion(page, 2);
+    const stem = page.locator("#questionStem");
+    await expect(stem).toContainText("광범위한 용어임을 의미한다.");
+    // 조각 "다."가 별도 줄로 남지 않는다.
+    const lines = await stem.locator(".text-line").allTextContents();
+    expect(lines.map((l) => l.trim())).not.toContain("다.");
+  });
+
+  test("CSTS 2405 Q38: (가)·(라)가 마커 강조 없이 나열된다", async ({ page }) => {
+    await openSet(page, "CSTS", "CSTS-FL-2405");
+    await gotoQuestion(page, 38);
+    const stem = page.locator("#questionStem");
+    await expect(stem).toContainText("(가) 테스트 계획서");
+    await expect(stem).toContainText("(라) 테스트 절차서");
+    expect(await stem.locator(".structured-marker").count()).toBe(0);
+  });
+
+  test("CSTS 2405 Q63: '밑줄 친 부분'에 실제 밑줄이 렌더된다", async ({ page }) => {
+    await openSet(page, "CSTS", "CSTS-FL-2405");
+    await gotoQuestion(page, 63);
+    const u = page.locator("#questionStem u");
+    await expect(u).toHaveCount(1);
+    await expect(u).toContainText("동일한 테스트 케이스를 사용하여");
+  });
+
+  test("CSTS 2403 Q65: '밑줄 친 부분'에 실제 밑줄이 렌더된다", async ({ page }) => {
+    await openSet(page, "CSTS", "CSTS-FL-2403");
+    await gotoQuestion(page, 65);
+    const u = page.locator("#questionStem u");
+    await expect(u).toHaveCount(1);
+    await expect(u).toContainText("표준 준수 여부를 독립적으로 평가");
+  });
+
+  test("ISTQB D Q29: 사전 조건이 별도 단락으로 분리되고 '다음 중 이'로 표기된다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-D");
+    await gotoQuestion(page, 29);
+    const stem = page.locator("#questionStem");
+    await expect(stem).toContainText("다음 중 이 사용자 스토리에");
+    // 인수조건 3과 사전 조건이 한 줄로 붙어 있지 않다.
+    const lines = await stem.locator(".text-line, .structured-line").allTextContents();
+    expect(lines.some((l) => l.includes("업데이트되어야 한다") && l.includes("모든 테스트 케이스의"))).toBe(false);
+    // "모든 테스트 케이스의"가 고아 줄로 쪼개지지도 않는다(분리 규칙은 구절 전체 기준).
+    expect(lines.map((l) => l.trim())).not.toContain("모든 테스트 케이스의");
+    expect(lines.some((l) => l.startsWith("모든 테스트 케이스의 사전 조건은"))).toBe(true);
+  });
+
+  test("CSTS 2402 Q4: 요구사항 트리 '1.1'이 들여쓰기로 렌더된다", async ({ page }) => {
+    await openSet(page, "CSTS", "CSTS-FL-2402");
+    await gotoQuestion(page, 4);
+    const stem = page.locator("#questionStem");
+    await expect(stem).toContainText("1.1 기능 1");
+    expect(await stem.locator(".indent-1").count()).toBeGreaterThanOrEqual(4); // 1.1·1.2·2.1·2.2·2.3
+  });
+
+  // react-debug에서 옮김(나머지는 이 파일과 중복)
+  test("'끄기'를 누르면 콘솔이 사라지고 새로고침해도 꺼져 있다", async ({ page }) => {
+    await page.goto("/?debug");
+    await page.getByTestId("debug-fab").click();
+    await page.getByTestId("debug-off").click();
+    await expect(page.getByTestId("debug-fab")).toHaveCount(0);
+    await page.goto("/");
+    await expect(page.getByTestId("debug-fab")).toHaveCount(0);
+  });
+
+  // react-content에서 옮김(나머지는 이 파일·edge-figtable·edge-nav와 중복)
+  // 진행률 막대(#progressFill)를 보는 E2E는 이것뿐이다 — 텍스트(#progressText)나 순수 계산
+  // (progressPercent)만 보면 사이드바 막대와의 배선이 끊겨도 통과한다.
+  test("답을 고르면 진행률 텍스트와 막대가 갱신된다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await expect(page.locator("#progressText")).toContainText("0 /");
+    await page.locator("#options .option").first().click();
+    await expect(page.locator("#progressText")).not.toContainText("0 /");
+    await expect
+      .poll(() => page.locator("#progressFill").evaluate((el) => (el as HTMLElement).style.width))
+      .not.toBe("0%");
   });
 
   test("가/나/다/라 항목이 모두 렌더된다", async ({ page }) => {
@@ -39,36 +188,11 @@ test.describe("콘텐츠 렌더링", () => {
     for (const m of ["가.", "나.", "다.", "라."]) expect(stem).toContain(m);
   });
 
-  test("세트를 바꾸면 첫 문항(1번)으로 초기화된다", async ({ page }) => {
-    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await gotoQuestion(page, 5);
-    await page.locator("#examSelect").selectOption("ISTQB-FL-V4-C");
-    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator("#questionNav button.current")).toHaveText("1");
-  });
-
-  test("답을 고르면 진행률 텍스트와 막대가 갱신된다", async ({ page }) => {
-    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await expect(page.locator("#progressText")).toContainText("0 /");
-    await page.locator("#options .option").first().click();
-    await expect(page.locator("#progressText")).not.toContainText("0 /");
-    const w = await page.locator("#progressFill").evaluate((el) => (el as HTMLElement).style.width);
-    expect(w).not.toBe("0%");
-  });
-
   test("연습 모드 피드백에 해설(explanation)이 표시된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await modeBtn(page, "연습").click();
     await page.locator("#options .option").first().click();
     await expect(page.locator("#feedback .feedback-body")).toBeVisible({ timeout: 4_000 });
     expect(((await page.locator("#feedback .feedback-body").textContent()) || "").trim().length).toBeGreaterThan(0);
-  });
-
-  test("타이머가 1초 단위로 증가한다", async ({ page }) => {
-    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    const t1 = await page.locator("#timerText").textContent();
-    await page.waitForTimeout(2_100);
-    const t2 = await page.locator("#timerText").textContent();
-    expect(t2).not.toBe(t1);
   });
 });

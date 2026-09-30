@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { openProduct } from "./helpers";
 
 // 사용설명서 — 게이트 하단 버튼·설정 모달 두 진입점에서 같은 문서를 연다.

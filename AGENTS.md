@@ -1,61 +1,58 @@
 # AGENTS.md
 
-## 저장소 작업 방식
+ISTQB/CSTS 기출 문제 풀이 앱. React + Vite(웹, Vercel) · Capacitor(Android APK).
+문항 데이터 정본은 `www/data/`(12세트 626문항 — 계약 테스트가 강제하는 수치).
 
-이 저장소는 하네스 우선(harness-first) 방식을 사용합니다. 변경을 시작하기 전에 작업 영향 범위를 분류하고, `docs/harness/` 아래의 관련 하네스 문서를 먼저 읽습니다. 사람이든 에이전트든, 어떤 도구로 작업하든 같습니다.
+## 시작 전
 
-## 필수 하네스 라우팅
+변경할 경로로 영역을 정하고, 해당 하네스 문서만 읽는다. 여러 영역이면 해당 문서를 모두 읽는다.
 
-- 데이터, 문제 JSON, 정답, 선택지, 해설, 이미지 경로:
-  - `docs/harness/data-harness.md`를 읽습니다.
-- UI, CSS, 문제 렌더링, 이미지, 표, 선택지, 반응형 레이아웃:
-  - `docs/harness/ui-render-harness.md`를 읽습니다.
-- 앱 동작, 풀이 모드(연습·시험·퀵·오답 + 통계에서만 들어가는 챕터 미니 시험), 채점, 챕터 통계, 오답 노트, 상태 저장,
-  제품 전환, 탭 간 동기화, 가져오기/내보내기:
-  - `docs/harness/app-logic-harness.md`를 읽습니다.
-- Android, Capacitor, `www/`, APK, 매니페스트, 아이콘, 서비스 워커 패키징,
-  **웹↔네이티브 JS 브리지**(`addJavascriptInterface`로 주입하는 객체와 그것을 부르는 웹 코드):
-  - `docs/harness/android-build-harness.md`를 읽습니다 — 브리지는 그 문서의 **계약 표**가 정본입니다.
-    양쪽이 서로를 검사하지 않아 이름·시그니처가 갈리면 조용히 죽고, 증상은 APK에서만 납니다.
-- 릴리스, 전달 전 점검, 여러 영역에 걸친 큰 변경:
-  - `docs/harness/release-harness.md`를 읽습니다.
+| 경로 | 문서 |
+| --- | --- |
+| `www/data/**`, `www/images/**`, `scripts/` 데이터 도구 | `docs/harness/data.md` |
+| `src/components/**`, `src/app/**`, `src/styles/**`, `src/utils/parser.tsx`, `index.vite.html` | `docs/harness/ui-render.md` |
+| `src/store/**`, `src/hooks/**`, 나머지 `src/utils/**` | `docs/harness/app-logic.md` |
+| `android/**`, `capacitor.config.json`, 웹↔네이티브 JS 브리지 | `docs/harness/android.md` |
+| `e2e/**`, `*.test.ts`, `stryker*.json`, `vitest*.config.ts`, `playwright.config.ts`, `.github/workflows/**` | `docs/harness/testing.md` |
+| 배포·릴리스 | `docs/release-playbook.md` |
 
-## 기본 검증
+JS 브리지는 `android.md`의 계약 표가 정본이다. 웹과 네이티브가 서로를 검사하지 않아 이름이 갈리면 APK에서만 조용히 실패한다.
 
-- 데이터, JavaScript, UI, 앱 동작을 변경한 뒤에는 `npm run verify`를 실행합니다.
-- 문제 데이터(`www/data/**`)를 수정한 뒤에는 `python3 scripts/verify-pdf-data.py`(원본 PDF 대조 — 텍스트·정답·밑줄)도 통과해야 합니다(CI `pdf-data` job과 동일).
-- UI/렌더링/이미지/표/선택지 변경은 `docs/harness/ui-render-harness.md`에 따라 React E2E·스크린샷으로 확인합니다.
-- Android 또는 패키징되는 웹 에셋 변경은 `npm run cap:sync`와 `docs/harness/android-build-harness.md`의 Android 빌드 점검 필요 여부를 판단합니다.
-- React 앱(운영 배포)·렌더링·풀이 동작 변경은 `npm test`(유닛)와 `npm run test:e2e`(React 기능 E2E, 시나리오 목록은 `docs/e2e-test-scenarios.md`)로 회귀를 검증합니다.
-- 모바일 레이아웃·안전영역·터치 타깃에 영향이 있으면 `npm run test:apk`(APK/WebView)도 실행합니다 — 데스크톱 E2E는 뷰포트를 줄여도 WebView UA·안전영역 변수를 재현하지 못합니다.
-- 성능·오프라인·저장 내구성에 영향이 있으면 `npm run test:nf`(비기능)를 실행합니다.
-- IndexedDB·Blob 다운로드·서비스워커·Date 파싱 등 **엔진 계층**이나 렌더링을 크게 건드렸으면, 배포 전 **실기기 Safari(아이폰·맥)로 30초 직접 확인**합니다. 자동 Safari 게이트는 투자 대비 효과가 낮아 제거했습니다(잡아낸 것이 제품 결함이 아니라 테스트 하네스 이슈뿐이었고, 러너 시간은 11~24분이었습니다). 알려진 Safari 렌더 비용은 `docs/harness/ui-render-harness.md`를 참고하세요.
+## 검증
 
-> **Playwright 스위트는 한 번에 하나씩 실행합니다.** `webServer`가 설정 전체에 하나뿐이라
-> 포트(4173)와 `dist/`를 모든 프로젝트가 공유합니다 — 두 개를 별개 프로세스로 동시에 띄우면
-> 각자 `npm run build`를 돌려 같은 `dist/`에 겹쳐 쓰고, 먼저 돌던 쪽의 테스트가 산출물이
-> 갈리면서 타임아웃합니다. 이 증상은 **테스트 플래키로 오인되기 쉽습니다**(실패 지점이 매번
-> 다르고 단독 실행은 통과). 여러 스위트를 한꺼번에 돌리려면 `npm run test:e2e:all`을 씁니다 —
-> 한 번의 호출에 `--project`를 여러 개 주어 서버·빌드를 공유합니다. CI는 잡이 분리돼 무관합니다.
+`npm run check:changed`가 변경 파일(origin/main 대비 + 커밋 안 한 변경)로 영역을 판정해 아래 표의 명령을 골라 실행한다. `--dry-run`은 고른 명령만 보여 주고, `--skip-slow`는 저장 계층 뮤테이션·탐색 E2E를 뺀다. 판정 규칙은 `scripts/changed-areas.js`이고 CI 경로 필터와 같다.
 
-> 스위트별 테스트 **개수는 여기 적지 않습니다.** 종전에는 적어 뒀는데 한 달 만에 두 번 어긋났고,
-> 아무도 그 숫자로 판단하지 않으면서 갱신 부채만 남겼습니다.
-> 정확한 수치는 각 스위트 실행 결과와 CI 로그가 정본입니다. 다만 **데이터 계약 수치**(12세트
-> 626문항 등)는 계약 테스트가 강제하므로 문서에 남깁니다.
-- 채점·통계·저장 키 등 핵심 순수 로직을 고쳤다면 `npm run test:mutation`(Stryker 코어, CI break 85)으로 테스트의 결함 검출력을 확인합니다.
-- `src/utils/storage.ts`·`src/store/useQuizStore.ts`(영속화·상태 계층)를 고쳤다면 `npm run test:mutation:storage`(CI break 68, ~12분)를 실행합니다. 게이트가 둘로 나뉜 이유와 래칫 규칙은 `docs/harness/README.md`를 참고하세요 — **검사를 보강하면 break도 함께 올립니다.**
-- 테스트·e2e 파일을 추가·수정했다면 `npm run typecheck:test`를 실행합니다 — 앱 `tsconfig`는 테스트를 exclude하므로 이 명령이 아니면 타입 검사를 받지 않습니다. **루트의 `middleware.ts`(사이트 전체 Basic Auth 관문)와 `scripts/**/*.test.ts`(데이터 보정 도구의 계약 검사)도 같은 이유로 여기에만 걸려 있습니다** — 앱 `tsconfig`의 `include`가 `src`뿐이고 Vercel이 별도 번들하므로 `npm run build`로는 안 잡힙니다. 둘 다 `tsconfig.test.json`의 `include`에 명시돼 있으니, `src` 밖에 검사를 새로 두면 그 목록에 함께 넣습니다.
-- e2e 스펙에 `test.setTimeout`을 새로 주거나 올렸다면 **잡 타임아웃과의 부등식**을 다시 계산합니다 — `스펙 최대 예산 × 2(CI 재시도) + 정상 스위트 시간 < 잡 timeout`. 깨지면 멈춘 스펙이 예산을 태우는 동안 잡이 벽시계로 먼저 잘려 **원인이 로그에 한 줄도 안 남습니다.** 근거와 실측표는 `docs/harness/README.md`를 참고하세요.
-- 의존성을 추가했다면 `dependencies` / `devDependencies` 분류를 확인합니다. 빌드·테스트에만 쓰이면 `devDependencies`입니다 — 잘못 넣으면 `audit` 게이트("배포 번들의 취약점만 차단")가 빌드 도구 체인까지 재서, 사용자에게 나가지도 않는 패키지의 권고로 CI가 막힙니다(실제로 겪었습니다).
-- 컴포넌트·훅 안의 순수 로직을 고쳤다면, 유닛이 닿을 수 있게 **모듈로 꺼내는 것**을 먼저 검토합니다. `reviewTargetIds`(useQuestions) · `roundHistory`(useQuizSession) · `wrongNote`(AppModals) · **`sessionDerive`(useQuizSession의 파생 계산 전체)** 가 그 사례이고, 넷 다 꺼낸 뒤에야 결함이 검사로 고정됐습니다. `sessionDerive`가 가장 큰 사례입니다 — 284줄·커버리지 0%였던 훅에서 조건문을 들어내자 **전체 branch가 +2.84%p**, hooks 계층 브랜치가 10.3% → 12.98%가 됐습니다. 훅 계층을 올리는 방법은 렌더러를 들이는 것이 아니라 이것입니다.
-- 추가한 테스트가 헛돌지 않는지 확인합니다: 대상 결함을 일부러 되돌려 **실패하는 것을 보고** 원복합니다.
-- 요청된 변경에서 기존 하네스가 잡지 못하는 결함 유형이 드러나면, 작업 완료로 보기 전에 하네스를 보강하거나 보강안을 제시합니다.
+| 변경 | 명령 |
+| --- | --- |
+| 코드 전반 | `npm run lint && npm run typecheck && npm run typecheck:test && npm test` |
+| 데이터(`www/data/**`) | 위 + `npm run verify && python3 scripts/verify-pdf-data.py` |
+| UI·앱 동작 | 위 + `npm run test:e2e` |
+| 데이터·문항 렌더 경로(`parser.tsx`·`QuestionCard`·채점) | 위 + `npm run test:explore`(626문항 전수 스윕 포함) |
+| 모바일 레이아웃·안전영역·터치 타깃 | 위 + `npm run test:apk` |
+| 성능·오프라인·저장 내구성 | 위 + `npm run test:nf` |
+| 채점·통계 순수 로직(`stryker.config.json`의 `mutate`) | 위 + `npm run test:mutation` |
+| `storage.ts` · `useQuizStore.ts` | 위 + `npm run test:mutation:storage`(약 12분) |
+| Android 패키징 | `npm run build && npm run cap:sync`, 네이티브 변경이면 `cd android && ./gradlew assembleDebug` |
 
-## 보고 기준
+- `typecheck:test`는 테스트·e2e·`middleware.ts`·`scripts/**/*.test.ts`를 검사하는 유일한 명령이다. 앱 `tsconfig`는 이 파일들을 제외한다.
+- Playwright 스위트는 한 번에 하나만 실행한다. 모든 프로젝트가 포트 4173과 `dist/`를 공유해서, 동시에 띄우면 서로의 빌드를 덮어쓰고 플래키처럼 보이는 실패가 난다. 여러 스위트는 `npm run test:e2e:all`로 한 번에 돌린다.
+- 엔진 계층(IndexedDB·Blob·서비스워커·Date 파싱)이나 렌더링을 크게 바꿨으면 배포 전에 실기기 Safari로 확인한다(`release-playbook.md` §7).
 
-최종 응답에는 다음을 포함합니다.
+## 완료 기준
 
-- 변경한 내용
-- 사용한 하네스 문서
-- 실행한 정확한 명령과 결과
-- 생략한 점검이 있다면 생략 사유와 범위
+- 위 표에서 해당하는 명령이 통과한다. 돌리지 못한 명령은 이유와 범위를 보고한다.
+- 새로 추가한 검사는 대상 결함을 되돌렸을 때 실패하는 것을 한 번 확인하고 원복한다.
+- 기존 검사가 못 잡는 결함 유형을 발견했으면 검사를 추가하거나 추가안을 보고에 적는다.
+- 컴포넌트·훅 안의 순수 로직을 고쳤다면 먼저 모듈로 꺼내 유닛이 닿게 한다(`sessionDerive`·`roundHistory`·`wrongNote`가 그 예).
+
+## 하지 않는 것
+
+- 문항 `id` 변경 — 챕터 통계·오답노트·저장된 추첨이 id에 묶여 있다. 지문·정답·해설만 고친다.
+- 테스트를 skip·삭제·완화해서 CI를 통과시키는 것.
+- 빌드·테스트 전용 패키지를 `dependencies`에 넣는 것 — `audit` 게이트는 배포 의존성만 재므로, 잘못 넣으면 배포되지 않는 패키지 때문에 CI가 막힌다.
+- 문서에 실측값(테스트 개수·커버리지·뮤테이션 점수)을 적는 것. 정본은 CI 로그다. 설정이나 계약 테스트가 강제하는 값(break 85/68, 626문항)만 적는다.
+- `docs/archive/`를 현행 규칙의 근거로 쓰는 것. 당시 기록일 뿐이다.
+
+## 보고
+
+변경 내용 · 읽은 하네스 문서 · 실행한 명령과 결과 · 생략한 점검과 이유. 영역 문서에 추가 보고 항목이 있으면 함께 적는다.

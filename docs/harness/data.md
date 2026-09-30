@@ -1,0 +1,44 @@
+# 데이터 하네스
+
+적용: `www/data/**`, `www/images/**`, 문항 id·정답·선택지·해설·그림·표·block 구조, 데이터를 추출·정규화·검증하는 `scripts/`.
+
+## 필수 점검
+
+```bash
+npm run verify                       # 스키마·정답·이미지 경로·재수록 표·콘텐츠 감사
+python3 scripts/verify-pdf-data.py   # 원본 PDF와 텍스트·정답·밑줄 대조(pymupdf 필요, CI pdf-data)
+```
+
+`www/data`가 정본이고 `public/data`·`dist`는 `npm run sync:assets`(빌드 전 자동)로 복사된다.
+
+## 규칙
+
+- **문항 id는 바꾸지 않는다.** 사용자 기록(챕터 통계·오답노트·추첨)이 id에 묶여 있다. id는 스캔 전체에서 유일해야 한다(재수록 그룹표가 "세트마다 id가 다르다"를 전제로 한다). 문항 번호는 파일 안에서만 유일하면 된다.
+- 문항을 고쳤으면 `npm run data:dupes`로 재수록 표를 다시 만든다. 낡은 표는 `verify`가 막는다.
+- PDF 대조는 **JSON에 있는 것이 PDF에 있는가**만 본다. JSON에서 빠진 지문·그림은 잡지 못한다 — 지문을 가리키는 물음("다음 설명에…", "<보기>의…")에 그 지문이 붙어 있는지는 `allsets.contract.test.ts`가 본다.
+- PDF 대조의 조각 수를 손으로 재현하려 하지 않는다. `norm()`은 공백뿐 아니라 태그·기호·문장부호를 지우고 NFKC 정규화를 한다. 실행 출력이 정본이다.
+
+## 서답형 정답 — `answer`와 `acceptedAnswers`
+
+- `answer`는 화면의 "정답" 줄에 그대로 보인다. **원본 공개답안 표기 그대로** 둔다.
+- 같은 개념인데 세트마다 공개답안 표기가 다르면, **다른 세트의 공개답안이 인정한 표기만** `acceptedAnswers`에 넣는다. 근거 없이 넓히지 않는다 — 채점이 헐거워져도 잡아 줄 원본이 없다.
+- 다답형(`answerParts`)에는 쓰지 않는다. `answer`와 같은 표기는 `validate-questions`가 경고한다.
+- 개념 그룹별 인정 범위는 `allsets.contract.test.ts`('같은 개념의 서답형은 인정 범위가 같다')가 고정한다. 그룹에 문항을 더하면 그 표에도 넣는다.
+- 수치 답의 단위 차이(`50%`·`50`)는 채점(`answer.ts`의 `matchesShortAnswer`)이 흡수한다. 데이터에 따로 적지 않는다.
+
+## 보정 도구(`fix-questions.js` · `normalize-utils.js`)
+
+검토 도구이지 변환 파이프라인이 아니다.
+
+- 산출물은 `reports/normalized/<원본경로>`에 쓴다. `www/data` 옆에 쓰면 번들·APK에 실리고 `validate-questions`가 문항을 두 번 센다.
+- 채택은 그 파일을 원본 위로 복사한 뒤 `npm run verify`로 확인한다.
+- 보기를 뽑아내며 키를 `a`~`d`로 다시 매긴 문항은 **무조건 수동 검토**한다. `answer`는 원본 키를 그대로 들고 있어서, 원본도 `a`~`d`였다면 정답이 조용히 다른 보기를 가리켜도 어떤 검증도 통과한다(`normalize-utils.test.ts`가 이 계약을 고정).
+
+## 사정권 밖
+
+데이터는 유효한데 화면만 깨지는 결함(렌더러가 지문 문자열을 바꾸는 경우)은 [`ui-render.md`](./ui-render.md)의 '렌더러가 데이터를 바꾼다'를 본다.
+
+## 보고 추가 항목
+
+- 바꾼 데이터 파일과 문항 id(바뀌지 않았음을 diff로 확인)
+- 수동 검토가 필요한 콘텐츠

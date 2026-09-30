@@ -1,4 +1,4 @@
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, Page } from "./fixtures";
 import { completeAttempt, enterExam, enterMiniTest, submitGrade } from "./helpers";
 
 // React 앱 기능 전수 회귀 스펙 — 게이트·모드·채점·오답노트·설정·진위/단답 UI.
@@ -22,6 +22,8 @@ test("게이트 → ISTQB 워크스페이스 렌더", async ({ page }) => {
   await page.getByRole("button", { name: "ISTQB" }).click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   await expect(page.locator("#options .option").first()).toBeVisible();
+  // 새 버전이 없으면 PWA 업데이트 배너가 뜨지 않는다(react-pwa에서 흡수).
+  await expect(page.getByTestId("update-prompt")).toHaveCount(0);
   expect(errs, errs.join(" | ")).toEqual([]);
 });
 

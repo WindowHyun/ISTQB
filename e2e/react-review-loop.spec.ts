@@ -1,4 +1,4 @@
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, Page } from "./fixtures";
 import { enterExam, modeBtn, openSet, submitGrade } from "./helpers";
 
 const SET = "ISTQB-FL-V4-A";

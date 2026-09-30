@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { enterExam, openProduct, openSet, submitGrade } from "./helpers";
 
 // 엣지: 모달 상호작용(Esc·백드롭·전환·설정 토글·통계 빈/비우기).

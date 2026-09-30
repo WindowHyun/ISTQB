@@ -12,12 +12,25 @@ export default defineConfig({
   reporter: process.env.CI ? [["html", { open: "never" }]] : "list",
   use: {
     trace: "on-first-retry",
+    // 설치된 Chromium 빌드가 @playwright/test가 요구하는 빌드와 다른 환경(클라우드 컨테이너 등)에서
+    // 실행 파일을 직접 지정한다. CI는 설정하지 않는다(버전에 맞는 브라우저를 설치한다).
+    ...(process.env.PW_CHROMIUM_PATH
+      ? { launchOptions: { executablePath: process.env.PW_CHROMIUM_PATH } }
+      : {}),
   },
   projects: [
     {
       // 기능 E2E(react-*.spec.ts). 비기능 스펙은 별도 프로젝트로 분리해 제외된다.
       name: "react",
       testMatch: /react-.*\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"], baseURL: REACT_URL },
+    },
+    {
+      // 탐색형(explore-*.spec.ts) — 몽키·전수 스윕·완주 채점·페어와이즈·교차 정합·시드 랜덤.
+      // 변경과 무관하게 넓게 훑는 검사라 PR 게이트(react)에서 뺐다. daily-e2e.yml이 매일 돌리고,
+      // 전수 스윕·완주 채점은 데이터·렌더 경로가 바뀐 PR에서도 돈다(ci.yml e2e-sweep).
+      name: "explore",
+      testMatch: /explore-.*\.spec\.ts/,
       use: { ...devices["Desktop Chrome"], baseURL: REACT_URL },
     },
     {

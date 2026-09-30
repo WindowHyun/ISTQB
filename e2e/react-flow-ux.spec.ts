@@ -1,5 +1,5 @@
-import { test, expect } from "@playwright/test";
-import { completeAttempt, enterExam, modeBtn, openSet, submitGrade, closeResult } from "./helpers";
+import { test, expect } from "./fixtures";
+import { completeAttempt, enterExam, openSet, submitGrade, closeResult } from "./helpers";
 
 // 흐름·기획 개선(S1~S6) — 응시 포기, 채점 완료 회차 새로고침 가드, 챕터 미니 시험
 // (추첨·새로고침 이어풀기·'연습으로 전체 보기'로 이탈), 오답 극복 배지, 시험 제한시간.
@@ -140,7 +140,7 @@ test.describe("챕터 미니 시험(S3)", () => {
     await page.getByTestId("stats-open").click();
     await page.getByTestId("chapter-minitest-btn").first().click();
     await expect(page.getByTestId("chapter-filter-banner")).toBeVisible();
-    // 미니 시험에서는 버튼 이름이 결과를 예고한다(연습에서는 그냥 '전체 보기' — react-weakness).
+    // 미니 시험에서는 버튼 이름이 결과를 예고한다(연습에서는 그냥 '전체 보기' — react-stats).
     const clear = page.getByTestId("chapter-filter-clear");
     await expect(clear).toHaveText("연습으로 전체 보기");
     await page.locator("#options .option").first().click(); // 1문항 응답 후 나간다
@@ -203,41 +203,6 @@ test.describe("오답 극복 배지(S6)", () => {
   });
 });
 
-test.describe("시험 제한시간(자격증별)", () => {
-  test("ISTQB 시험은 60분 카운트다운으로 시작하고 게이트에 제한시간을 안내한다", async ({ page }) => {
-    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "시험").click();
-    // 시작 게이트에 제한시간 안내가 보인다.
-    const gate = page.getByTestId("exam-start-gate");
-    await expect(gate).toContainText("제한시간 60분");
-    await expect(gate).toContainText("자동으로 제출");
-    await page.getByTestId("exam-start-btn").click();
-    // 경과가 아니라 남은 시간(60분 부근)이 표시된다. TimerClock은 사이드바·모바일 상단바
-    // 두 곳에 렌더되므로 사이드바(#timerText)로 범위를 좁힌다.
-    const remaining = page.locator("#timerText").getByTestId("timer-remaining");
-    await expect(remaining).toBeVisible();
-    await expect(remaining).toHaveText(/^(1:00:00|59:5\d)$/);
-  });
-
-  test("CSTS 시험은 90분으로 안내되고 남은 시간이 줄어든다", async ({ page }) => {
-    await openSet(page, "CSTS", "CSTS-FL-2402");
-    await modeBtn(page, "시험").click();
-    await expect(page.getByTestId("exam-start-gate")).toContainText("제한시간 90분");
-    await page.getByTestId("exam-start-btn").click();
-    const remaining = page.locator("#timerText").getByTestId("timer-remaining");
-    await expect(remaining).toHaveText(/^1:(29|30):\d\d$/); // 90분에서 카운트다운
-    const first = await remaining.textContent();
-    await page.waitForTimeout(2200);
-    expect(await remaining.textContent()).not.toBe(first); // 실제로 감소한다
-  });
-
-  test("연습 모드는 제한시간이 없어 경과 시간을 그대로 센다", async ({ page }) => {
-    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await modeBtn(page, "연습").click();
-    await expect(page.locator("#timerText").getByTestId("timer-remaining")).toHaveCount(0);
-    await expect(page.locator("#timerText")).toHaveText(/^\d\d:\d\d$/);
-  });
-});
 
 test.describe("챕터 필터 복원", () => {
   test("챕터 집중 연습 중 새로고침해도 필터가 유지된다", async ({ page }) => {

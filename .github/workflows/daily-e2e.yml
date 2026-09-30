@@ -1,6 +1,6 @@
 name: Daily E2E
 
-# 매일 예약 시각에 Playwright 회귀(기능 E2E + 비기능)를 자동 실행한다.
+# 매일 예약 시각에 기능 E2E·탐색 E2E(PR 게이트 밖)·비기능·저장 계층 뮤테이션을 main 기준으로 돌린다.
 # - schedule: cron 은 UTC 기준. 17 0 * * * = 00:17 UTC = KST 09:17.
 #   (정시 :00 은 러너 혼잡으로 지연이 크므로 분을 비워둠)
 # - workflow_dispatch: 필요 시 수동 실행.
@@ -57,6 +57,43 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
+  # 탐색형 E2E(explore 프로젝트) — 몽키·전수 스윕·완주 채점·페어와이즈·교차 정합·시드 랜덤.
+  # 변경과 무관하게 넓게 훑는 검사라 PR 게이트에서는 빼고 여기서 매일 main을 훑는다.
+  # 예산: 스펙 최대 420초(몽키) × 2 + 정상 ~11분 ≈ 25분 < 40분.
+  explore:
+    name: Daily Explore (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+      - name: Install Playwright (chromium + system deps)
+        run: npx playwright install --with-deps chromium
+      - name: Run explore suite
+        run: npm run test:explore
+      - name: Upload Playwright report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-daily-explore
+          path: playwright-report/
+          retention-days: 14
+          if-no-files-found: ignore
+
   # 비기능(성능·부하·메모리·타이머·오프라인·데이터 내구성)도 야간에 상시 감시한다 —
   # PR CI에서만 돌면 머지 없이 지나가는 날의 러너/의존성 드리프트를 놓친다.
   nonfunctional:
@@ -93,12 +130,40 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
+  # 저장 계층 뮤테이션 — PR CI에서는 경로 필터로 저장 계층을 건드린 변경만 돌린다
+  # (ci.yml mutation-storage 주석 참고). 다른 테스트가 바뀌어도 이 점수가 조금씩 움직이므로,
+  # 그 드리프트를 여기서 매일 main 기준으로 잰다.
+  mutation-storage:
+    name: Daily Mutation — 영속화·상태 계층
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run mutation tests (storage · store)
+        run: npm run test:mutation:storage
+      - name: Upload mutation report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: mutation-report-storage-daily
+          path: reports/mutation-storage/
+          retention-days: 14
+          if-no-files-found: ignore
+
   # 실패 시 알림: 'daily-e2e-failure' 라벨의 열린 이슈가 있으면 코멘트, 없으면 새로 생성.
   # (매일 새 이슈가 쌓이지 않도록 하나의 추적 이슈를 재사용한다.)
   notify:
     name: Notify on failure
     runs-on: ubuntu-latest
-    needs: [e2e, nonfunctional]
+    needs: [e2e, explore, nonfunctional, mutation-storage]
     if: ${{ always() && github.event_name == 'schedule' && contains(needs.*.result, 'failure') }}
     permissions:
       issues: write
@@ -111,7 +176,9 @@ jobs:
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const failed = [
               ['기능 E2E', '${{ needs.e2e.result }}'],
+              ['탐색 E2E', '${{ needs.explore.result }}'],
               ['비기능', '${{ needs.nonfunctional.result }}'],
+              ['저장 계층 뮤테이션', '${{ needs.mutation-storage.result }}'],
             ].filter(([, result]) => result === 'failure').map(([name]) => name).join(', ');
             const body = [
               `🔴 예약 회귀 실행이 실패했습니다. (실패 스위트: ${failed})`,

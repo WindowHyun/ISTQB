@@ -1,8 +1,8 @@
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, Page } from "./fixtures";
 
 // 전수 채점 테스트 — 모든 세트를 실제로 "정답만 골라" 끝까지 풀고 채점한다.
 //
-// 렌더 스윕(react-fullsweep)이 '보이는가'를 본다면 이쪽은 '맞게 계산하는가'를 본다.
+// 렌더 스윕(explore-fullsweep)이 '보이는가'를 본다면 이쪽은 '맞게 계산하는가'를 본다.
 // 전 문항 정답이면 결과는 반드시 100%여야 하므로, 한 문항이라도 정답 키가 화면의
 // 보기와 어긋나거나(데이터 오타·보기 순서 변경) 배점·합격 판정이 틀어지면 즉시 드러난다.
 // 특히 CSTS는 문항 유형별 가중 배점(4지선다·서답형 1.5점, 진위형 1.0점)이라
@@ -70,7 +70,7 @@ async function answerCorrectly(page: Page, q: Q) {
 
 test("전수 기능: 12세트를 정답으로 완주하면 전부 100%가 나온다", async ({ page }) => {
   // 예산 5분. 실측 1.2분(단독) — 종전 30분은 25배였다.
-  // 예산을 잡 타임아웃(30분)보다 작게 유지하는 이유는 react-fullsweep 주석 참고.
+  // 예산을 잡 타임아웃(30분)보다 작게 유지하는 이유는 explore-fullsweep 주석 참고.
   test.setTimeout(300_000);
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push("pageerror: " + e.message));

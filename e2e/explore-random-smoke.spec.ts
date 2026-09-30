@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { openSet, submitGrade } from "./helpers";
 
 // 시드 랜덤 스모크(살충제 패러독스 대응) — 매 실행 다른 세트·문항·답 조합을 밟되,
@@ -6,7 +6,7 @@ import { openSet, submitGrade } from "./helpers";
 // 오라클이 "UI가 지금 하는 일"이 아니라 **데이터(JSON 정답) 기준 기대 점수**라서,
 // 채점 로직이 잘못돼도 스위트가 그 잘못을 봉인하지 않는다(독립 검증 계층).
 //
-// 재현: SMOKE_SEED=<seed> npx playwright test e2e/react-random-smoke.spec.ts
+// 재현: SMOKE_SEED=<seed> npx playwright test --project=explore e2e/explore-random-smoke.spec.ts
 
 // mulberry32 — 시드 고정형 PRNG(테스트 내 Math.random 사용 금지 규율 유지).
 function mulberry32(seed: number) {

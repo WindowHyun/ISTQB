@@ -1,4 +1,4 @@
-import { test, expect, Page } from "@playwright/test";
+import { test, expect, Page } from "./fixtures";
 import AxeBuilder from "@axe-core/playwright";
 import { openProduct, openSet, gotoQuestion } from "./helpers";
 

@@ -1,5 +1,5 @@
-import { test, expect } from "@playwright/test";
-import { gotoQuestion, modeBtn, openProduct, openSet } from "./helpers";
+import { test, expect } from "./fixtures";
+import { gotoQuestion, openProduct, openSet } from "./helpers";
 
 // 뒤로가기로 오버레이 닫기.
 // 안드로이드 하드웨어 뒤로가기는 @capacitor/app이 history.back()으로 넘겨주므로,
@@ -76,27 +76,5 @@ test.describe("뒤로가기-오버레이", () => {
     // (앱에서는 이 경우에만 종료된다.)
     await page.goBack();
     await expect(page.locator("#questionStem")).toHaveCount(0);
-  });
-});
-
-// 서답형 정답 표기 — 대문자로 강제하면 "회귀(Regression) 테스트"가
-// "회귀(REGRESSION) 테스트"가 돼 정답 표기가 왜곡된다(선택형 키만 대문자).
-test.describe("정답 표기", () => {
-  test("서답형 정답은 원문 대소문자를 유지한다", async ({ page }) => {
-    await openSet(page, "CSTS", "CSTS-FL-2402");
-    await modeBtn(page, "연습").click();
-    await gotoQuestion(page, 61); // 단답형 — 정답 "구조기반 / Structure-based Test"
-    await page.locator(".short-answer-input").fill("아무거나");
-    await page.getByRole("button", { name: "정답 확인" }).click();
-    const feedback = page.locator("#feedback");
-    await expect(feedback).toBeVisible({ timeout: 4_000 });
-    await expect(feedback).toContainText("Structure-based Test");
-    await expect(feedback).not.toContainText("STRUCTURE-BASED TEST");
-  });
-
-  test("선택형 보기 키는 그대로 대문자로 보여준다", async ({ page }) => {
-    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await page.locator("#options .option").first().click();
-    await expect(page.locator("#feedback")).toContainText(/정답 [A-E]/);
   });
 });
