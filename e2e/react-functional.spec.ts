@@ -14,8 +14,6 @@ async function openIstqb(page: Page) {
 }
 
 test("게이트 → ISTQB 워크스페이스 렌더", async ({ page }) => {
-  const errs: string[] = [];
-  page.on("pageerror", (e) => errs.push(String(e)));
   await page.goto("/");
   await expect(page.getByRole("button", { name: "ISTQB" })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("button", { name: "CSTS" })).toBeVisible();
@@ -24,7 +22,6 @@ test("게이트 → ISTQB 워크스페이스 렌더", async ({ page }) => {
   await expect(page.locator("#options .option").first()).toBeVisible();
   // 새 버전이 없으면 PWA 업데이트 배너가 뜨지 않는다(react-pwa에서 흡수).
   await expect(page.getByTestId("update-prompt")).toHaveCount(0);
-  expect(errs, errs.join(" | ")).toEqual([]);
 });
 
 test("연습: 선택 시 즉시 피드백 + 다음 문항 누수 없음", async ({ page }) => {

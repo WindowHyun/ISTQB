@@ -9,14 +9,17 @@
  *   npm run check:changed -- --dry-run     # 실행하지 않고 고른 명령만 보여 준다
  *   npm run check:changed -- --skip-slow   # 저장 계층 뮤테이션(~12분)·탐색 E2E를 건너뛴다
  *
- * Playwright 스위트는 한 번의 호출로 묶어 실행한다(스위트를 따로 띄우면 dist/를 서로 덮어쓴다).
+ * Playwright 스위트는 동시에 띄우지 않는다(dist/와 포트를 서로 덮어쓴다). 프로젝트는 한 번의
+ * 호출로 묶고, 스펙 파일 필터가 필요한 전수 스윕만 그 뒤에 차례로 실행한다.
  */
 const { spawnSync } = require("child_process");
-const { main: detect } = require("./changed-areas.js");
+const { main: detect, SWEEP_SPECS } = require("./changed-areas.js");
 
 function plan(areas, { skipSlow = false } = {}) {
   const steps = [];
-  const code = areas.ui || areas.logic || areas.unit || areas.e2e || areas.data;
+  const code = areas.ui || areas.logic || areas.unit || areas.data
+    || areas.e2e || areas.explore || areas.nonfunctional || areas.apk
+    || areas.mutationCore || areas.mutationStorage;
   if (code) {
     steps.push(["npm", ["run", "lint"]]);
     steps.push(["npm", ["run", "typecheck"]]);
@@ -27,16 +30,24 @@ function plan(areas, { skipSlow = false } = {}) {
     steps.push(["npm", ["run", "verify"]]);
     steps.push(["python3", ["scripts/verify-pdf-data.py"]]);
   }
-  if (areas.logic) steps.push(["npm", ["run", "test:mutation"]]);
+  // 변이 대상·그 의존 모듈·대상에 닿는 테스트가 바뀌었을 때만(판정: changed-areas의 import 폐포).
+  if (areas.mutationCore) steps.push(["npm", ["run", "test:mutation"]]);
   if (areas.mutationStorage && !skipSlow) steps.push(["npm", ["run", "test:mutation:storage"]]);
 
   const projects = [];
   if (areas.ui || areas.logic || areas.e2e || areas.data) projects.push("react");
-  if (areas.ui || areas.android) projects.push("apk", "apk-nf");
-  if (areas.logic) projects.push("nonfunctional");
-  if (areas.sweep && !skipSlow) projects.push("explore");
+  if (areas.ui || areas.android || areas.apk) projects.push("apk", "apk-nf");
+  if (areas.logic || areas.nonfunctional) projects.push("nonfunctional");
+  // 탐색 스펙 자체가 바뀌면 explore 전체, 데이터·렌더 경로만 바뀌면 CI e2e-sweep과 같은 두 스펙.
+  const exploreAll = areas.explore && !skipSlow;
+  if (exploreAll) projects.push("explore");
   if (projects.length) {
     steps.push(["npx", ["playwright", "test", ...projects.map((p) => `--project=${p}`)]]);
+  }
+  // 스펙 파일 필터는 모든 프로젝트에 걸리므로 위 호출에 섞을 수 없다. 차례로 한 번 더 띄운다
+  // (금지는 동시 실행이다 — spawnSync라 앞 호출이 끝난 뒤에 시작한다).
+  if (areas.sweep && !exploreAll && !skipSlow) {
+    steps.push(["npx", ["playwright", "test", "--project=explore", ...SWEEP_SPECS]]);
   }
   if (areas.android) {
     steps.push(["npm", ["run", "build"]]);

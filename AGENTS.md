@@ -27,11 +27,12 @@ JS 브리지는 `android.md`의 계약 표가 정본이다. 웹과 네이티브�
 | 코드 전반 | `npm run lint && npm run typecheck && npm run typecheck:test && npm test` |
 | 데이터(`www/data/**`) | 위 + `npm run verify && python3 scripts/verify-pdf-data.py` |
 | UI·앱 동작 | 위 + `npm run test:e2e` |
-| 데이터·문항 렌더 경로(`parser.tsx`·`QuestionCard`·채점) | 위 + `npm run test:explore`(626문항 전수 스윕 포함) |
+| 데이터·문항 렌더 경로(`parser.tsx`·`QuestionCard`·채점) | 위 + 전수 스윕 두 스펙(`npx playwright test --project=explore e2e/explore-fullsweep.spec.ts e2e/explore-fullgrade.spec.ts`) |
+| 탐색 스펙(`e2e/explore-*`)·E2E 공용 헬퍼 | 위 + `npm run test:explore` |
 | 모바일 레이아웃·안전영역·터치 타깃 | 위 + `npm run test:apk` |
 | 성능·오프라인·저장 내구성 | 위 + `npm run test:nf` |
-| 채점·통계 순수 로직(`stryker.config.json`의 `mutate`) | 위 + `npm run test:mutation` |
-| `storage.ts` · `useQuizStore.ts` | 위 + `npm run test:mutation:storage`(약 12분) |
+| 채점·통계 순수 로직(`stryker.config.json`의 `mutate`)과 그 의존 모듈·그것에 닿는 테스트 | 위 + `npm run test:mutation` |
+| `storage.ts` · `useQuizStore.ts`와 그 의존 모듈·그것에 닿는 테스트 | 위 + `npm run test:mutation:storage`(약 12분) |
 | Android 패키징 | `npm run build && npm run cap:sync`, 네이티브 변경이면 `cd android && ./gradlew assembleDebug` |
 
 - `typecheck:test`는 테스트·e2e·`middleware.ts`·`scripts/**/*.test.ts`를 검사하는 유일한 명령이다. 앱 `tsconfig`는 이 파일들을 제외한다.

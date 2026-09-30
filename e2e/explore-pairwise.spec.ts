@@ -139,6 +139,7 @@ test.describe("페어와이즈 조합", () => {
       const label = `${c.product}/${c.mode}/${c.width}/graded=${c.graded}`;
       const errs: string[] = [];
       const onErr = (e: Error) => errs.push(String(e).slice(0, 160));
+      // 실패 판정은 공용 fixture가 한다. 여기서 따로 모으는 것은 어느 조합에서 났는지 라벨을 붙이려고다.
       page.on("pageerror", onErr);
       try {
         await page.setViewportSize(

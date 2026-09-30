@@ -27,13 +27,6 @@ async function simulateApkInsets(page: Page) {
   );
 }
 
-// 페이지 JS 오류 수집 — 웹뷰에선 콘솔이 안 보여 조용히 깨지기 쉽다.
-function collectErrors(page: Page) {
-  const errors: string[] = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  return errors;
-}
-
 
 test.describe("APK 기능 · 상단 안전영역", () => {
   test.beforeEach(async ({ page }) => simulateApkInsets(page));
@@ -102,16 +95,13 @@ test.describe("APK 기능 · 핵심 플로우(터치)", () => {
   test.beforeEach(async ({ page }) => simulateApkInsets(page));
 
   test("AF5 연습: 보기 탭 → 즉시 피드백 → 진행 증가", async ({ page }) => {
-    const errors = collectErrors(page);
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await page.locator("#options .option").first().tap();
     await expect(page.locator("#feedback")).toBeVisible();
     await expect(page.locator(".mtb-meta").first()).toContainText("1 / 40");
-    expect(errors).toEqual([]);
   });
 
   test("AF6 시험: 진입→응답→채점→결과 모달이 모바일에서 완결된다", async ({ page }) => {
-    const errors = collectErrors(page);
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await enterExamMobile(page);
     await page.locator("#options .option").first().tap();
@@ -119,7 +109,6 @@ test.describe("APK 기능 · 핵심 플로우(터치)", () => {
     await submitGrade(page, "grade-button-m");
     await expect(page.getByTestId("result-summary")).toBeVisible();
     await closeResult(page);
-    expect(errors).toEqual([]);
   });
 
   test("AF7 재실행(웹뷰 재시작 모사): 연습 답안이 복원된다", async ({ page }) => {
@@ -159,7 +148,6 @@ test.describe("APK 기능 · 퀵 랜덤(터치)", () => {
   };
 
   test("AF11 드로어 안 퀵 컨트롤이 제스처바를 피하고 탭으로 출제된다", async ({ page }) => {
-    const errors = collectErrors(page);
     await page.goto("/");
     await page.getByRole("button", { name: "ISTQB" }).tap();
     await page.getByTestId("drawer-open").tap();
@@ -195,7 +183,6 @@ test.describe("APK 기능 · 퀵 랜덤(터치)", () => {
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
     expect(overflow, "퀵 화면에서 가로 넘침").toBeLessThanOrEqual(0);
-    expect(errors).toEqual([]);
   });
 
   // 퀵 회차의 setId는 'QUICK'이라 오답의 출처 세트는 wrongItems[].setId에만 남는다.
@@ -203,7 +190,6 @@ test.describe("APK 기능 · 퀵 랜덤(터치)", () => {
   // 웹뷰 재시작 한 번에 오답노트가 '퀵 랜덤' 한 덩어리로 뭉친다(실제로 났던 결함).
   // 재시작이 일상인 APK에서 재라, 이 축은 여기서 잡는 게 맞다.
   test("AF12 퀵 오답의 출처 세트 표기가 웹뷰 재시작에도 유지된다", async ({ page }) => {
-    const errors = collectErrors(page);
     await startQuick(page);
 
     // 퀵은 한 문항씩 채점하고 넘어간다 — 하단 바의 같은 자리 버튼이 '채점하기'와
@@ -241,7 +227,6 @@ test.describe("APK 기능 · 퀵 랜덤(터치)", () => {
       .toBe(before.length);
     expect(new Set(after).size, `재시작 전 ${beforeSets}개 출처가 후 ${new Set(after).size}개로 뭉쳤다`)
       .toBe(beforeSets);
-    expect(errors).toEqual([]);
   });
 
   /**

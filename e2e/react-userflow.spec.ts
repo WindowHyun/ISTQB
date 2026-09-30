@@ -13,6 +13,7 @@ type Err = { kind: string; text: string };
 
 function watchErrors(page: Page): Err[] {
   const errs: Err[] = [];
+  // pageerror 실패 판정은 공용 fixture도 한다. 여기서는 console.error와 한 보고서로 묶으려고 함께 모은다.
   page.on("pageerror", (e) => errs.push({ kind: "pageerror", text: String(e).slice(0, 300) }));
   page.on("console", (m) => {
     if (m.type() === "error") errs.push({ kind: "console.error", text: m.text().slice(0, 300) });

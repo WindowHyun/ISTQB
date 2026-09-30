@@ -27,7 +27,7 @@
   - localStorage를 직접 읽을 때 → `flushSaves(page)`(앱이 화면을 숨길 때 타는 flushPersist 경로를 태운다)
   - "시간이 지나도 아무 일이 없다"는 부정 단언·시간 측정처럼 대기 자체가 검사일 때만 `// eslint-disable-next-line no-restricted-syntax -- <이유>`
 - **새로고침 전에는 기다리지 않는다.** 앱은 페이지를 내리는 순간 저장을 flush한다. 새로고침 전 고정 대기는 디바운스 저장이 먼저 끝나게 해 그 경로를 가린다 — 실제로 `flushPersist`를 빼도 NF11("즉시 reload에도 답안 보존")이 800ms 대기 덕분에 통과하고 있었다. 반대로 "상태 변경이 디바운스 저장을 스스로 촉발하는가"를 보는 검사는 새로고침 **전에** 저장소를 `expect.poll`로 확인한다(새로고침 순간의 flush는 상태 전체를 저장해 구독 누락을 가린다).
-- 페이지 오류 0건은 `e2e/fixtures.ts`의 `test`가 모든 테스트에 자동으로 검사한다. 스펙은 `@playwright/test` 대신 `./fixtures`에서 `test`·`expect`를 가져온다.
+- 페이지 오류 0건은 `e2e/fixtures.ts`의 `test`가 모든 테스트에 자동으로 검사한다. 스펙은 `@playwright/test` 대신 `./fixtures`에서 `test`·`expect`를 가져온다. 스펙에서 `pageerror`를 따로 모아 0건을 다시 단언하지 않는다. 앱과 무관한 알려진 잡음은 `test.use({ ignorePageErrors: [/…/] })`로 좁게 빼고, 예외를 일부러 일으키는 테스트만 `allowPageErrors: true`를 쓴다.
 - 긴 루프를 도는 스펙은 첫머리에 `page.setDefaultTimeout(...)`을 둔다(Playwright의 `actionTimeout` 기본값은 무제한). 진단 흔적은 루프 첫머리에서 주기적으로 출력한다.
 
 ## 예산 부등식
@@ -52,7 +52,7 @@
 - 저장 계층 검사를 보강하면 break도 올린다. 올릴 폭은 실측이 아니라 **관측된 드리프트 폭**을 여유로 남긴다(새 기능이 검사 없는 코드를 들여오면 점수가 저절로 1~2%p 내려간다).
 - 수정 전 점수를 직접 한 번 재고 그것과 비교한다. 문서의 옛 값과 비교하지 않는다.
 - timeout은 '검출'로 집계되므로 느린 머신일수록 점수가 높게 나온다. 로컬 통과는 CI 통과를 보증하지 않는다 — break는 낮게 나온 쪽을 기준으로 정한다.
-- 저장 계층 뮤테이션은 PR에서 경로 필터(`scripts/changed-areas.js`)로 돌고, main에서는 매일 돈다.
+- 저장 계층 뮤테이션은 PR에서 경로 필터(`scripts/changed-areas.js`)로 돌고, main에서는 매일 돈다. 필터 범위는 `mutate` 대상의 import 그래프로 계산하므로, 테스트가 대상을 `import type`으로만 쓰면 그 테스트 변경은 뮤테이션을 켜지 않는다.
 
 경위와 라운드별 실측: [`../decisions/mutation-gates.md`](../decisions/mutation-gates.md).
 
