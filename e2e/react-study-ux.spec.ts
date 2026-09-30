@@ -20,7 +20,6 @@ test.describe("학습 UX — 이어풀기 배너(A)", () => {
     await page.locator("#options .option").first().click();
     await expect(page.locator("#progressText")).toContainText("1 /");
     await gotoQuestion(page, 5); // 5번(index 4)으로 이동
-    await page.waitForTimeout(800); // 디바운스 저장 플러시
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
@@ -52,7 +51,6 @@ test.describe("학습 UX — 이어풀기 배너(A)", () => {
   test("'계속하기'를 누르면 배너만 닫히고 위치는 유지된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await gotoQuestion(page, 6);
-    await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
@@ -66,7 +64,6 @@ test.describe("학습 UX — 이어풀기 배너(A)", () => {
   test("첫 문항(1번)에서 복원되면 배너가 노출되지 않는다", async ({ page }) => {
     await openProduct(page, "ISTQB"); // index 0 유지
     await page.locator("#options .option").first().click();
-    await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
@@ -160,7 +157,6 @@ test.describe("학습 UX — 시험 모드 이어풀기/유지(#1·#2·#6)", () 
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await enterExam(page);
     await page.locator("#options .option").first().click();
-    await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
@@ -198,7 +194,6 @@ test.describe("학습 UX — 시험 모드 이어풀기/유지(#1·#2·#6)", () 
     await page.locator("#options .option").first().click();
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
-    await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
@@ -217,7 +212,6 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await enterExam(page);
     await page.locator("#options .option").first().click();
-    await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
@@ -230,7 +224,6 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await enterExam(page);
     await page.locator("#options .option").first().click();
-    await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
@@ -243,7 +236,6 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await enterExam(page);
     await page.locator("#options .option").first().click();
-    await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
@@ -256,7 +248,6 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
   test("연습 모드 재접속은 선택 모달 없이 복원된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A"); // 연습 모드
     await page.locator("#options .option").first().click();
-    await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
@@ -294,7 +285,6 @@ test.describe("학습 UX — 재접속 이어풀기/새로풀기 선택(B안)", 
     const titleBefore = await page.locator("#questionTitle").textContent();
     await page.locator("#options .option").first().click(); // 미니 시험 1문항 응답(미채점)
     await expect(page.locator("#progressText")).toHaveText(`1 / ${total}`);
-    await page.waitForTimeout(800);
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });

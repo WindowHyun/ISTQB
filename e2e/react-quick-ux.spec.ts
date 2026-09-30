@@ -1,5 +1,13 @@
 import { expect, Page, test } from "./fixtures";
-import { answerCurrent, enterQuick, goNextQuestion, gotoStable, openProduct, pinQuickDraw, quickNext, quickStat, selectCurrent } from "./helpers";
+import { answerCurrent, enterQuick, goNextQuestion, gotoStable, openProduct, pinQuickDraw, quickNext, quickStat, selectCurrent, settle } from "./helpers";
+
+/**
+ * 조건이 곧 참이 되는지 — 되면 true, 제한 안에 안 되면 false. 고정 대기 대신 쓴다.
+ * 소프트 검사(bad()로 모아 마지막에 한꺼번에 단언)에서 "안 되면 적고 계속"을 유지하려고
+ * 실패를 삼킨다. 바로 실패해야 하는 단언에는 expect.poll을 그대로 쓴다.
+ */
+const eventually = (probe: () => Promise<boolean>, timeout = 2_000) =>
+  expect.poll(probe, { timeout }).toBe(true).then(() => true, () => false);
 import AxeBuilder from "@axe-core/playwright";
 
 // 퀵 조작·UI — 패널·점수판·이동 수단·axe·터치 타깃·대비.
@@ -443,6 +451,7 @@ test("퀵에는 앞으로 가는 ›가 없고, → 키도 채점 전에는 움�
   const first = (await page.locator("#questionTitle").textContent()) || "";
   await page.locator("#questionStem").click(); // 입력 필드가 아닌 곳에 포커스
   await page.keyboard.press("ArrowRight");
+  // eslint-disable-next-line no-restricted-syntax -- "→ 키가 아무 일도 하지 않는다"는 부정 단언의 관찰 창이다.
   await page.waitForTimeout(200);
   await expect(page.locator("#questionTitle"), "채점 전인데 → 키로 다음 문항에 갔다").toHaveText(first);
 
@@ -476,8 +485,7 @@ async function advanceToOptionQuestion(page: Page, max = 20): Promise<boolean> {
   for (let i = 0; i < max; i += 1) {
     if (await page.locator("#options .option").count()) return true;
     await answerCurrent(page);
-    if (!(await quickNext(page))) return false;
-    await page.waitForTimeout(80);
+    if (!(await quickNext(page))) return false; // 헬퍼가 새 문항이 실릴 때까지 기다린다
   }
   return false;
 }
@@ -515,7 +523,7 @@ test("UI: 퀵 화면 axe 스캔 — 라이트·다크·모바일", async ({ page
   await page.evaluate(() => localStorage.setItem("istqb-theme", "dark"));
   await page.reload();
   await enterQuick(page, "ISTQB");
-  await page.waitForTimeout(400);
+  await settle(page); // 드로어·화면 전환이 끝난 뒤 재고 스캔한다
   await axeScan(page, "퀵 화면(다크)");
 
   // 모바일
@@ -523,7 +531,7 @@ test("UI: 퀵 화면 axe 스캔 — 라이트·다크·모바일", async ({ page
   await page.reload();
   await enterQuick(page, "ISTQB");
   await page.getByTestId("drawer-open").click();
-  await page.waitForTimeout(400);
+  await settle(page); // 드로어·화면 전환이 끝난 뒤 재고 스캔한다
   await axeScan(page, "퀵 화면(모바일 다크)");
 
   expect(problems, problems.join("\n")).toEqual([]);
@@ -567,12 +575,11 @@ test("UX: 키보드만으로 퀵을 시작하고 풀 수 있다", async ({ page 
   const opt = page.locator("#options .option").first();
   await opt.focus();
   await page.keyboard.press("Enter");
-  await page.waitForTimeout(200);
-  let picked = (await opt.getAttribute("aria-pressed")) === "true";
+  const pressed = async () => (await opt.getAttribute("aria-pressed")) === "true";
+  let picked = await eventually(pressed);
   if (!picked) {
     await page.keyboard.press(" ");
-    await page.waitForTimeout(200);
-    picked = (await opt.getAttribute("aria-pressed")) === "true";
+    picked = await eventually(pressed);
   }
   if (!picked) bad("보기를 키보드(Enter/Space)로 선택할 수 없다");
 
@@ -582,22 +589,23 @@ test("UX: 키보드만으로 퀵을 시작하고 풀 수 있다", async ({ page 
   // 복수정답이면 정답 개수만큼 골라야 채점이 열린다 — 나머지도 키보드로 고른다.
   const optionCount = await page.locator("#options .option").count();
   for (let i = 1; i < optionCount && (await grade.isDisabled()); i += 1) {
-    await page.locator("#options .option").nth(i).focus();
+    const o = page.locator("#options .option").nth(i);
+    await o.focus();
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(150);
+    await eventually(async () => (await o.getAttribute("aria-pressed")) === "true");
   }
   if (await grade.isDisabled()) {
     bad("답을 다 골랐는데 채점 버튼이 열리지 않는다");
   } else {
     await grade.focus();
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(300);
-    if (!((await solved()) > solvedBefore)) bad("키보드로 채점했는데 진행이 오르지 않는다");
+    if (!(await eventually(async () => (await solved()) > solvedBefore))) bad("키보드로 채점했는데 진행이 오르지 않는다");
   }
 
   // 문항 이동도 키보드로(← →) — 이미 다른 스펙이 보지만 퀵에서도 성립하는지 확인한다.
+  const titleBefore = await page.locator("#questionTitle").textContent();
   await page.keyboard.press("ArrowRight");
-  await page.waitForTimeout(200);
+  await eventually(async () => (await page.locator("#questionTitle").textContent()) !== titleBefore);
   const title = await page.locator("#questionTitle").textContent();
   note(`화살표 이동 후 헤더: ${title?.trim()}`);
 
@@ -612,7 +620,7 @@ test("UI: 모바일에서 퀵 컨트롤이 터치 타깃 최소 크기를 만족
   await page.evaluate(() => localStorage.clear());
   await enterQuick(page, "ISTQB");
   await page.getByTestId("drawer-open").click();
-  await page.waitForTimeout(400);
+  await settle(page); // 드로어·화면 전환이 끝난 뒤 재고 스캔한다
 
   // WCAG 2.1 AA(2.5.5는 AAA지만 모바일 실사용 기준으로 44px를 쓴다).
   const MIN = 44;
@@ -650,7 +658,7 @@ test("UI: 테마 × 글자 크기 조합에서 퀵 화면이 넘치거나 잘리
         }, [theme, font]);
         await enterQuick(page, "ISTQB");
         if (width === 390) await page.getByTestId("drawer-open").click();
-        await page.waitForTimeout(350);
+        await settle(page); // 드로어·화면 전환이 끝난 뒤 재고 스캔한다
 
         const label = `${theme}/${font}/${width}px`;
         // 진입 패널 넘침
@@ -769,7 +777,7 @@ test("UX: 퀵 안내 문구가 잘리지 않고, 그 제품에 맞는 출제 범
     // 퀵 패널은 퀵 안에서만 렌더된다(진입로는 모드 세그먼트) — 밖에서 찾으면 늘 null이다.
     await enterQuick(page, product);
     await page.getByTestId("drawer-open").click();
-    await page.waitForTimeout(400);
+    await settle(page); // 드로어·화면 전환이 끝난 뒤 재고 스캔한다
 
     // 기대값의 근거는 데이터다(scripts로 실측: CSTS 440문항 중 서답형 63, ISTQB 186 중 0).
     // 문구가 이 사실을 따라오는지가 요점이므로, 기대는 여기서 못 박고 화면을 대조한다.

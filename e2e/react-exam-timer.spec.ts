@@ -102,8 +102,7 @@ test.describe("시험 제한시간(자격증별)", () => {
     const remaining = page.locator("#timerText").getByTestId("timer-remaining");
     await expect(remaining).toHaveText(/^1:(29|30):\d\d$/); // 90분에서 카운트다운
     const first = await remaining.textContent();
-    await page.waitForTimeout(2200);
-    expect(await remaining.textContent()).not.toBe(first); // 실제로 감소한다
+    await expect(remaining).not.toHaveText(first ?? "", { timeout: 5_000 }); // 실제로 감소한다
   });
 
   test("연습 모드는 제한시간이 없어 경과 시간을 그대로 센다", async ({ page }) => {

@@ -1,5 +1,5 @@
 import { test, expect, Page } from "./fixtures";
-import { openProduct, answerCurrent } from "./helpers";
+import { answerCurrent, flushSaves, openProduct, settleMode } from "./helpers";
 
 /**
  * 전이 매트릭스 — 퀵을 포함한 4모드(연습·시험·오답·퀵).
@@ -70,13 +70,13 @@ async function toSegment(page: Page, mode: Seg) {
     const m = page.getByTestId(id);
     if (await m.count()) await m.locator("button").last().click({ timeout: 2000 }).catch(() => {});
   }
-  await page.waitForTimeout(150);
+  await settleMode(page);
 }
 
 async function toQuick(page: Page) {
   // 퀵 진입로는 모드 세그먼트다 — 문항 수 콤보와 '시작' 버튼을 거치던 두 단계는 없어졌다.
   await page.locator('.segmented button[data-mode="quick"]').click({ timeout: 5000 }).catch(() => {});
-  await page.waitForTimeout(200);
+  await settleMode(page);
 }
 
 test("전이: 세그먼트 3모드 ↔ 퀵 왕복 (6방향)", async ({ page }) => {
@@ -203,6 +203,7 @@ test("전이: 퀵 진행 중에는 세트 셀렉트가 사라져 추첨도 진�
     const raw = localStorage.getItem("istqb-fl-v4-sample-ui-state");
     return raw ? JSON.parse(raw).quickDraw?.items?.map((i: { id: string }) => i.id) ?? [] : [];
   }) as Promise<string[]>;
+  await flushSaves(page); // 저장소를 직접 읽는다 — 대기 중인 저장을 먼저 내보낸다
   const beforeIds = await readDraw();
 
   // 사라져 있어야 한다 — 여기가 이번에 세운 계약이다.
@@ -216,7 +217,9 @@ test("전이: 퀵 진행 중에는 세트 셀렉트가 사라져 추첨도 진�
   });
   if (storedSetId !== "QUICK") bad(`퀵인데 저장된 setId가 센티넬이 아님 (${storedSetId})`);
 
+  // eslint-disable-next-line no-restricted-syntax -- "시간이 지나도 추첨·진행이 그대로다"를 보는 관찰 창이다.
   await page.waitForTimeout(300);
+  await flushSaves(page);
   const afterIds = await readDraw();
   const afterSolved = await solved.textContent();
   console.log(`· 추첨 ${beforeIds.length} → ${afterIds.length} · 진행 ${afterSolved}`);
@@ -254,7 +257,7 @@ async function goAny(page: Page, m: AnyMode) {
       if (await md.count()) await md.locator("button").last().click({ timeout: 2000 }).catch(() => {});
     }
   }
-  await page.waitForTimeout(180);
+  await settleMode(page);
 }
 
 test("전이 전수: 4모드 16개 순서쌍을 모두 밟아도 앱이 살아 있다", async ({ page }) => {

@@ -85,7 +85,8 @@ test.describe("엣지-모드", () => {
 
   test("모드 전환 시 타이머가 0으로 초기화된다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-    await page.waitForTimeout(1500);
+    // 초기화를 증명하려면 먼저 0이 아니어야 한다 — 연습 타이머가 한 번 틱하기를 기다린다.
+    await expect(page.locator("#timerText")).not.toContainText("00:00", { timeout: 5_000 });
     await enterExam(page);
     await expect(page.locator("#timerText")).toContainText("00:0");
   });
@@ -111,7 +112,6 @@ test.describe("엣지-모드", () => {
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
     await page.getByRole("button", { name: "오답 다시 풀기" }).click();
-    await page.waitForTimeout(300);
     await expect(page.locator('.segmented button[data-mode="review"]')).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -183,7 +183,6 @@ test.describe("시험 시작 게이트·응시 중 잠금", () => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await enterExam(page);
     await page.locator("#options .option").first().click();
-    await page.waitForTimeout(800); // 디바운스 저장 플러시
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });

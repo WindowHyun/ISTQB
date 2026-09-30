@@ -1,5 +1,5 @@
 import { test, expect, Page } from "./fixtures";
-import { openProduct, gotoStable, answerCurrent } from "./helpers";
+import { answerCurrent, gotoStable, openProduct, settleMode } from "./helpers";
 
 /**
  * 페어와이즈(all-pairs) 조합 테스트.
@@ -122,7 +122,7 @@ async function enter(page: Page, c: Combo) {
     const gate = page.getByTestId("exam-start-btn");
     if (await gate.count()) await gate.click();
   }
-  await page.waitForTimeout(400);
+  await settleMode(page);
 }
 
 test.describe("페어와이즈 조합", () => {
@@ -170,7 +170,8 @@ test.describe("페어와이즈 조합", () => {
           // 종전에는 보기를 하나만 눌러, 퀵에 복수정답이 뽑힌 회차에서 확정되지 않아
           // "답을 골라도 진행이 그대로"로 오보했다(F-5 — 실측 25회 중 3회).
           await answerCurrent(page);
-          await page.waitForTimeout(150);
+          // 진행이 오르기를 잠깐 기다린다 — 안 오르면 그 사실을 아래에서 문제로 적는다.
+          await expect.poll(() => counter.textContent(), { timeout: 2_000 }).not.toBe(before).catch(() => {});
           const after = await counter.textContent();
           if (before === after && /^0(\s|$)/.test((before ?? "").trim())) {
             problems.push(`${label}: 답을 골라도 진행이 그대로 (${before})`);

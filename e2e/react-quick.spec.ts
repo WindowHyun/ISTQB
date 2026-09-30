@@ -92,7 +92,6 @@ test.describe("퀵 랜덤", () => {
       if (await page.locator(".short-answer-input").count()) shortAnswers += 1;
       await answerCurrent(page);
       if (!(await quickNext(page))) break;
-      await page.waitForTimeout(60);
     }
     // 셀렉터가 어긋나 조기 이탈하면 검사가 무력해진다 — 실제로 20문항을 밟았는지 먼저 본다.
     expect(visited, "20문항을 다 훑지 못했다 — 검사가 무력하다").toBe(20);
@@ -210,13 +209,8 @@ test.describe("퀵 랜덤", () => {
 async function gradeAll(page: Page, size: number) {
   for (let i = 0; i < size; i += 1) {
     await answerCurrent(page); // 헬퍼가 문항 채점까지 한다
-    const next = page.getByTestId("quick-next-btn");
-    if (!(await next.count())) break; // 마지막 문항 — 더 갈 곳이 없다
-    await next.click();
+    if (!(await quickNext(page))) break; // 마지막 문항 — 더 갈 곳이 없다
   }
-  // 대기 중인 저장을 흘려보낸다. 이게 없으면 마지막 조작이 걸어 둔 500ms 디바운스가
-  // 검사의 읽기 뒤에 발화해, 저장되지 않은 상태를 '저장됐다'고 읽거나 그 반대가 된다.
-  await page.waitForTimeout(900);
 }
 
 test.describe("퀵 — 복원력", () => {
@@ -259,9 +253,14 @@ test.describe("퀵 — 복원력", () => {
     await enterQuick(page, "ISTQB");
     await gradeAll(page, 10);
 
-    // 채점 외에는 아무것도 건드리지 않고 곧바로 새로고침한다 — 다른 상태 변경이
-    // 저장을 대신 촉발해 결함을 가리지 않게 한다. 디바운스(500ms)만 넘긴다.
-    await page.waitForTimeout(900);
+    // 채점 외에는 아무것도 건드리지 않는다 — 다른 상태 변경이 저장을 대신 촉발해 결함을
+    // 가리지 않게 한다. 그리고 새로고침 **전에** 디바운스 저장이 스스로 회차를 썼는지 본다:
+    // 새로고침 순간의 flushPersist는 상태 전체를 저장하므로, 그것만 보면 '채점이 저장을
+    // 촉발하지 않는'(구독 목록 누락) 결함이 가려진다.
+    await expect.poll(() => page.evaluate(() => {
+      const raw = localStorage.getItem("istqb-fl-v4-sample-ui-state");
+      return raw ? (JSON.parse(raw).quickRounds ?? []).length : 0;
+    }), { message: "채점이 퀵 회차 저장을 촉발하지 않는다" }).toBeGreaterThan(0);
     await page.reload();
 
     const rounds = await page.evaluate(() => {

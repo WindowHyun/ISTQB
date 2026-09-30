@@ -43,8 +43,6 @@ test.describe("채점 완료 회차 새로고침 가드(S4)", () => {
   test("채점 후 새로고침하면 이어풀기 대신 '채점 완료된 회차' 안내가 뜬다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await completeAttempt(page);
-    await page.waitForTimeout(900); // debounce 저장 대기
-
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     const guard = page.getByTestId("graded-resume-modal");
@@ -63,8 +61,6 @@ test.describe("채점 완료 회차 새로고침 가드(S4)", () => {
   test("'새 회차 시작'을 고르면 답안이 비워지고 시작 게이트부터", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await completeAttempt(page);
-    await page.waitForTimeout(900);
-
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.getByTestId("graded-resume-modal")).toBeVisible();
@@ -112,8 +108,6 @@ test.describe("챕터 미니 시험(S3)", () => {
     const chapterBefore = (await banner.locator("strong").textContent()) || "";
     const totalBefore = (await page.locator("#progressText").textContent())?.split("/")[1]?.trim();
     await page.locator("#options .option").first().click(); // 1문항 응답(미채점)
-    await page.waitForTimeout(900); // debounce 저장 대기(추첨·답안)
-
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await page.waitForSelector("#options .option");
@@ -156,9 +150,10 @@ test.describe("챕터 미니 시험(S3)", () => {
     await expect(page.locator("#questionTitle")).toHaveText("문제 1");
 
     // 저장 상태도 함께 넘어가야 한다 — 새로고침하면 미니 시험으로 되돌아가는 것을 막는다.
-    await page.waitForTimeout(900); // debounce 저장 대기
+    // 디바운스 저장이 스스로 도는지 본다(새로고침 순간의 flush가 아니라) — 저장될 때까지 기다린다.
+    await expect.poll(() => page.evaluate(() =>
+      JSON.parse(localStorage.getItem("istqb-fl-v4-sample-ui-state") || "{}").mode)).toBe("practice");
     const ui = await page.evaluate(() => JSON.parse(localStorage.getItem("istqb-fl-v4-sample-ui-state") || "{}"));
-    expect(ui.mode).toBe("practice");
     expect(ui.chapterFilter ?? null).toBeNull();
   });
 });
@@ -215,8 +210,6 @@ test.describe("챕터 필터 복원", () => {
     await expect(banner).toBeVisible();
     const chapter = (await banner.locator("strong").textContent()) || "";
     const totalBefore = (await page.locator("#progressText").textContent())?.split("/")[1]?.trim();
-    await page.waitForTimeout(900); // debounce 저장 대기
-
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await page.waitForSelector("#options .option");

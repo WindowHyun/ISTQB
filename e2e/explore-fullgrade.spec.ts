@@ -26,10 +26,12 @@ async function dismissModals(page: Page) {
   for (let i = 0; i < 4; i++) {
     const backdrop = page.locator(".modal-backdrop");
     if (!(await backdrop.count())) return;
+    const open = await backdrop.count();
     const fresh = page.getByTestId("graded-resume-fresh");
     if (await fresh.count()) await fresh.click();
     else await page.keyboard.press("Escape");
-    await page.waitForTimeout(150);
+    // 방금 처리한 모달이 닫힐 때까지 — 다음 바퀴가 같은 모달을 다시 누르지 않게.
+    await expect(backdrop).not.toHaveCount(open);
   }
 }
 

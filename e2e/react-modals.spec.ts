@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures";
-import { enterExam, openProduct, openSet, submitGrade } from "./helpers";
+import { enterExam, openProduct, openSet, settle, submitGrade } from "./helpers";
 
 // 엣지: 모달 상호작용(Esc·백드롭·전환·설정 토글·통계 빈/비우기).
 test.describe("엣지-모달", () => {
@@ -61,7 +61,6 @@ test.describe("엣지-모달", () => {
     await page.getByTestId("stats-open").click();
     await page.getByRole("button", { name: "이력 비우기" }).click();
     await page.getByTestId("stats-clear-confirm").click();
-    await page.waitForTimeout(300);
     await expect(page.getByTestId("stats-dashboard")).toContainText("아직 채점한 기록이 없습니다");
   });
 
@@ -275,7 +274,7 @@ test.describe("엣지-오답노트 레이아웃", () => {
     // 회귀가 나던 폭 구간(구 grid 3열이 살아 있던 561px 이상 포함).
     for (const width of [600, 560, 430, 390]) {
       await page.setViewportSize({ width, height: 900 });
-      await page.waitForTimeout(120);
+      await settle(page);
 
       const worst = await items.evaluateAll((els) => {
         let numLines = 1;

@@ -214,7 +214,7 @@ test.describe("APK 기능 · 퀵 랜덤(터치)", () => {
       if (!(await quickNext(page))) break; // 마지막 문항 — 더 갈 곳이 없다
     }
     // 세션을 마감하는 채점이 없으므로 결과 모달도 없다 — 드로어의 상시 진입로로 연다.
-    await page.waitForTimeout(900); // 저장 디바운스(500ms)를 넘긴다
+    // (오답 노트는 저장소가 아니라 메모리의 퀵 회차를 읽는다 — 저장을 기다릴 필요가 없다.)
     await page.getByTestId("drawer-open").tap();
     await page.getByRole("button", { name: /오답 노트/ }).first().tap();
     await expect(page.getByTestId("wrong-note")).toBeVisible({ timeout: 20_000 });

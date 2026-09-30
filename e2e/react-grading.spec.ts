@@ -179,6 +179,7 @@ test.describe("엣지-채점", () => {
     await submitGrade(page);
     await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
     const before = await page.locator("#timerText").textContent();
+    // eslint-disable-next-line no-restricted-syntax -- "타이머가 멈췄다"는 부정 단언의 관찰 창(2틱 이상).
     await page.waitForTimeout(2300); // 2틱 이상 대기 — 진행 중이면 반드시 값이 바뀐다
     expect(await page.locator("#timerText").textContent()).toBe(before);
   });
