@@ -138,7 +138,7 @@ for (const width of [1280, 390]) {
     // 테스트가 자기 예산에서 죽으면서 trace와 error-context를 남긴다.
     test.setTimeout(300_000);
     const errors: string[] = [];
-    page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
+    // pageerror는 공용 fixture가 잡는다 — 여기서는 fixture가 보지 않는 console.error만 모은다.
     page.on("console", (m) => { if (m.type() === "error") errors.push("console.error: " + m.text()); });
 
     await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });

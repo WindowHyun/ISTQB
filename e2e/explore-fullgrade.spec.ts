@@ -75,7 +75,7 @@ test("전수 기능: 12세트를 정답으로 완주하면 전부 100%가 나온
   // 예산을 잡 타임아웃(30분)보다 작게 유지하는 이유는 explore-fullsweep 주석 참고.
   test.setTimeout(300_000);
   const errors: string[] = [];
-  page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
+  // pageerror는 공용 fixture가 잡는다 — 여기서는 fixture가 보지 않는 console.error만 모은다.
   page.on("console", (m) => { if (m.type() === "error") errors.push("console.error: " + m.text()); });
 
   await page.goto("/");

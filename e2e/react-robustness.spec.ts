@@ -60,15 +60,10 @@ test("주입: 음수 elapsedSeconds 백업으로 제한시간을 늘릴 수 있�
  * 지목하는 이 한 종류만 걸러 낸다.
  * (SW가 없을 때 앱이 제대로 degrade하는지는 별개 질문이다 — react-pwa가 담당한다.)
  */
-const isServiceWorkerNoise = (msg: string) => /sw\.js.*access control checks/i.test(msg);
+test.use({ ignorePageErrors: [/sw\.js.*access control checks/i] });
 
 test("주입: 손상된 저장소에서도 앱이 뜬다", async ({ page }) => {
   test.setTimeout(120_000);
-  const errors: string[] = [];
-  page.on("pageerror", (e) => {
-    if (isServiceWorkerNoise(e.message)) return;
-    errors.push("pageerror: " + e.message);
-  });
 
   await page.goto("/");
   await page.evaluate(() => {
@@ -82,14 +77,11 @@ test("주입: 손상된 저장소에서도 앱이 뜬다", async ({ page }) => {
   await page.reload();
   await page.getByRole("button", { name: "ISTQB" }).click();
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
-  note(`손상 저장소 복구: 문항 렌더 OK / pageerror ${errors.length}건`);
-  expect(errors).toEqual([]);
+  note(`손상 저장소 복구: 문항 렌더 OK`); // 페이지 예외 0건은 공용 fixture가 단언한다
 });
 
 test("주입: localStorage 자체가 막힌 환경(시크릿 모드 모사)", async ({ page }) => {
   test.setTimeout(120_000);
-  const errors: string[] = [];
-  page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
 
   await page.addInitScript(() => {
     const blocked = () => { throw new DOMException("QuotaExceededError", "QuotaExceededError"); };
@@ -103,14 +95,11 @@ test("주입: localStorage 자체가 막힌 환경(시크릿 모드 모사)", as
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
   await page.locator("#options .option").first().click();
   await expect(page.locator("#feedback")).toBeVisible();
-  note(`localStorage 차단 상태: 풀이 가능 / pageerror ${errors.length}건`);
-  expect(errors).toEqual([]);
+  note(`localStorage 차단 상태: 풀이 가능`); // 페이지 예외 0건은 공용 fixture가 단언한다
 });
 
 test("주입: IndexedDB가 막힌 환경에서 채점·통계", async ({ page }) => {
   test.setTimeout(120_000);
-  const errors: string[] = [];
-  page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
 
   await page.addInitScript(() => {
     Object.defineProperty(window, "indexedDB", {
@@ -129,8 +118,7 @@ test("주입: IndexedDB가 막힌 환경에서 채점·통계", async ({ page })
   await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
   await page.getByTestId("stats-open").click();
   await expect(page.getByTestId("stats-dashboard")).toBeVisible();
-  note(`IndexedDB 차단 상태: 채점·통계 도달 / pageerror ${errors.length}건`);
-  expect(errors).toEqual([]);
+  note(`IndexedDB 차단 상태: 채점·통계 도달`); // 페이지 예외 0건은 공용 fixture가 단언한다
 });
 
 test("주입: 문항 데이터 요청이 실패하면 오류 안내와 재시도가 뜬다", async ({ page }) => {

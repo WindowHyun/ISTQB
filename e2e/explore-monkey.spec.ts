@@ -132,6 +132,7 @@ for (const seed of [42, 1337, 20260730]) {
     // 예산을 줄이면 같은 멈춤이 7분에 trace와 함께 드러난다.
     test.setTimeout(420_000);
     const errors: string[] = [];
+    // 실패 판정은 공용 fixture가 한다. 여기서 따로 모으는 것은 조작 이력(trail)과 함께 보고하려고다.
     page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
     page.on("console", (m) => { if (m.type() === "error") errors.push("console.error: " + m.text()); });
 

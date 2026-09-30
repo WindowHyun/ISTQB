@@ -264,6 +264,7 @@ test("전이 전수: 4모드 16개 순서쌍을 모두 밟아도 앱이 살아 �
   // 예산 5분(실측 46초 단독). 잡 타임아웃보다 작게 두는 이유는 explore-fullsweep 주석 참고.
   test.setTimeout(300_000);
   const errs: string[] = [];
+  // 실패 판정은 공용 fixture가 한다. 여기서 따로 모으는 것은 전이 보고서에 함께 실으려고다.
   page.on("pageerror", (e) => errs.push(String(e).slice(0, 160)));
 
   let walked = 0;
