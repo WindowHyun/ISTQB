@@ -507,6 +507,9 @@ REVERSE_ALLOW = {
     ("csts/csts-2018-general.json", 9): "<보기> 설명문과 표가 그림(CSTS-EL-2018-009.png)에 실림",
     ("csts/csts-example-answer-included.json", 33): "<보기> 설명문이 그림(CSTS-EL-SW-EXAMPLE-033.png)에 실림",
 }
+REVERSE_SET_LEVEL = {  # 문항 본문이 번호 순서와 다르게 배치된 PDF — 18~20번의 지문이 20번 뒤에 몰려 있다
+    "2018년도 CSTS 자격시험 예제(일반등급).pdf",
+}
 REVERSE_SKIP_PAGES = {  # 표지·응시 유의사항 등 문항이 아닌 앞쪽 쪽수
     "(공개답안) CSTS 2402FL.pdf": 1,
     "(공개답안) CSTS 2403FL.pdf": 1,
@@ -575,18 +578,19 @@ def check_reverse():
             fail(f"[역방향] {rel}: PDF에서 문항 {missing}번 시작을 찾지 못함")
             continue
         questions = load(rel)["questions"]
-        # 판정은 세트 전체의 JSON 글에서 한다 — 2018 예제처럼 쪽 안에서 문항 본문이 번호 순서와
-        # 다르게 배치된 PDF가 있어, 줄을 번호 구간에만 대조하면 다른 문항의 줄을 잘못 지목한다.
-        # 번호는 어느 문항의 줄인지 알려 주는 진단용이다.
-        jn_set = "".join(json_text(q) for q in questions)
+        # 기본은 그 문항의 JSON 글에서만 찾는다. 세트 전체에서 찾으면 다른 문항에 같은 문구가 있을 때
+        # (예: "이에 대한 설명으로 올바르지 않은 것은?") 한 문항의 잘린 줄이 가려진다.
+        # 쪽 안에서 본문이 번호 순서와 다르게 배치된 PDF만 REVERSE_SET_LEVEL로 세트 전체에서 찾는다.
+        jn_set = "".join(json_text(q) for q in questions) if pdf in REVERSE_SET_LEVEL else None
         for q in questions:
+            jn = jn_set if jn_set is not None else json_text(q)
             for ln in blocks.get(q["number"], []):
                 stripped = LEAD_MARK.sub("", ln)
                 n = norm(stripped)
                 if len(n) < 12 or len(re.findall(r"[가-힣]", n)) < 6:
                     continue
                 lines_total += 1
-                if n not in jn_set and norm(ln) not in jn_set and (rel, q["number"]) not in REVERSE_ALLOW:
+                if n not in jn and norm(ln) not in jn and (rel, q["number"]) not in REVERSE_ALLOW:
                     bad += 1
                     fail(f"[역방향] {rel} Q{q['number']}: PDF 문장이 JSON에 없음 {stripped.strip()[:50]!r}")
     print(f"[4/4 역방향] PDF 문장 줄 {lines_total} · JSON에 없음 {bad}")
