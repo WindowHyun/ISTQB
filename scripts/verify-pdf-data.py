@@ -494,6 +494,7 @@ def check_underlines():
 # PDF의 각 문항 본문에서 "문장 줄"(정규화 12자 이상, 한글 6자 이상)을 뽑아 해당 문항 JSON에 남아
 # 있는지 본다. 표 칸·로그·수식처럼 짧거나 한글이 적은 줄은 대상이 아니다(표는 그림으로 실리는
 # 경우가 많아 글자 비교가 성립하지 않는다). 문항 번호는 PDF에서 1부터 차례로 찾는다.
+# 대상은 ISTQB A~D 본문 40문항, 부록 추가 문제 26개(A 세트 PDF 끝의 A1~A26), CSTS 7세트다.
 #
 # 이 검사가 못 보는 것: 그림(figure/image)으로만 실린 글자, 한글이 거의 없는 줄. 지문이 그림으로
 # 대체된 문항에서 문장 줄이 JSON에 없으면 REVERSE_ALLOW에 사유와 함께 적는다.
@@ -526,7 +527,7 @@ PAGE_NOISE = re.compile(
 LEAD_MARK = re.compile(r"^\s*(\(\d+\)|[①-⑩]|[a-eA-E]\.|[ivxIVX]+\.|[가-하][.)]|[-•※])\s*")
 
 
-def pdf_blocks(path, maxq, skip_pages):
+def pdf_blocks(path, maxq, skip_pages, appendix=False):
     """PDF → {문항번호: 본문 줄 목록}. 정답 표기 이후와 쪽 머리말·꼬리말은 버린다."""
     lines = []
     # Document를 변수로 쥐고 그 안에서 쪽 글을 읽는다 — 임시 Document 위에서 Page만 들고 있으면
@@ -535,9 +536,12 @@ def pdf_blocks(path, maxq, skip_pages):
         for i in range(skip_pages, len(doc)):
             lines += [ln for ln in doc[i].get_text().split("\n") if not PAGE_NOISE.match(ln)]
     text = "\n".join(lines)
+    if appendix:  # 부록 추가 문제(A1, A2 …)만 — 본문 문항은 위 검사가 본다
+        text = text[text.index("부록"):]
+    prefix = "A" if appendix else ""
     marks, cur = [], 0
     for n in range(1, maxq + 1):
-        m = re.compile(r"(?m)^\s*%d\s*[.)]\s" % n).search(text, cur)
+        m = re.compile(r"(?m)^\s*%s%d\s*[.)]\s" % (prefix, n)).search(text, cur)
         if not m:
             return None, n
         marks.append((n, m.start()))
@@ -545,8 +549,8 @@ def pdf_blocks(path, maxq, skip_pages):
     marks.append((None, len(text)))
     out = {}
     for (n, a), (_, b) in zip(marks, marks[1:]):
-        blk = re.split(r"\n\s*정답\b|부록\b|Additional Questions|< 정답표 >", text[a:b])[0]
-        blk = re.sub(r"^\s*\d+\s*[.)]\s*", "", blk, count=1)
+        blk = re.split(r"\n\s*정답\b|부록\b|Additional Questions|< 정답표 >", text[a:b])[0] if not appendix else text[a:b]
+        blk = re.sub(r"^\s*%s\d+\s*[.)]\s*" % prefix, "", blk, count=1)
         out[n] = blk.split("\n")
     return out, None
 
@@ -569,11 +573,13 @@ def json_text(q):
 
 
 def check_reverse():
-    sets = [(f"istqb/sample-{k.lower()}.json", ISTQB_PDF[k][0], 40, DATA) for k in "ABCD"]
-    sets += [(f"csts/{jf}", pdf, mx, CS) for jf, pdf, mx in CSTS_SETS]
+    sets = [(f"istqb/sample-{k.lower()}.json", ISTQB_PDF[k][0], 40, DATA, False) for k in "ABCD"]
+    # 부록 추가 문제 26개(sample-extra)는 A 세트 PDF 끝의 A1~A26이다.
+    sets += [("istqb/sample-extra.json", ISTQB_PDF["A"][0], 26, DATA, True)]
+    sets += [(f"csts/{jf}", pdf, mx, CS, False) for jf, pdf, mx in CSTS_SETS]
     lines_total = bad = 0
-    for rel, pdf, maxq, base in sets:
-        blocks, missing = pdf_blocks(base / pdf, maxq, REVERSE_SKIP_PAGES.get(pdf, 0))
+    for rel, pdf, maxq, base, appendix in sets:
+        blocks, missing = pdf_blocks(base / pdf, maxq, REVERSE_SKIP_PAGES.get(pdf, 0), appendix)
         if blocks is None:
             fail(f"[역방향] {rel}: PDF에서 문항 {missing}번 시작을 찾지 못함")
             continue
