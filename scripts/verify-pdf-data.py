@@ -1,10 +1,14 @@
 # 문제 데이터 ↔ 원본 PDF 정합성 게이트 (CI: pdf-data job / 로컬: python3 scripts/verify-pdf-data.py)
 #
 # 배포 전 수동 전수 검수(2026-07)에서 쓴 대조 로직을 상시 게이트로 옮긴 것.
-# 세 축을 검사하며, 하나라도 어긋나면 종료 코드 1로 실패한다:
+# 네 축을 검사하며, 하나라도 어긋나면 종료 코드 1로 실패한다:
 #   [1] 텍스트 — JSON의 모든 스템·보기 조각이 원본 PDF 텍스트에 존재하는가
 #   [2] 정답  — PDF에서 독립 추출한 정답(626문항)과 JSON answer가 일치하는가
 #   [3] 밑줄  — PDF 밑줄 선분에서 역산한 강조 위치가 해당 문항 JSON에 <u>로 존재하는가
+#   [4] 역방향 — PDF 본문의 문장 줄이 해당 문항 JSON에 남아 있는가(지문이 잘리지 않았는가)
+#
+# [1]은 "JSON에 있는 것이 PDF에 있는가"만 본다 — 지문이 중간에서 끊겨도 남은 앞부분은 PDF에
+# 있으니 통과한다(CSTS 2404FL 70번이 첫 문장 중간에서 잘려 있었다). [4]가 그 반대 방향이다.
 #
 # 의도적 예외(원문 재구성 등)는 ALLOW에 문서화한다 — 몰래 지나가는 예외 금지.
 # 요구사항: pip install pymupdf
@@ -486,16 +490,116 @@ def check_underlines():
     print(f"[3/3 밑줄] 검사 {total} · 미반영 {miss}")
 
 
+# ─────────────────────────── [4] 역방향(PDF → JSON) 대조 ───────────────────────────
+# PDF의 각 문항 본문에서 "문장 줄"(정규화 12자 이상, 한글 6자 이상)을 뽑아 해당 문항 JSON에 남아
+# 있는지 본다. 표 칸·로그·수식처럼 짧거나 한글이 적은 줄은 대상이 아니다(표는 그림으로 실리는
+# 경우가 많아 글자 비교가 성립하지 않는다). 문항 번호는 PDF에서 1부터 차례로 찾는다.
+#
+# 이 검사가 못 보는 것: 그림(figure/image)으로만 실린 글자, 한글이 거의 없는 줄. 지문이 그림으로
+# 대체된 문항에서 문장 줄이 JSON에 없으면 REVERSE_ALLOW에 사유와 함께 적는다.
+# 문항 하나를 통째로 면제한다 — 사유는 그림에 실린 글자(그림 PNG를 눈으로 확인)이거나 승인된 재구성이다.
+REVERSE_ALLOW = {
+    ("istqb/sample-b.json", 25): "분기 커버리지 계산식 문단 — 원문 수식·문장을 읽기 좋게 재구성(검수 승인, [1]과 같은 사유)",
+    ("istqb/sample-b.json", 31): "표를 그림으로 싣고 표 바로 앞의 안내 문장('아래 표는 이런 과거 데이터를 보여주고 있다:')을 생략",
+    ("istqb/sample-b.json", 38): "테스트 실행 로그 전체가 그림(ISTQB-FL-V4-B-038.png)에 실림",
+    ("istqb/sample-c.json", 31): "그래프 제목('예상 노력과 실제 노력 (M/D)')이 그림에 실림",
+    ("csts/csts-2405-fl.json", 33): "<보기> 표와 'Base Choice … 기반이 되는 테스트 조합' 줄이 그림(CSTS-FL-2405-033.png)에 실림",
+    ("csts/csts-2018-general.json", 9): "<보기> 설명문과 표가 그림(CSTS-EL-2018-009.png)에 실림",
+    ("csts/csts-example-answer-included.json", 33): "<보기> 설명문이 그림(CSTS-EL-SW-EXAMPLE-033.png)에 실림",
+}
+REVERSE_SKIP_PAGES = {  # 표지·응시 유의사항 등 문항이 아닌 앞쪽 쪽수
+    "(공개답안) CSTS 2402FL.pdf": 1,
+    "(공개답안) CSTS 2403FL.pdf": 1,
+    "(공개답안) CSTS 2404FL.pdf": 1,
+    "(공개답안) CSTS 2405FL.pdf": 1,
+    "2018년도 CSTS 자격시험 예제(일반등급).pdf": 1,
+    "2019년도 CSTS 자격시험 예제(일반등급).pdf": 1,
+}
+PAGE_NOISE = re.compile(
+    r"^\s*(Korean Software Testing Qualifications Board|www\.kstqb\.org.*|\d+ (of|/) \d+|"
+    r"SW 테스트 전문가\(CSTS\) 자격시험.*|20\d\d-CSTS-[A-Z]-\d+|한국정보통신기술협회\(TTA\)|TTA|20\d\d-\d\d-\d\d|"
+    r"CSTS 시험 예제 \(일반\)|- \d+ -)\s*$"
+)
+LEAD_MARK = re.compile(r"^\s*(\(\d+\)|[①-⑩]|[a-eA-E]\.|[ivxIVX]+\.|[가-하][.)]|[-•※])\s*")
+
+
+def pdf_blocks(path, maxq, skip_pages):
+    """PDF → {문항번호: 본문 줄 목록}. 정답 표기 이후와 쪽 머리말·꼬리말은 버린다."""
+    lines = []
+    for pg in list(fitz.open(path))[skip_pages:]:
+        lines += [ln for ln in pg.get_text().split("\n") if not PAGE_NOISE.match(ln)]
+    text = "\n".join(lines)
+    marks, cur = [], 0
+    for n in range(1, maxq + 1):
+        m = re.compile(r"(?m)^\s*%d\s*[.)]\s" % n).search(text, cur)
+        if not m:
+            return None, n
+        marks.append((n, m.start()))
+        cur = m.end()
+    marks.append((None, len(text)))
+    out = {}
+    for (n, a), (_, b) in zip(marks, marks[1:]):
+        blk = re.split(r"\n\s*정답\b|부록\b|Additional Questions|< 정답표 >", text[a:b])[0]
+        blk = re.sub(r"^\s*\d+\s*[.)]\s*", "", blk, count=1)
+        out[n] = blk.split("\n")
+    return out, None
+
+
+def json_text(q):
+    parts = []
+    for b in q["stem"] if isinstance(q["stem"], list) else []:
+        for k in ("text", "formula"):
+            if b.get(k):
+                parts.append(b[k])
+        for it in b.get("items", []):
+            parts.append(it if isinstance(it, str) else " ".join(filter(None, [it.get("marker"), it.get("text")])))
+        for row in b.get("rows", []):
+            parts += [c for c in row if isinstance(c, str)]
+        for ln in b.get("lines", []):
+            parts.append(ln if isinstance(ln, str) else (ln.get("text") or ""))
+    for o in q.get("options", []):
+        parts.append(o.get("text", ""))
+    return norm("".join(parts))
+
+
+def check_reverse():
+    sets = [(f"istqb/sample-{k.lower()}.json", ISTQB_PDF[k][0], 40, DATA) for k in "ABCD"]
+    sets += [(f"csts/{jf}", pdf, mx, CS) for jf, pdf, mx in CSTS_SETS]
+    lines_total = bad = 0
+    for rel, pdf, maxq, base in sets:
+        blocks, missing = pdf_blocks(base / pdf, maxq, REVERSE_SKIP_PAGES.get(pdf, 0))
+        if blocks is None:
+            fail(f"[역방향] {rel}: PDF에서 문항 {missing}번 시작을 찾지 못함")
+            continue
+        questions = load(rel)["questions"]
+        # 판정은 세트 전체의 JSON 글에서 한다 — 2018 예제처럼 쪽 안에서 문항 본문이 번호 순서와
+        # 다르게 배치된 PDF가 있어, 줄을 번호 구간에만 대조하면 다른 문항의 줄을 잘못 지목한다.
+        # 번호는 어느 문항의 줄인지 알려 주는 진단용이다.
+        jn_set = "".join(json_text(q) for q in questions)
+        for q in questions:
+            for ln in blocks.get(q["number"], []):
+                stripped = LEAD_MARK.sub("", ln)
+                n = norm(stripped)
+                if len(n) < 12 or len(re.findall(r"[가-힣]", n)) < 6:
+                    continue
+                lines_total += 1
+                if n not in jn_set and norm(ln) not in jn_set and (rel, q["number"]) not in REVERSE_ALLOW:
+                    bad += 1
+                    fail(f"[역방향] {rel} Q{q['number']}: PDF 문장이 JSON에 없음 {stripped.strip()[:50]!r}")
+    print(f"[4/4 역방향] PDF 문장 줄 {lines_total} · JSON에 없음 {bad}")
+
+
 def main():
     check_text()
     check_answers()
     check_underlines()
+    check_reverse()
     if FAILS:
         print(f"\n❌ PDF 정합성 검증 실패 {len(FAILS)}건", file=sys.stderr)
         for f in FAILS:
             print(" -", f, file=sys.stderr)
         sys.exit(1)
-    print("\n✅ PDF 정합성 검증 통과 (텍스트·정답·밑줄)")
+    print("\n✅ PDF 정합성 검증 통과 (텍스트·정답·밑줄·역방향)")
 
 
 if __name__ == "__main__":
