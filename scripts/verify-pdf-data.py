@@ -526,8 +526,11 @@ LEAD_MARK = re.compile(r"^\s*(\(\d+\)|[①-⑩]|[a-eA-E]\.|[ivxIVX]+\.|[가-하]
 def pdf_blocks(path, maxq, skip_pages):
     """PDF → {문항번호: 본문 줄 목록}. 정답 표기 이후와 쪽 머리말·꼬리말은 버린다."""
     lines = []
-    for pg in list(fitz.open(path))[skip_pages:]:
-        lines += [ln for ln in pg.get_text().split("\n") if not PAGE_NOISE.match(ln)]
+    # Document를 변수로 쥐고 그 안에서 쪽 글을 읽는다 — 임시 Document 위에서 Page만 들고 있으면
+    # PyMuPDF 버전에 따라 Document가 먼저 해제돼 Page가 고아(parent None)가 될 수 있다.
+    with fitz.open(path) as doc:
+        for i in range(skip_pages, len(doc)):
+            lines += [ln for ln in doc[i].get_text().split("\n") if not PAGE_NOISE.match(ln)]
     text = "\n".join(lines)
     marks, cur = [], 0
     for n in range(1, maxq + 1):
