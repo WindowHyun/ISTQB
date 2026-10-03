@@ -139,49 +139,71 @@ def fold_rows(grid):
     return out
 
 
-def code_line_ok(line, ctexts):
-    """코드 줄(앞의 줄 번호 "3   "는 PDF에서 따로 떨어져 나오므로 뗀다)이 PDF 글에 공백 무시로 들어 있는가."""
-    t = canon(re.sub(r"^\s*\d+\s{2,}", "", line))
-    return len(t) < 3 or any(t in c for c in ctexts)
+def code_block_ok(lines, qlines):
+    """코드 블록 전체가 그 문항의 PDF 줄을 이은 글(공백 무시) 안에 연속으로 들어 있는가.
+    줄 하나씩 PDF 전체 글에서 찾으면 "Z = X + Y"가 "Z = X"로 잘려도 통과한다. 데이터가 한 줄을 읽기 좋게 나눈 곳과
+    표 칸이 줄 단위로 나온 곳은 이어 붙인 글에서 찾는다. 줄 번호 "3   "는 PDF에서 따로 떨어져 나올 수 있다."""
+    texts = [ln if isinstance(ln, str) else ln.get("text", "") for ln in lines]
+    with_num = "".join(canon(t) for t in texts)
+    no_num = "".join(canon(re.sub(r"^\s*\d+\s{2,}", "", t)) for t in texts)
+    if len(no_num) < 3:
+        return True
+    # 후보 글: 문항 전체를 이은 글, 그리고 코드 옆에 "테스트 케이스" 표가 나란히 놓인 쪽을 위해 같은 열(x가 가까운 줄)끼리 이은 글.
+    xs = sorted({round(l["x0"]) for l in qlines})
+    cut, cols = None, {}
+    for x in xs:
+        cut = x if cut is None or x - cut > 15 else cut
+        cols[x] = cut
+    streams = [qlines]
+    for c in sorted(set(cols.values())):
+        streams.append([l for l in qlines if cols[round(l["x0"])] == c])
+    for st in streams:
+        pdf_all = "".join(canon(l["text"]) for l in st)
+        pdf_nonum = "".join(canon(l["text"]) for l in st if not re.fullmatch(r"\s*\d+\s*", l["text"]))
+        if with_num in pdf_all or no_num in pdf_nonum or no_num in pdf_all:
+            return True
+    return False
 
 
 GRID_CACHE = {}
-RAW_GRIDS = {}
-
-
-def grids_raw(grids):
-    """접기용 — canon 하기 전 칸이 필요한 격자. pdf_grids가 만든 격자의 짝."""
-    return [RAW_GRIDS[id(g)] for g in grids if id(g) in RAW_GRIDS]
 
 
 def pdf_grids(path):
-    """PDF의 표 격자 [[칸(공백 뺀 글)]] 목록. 테두리 선이 있는 표만 잡힌다."""
+    """PDF의 표 격자 목록 [(쪽, y0, y1, 칸 격자, 접은 행)]. 테두리 선이 있는 표만 잡힌다."""
     if path not in GRID_CACHE:
         out = []
         with fitz.open(path) as doc:
             for pg in doc:
                 try:
                     for t in pg.find_tables().tables:
-                        g = [[canon(c) for c in r] for r in t.extract()]
-                        out.append(g)
-                        RAW_GRIDS[id(g)] = fold_rows(t.extract())
+                        raw = t.extract()
+                        out.append((pg.number, t.bbox[1], t.bbox[3], [[canon(c) for c in r] for r in raw], fold_rows(raw)))
                 except Exception:
                     pass
         GRID_CACHE[path] = out
     return GRID_CACHE[path]
 
 
-def table_ok(rows, grids):
+def scope_grids(entries, lines):
+    """그 문항(줄 목록)이 놓인 쪽·세로 범위와 겹치는 표 격자만 남긴다 — 다른 문항의 표를 가져다 붙여도 걸리게."""
+    span = {}
+    for l in lines:
+        lo, hi = span.get(l["page"], (l["y0"], l["y0"]))
+        span[l["page"]] = (min(lo, l["y0"]), max(hi, l["y0"]))
+    return [e for e in entries if e[0] in span and e[2] >= span[e[0]][0] - 3 and e[1] <= span[e[0]][1] + 3]
+
+
+def table_ok(rows, entries):
     """JSON 표 칸이 PDF 표 격자와 같은 자리에서 같은가. 정확히 같거나, 병합 칸(머리글 "규칙 1" ↔ PDF "규칙"/"1",
     같은 값을 되풀이한 "조건" 열)만 다른 표는 둘째 열 이름이 같은 행끼리 셋째 열부터 칸 단위로 맞춘다."""
     want = [[canon(c) for c in r] for r in rows]
+    grids = [e[3] for e in entries]
     if any(g == want for g in grids):
         return True
     # 병합 칸: PDF가 이어지는 행(첫 칸이 비어 있음)으로 쪼갰거나 가로로 합친 칸은 행을 접어 행 단위로, 순서를 지켜 맞춘다.
     folded = [norm("".join(r)) for r in rows]
-    for g in grids_raw(grids):
-        if [norm("".join(c or "" for c in r)) for r in g] == folded:
-            return True
+    if any([norm("".join(c or "" for c in r)) for r in e[4]] == folded for e in entries):
+        return True
     if len(want) < 2 or any(len(r) < 3 for r in want):
         return False
     for g in grids:
@@ -193,12 +215,11 @@ def table_ok(rows, grids):
 
 
 def struct_blocks(q):
-    """문항의 stem·해설 블록 중 코드(lines)·표(rows)."""
-    for part in ("stem", "explanation"):
-        v = q.get(part)
-        for b in v if isinstance(v, list) else []:
-            if b.get("type") in ("code", "table"):
-                yield b
+    """문항 지문(stem)의 코드(lines)·표(rows) 블록. 해설 표는 [5]가 본다."""
+    v = q.get("stem")
+    for b in v if isinstance(v, list) else []:
+        if b.get("type") in ("code", "table"):
+            yield b
 
 
 # ─────────────────────────── [1] 텍스트 전수 대조 ───────────────────────────
@@ -222,21 +243,7 @@ def check_text():
     for rel, pdfs in sets:
         d = load(rel)
         texts = [pdftext(p) for p in pdfs]
-        ctexts = [canon(raw(p)) for p in pdfs]
-        grids = [g for p in pdfs for g in pdf_grids(p)]
         for q in d["questions"]:
-            for b in struct_blocks(q):
-                if b["type"] == "code":
-                    for ln in b.get("lines", []):
-                        total += 1
-                        if not code_line_ok(ln if isinstance(ln, str) else ln.get("text", ""), ctexts) and ("code", rel, q["number"]) not in ALLOW:
-                            bad += 1
-                            fail(f"[코드] {rel} Q{q['number']}: PDF에 없는 코드 줄 {str(ln)[:50]!r}")
-                elif b.get("rows"):
-                    total += 1
-                    if not table_ok(b["rows"], grids) and ("table", rel, q["number"]) not in ALLOW:
-                        bad += 1
-                        fail(f"[표] {rel} Q{q['number']}: PDF 표 격자와 칸이 다름 — 머리 {b['rows'][0][:4]}")
             frs = []
             for b in q["stem"] if isinstance(q["stem"], list) else []:
                 bt = b.get("type")
@@ -765,7 +772,8 @@ def check_reverse():
 # [5] ① ISTQB: 정답과 해설 PDF의 행(문항)마다 해설 칸 글자가 JSON 해설과 같은가(공백·문장부호 무시).
 #     ② CSTS 2018: "정답 및 해설" 절을 "N. 정답" 줄로 문항별로 나눠 PDF 해설 글과 JSON 해설 글이 같은가(양방향).
 #     원본 오탈자를 JSON이 바로잡아 둔 곳은 EXPL_TYPO에 오탈자 앞뒤 글과 함께 적는다(문항 전체를 면제하지 않는다).
-# [1]은 코드 줄(공백만 지운 글)과 구조화된 표(PDF 표 격자와 칸 단위)도 본다 — norm()은 기호를 지우기 때문이다.
+# [1b]는 코드 블록(그 문항 PDF 줄을 이은 글에서 공백 무시 연속 일치)과 구조화된 표(그 문항 자리의 PDF 표 격자와 칸 단위)를
+#      본다 — norm()은 + - = 같은 기호를 지우기 때문이다.
 # [6] PDF 줄 i와 i+1 사이가 줄바꿈(줄 i가 오른쪽 여백 근처에서 끝남)일 때,
 #       줄 끝/다음 줄 앞에 공백 글리프가 있으면 띄어 쓴 자리, 없으면 낱말 중간에서 꺾인 자리다.
 #     PDF 글자 흐름과 JSON 글자 흐름을 공백을 뺀 채 정렬해(반복 문장이 있어도 위치로 짝짓는다) 같은 자리의
@@ -1046,6 +1054,29 @@ def csts2018_expl_blocks():
     return blocks
 
 
+def check_structured():  # [1] 코드 줄·표 칸
+    """지문의 코드 블록·표를 그 문항의 PDF 자리에서 대조한다. norm()은 + - =를 지우므로 따로 본다."""
+    total = bad = 0
+    for rel, pdf, maxq, base, appendix in question_sets():
+        blocks, missing = question_lines(base / pdf, maxq, REVERSE_SKIP_PAGES.get(pdf, 0), appendix)
+        if blocks is None:
+            fail(f"[코드·표] {rel}: PDF에서 문항 {missing}번 시작을 찾지 못함")
+            continue
+        entries = pdf_grids(base / pdf)
+        for q in load(rel)["questions"]:
+            qlines = blocks.get(q["number"], [])
+            for b in struct_blocks(q):
+                total += 1
+                if b["type"] == "code":
+                    if not code_block_ok(b.get("lines", []), qlines) and ("code", rel, q["number"]) not in ALLOW:
+                        bad += 1
+                        fail(f"[코드] {rel} Q{q['number']}: 코드 블록이 이 문항의 PDF 줄과 다름 — 첫 줄 {str((b.get('lines') or [''])[0])[:40]!r}")
+                elif b.get("rows") and not table_ok(b["rows"], scope_grids(entries, qlines)) and ("table", rel, q["number"]) not in ALLOW:
+                    bad += 1
+                    fail(f"[표] {rel} Q{q['number']}: 이 문항 자리의 PDF 표 격자와 칸이 다름 — 머리 {b['rows'][0][:4]}")
+    print(f"[1b/3 코드·표] 코드 블록·표 {total} · 불일치 {bad}")
+
+
 def check_explanations():  # [5]
     total = bad = 0
     # ① ISTQB — 해설 칸 글자가 JSON 해설과 같은가
@@ -1087,14 +1118,17 @@ def check_explanations():  # [5]
             fail(f"[해설] csts-2018-general.json Q{q['number']}: PDF와 글자가 다름 — PDF …{want[max(0, i - 6):i + 12]}… / JSON …{got[max(0, i - 6):i + 12]}… (PDF {len(want)}자 / JSON {len(got)}자)")
         for tb in (b for b in (q.get("explanation") or []) if isinstance(b, dict) and b.get("type") == "table"):
             total += 1
-            if not table_ok(tb["rows"], pdf_grids(CS / CSTS2018_PDF)):
+            # 그 문항의 해설 블록에 표 칸 줄이 있어야 하고, 그 자리(쪽·세로 범위)의 표 격자와만 맞춘다.
+            here = scope_grids(pdf_grids(CS / CSTS2018_PDF), blk["table"])
+            if not blk["table"] or not table_ok(tb["rows"], here):
                 bad += 1
-                fail(f"[해설] csts-2018-general.json Q{q['number']}: 해설 표가 PDF 표 격자와 칸 단위로 다름 — 머리 {tb['rows'][0][:4]}")
+                fail(f"[해설] csts-2018-general.json Q{q['number']}: 해설 표가 이 문항 자리의 PDF 표 격자와 칸 단위로 다름 — 머리 {tb['rows'][0][:4]}")
     print(f"[5/6 해설] ISTQB 행 + CSTS 2018 해설 줄 {total} · 불일치 {bad}")
 
 
 def main():
     check_text()
+    check_structured()
     check_answers()
     check_underlines()
     check_reverse()
