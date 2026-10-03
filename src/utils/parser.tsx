@@ -685,7 +685,7 @@ function splitStructuralMarkers(text: string): string {
       (match: string, pre: string, mark: string, offset: number, whole: string) =>
         // 연산자 바로 뒤의 "b)"는 보기 마커가 아니라 수식의 닫는 괄호다("E = (a + 4*m + b) / 6" —
         // D Q31 해설이 "E = (a + 4*m +" / "b) / 6 …"으로 두 동강 나 b)가 목록 마커로 보였다).
-        /[+\-*/=<>(,]$/.test(whole.slice(0, offset).trimEnd()) ? match : `${pre}\n${mark} `,
+        /[+\-*/=<>(]$/.test(whole.slice(0, offset).trimEnd()) ? match : `${pre}\n${mark} `,
     )
     .replace(
       /\s*(?=(?:당신은 다음과 같이 테스트 케이스 세트를 도출했다:|테스트 케이스로 달성한))/g,

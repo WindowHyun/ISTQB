@@ -243,7 +243,7 @@ describe("RichText — formula 조각 병합", () => {
 });
 
 // 수식 안의 닫는 괄호 "b)"를 보기 마커("b) 정답입니다")로 오인해 줄을 쪼개던 결함.
-// 마커는 문장 끝·줄머리 뒤에 오지만, 연산자(+ - * / = < > ( ,) 바로 뒤의 "x)"는 닫는 괄호다.
+// 마커는 문장 끝·줄머리 뒤에 오지만, 연산자(+ - * / = < > () 바로 뒤의 "x)"는 닫는 괄호다.
 describe("RichText — 수식 속 'b)'는 보기 마커가 아니다", () => {
   const markersOf = (el: HTMLElement) =>
     Array.from(el.querySelectorAll(".structured-marker")).map((m) => m.textContent);
@@ -268,6 +268,23 @@ describe("RichText — 수식 속 'b)'는 보기 마커가 아니다", () => {
   it("연산자 뒤가 아닌 줄머리·문장 뒤의 'b)'는 계속 마커로 쪼갠다", async () => {
     const el = await renderRichTextEl("a) 정답이 아닙니다. b) 정답입니다. c) 정답이 아닙니다");
     expect(markersOf(el)).toEqual(["a)", "b)", "c)"]);
+  });
+
+  it("쉼표 뒤의 'a)'는 수식이 아니라 문장이 이어진 보기 마커다 (\"따라서, a) …\")", async () => {
+    const el = await renderRichTextEl("TC4 (2층 이상, 정원 없음) 따라서, a) 정답이 아닙니다. b) 정답입니다. c) 정답이 아닙니다");
+    expect(markersOf(el)).toEqual(["a)", "b)", "c)"]);
+  });
+
+  it.each([
+    ["istqb/sample-a.json", "ISTQB-FL-V4-A-020"],
+    ["istqb/sample-a.json", "ISTQB-FL-V4-A-021"],
+    ["istqb/sample-a.json", "ISTQB-FL-V4-A-023"],
+    ["istqb/sample-d.json", "ISTQB-FL-V4-D-016"],
+  ])("실제 데이터(%s %s 해설)는 '따라서, a)'부터 모든 보기가 마커다", async (file, id) => {
+    const d = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), "www/data", file), "utf8"));
+    const q = d.questions.find((x: { id: string }) => x.id === id);
+    const el = await renderRichTextEl(q.explanation);
+    expect(markersOf(el).filter((m) => /^[a-e]\)$/.test(m ?? ""))).toEqual(["a)", "b)", "c)", "d)"]);
   });
 });
 
