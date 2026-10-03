@@ -139,28 +139,48 @@ def fold_rows(grid):
     return out
 
 
-def code_block_ok(lines, qlines):
-    """코드 블록 전체가 그 문항의 PDF 줄을 이은 글(공백 무시) 안에 연속으로 들어 있는가.
-    줄 하나씩 PDF 전체 글에서 찾으면 "Z = X + Y"가 "Z = X"로 잘려도 통과한다. 데이터가 한 줄을 읽기 좋게 나눈 곳과
-    표 칸이 줄 단위로 나온 곳은 이어 붙인 글에서 찾는다. 줄 번호 "3   "는 PDF에서 따로 떨어져 나올 수 있다."""
+def code_block_ok(lines, qlines, other):
+    """코드 블록이 그 문항의 PDF 줄을 이은 글(공백 무시)에 들어 있고, 그 구간의 경계가 맞는가.
+    포함만 보면 프로그램의 앞뒤 문장을 지우거나 "Z = X + Y"를 "Z = X"로 잘라도 통과한다. 그래서
+      ① 일치 구간은 PDF 줄의 처음에서 시작해 줄의 끝에서 끝나야 하고(데이터가 한 줄을 나눈 것은 허용),
+      ② 구간 바로 앞뒤의 PDF 줄은 없거나 지문의 다른 글(other = 코드를 뺀 그 문항 JSON 글)에 있어야 한다.
+    코드 옆에 표가 나란히 놓인 쪽은 같은 열(x가 가까운 줄)끼리 이은 글도 후보로 쓴다. 줄 번호 "3   "는 PDF에서
+    따로 떨어져 나올 수 있다."""
     texts = [ln if isinstance(ln, str) else ln.get("text", "") for ln in lines]
     with_num = "".join(canon(t) for t in texts)
     no_num = "".join(canon(re.sub(r"^\s*\d+\s{2,}", "", t)) for t in texts)
     if len(no_num) < 3:
         return True
-    # 후보 글: 문항 전체를 이은 글, 그리고 코드 옆에 "테스트 케이스" 표가 나란히 놓인 쪽을 위해 같은 열(x가 가까운 줄)끼리 이은 글.
     xs = sorted({round(l["x0"]) for l in qlines})
     cut, cols = None, {}
     for x in xs:
         cut = x if cut is None or x - cut > 15 else cut
         cols[x] = cut
-    streams = [qlines]
-    for c in sorted(set(cols.values())):
-        streams.append([l for l in qlines if cols[round(l["x0"])] == c])
+    streams = [qlines] + [[l for l in qlines if cols[round(l["x0"])] == c] for c in sorted(set(cols.values()))]
+
+    def bounded(st, want):
+        cl = [canon(l["text"]) for l in st]
+        # 이웃 줄은 보기 표지("① ", "a. ")를 뗀 글로 지문의 다른 글에서 찾는다(JSON 보기 글에는 표지가 없다).
+        bare = [canon(LEAD_MARK.sub("", l["text"])) for l in st]
+        flat, starts = "", []
+        for c in cl:
+            starts.append(len(flat))
+            flat += c
+        pos = flat.find(want)
+        while pos >= 0:
+            end = pos + len(want)
+            first = next((i for i, o in enumerate(starts) if o == pos), None)
+            last = next((i for i in range(len(cl)) if starts[i] + len(cl[i]) == end), None)
+            if first is not None and last is not None and last >= first:
+                near = [bare[i] for i in (first - 1, last + 1) if 0 <= i < len(cl)]
+                if all(len(n) < 3 or n in other for n in near):
+                    return True
+            pos = flat.find(want, pos + 1)
+        return False
+
     for st in streams:
-        pdf_all = "".join(canon(l["text"]) for l in st)
-        pdf_nonum = "".join(canon(l["text"]) for l in st if not re.fullmatch(r"\s*\d+\s*", l["text"]))
-        if with_num in pdf_all or no_num in pdf_nonum or no_num in pdf_all:
+        nonum = [l for l in st if not re.fullmatch(r"\s*\d+\s*", l["text"])]
+        if bounded(st, with_num) or bounded(nonum, no_num) or bounded(st, no_num):
             return True
     return False
 
@@ -207,9 +227,21 @@ def table_ok(rows, entries):
     if len(want) < 2 or any(len(r) < 3 for r in want):
         return False
     for g in grids:
+        # 병합 칸으로 비어 있는 첫 열은 위의 값을 이어받는다("조건"/"행위" 묶음). 행은 순서대로 찾아 위치를 지킨다.
+        filled, last = [], ""
+        for r in g:
+            last = r[0] or last
+            filled.append([last] + list(r[1:]))
         hdr = any(len(r) == len(want[0]) and all(a.endswith(b) for a, b in zip(want[0][2:], r[2:])) for r in g)
-        body = all(any(len(r) == len(w) and r[1] == w[1] and r[2:] == w[2:] for r in g) for w in want[1:])
-        if hdr and body:
+        i, ok = 0, True
+        for w in want[1:]:
+            j = next((k for k in range(i, len(filled)) if len(filled[k]) == len(w) and filled[k][0] == w[0]
+                      and filled[k][1] == w[1] and filled[k][2:] == w[2:]), None)
+            if j is None:
+                ok = False
+                break
+            i = j + 1
+        if hdr and ok:
             return True
     return False
 
@@ -1065,10 +1097,11 @@ def check_structured():  # [1] 코드 줄·표 칸
         entries = pdf_grids(base / pdf)
         for q in load(rel)["questions"]:
             qlines = blocks.get(q["number"], [])
+            other = canon("".join(json_fields(q, "body", tables=True) + json_fields(q, "expl", tables=True)))
             for b in struct_blocks(q):
                 total += 1
                 if b["type"] == "code":
-                    if not code_block_ok(b.get("lines", []), qlines) and ("code", rel, q["number"]) not in ALLOW:
+                    if not code_block_ok(b.get("lines", []), qlines, other) and ("code", rel, q["number"]) not in ALLOW:
                         bad += 1
                         fail(f"[코드] {rel} Q{q['number']}: 코드 블록이 이 문항의 PDF 줄과 다름 — 첫 줄 {str((b.get('lines') or [''])[0])[:40]!r}")
                 elif b.get("rows") and not table_ok(b["rows"], scope_grids(entries, qlines)) and ("table", rel, q["number"]) not in ALLOW:
