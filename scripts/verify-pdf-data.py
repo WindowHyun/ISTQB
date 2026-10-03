@@ -665,7 +665,7 @@ def check_reverse():
 #   - 줄바꿈 자리 공백: "준 비 중이다"처럼 낱말 중간이 벌어지거나 "올바른것은?"처럼 띄어쓰기가 빠져도 통과했다.
 #
 # [5] ① ISTQB: 정답과 해설 PDF의 행(문항)마다 해설 칸 글자가 JSON 해설과 같은가(공백·문장부호 무시).
-#     ② CSTS 2018: "정답 및 해설" 절의 문장 줄이 JSON 해설에 남아 있는가([4]와 같은 방식).
+#     ② CSTS 2018: "정답 및 해설" 절을 "N. 정답" 줄로 문항별로 나눠 PDF 해설 글과 JSON 해설 글이 같은가(양방향).
 #     원본 오탈자를 JSON이 바로잡아 둔 곳은 EXPL_TYPO에 오탈자 앞뒤 글과 함께 적는다(문항 전체를 면제하지 않는다).
 # [6] PDF 줄 i와 i+1 사이가 줄바꿈(줄 i가 오른쪽 여백 근처에서 끝남)일 때,
 #       줄 끝/다음 줄 앞에 공백 글리프가 있으면 띄어 쓴 자리, 없으면 낱말 중간에서 꺾인 자리다.
@@ -967,7 +967,7 @@ def check_explanations():  # [5]
                     bad += 1
                     i = next((i for i, (a, b) in enumerate(zip(want, got)) if a != b), min(len(want), len(got)))
                     fail(f"[해설] {rel} Q{q['number']}: PDF와 글자가 다름 — PDF …{want[max(0, i - 6):i + 12]}… / JSON …{got[max(0, i - 6):i + 12]}…")
-    # ② CSTS 2018 — "정답 및 해설" 절을 문항별로 나눠, 각 문장 줄이 그 문항의 JSON 해설에 있는가.
+    # ② CSTS 2018 — "정답 및 해설" 절을 문항별로 나눠, PDF 해설 글과 그 문항의 JSON 해설 글이 양방향으로 같은가.
     #    표 칸은 읽는 순서가 PDF마다 달라 순서 없이 글자 수가 같은지만 본다.
     from collections import Counter
     blocks = csts2018_expl_blocks()
@@ -979,15 +979,14 @@ def check_explanations():  # [5]
         blk = blocks.get(q["number"])
         if not blk:
             continue
-        mine = norm("".join(json_fields(q, "expl")))
-        for l in blk["body"]:
-            n = norm(LEAD_MARK.sub("", l["text"]))
-            if len(n) < 12 or len(re.findall(r"[가-힣]", n)) < 6:
-                continue
-            total += 1
-            if n not in mine:
-                bad += 1
-                fail(f"[해설] csts-2018-general.json Q{q['number']}: PDF 해설 문장이 이 문항 해설에 없음 {l['text'].strip()[:50]!r}")
+        # 양방향: PDF 해설 글과 JSON 해설 글이 같아야 한다. 다른 문항의 해설이 덧붙어도 걸린다.
+        want = norm("".join(l["text"] for l in blk["body"]))
+        got = norm("".join(t for t in json_fields(q, "expl") if t != PLACEHOLDER))
+        total += len(blk["body"])
+        if want != got:
+            bad += 1
+            i = next((i for i, (x, y) in enumerate(zip(want, got)) if x != y), min(len(want), len(got)))
+            fail(f"[해설] csts-2018-general.json Q{q['number']}: PDF와 글자가 다름 — PDF …{want[max(0, i - 6):i + 12]}… / JSON …{got[max(0, i - 6):i + 12]}… (PDF {len(want)}자 / JSON {len(got)}자)")
         cells = norm("".join(c for c in json_fields(q, "expl", tables=True) if c not in json_fields(q, "expl")))
         pdf_cells = norm("".join(l["text"] for l in blk["table"]))
         if cells or pdf_cells:
