@@ -1030,13 +1030,13 @@
           "type": "code",
           "lines": [
             "int foo(int x) {",
-            "  int y;",
-            "  if (x==1)",
-            "    y=x+1;",
-            "  x=10;",
-            "  return y;",
-            "  y=10;",
-            "}"
+            "1   int y;",
+            "2   if (x==1)",
+            "3     y=x+1;",
+            "4   x=10;",
+            "5   return y;",
+            "6   y=10;",
+            "7 }"
           ]
         }
       ],
@@ -1179,15 +1179,13 @@
         {
           "type": "code",
           "lines": [
-            "ENDIF",
-            "",
             "1 READ P, Q",
             "2 IF P+Q > 100 THEN",
             "3   PRINT \"P+Q IS LARGE\"",
+            "  ENDIF",
             "4 IF P > 50 THEN",
             "5   PRINT \"P IS LARGE\"",
-            "",
-            "ENDIF"
+            "  ENDIF"
           ]
         }
       ],
@@ -1414,12 +1412,12 @@
               "text": "ab#$cde"
             },
             {
-              "marker": "(다)",
-              "text": "ab%%@k"
-            },
-            {
               "marker": "(나)",
               "text": "#$%@**"
+            },
+            {
+              "marker": "(다)",
+              "text": "ab%%@k"
             },
             {
               "marker": "(라)",
