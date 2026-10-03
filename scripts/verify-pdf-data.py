@@ -213,38 +213,52 @@ def scope_grids(entries, lines):
     return [e for e in entries if e[0] in span and e[2] >= span[e[0]][0] - 3 and e[1] <= span[e[0]][1] + 3]
 
 
-def table_ok(rows, entries):
-    """JSON 표 칸이 PDF 표 격자와 같은 자리에서 같은가. 정확히 같거나, 병합 칸(머리글 "규칙 1" ↔ PDF "규칙"/"1",
-    같은 값을 되풀이한 "조건" 열)만 다른 표는 둘째 열 이름이 같은 행끼리 셋째 열부터 칸 단위로 맞춘다."""
+def table_ok(rows, entries, used=None):
+    """JSON 표 칸이 PDF 표 격자와 같은 자리에서 같은가. 맞으면 그 격자를 used에 올려 둔다 — 한 문항에 표가 여럿일 때
+    JSON 표 하나가 이미 다른 표가 맞춘 격자를 또 쓰지 못하게(표를 다른 표로 바꿔 놓아도 통과하는 것을 막는다).
+    ① 칸이 정확히 같다. ② 병합 칸 때문에 PDF가 행을 쪼갰거나 가로로 합친 표는 행을 접어 행 단위로 맞춘다.
+    ③ 병합 머리글·병합 첫 열 표: 머리글 앞 두 칸·위층 머리글+아래층 머리글·비어 있는 첫 열(위 값을 이어받음)·
+    본문 행을 순서대로 빠짐없이 맞춘다."""
+    used = used if used is not None else set()
+    cand = [e for e in entries if id(e) not in used]
     want = [[canon(c) for c in r] for r in rows]
-    grids = [e[3] for e in entries]
-    if any(g == want for g in grids):
+
+    def hit(e):
+        used.add(id(e))
         return True
-    # 병합 칸: PDF가 이어지는 행(첫 칸이 비어 있음)으로 쪼갰거나 가로로 합친 칸은 행을 접어 행 단위로, 순서를 지켜 맞춘다.
+
+    for e in cand:
+        if e[3] == want:
+            return hit(e)
     # 비교 글은 canon(연산자 보존)이고 쉼표·마침표 같은 구분 부호만 느슨하게 본다 — norm()은 < > =를 지워 "X>10"과 "X<10"을 구분하지 못한다.
     loose = lambda c: re.sub(r"[,，、.·]", "", canon(c))
     folded = [loose("".join(r)) for r in rows]
-    if any([loose("".join(c or "" for c in r)) for r in e[4]] == folded for e in entries):
-        return True
+    for e in cand:
+        if [loose("".join(c or "" for c in r)) for r in e[4]] == folded:
+            return hit(e)
     if len(want) < 2 or any(len(r) < 3 for r in want):
         return False
-    for g in grids:
-        # 병합 칸으로 비어 있는 첫 열은 위의 값을 이어받는다("조건"/"행위" 묶음). 행은 순서대로 찾아 위치를 지킨다.
+    for e in cand:
+        g = e[3]
         filled, last = [], ""
         for r in g:
             last = r[0] or last
             filled.append([last] + list(r[1:]))
-        hdr = any(len(r) == len(want[0]) and want[0][:2] == r[:2] and all(a.endswith(b) for a, b in zip(want[0][2:], r[2:])) for r in g)
-        i, ok = 0, True
-        for w in want[1:]:
-            j = next((k for k in range(i, len(filled)) if len(filled[k]) == len(w) and filled[k][0] == w[0]
-                      and filled[k][1] == w[1] and filled[k][2:] == w[2:]), None)
-            if j is None:
-                ok = False
-                break
-            i = j + 1
-        if hdr and ok:
-            return True
+        for h, r in enumerate(g):
+            # 머리글 줄: 앞 두 칸이 같고, 셋째 칸부터는 (위층 머리글 글) + (이 줄의 글)과 정확히 같다("규칙" + "1" = "규칙 1").
+            if len(r) != len(want[0]) or want[0][:2] != r[:2]:
+                continue
+            above = g[:h]
+            if any(row[0] or row[1] for row in above):
+                continue
+            prefix = "".join(c for row in above for c in row[2:] if c)
+            if not all(a == prefix + b for a, b in zip(want[0][2:], r[2:])):
+                continue
+            body = filled[h + 1:]
+            if len(body) == len(want) - 1 and all(
+                len(x) == len(w) and x[0] == w[0] and x[1] == w[1] and x[2:] == w[2:] for x, w in zip(body, want[1:])
+            ):
+                return hit(e)
     return False
 
 
@@ -1120,13 +1134,14 @@ def check_structured():  # [1] 코드 줄·표 칸
         for q in load(rel)["questions"]:
             qlines = blocks.get(q["number"], [])
             other = canon("".join(json_fields(q, "body", tables=True) + json_fields(q, "expl", tables=True)))
+            here, used = scope_grids(entries, qlines), set()
             for b in struct_blocks(q):
                 total += 1
                 if b["type"] == "code":
                     if not code_block_ok(b.get("lines", []), qlines, other) and ("code", rel, q["number"]) not in ALLOW:
                         bad += 1
                         fail(f"[코드] {rel} Q{q['number']}: 코드 블록이 이 문항의 PDF 줄과 다름 — 첫 줄 {str((b.get('lines') or [''])[0])[:40]!r}")
-                elif b.get("rows") and not table_ok(with_pdf_header(rel, q["number"], b["rows"]), scope_grids(entries, qlines)) and ("table", rel, q["number"]) not in ALLOW:
+                elif b.get("rows") and not table_ok(with_pdf_header(rel, q["number"], b["rows"]), here, used) and ("table", rel, q["number"]) not in ALLOW:
                     bad += 1
                     fail(f"[표] {rel} Q{q['number']}: 이 문항 자리의 PDF 표 격자와 칸이 다름 — 머리 {b['rows'][0][:4]}")
     print(f"[1b/3 코드·표] 코드 블록·표 {total} · 불일치 {bad}")
