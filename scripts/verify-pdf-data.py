@@ -129,14 +129,33 @@ def canon(s):
 
 
 def fold_rows(grid):
-    """첫 칸이 비어 있는 행은 앞 행의 이어짐이다 — 앞 행에 접는다."""
+    """첫 칸이 비어 있는 행은 앞 행의 이어짐이다 — 앞 행에 접는다(병합으로 비어 있는 칸은 None으로 남긴다)."""
     out = []
     for r in grid:
         if out and not (r[0] or "").strip() and any((c or "").strip() for c in r[1:]):
-            out[-1] = [(a or "") + (b or "") for a, b in zip(out[-1], r)]
+            out[-1] = [None if a is None and b is None else (a or "") + (b or "") for a, b in zip(out[-1], r)]
         else:
             out.append(list(r))
     return out
+
+
+def folded_row_ok(pdf_row, json_row):
+    """접은 PDF 행과 JSON 행이 칸 경계까지 맞는가(쉼표·마침표는 느슨하게).
+    ① 칸 수가 같고 칸마다 같다(이어지는 행을 접은 칸). ② PDF에서 병합으로 비어 있는(None) 칸은 앞 칸이 가로로
+    걸친 것이다 — 앞 칸의 글이 (걸친 칸 수만큼의) 연속한 JSON 칸을 이은 글과 같다. 칸을 옮기거나 합쳐
+    걸친 범위 밖으로 글이 새면 걸린다."""
+    loose = lambda c: re.sub(r"[,，、.·]", "", canon(c or ""))
+    if len(pdf_row) != len(json_row):
+        return False
+    i = 0
+    while i < len(pdf_row):
+        j = i + 1
+        while j < len(pdf_row) and pdf_row[j] is None:
+            j += 1
+        if loose("".join(json_row[i:j])) != loose(pdf_row[i]):
+            return False
+        i = j
+    return True
 
 
 def code_block_ok(lines, qlines, other):
@@ -191,7 +210,7 @@ TAGS = re.compile(r"</?(?:u|b|i|em|strong|br|sub|sup)\s*/?>", re.I)
 
 def canon_op(s):
     """연산자를 지키는 비교 글: 서식 태그·글머리 기호를 떼고 canon 한다(PDF의 글머리 기호는 기호 글꼴 글리프라 빠진다)."""
-    return canon(re.sub(r"[•·●▪○◦]", "", TAGS.sub("", str(s or ""))))
+    return canon(re.sub(r"[•·●▪○◦,，、.]", "", TAGS.sub("", str(s or ""))))
 
 
 def ops_seq(s):
@@ -244,11 +263,9 @@ def table_ok(rows, entries, used=None):
     for e in cand:
         if e[3] == want:
             return hit(e)
-    # 비교 글은 canon(연산자 보존)이고 쉼표·마침표 같은 구분 부호만 느슨하게 본다 — norm()은 < > =를 지워 "X>10"과 "X<10"을 구분하지 못한다.
-    loose = lambda c: re.sub(r"[,，、.·]", "", canon(c))
-    folded = [loose("".join(r)) for r in rows]
+    # 병합 칸: PDF가 이어지는 행(첫 칸이 비어 있음)으로 쪼갰거나 가로로 합친 표는 접은 행과 칸 경계까지 맞춘다.
     for e in cand:
-        if [loose("".join(c or "" for c in r)) for r in e[4]] == folded:
+        if len(e[4]) == len(rows) and all(folded_row_ok(pr, jr) for pr, jr in zip(e[4], rows)):
             return hit(e)
     if len(want) < 2 or any(len(r) < 3 for r in want):
         return False
@@ -284,6 +301,13 @@ def struct_blocks(q):
             yield b
 
 
+# 지문 수식이 PDF에서 글이 아니라 그림(수식 개체)인 문항: 글 검사로 찾을 수 없어, 수식을 PDF 쪽을 눈으로 확인한 문자열로
+# 고정한다 — 수식이 한 글자라도 바뀌면(연산자 포함) 등록된 문자열과 달라져 실패한다.
+FORMULA_AS_IMAGE = {
+    ("istqb/sample-c.json", 31): ["E(n) = (3 * A(n - 1) + A(n - 2)) / 4"],  # PDF: E(n) = (3*A(n−1) + A(n−2)) / 4 분수 표기
+}
+
+
 # ─────────────────────────── [1] 텍스트 전수 대조 ───────────────────────────
 def check_text():
     sets = [
@@ -310,7 +334,7 @@ def check_text():
             frs = []
             for b in q["stem"] if isinstance(q["stem"], list) else []:
                 bt = b.get("type")
-                if bt in ("paragraph", "prompt", "note"):
+                if bt in ("paragraph", "prompt", "note", "formula"):
                     frs.append(b.get("text", ""))
                 elif bt == "list":
                     for it in b.get("items", []):
@@ -323,6 +347,8 @@ def check_text():
                 if not fr or len(norm(fr)) < 8:
                     continue
                 total += 1
+                if fr in FORMULA_AS_IMAGE.get((rel, q["number"]), ()):
+                    continue
                 if fr.lstrip().startswith("|"):
                     cells = [norm(c) for c in re.split(r"\|", fr) if len(norm(c)) >= 4 and not set(norm(c)) <= set("0123456789")]
                     miss = [c for c in cells if not any(c in t for t in texts)]
@@ -333,6 +359,11 @@ def check_text():
                     if ("text", rel, q["number"]) not in ALLOW:
                         bad += 1
                         fail(f"[텍스트] {rel} Q{q['number']}: {fr[:60]!r}")
+                elif OPS.search(TAGS.sub("", fr)) and not any(canon_op(fr) in t for t in ctexts):
+                    # norm()은 + - = < >를 지우므로 글자가 같아도 수식이 달라질 수 있다 — 연산자를 지킨 글로도 PDF에서 찾는다.
+                    if ("text", rel, q["number"]) not in ALLOW:
+                        bad += 1
+                        fail(f"[연산자] {rel} Q{q['number']}: 수식 속 연산자·기호가 PDF와 다름 {fr[:60]!r}")
             # 해설 조각도 같은 방식으로 본다. 이 검사가 없던 때는 해설의 계산식이 "$1,% = $1,.5"로 깨져
             # 있어도 어떤 게이트에도 걸리지 않았다.
             for fr in expl_fragments(q):
@@ -1137,6 +1168,11 @@ def csts2018_expl_blocks():
 # JSON 머리글이 여기 적은 모양과 정확히 같을 때만 그 한 줄을 PDF 모양으로 바꿔 비교하고, 본문 행은 그대로 맞춘다.
 # (세트, 문항): (JSON 머리글, PDF 머리글, 사유)
 TABLE_HEADER = {
+    ("istqb/sample-extra.json", 20): (
+        ["팀원들의 추정", "", "", "", "", "", "", ""],
+        ["", "팀원들의 추정", "", "", "", "", "", ""],
+        "PDF는 병합 머리글 \"팀원들의 추정\"을 둘째 칸부터 걸쳐 두었고 JSON은 첫 칸에 적었다(표시만 다름)",
+    ),
     ("csts/csts-2019-general.json", 31): (
         ["TC#", "상태(입력)", "입력값(입력)", "예상출력"],
         ["TC#", "입력상태", "입력값", "예상출력"],
