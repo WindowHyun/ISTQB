@@ -378,6 +378,14 @@ def check_text():
                 ):
                     bad += 1
                     fail(f"[해설 연산자] {rel} Q{q['number']}: 수식 속 연산자·기호가 PDF와 다름 {fr[:60]!r}")
+    # 등록된 그림 수식은 JSON 조각을 만났을 때만이 아니라 독립적으로 본다 — 지문의 수식 블록을 지워도 걸리게.
+    for (rel, number), forms in FORMULA_AS_IMAGE.items():
+        q = next((q for q in load(rel)["questions"] if q["number"] == number), None)
+        have = [b.get("text") for b in (q.get("stem") if q else None) or [] if isinstance(b, dict) and b.get("type") == "formula"]
+        total += 1
+        if have != forms:
+            bad += 1
+            fail(f"[텍스트] {rel} Q{number}: 지문 수식 블록이 등록된 것과 다름 — 등록 {forms} / 지금 {have}")
     print(f"[1/3 텍스트] {total}조각(지문·보기·해설) · 불일치 {bad}")
 
 
