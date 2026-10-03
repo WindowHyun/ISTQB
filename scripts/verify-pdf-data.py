@@ -1143,16 +1143,40 @@ def with_pdf_header(rel, number, rows):
 
 
 # 표가 그림(PNG)으로 실린 문항: PDF 표 격자는 있지만 JSON에는 표 블록이 아니라 그림으로 있다(그림을 눈으로 확인).
-# 문항마다 그런 표의 개수를 적는다 — 개수가 다르면(표 블록을 지웠거나 그림이 표로 바뀌었다) 실패한다.
+# (세트, 문항): (그런 표의 개수, 그 문항의 그림 경로). 표 개수가 다르거나(표 블록을 지웠다) 그림이 지워지거나 바뀌면
+# 실패한다 — 그림이 표를 대신 보여 주는 조건이기 때문이다.
 # "정답" 상자와, 칸 글자가 JSON 코드·본문에 그대로 있는 표는 등록하지 않아도 된다.
 TABLE_AS_FIGURE = {
-    ("istqb/sample-b.json", 22): 1, ("istqb/sample-b.json", 31): 1, ("istqb/sample-c.json", 22): 1,
-    ("istqb/sample-d.json", 22): 1, ("istqb/sample-d.json", 23): 1,
-    ("csts/csts-2402-fl.json", 30): 1, ("csts/csts-2402-fl.json", 31): 2, ("csts/csts-2403-fl.json", 26): 1,
-    ("csts/csts-2404-fl.json", 33): 4, ("csts/csts-2404-fl.json", 67): 1, ("csts/csts-2405-fl.json", 33): 1,
-    ("csts/csts-2018-general.json", 9): 1, ("csts/csts-2019-general.json", 65): 1,
-    ("csts/csts-example-answer-included.json", 33): 4,
+    ("istqb/sample-b.json", 22): (1, ["source-visuals/B22-artery-table.png"]),
+    ("istqb/sample-b.json", 31): (1, ["source-visuals/B31-project-effort.png"]),
+    ("istqb/sample-c.json", 22): (1, ["/images/questions/ISTQB-FL-V4-C-022.png"]),
+    ("istqb/sample-d.json", 22): (1, ["source-visuals/D22-classification-table.png"]),
+    ("istqb/sample-d.json", 23): (1, ["source-visuals/D23-hotel-transition.png"]),
+    ("csts/csts-2402-fl.json", 30): (1, ["/images/questions/CSTS-FL-2402-030.png"]),
+    ("csts/csts-2402-fl.json", 31): (2, ["/images/questions/CSTS-FL-2402-031.png"]),
+    ("csts/csts-2403-fl.json", 26): (1, ["/images/questions/CSTS-FL-2403-026.png"]),
+    ("csts/csts-2404-fl.json", 33): (4, ["/images/questions/CSTS-FL-2404-033.png"]),
+    ("csts/csts-2404-fl.json", 67): (1, ["/images/questions/CSTS-FL-2404-067.png"]),
+    ("csts/csts-2405-fl.json", 33): (1, ["/images/questions/CSTS-FL-2405-033.png"]),
+    ("csts/csts-2018-general.json", 9): (1, ["/images/questions/CSTS-EL-2018-009.png"]),
+    ("csts/csts-2019-general.json", 65): (1, ["/images/questions/CSTS-EL-2019-065.png"]),
+    ("csts/csts-example-answer-included.json", 33): (4, ["/images/questions/CSTS-EL-SW-EXAMPLE-033.png"]),
 }
+
+
+def figure_refs(node, out=None):
+    """문항 JSON 안의 그림 파일 경로(figure·src) 목록."""
+    out = [] if out is None else out
+    if isinstance(node, list):
+        for x in node:
+            figure_refs(x, out)
+    elif isinstance(node, dict):
+        for k, v in node.items():
+            if k in ("figure", "src") and isinstance(v, str) and re.search(r"\.(png|jpe?g|svg|webp)$", v, re.I):
+                out.append(v)
+            else:
+                figure_refs(v, out)
+    return out
 
 
 def unmatched_grids(q, here, used):
@@ -1196,10 +1220,13 @@ def check_structured():  # [1] 코드 줄·표 칸
                     bad += 1
                     fail(f"[표] {rel} Q{q['number']}: 이 문항 자리의 PDF 표 격자와 칸이 다름 — 머리 {b['rows'][0][:4]}")
             left = unmatched_grids(q, here, used)
-            want = TABLE_AS_FIGURE.get((rel, q["number"]), 0)
+            want, want_figs = TABLE_AS_FIGURE.get((rel, q["number"]), (0, None))
             if len(left) != want:
                 bad += 1
                 fail(f"[표] {rel} Q{q['number']}: PDF 표 {len(left)}개가 JSON 표 블록과 짝지어지지 않음(그림으로 실린 표로 등록된 수 {want}) — 머리 {[e[3][0][:3] for e in left][:2]}")
+            elif want_figs is not None and figure_refs(q) != want_figs:
+                bad += 1
+                fail(f"[표] {rel} Q{q['number']}: 표를 대신 보여 주는 그림이 등록된 것과 다름 — 등록 {want_figs} / 지금 {figure_refs(q)}")
     print(f"[1b/3 코드·표] 코드 블록·표 {total} · 불일치 {bad}")
 
 
