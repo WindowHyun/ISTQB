@@ -31,11 +31,26 @@ CS = DATA / "(공개답안) CSTS 2404FL"
 # 의도적 불일치 허용 목록: (검사축, 세트파일, 문항번호, 사유)
 ALLOW = {
     ("text", "istqb/sample-b.json", 25): "분기 커버리지 계산식 문단 — 원문 수식·문장을 읽기 좋게 재구성(검수 승인)",
-    # 해설 축: 원본 PDF 해설의 오탈자를 JSON이 바로잡아 둔 곳(PDF를 눈으로 확인). 데이터가 맞고 PDF가 틀렸다.
-    ("expl", "istqb/sample-b.json", 6): "PDF 해설 '있어야 k기 때문입니다' — 글리프 깨짐, JSON은 '하기'",
-    ("expl", "istqb/sample-c.json", 4): "PDF 해설 '테스트 모니터링은은' — 조사 중복 오탈자, JSON은 '은' 하나",
-    ("expl", "istqb/sample-extra.json", 7): "PDF 해설 '태스트 계획' — 오탈자, JSON은 '테스트 계획'",
 }
+
+# 해설 축 예외: 원본 PDF 해설의 오탈자를 JSON이 바로잡아 둔 곳(PDF를 눈으로 확인). 데이터가 맞고 PDF가 틀렸다.
+# 문항 전체를 면제하지 않는다 — 비교 전에 JSON 쪽의 이 앞뒤 글만 PDF의 오탈자 모양으로 되돌려 놓고,
+# 나머지 글자는 그대로 맞춘다. (세트, 문항): (JSON 글, PDF 글, 사유) — 공백·문장부호는 비교 때 지워진다.
+EXPL_TYPO = {
+    ("istqb/sample-b.json", 6): ("있어야 하기 때문입니다", "있어야 k기 때문입니다", "PDF 글리프 깨짐"),
+    ("istqb/sample-c.json", 4): ("모니터링은 테스트 기법의", "모니터링은은 테스트 기법의", "PDF 조사 중복 오탈자"),
+    ("istqb/sample-extra.json", 7): ("초기에 테스트 계획을", "초기에 태스트 계획을", "PDF 오탈자"),
+}
+
+
+def with_pdf_typo(rel, number, text):
+    """JSON 해설 글을 PDF의 알려진 오탈자 모양으로 되돌린다(비교용). 앞뒤 글이 없으면 그대로 둔다."""
+    typo = EXPL_TYPO.get((rel, number))
+    if not typo:
+        return text
+    good, bad, _ = typo
+    return text.replace(norm(good), norm(bad), 1)
+
 
 FAILS = []
 
@@ -154,7 +169,7 @@ def check_text():
                 if len(norm(fr)) < 8:
                     continue
                 total += 1
-                if not any(norm(fr) in t for t in texts) and ("expl", rel, q["number"]) not in ALLOW:
+                if not any(with_pdf_typo(rel, q["number"], norm(fr)) in t for t in texts):
                     bad += 1
                     fail(f"[해설 텍스트] {rel} Q{q['number']}: {fr[:60]!r}")
     print(f"[1/3 텍스트] {total}조각(지문·보기·해설) · 불일치 {bad}")
@@ -649,7 +664,7 @@ def check_reverse():
 #
 # [5] ① ISTQB: 정답과 해설 PDF의 행(문항)마다 해설 칸 글자가 JSON 해설과 같은가(공백·문장부호 무시).
 #     ② CSTS 2018: "정답 및 해설" 절의 문장 줄이 JSON 해설에 남아 있는가([4]와 같은 방식).
-#     원본 오탈자를 JSON이 바로잡아 둔 곳은 ALLOW("expl")에 사유와 함께 적는다.
+#     원본 오탈자를 JSON이 바로잡아 둔 곳은 EXPL_TYPO에 오탈자 앞뒤 글과 함께 적는다(문항 전체를 면제하지 않는다).
 # [6] PDF 줄 i와 i+1 사이가 줄바꿈(줄 i가 오른쪽 여백 근처에서 끝남)일 때,
 #       줄 끝/다음 줄 앞에 공백 글리프가 있으면 띄어 쓴 자리, 없으면 낱말 중간에서 꺾인 자리다.
 #     PDF 글자 흐름과 JSON 글자 흐름을 공백을 뺀 채 정렬해(반복 문장이 있어도 위치로 짝짓는다) 같은 자리의
@@ -669,7 +684,8 @@ def pdf_lines(doc, pages):
             if b.get("type") != 0:
                 continue
             for ln in b["lines"]:
-                t = "".join(sp["text"] for sp in ln["spans"])
+                # 2018 예제 PDF 일부 구간은 낱말 사이 공백을 \x01 글리프로 싣는다 — 공백으로 읽는다.
+                t = "".join(sp["text"] for sp in ln["spans"]).replace("\x01", " ")
                 if t.strip():
                     f = ln["spans"][0]
                     out.append({"text": t, "x0": ln["bbox"][0], "x1": ln["bbox"][2], "y0": ln["bbox"][1], "page": pno,
@@ -815,6 +831,13 @@ def question_lines(path, maxq, skip_pages, appendix=False):
     return out, None
 
 
+# 줄바꿈 공백 축 예외: PDF가 줄 끝 공백 글리프를 싣지 않았지만 실제로는 낱말 경계인 곳.
+# 글리프만으로는 "낱말 중간에서 꺾임"과 구별되지 않으므로 사람이 눈으로 확인해 적는다. (세트, 문항, 앞뒤 글)
+ALLOW_WRAP = {
+    ("csts/csts-2402-fl.json", 28, "정수가⟦ ⟧아닌"): "줄 끝 '정수가' 뒤 공백 글리프가 없다 — 문장상 '정수가 아닌 값'",
+}
+
+
 def check_spacing():  # [6]
     total = bad = 0
     for rel, pdf, maxq, base, appendix in question_sets():
@@ -825,6 +848,8 @@ def check_spacing():  # [6]
         rm = right_margin([l for ls in blocks.values() for l in ls])
         for q in load(rel)["questions"]:
             for kind, ctx in spacing_violations(json_fields(q, "body"), blocks.get(q["number"], []), rm):
+                if any(r == rel and n == q["number"] and snip in ctx for r, n, snip in ALLOW_WRAP):
+                    continue
                 bad += 1
                 fail(f"[줄바꿈 공백] {rel} Q{q['number']}: {kind} …{ctx}…")
             total += len(blocks.get(q["number"], []))
@@ -901,8 +926,9 @@ def check_explanations():  # [5]
                     fail(f"[해설] {rel} Q{q['number']}: PDF 해설 행을 찾지 못함")
                     bad += 1
                     continue
-                want, got = norm("".join(l["text"] for l in lines)), norm("".join(json_fields(q, "expl")))
-                if want != got and ("expl", rel, q["number"]) not in ALLOW:
+                want = norm("".join(l["text"] for l in lines))
+                got = with_pdf_typo(rel, q["number"], norm("".join(json_fields(q, "expl"))))
+                if want != got:
                     bad += 1
                     i = next((i for i, (a, b) in enumerate(zip(want, got)) if a != b), min(len(want), len(got)))
                     fail(f"[해설] {rel} Q{q['number']}: PDF와 글자가 다름 — PDF …{want[max(0, i - 6):i + 12]}… / JSON …{got[max(0, i - 6):i + 12]}…")
