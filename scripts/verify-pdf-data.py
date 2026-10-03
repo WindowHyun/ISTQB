@@ -221,8 +221,10 @@ def table_ok(rows, entries):
     if any(g == want for g in grids):
         return True
     # 병합 칸: PDF가 이어지는 행(첫 칸이 비어 있음)으로 쪼갰거나 가로로 합친 칸은 행을 접어 행 단위로, 순서를 지켜 맞춘다.
-    folded = [norm("".join(r)) for r in rows]
-    if any([norm("".join(c or "" for c in r)) for r in e[4]] == folded for e in entries):
+    # 비교 글은 canon(연산자 보존)이고 쉼표·마침표 같은 구분 부호만 느슨하게 본다 — norm()은 < > =를 지워 "X>10"과 "X<10"을 구분하지 못한다.
+    loose = lambda c: re.sub(r"[,，、.·]", "", canon(c))
+    folded = [loose("".join(r)) for r in rows]
+    if any([loose("".join(c or "" for c in r)) for r in e[4]] == folded for e in entries):
         return True
     if len(want) < 2 or any(len(r) < 3 for r in want):
         return False
@@ -232,7 +234,7 @@ def table_ok(rows, entries):
         for r in g:
             last = r[0] or last
             filled.append([last] + list(r[1:]))
-        hdr = any(len(r) == len(want[0]) and all(a.endswith(b) for a, b in zip(want[0][2:], r[2:])) for r in g)
+        hdr = any(len(r) == len(want[0]) and want[0][:2] == r[:2] and all(a.endswith(b) for a, b in zip(want[0][2:], r[2:])) for r in g)
         i, ok = 0, True
         for w in want[1:]:
             j = next((k for k in range(i, len(filled)) if len(filled[k]) == len(w) and filled[k][0] == w[0]
@@ -1086,6 +1088,26 @@ def csts2018_expl_blocks():
     return blocks
 
 
+# 표 머리글 예외: PDF가 두 층으로 나눈 머리글을 JSON이 한 줄로 펴 쓴 곳(눈으로 확인). 표 전체를 면제하지 않는다 —
+# JSON 머리글이 여기 적은 모양과 정확히 같을 때만 그 한 줄을 PDF 모양으로 바꿔 비교하고, 본문 행은 그대로 맞춘다.
+# (세트, 문항): (JSON 머리글, PDF 머리글, 사유)
+TABLE_HEADER = {
+    ("csts/csts-2019-general.json", 31): (
+        ["TC#", "상태(입력)", "입력값(입력)", "예상출력"],
+        ["TC#", "입력상태", "입력값", "예상출력"],
+        "PDF는 \"입력\" 아래 \"상태\"·\"값\"으로 나뉜 두 층 머리글 — JSON은 한 줄로 펴서 \"(입력)\"을 붙였다",
+    ),
+}
+
+
+def with_pdf_header(rel, number, rows):
+    """등록된 머리글이면 그 줄만 PDF 모양으로 바꾼 표를 돌려준다(비교용)."""
+    reg = TABLE_HEADER.get((rel, number))
+    if reg and rows and list(rows[0]) == reg[0]:
+        return [list(reg[1])] + [list(r) for r in rows[1:]]
+    return rows
+
+
 def check_structured():  # [1] 코드 줄·표 칸
     """지문의 코드 블록·표를 그 문항의 PDF 자리에서 대조한다. norm()은 + - =를 지우므로 따로 본다."""
     total = bad = 0
@@ -1104,7 +1126,7 @@ def check_structured():  # [1] 코드 줄·표 칸
                     if not code_block_ok(b.get("lines", []), qlines, other) and ("code", rel, q["number"]) not in ALLOW:
                         bad += 1
                         fail(f"[코드] {rel} Q{q['number']}: 코드 블록이 이 문항의 PDF 줄과 다름 — 첫 줄 {str((b.get('lines') or [''])[0])[:40]!r}")
-                elif b.get("rows") and not table_ok(b["rows"], scope_grids(entries, qlines)) and ("table", rel, q["number"]) not in ALLOW:
+                elif b.get("rows") and not table_ok(with_pdf_header(rel, q["number"], b["rows"]), scope_grids(entries, qlines)) and ("table", rel, q["number"]) not in ALLOW:
                     bad += 1
                     fail(f"[표] {rel} Q{q['number']}: 이 문항 자리의 PDF 표 격자와 칸이 다름 — 머리 {b['rows'][0][:4]}")
     print(f"[1b/3 코드·표] 코드 블록·표 {total} · 불일치 {bad}")
