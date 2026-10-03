@@ -1186,11 +1186,12 @@ def check_explanations():  # [5]
             bad += 1
             i = next((i for i, (x, y) in enumerate(zip(want, got)) if x != y), min(len(want), len(got)))
             fail(f"[해설] csts-2018-general.json Q{q['number']}: PDF와 글자가 다름 — PDF …{want[max(0, i - 6):i + 12]}… / JSON …{got[max(0, i - 6):i + 12]}… (PDF {len(want)}자 / JSON {len(got)}자)")
+        # 그 문항의 해설 블록에 표 칸 줄이 있어야 하고, 그 자리(쪽·세로 범위)의 표 격자와만 맞춘다.
+        # 맞춘 격자는 문항 안에서 한 번만 쓴다 — 같은 표를 해설에 두 번 넣어도 걸린다.
+        here, used = scope_grids(pdf_grids(CS / CSTS2018_PDF), blk["table"]), set()
         for tb in (b for b in (q.get("explanation") or []) if isinstance(b, dict) and b.get("type") == "table"):
             total += 1
-            # 그 문항의 해설 블록에 표 칸 줄이 있어야 하고, 그 자리(쪽·세로 범위)의 표 격자와만 맞춘다.
-            here = scope_grids(pdf_grids(CS / CSTS2018_PDF), blk["table"])
-            if not blk["table"] or not table_ok(tb["rows"], here):
+            if not blk["table"] or not table_ok(tb["rows"], here, used):
                 bad += 1
                 fail(f"[해설] csts-2018-general.json Q{q['number']}: 해설 표가 이 문항 자리의 PDF 표 격자와 칸 단위로 다름 — 머리 {tb['rows'][0][:4]}")
     print(f"[5/6 해설] ISTQB 행 + CSTS 2018 해설 줄 {total} · 불일치 {bad}")
