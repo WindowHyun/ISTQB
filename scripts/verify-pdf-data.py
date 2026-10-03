@@ -1014,6 +1014,8 @@ def question_lines(path, maxq, skip_pages, appendix=False):
 # 글리프만으로는 "낱말 중간에서 꺾임"과 구별되지 않으므로 사람이 눈으로 확인해 적는다. (세트, 문항, 앞뒤 글)
 ALLOW_WRAP = {
     ("csts/csts-2402-fl.json", 28, "정수가⟦ ⟧아닌"): "줄 끝 '정수가' 뒤 공백 글리프가 없다 — 문장상 '정수가 아닌 값'",
+    ("csts/csts-2402-fl.json", 67, "유한⟦ ⟧개의"): "줄 끝 '유한' 뒤 공백 글리프가 없다 — '개'는 의존명사라 '유한 개의'로 띄어 쓴다",
+    ("csts/csts-2403-fl.json", 66, "유한⟦ ⟧개의"): "줄 끝 '유한' 뒤 공백 글리프가 없다 — '개'는 의존명사라 '유한 개의'로 띄어 쓴다",
 }
 
 
@@ -1046,6 +1048,15 @@ def check_spacing():  # [6]
                 for kind, ctx in spacing_violations(json_fields(q, "expl"), lines, rm, tol=25):
                     bad += 1
                     fail(f"[줄바꿈 공백] {rel} Q{q['number']} 해설: {kind} …{ctx}…")
+    # ALLOW_WRAP은 위반을 면제만 하면 안 된다 — 띄어 쓴 글이 그 문항에 아직 있어야 한다(다시 붙이면 걸린다).
+    for rel, number, snip in ALLOW_WRAP:
+        q = next((q for q in load(rel)["questions"] if q["number"] == number), None)
+        want = snip.replace("⟦ ⟧", " ")
+        text = unicodedata.normalize("NFC", " ".join(strip_tags(t)[0] for t in json_fields(q, "body"))) if q else ""
+        total += 1
+        if want not in text:
+            bad += 1
+            fail(f"[줄바꿈 공백] {rel} Q{number}: 허용 목록의 띄어 쓴 글 {want!r}이 문항에 없음")
     # CSTS 2018 — "정답 및 해설" 절의 문항별 해설 줄
     blocks = csts2018_expl_blocks()
     rm = right_margin([l for b in blocks.values() for l in b["body"]])
