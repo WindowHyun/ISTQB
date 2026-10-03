@@ -279,8 +279,11 @@ describe("RichText — 수식 속 'b)'는 보기 마커가 아니다", () => {
     ["istqb/sample-a.json", "ISTQB-FL-V4-A-020"],
     ["istqb/sample-a.json", "ISTQB-FL-V4-A-021"],
     ["istqb/sample-a.json", "ISTQB-FL-V4-A-023"],
+    // 닫는 괄호 바로 뒤의 마커: "(정적 테스팅) d) 정답입니다" — 가드는 여는 괄호만 막는다.
+    ["istqb/sample-a.json", "ISTQB-FL-V4-A-025"],
+    ["istqb/sample-a.json", "ISTQB-FL-V4-A-028"],
     ["istqb/sample-d.json", "ISTQB-FL-V4-D-016"],
-  ])("실제 데이터(%s %s 해설)는 '따라서, a)'부터 모든 보기가 마커다", async (file, id) => {
+  ])("실제 데이터(%s %s 해설)는 보기 a)~d)가 모두 마커다", async (file, id) => {
     const d = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), "www/data", file), "utf8"));
     const q = d.questions.find((x: { id: string }) => x.id === id);
     const el = await renderRichTextEl(q.explanation);
