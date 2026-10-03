@@ -101,7 +101,7 @@ PLACEHOLDER = "원본 공개답안 PDF 기준 정답입니다."  # PDF에 해설
 
 
 def expl_fragments(q):
-    """해설의 글 조각 목록(자리표시 문구·표 칸 제외)."""
+    """해설의 글 조각 목록(자리표시 문구 제외, 표 칸 포함)."""
     ex = q.get("explanation")
     if isinstance(ex, str):
         return [] if ex == PLACEHOLDER else [ex]
@@ -110,6 +110,8 @@ def expl_fragments(q):
         if b.get("type") == "list":
             for it in b.get("items", []):
                 out.append(it if isinstance(it, str) else " ".join(filter(None, [it.get("marker"), it.get("text")])))
+        elif b.get("type") == "table":
+            out.extend(c for r in b.get("rows", []) for c in r if isinstance(c, str))
         elif isinstance(b.get("text"), str) and b["text"] != PLACEHOLDER:
             out.append(b["text"])
     return out
@@ -780,8 +782,8 @@ def spacing_violations(fields, lines, rm, tol=20):
     return out
 
 
-def json_fields(q, part):
-    """part: 'body'(지문+보기) | 'expl'(해설) → 글 조각 목록(목록 항목은 표지를 앞에 붙인다)."""
+def json_fields(q, part, tables=False):
+    """part: 'body'(지문+보기) | 'expl'(해설) → 글 조각 목록(목록 항목은 표지를 앞에 붙인다). tables면 표 칸도 싣는다."""
     out = []
 
     def blocks(bs):
@@ -792,6 +794,8 @@ def json_fields(q, part):
             if b.get("type") == "list":
                 for it in b.get("items", []):
                     out.append(it if isinstance(it, str) else " ".join(filter(None, [it.get("marker"), it.get("text")])))
+            elif tables and b.get("type") == "table":
+                out.extend(c for r in b.get("rows", []) for c in r if isinstance(c, str))
             elif isinstance(b.get("text"), str) and b.get("type") in ("paragraph", "prompt", "note", "formula", "text"):
                 out.append(b["text"])
 
@@ -867,6 +871,15 @@ def check_spacing():  # [6]
                 for kind, ctx in spacing_violations(json_fields(q, "expl"), lines, rm, tol=25):
                     bad += 1
                     fail(f"[줄바꿈 공백] {rel} Q{q['number']} 해설: {kind} …{ctx}…")
+    # CSTS 2018 — "정답 및 해설" 절의 문항별 해설 줄
+    blocks = csts2018_expl_blocks()
+    rm = right_margin([l for b in blocks.values() for l in b["body"]])
+    for q in load("csts/csts-2018-general.json")["questions"]:
+        lines = blocks.get(q["number"], {}).get("body", [])
+        total += len(lines)
+        for kind, ctx in spacing_violations(json_fields(q, "expl"), lines, rm):
+            bad += 1
+            fail(f"[줄바꿈 공백] csts/csts-2018-general.json Q{q['number']} 해설: {kind} …{ctx}…")
     print(f"[6/6 줄바꿈 공백] PDF 줄 {total} · 공백 불일치 {bad}")
 
 
@@ -912,6 +925,28 @@ def istqb_expl_rows(path):
     return rows
 
 
+CSTS2018_PDF = "2018년도 CSTS 자격시험 예제(일반등급).pdf"
+SECTION_HEAD = re.compile(r"^\s*\[.*문항 예제\]\s*$")
+NUM_HEAD = re.compile(r"^\s*(\d{1,2})\.\s*(\S.*)?$")
+
+
+def csts2018_expl_blocks():
+    """CSTS 2018 "정답 및 해설" 절 → {문항번호: {"answer": 정답 줄, "body": [해설 줄], "table": [표 칸 줄]}}.
+    "N. 정답" 줄(x≈85)이 문항 경계다. 표 칸은 x가 85보다 오른쪽에 있다."""
+    with fitz.open(CS / CSTS2018_PDF) as doc:
+        start = next(i for i, pg in enumerate(doc) if "정답 및 해설" in pg.get_text())
+        lines = [l for l in pdf_lines(doc, range(start, len(doc)))
+                 if not PAGE_NOISE.match(l["text"]) and not SECTION_HEAD.match(l["text"]) and "정답 및 해설" not in l["text"]]
+    blocks, cur = {}, None
+    for l in lines:
+        m = NUM_HEAD.match(l["text"]) if abs(l["x0"] - 85) < 3 else None
+        if m:
+            cur = blocks.setdefault(int(m.group(1)), {"answer": l["text"], "body": [], "table": []})
+        elif cur is not None:
+            cur["table" if l["x0"] > 88 else "body"].append(l)
+    return blocks
+
+
 def check_explanations():  # [5]
     total = bad = 0
     # ① ISTQB — 해설 칸 글자가 JSON 해설과 같은가
@@ -927,24 +962,39 @@ def check_explanations():  # [5]
                     bad += 1
                     continue
                 want = norm("".join(l["text"] for l in lines))
-                got = with_pdf_typo(rel, q["number"], norm("".join(json_fields(q, "expl"))))
+                got = with_pdf_typo(rel, q["number"], norm("".join(json_fields(q, "expl", tables=True))))
                 if want != got:
                     bad += 1
                     i = next((i for i, (a, b) in enumerate(zip(want, got)) if a != b), min(len(want), len(got)))
                     fail(f"[해설] {rel} Q{q['number']}: PDF와 글자가 다름 — PDF …{want[max(0, i - 6):i + 12]}… / JSON …{got[max(0, i - 6):i + 12]}…")
-    # ② CSTS 2018 — "정답 및 해설" 절의 문장 줄이 JSON 해설에 남아 있는가
-    with fitz.open(CS / "2018년도 CSTS 자격시험 예제(일반등급).pdf") as doc:
-        start = next(i for i, pg in enumerate(doc) if "정답 및 해설" in pg.get_text())
-        lines = [ln for i in range(start, len(doc)) for ln in doc[i].get_text().split("\n") if not PAGE_NOISE.match(ln)]
-    jn = norm("".join("".join(json_fields(q, "expl")) for q in load("csts/csts-2018-general.json")["questions"]))
-    for ln in lines:
-        n = norm(LEAD_MARK.sub("", ln))
-        if len(n) < 12 or len(re.findall(r"[가-힣]", n)) < 6 or "정답및해설" in n:
+    # ② CSTS 2018 — "정답 및 해설" 절을 문항별로 나눠, 각 문장 줄이 그 문항의 JSON 해설에 있는가.
+    #    표 칸은 읽는 순서가 PDF마다 달라 순서 없이 글자 수가 같은지만 본다.
+    from collections import Counter
+    blocks = csts2018_expl_blocks()
+    qs = load("csts/csts-2018-general.json")["questions"]
+    if sorted(blocks) != [q["number"] for q in qs]:
+        fail(f"[해설] csts-2018-general.json: PDF 정답 및 해설 문항 번호 {sorted(blocks)} ≠ JSON {[q['number'] for q in qs]}")
+        bad += 1
+    for q in qs:
+        blk = blocks.get(q["number"])
+        if not blk:
             continue
-        total += 1
-        if n not in jn:
-            bad += 1
-            fail(f"[해설] csts-2018-general.json: PDF 해설 문장이 JSON에 없음 {ln.strip()[:50]!r}")
+        mine = norm("".join(json_fields(q, "expl")))
+        for l in blk["body"]:
+            n = norm(LEAD_MARK.sub("", l["text"]))
+            if len(n) < 12 or len(re.findall(r"[가-힣]", n)) < 6:
+                continue
+            total += 1
+            if n not in mine:
+                bad += 1
+                fail(f"[해설] csts-2018-general.json Q{q['number']}: PDF 해설 문장이 이 문항 해설에 없음 {l['text'].strip()[:50]!r}")
+        cells = norm("".join(c for c in json_fields(q, "expl", tables=True) if c not in json_fields(q, "expl")))
+        pdf_cells = norm("".join(l["text"] for l in blk["table"]))
+        if cells or pdf_cells:
+            total += 1
+            if Counter(cells) != Counter(pdf_cells):
+                bad += 1
+                fail(f"[해설] csts-2018-general.json Q{q['number']}: 표 칸 글자가 PDF와 다름 — PDF {pdf_cells[:30]!r} / JSON {cells[:30]!r}")
     print(f"[5/6 해설] ISTQB 행 + CSTS 2018 해설 줄 {total} · 불일치 {bad}")
 
 
