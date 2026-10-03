@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { buildQuickPool, drawQuick } from '../hooks/useQuestions';
 import { makeCanonicalIdResolver } from './chapterStats';
 import { isQuestionCorrect, shortAnswerCandidates } from './answer';
@@ -312,5 +313,40 @@ describe('모든 세트 — 같은 개념의 서답형은 인정 범위가 같�
     expect(shown('CSTS-FL-2405-063')).toBe('재테스팅(Re-testing)');
     expect(shown('CSTS-FL-2405-068')).toBe('리그레션, 회귀');
     expect(shown('CSTS-FL-2403-066')).toBe('동등 분할, Equivalence partitioning');
+  });
+});
+
+/**
+ * 서로 다른 문항이 바이트가 같은 그림을 쓰면 한쪽이 엉뚱한 그림일 수 있다 — 2404-026이
+ * 다른 문항의 그림을 그대로 물려받은 채 배포됐던 결함이 이 모양이다. 같은 PDF 그림을 두 시험지가
+ * 정말로 공유하는 경우만 아래에 적는다.
+ */
+describe('모든 세트 — 다른 문항이 같은 그림 파일을 쓰지 않는다', () => {
+  const SHARED_FIGURES = [['CSTS-EL-SW-EXAMPLE-026', 'CSTS-FL-2404-023']];
+
+  const figuresOf = (node: unknown, out: string[] = []): string[] => {
+    if (Array.isArray(node)) node.forEach((n) => figuresOf(n, out));
+    else if (node && typeof node === 'object') {
+      for (const [k, v] of Object.entries(node)) {
+        if ((k === 'figure' || k === 'src') && typeof v === 'string' && /\.(png|jpe?g|svg|webp)$/i.test(v)) out.push(v);
+        else figuresOf(v, out);
+      }
+    }
+    return out;
+  };
+
+  it('바이트가 같은 그림을 쓰는 문항 묶음은 허용 목록의 쌍뿐이다', () => {
+    const byHash = new Map<string, Set<string>>();
+    for (const { questions } of loaded) {
+      for (const q of questions) {
+        for (const src of figuresOf(q)) {
+          const file = path.resolve(process.cwd(), 'www', src.replace(/^\//, ''));
+          const hash = createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+          byHash.set(hash, (byHash.get(hash) ?? new Set()).add(q.id as string));
+        }
+      }
+    }
+    const shared = [...byHash.values()].filter((ids) => ids.size > 1).map((ids) => [...ids].sort());
+    expect(shared).toEqual(SHARED_FIGURES.map((g) => [...g].sort()));
   });
 });

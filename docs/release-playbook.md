@@ -241,7 +241,7 @@ firebase appdistribution:distribute \
 ### 데이터 배포 체크리스트
 
 - [ ] `npm run verify` 통과 — 스키마·이미지 경로·재수록 표 최신 여부까지
-- [ ] `python3 scripts/verify-pdf-data.py` 통과 — 원본 PDF와 텍스트·정답·밑줄 대조
+- [ ] `python3 scripts/verify-pdf-data.py` 통과 — 원본 PDF와 텍스트·정답·밑줄·해설·줄바꿈 공백 대조
 - [ ] 고친 문항의 **id가 그대로**인지 diff로 확인
 - [ ] 문항 수가 바뀌었으면 데이터 계약 수치(12세트 626문항)를 쓰는 곳을 함께 갱신 — 게이트 화면 문구와 문서. 계약 테스트가 막아 주지만, 화면 문구는 사람이 고쳐야 합니다
 

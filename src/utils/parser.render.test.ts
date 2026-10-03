@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeAll } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { RichText } from "./parser";
@@ -237,6 +239,55 @@ describe("RichText — formula 조각 병합", () => {
       { type: "formula", text: "4) + A(3)) / 5" },
     ]);
     expect(text).toContain("E(5) = (3*A(4) + A(3)) / 5");
+  });
+});
+
+// 수식 안의 닫는 괄호 "b)"를 보기 마커("b) 정답입니다")로 오인해 줄을 쪼개던 결함.
+// 마커는 문장 끝·줄머리 뒤에 오지만, 연산자(+ - * / = < > () 바로 뒤의 "x)"는 닫는 괄호다.
+describe("RichText — 수식 속 'b)'는 보기 마커가 아니다", () => {
+  const markersOf = (el: HTMLElement) =>
+    Array.from(el.querySelectorAll(".structured-marker")).map((m) => m.textContent);
+
+  it("'E = (a + 4*m + b) / 6'은 한 줄로 남고 뒤의 보기 마커는 그대로 분리된다", async () => {
+    const el = await renderRichTextEl(
+      "최종 추정치(E)는 다음과 같이 계산됩니다: E = (a + 4*m + b) / 6 여기서 b는 가장 비관적인 추정치입니다. 따라서: a) 정답입니다. b) 정답이 아닙니다",
+    );
+    const lines = Array.from(el.querySelectorAll(".text-line")).map((n) => n.textContent ?? "");
+    expect(lines.some((t) => t.includes("E = (a + 4*m + b) / 6"))).toBe(true);
+    expect(markersOf(el)).toEqual(["a)", "b)"]); // 수식의 b)는 마커가 아니고, 보기 a) b)만 마커다
+  });
+
+  it("실제 데이터(D Q31 해설)도 수식이 끊기지 않고 보기 a)~d)가 모두 마커다", async () => {
+    const d = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), "www/data/istqb/sample-d.json"), "utf8"));
+    const q = d.questions.find((x: { id: string }) => x.id === "ISTQB-FL-V4-D-031");
+    const el = await renderRichTextEl(q.explanation);
+    expect(el.textContent).toContain("E = (a + 4*m + b) / 6");
+    expect(markersOf(el)).toEqual(["a)", "b)", "c)", "d)"]);
+  });
+
+  it("연산자 뒤가 아닌 줄머리·문장 뒤의 'b)'는 계속 마커로 쪼갠다", async () => {
+    const el = await renderRichTextEl("a) 정답이 아닙니다. b) 정답입니다. c) 정답이 아닙니다");
+    expect(markersOf(el)).toEqual(["a)", "b)", "c)"]);
+  });
+
+  it("쉼표 뒤의 'a)'는 수식이 아니라 문장이 이어진 보기 마커다 (\"따라서, a) …\")", async () => {
+    const el = await renderRichTextEl("TC4 (2층 이상, 정원 없음) 따라서, a) 정답이 아닙니다. b) 정답입니다. c) 정답이 아닙니다");
+    expect(markersOf(el)).toEqual(["a)", "b)", "c)"]);
+  });
+
+  it.each([
+    ["istqb/sample-a.json", "ISTQB-FL-V4-A-020"],
+    ["istqb/sample-a.json", "ISTQB-FL-V4-A-021"],
+    ["istqb/sample-a.json", "ISTQB-FL-V4-A-023"],
+    // 닫는 괄호 바로 뒤의 마커: "(정적 테스팅) d) 정답입니다" — 가드는 여는 괄호만 막는다.
+    ["istqb/sample-a.json", "ISTQB-FL-V4-A-025"],
+    ["istqb/sample-a.json", "ISTQB-FL-V4-A-028"],
+    ["istqb/sample-d.json", "ISTQB-FL-V4-D-016"],
+  ])("실제 데이터(%s %s 해설)는 보기 a)~d)가 모두 마커다", async (file, id) => {
+    const d = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), "www/data", file), "utf8"));
+    const q = d.questions.find((x: { id: string }) => x.id === id);
+    const el = await renderRichTextEl(q.explanation);
+    expect(markersOf(el).filter((m) => /^[a-e]\)$/.test(m ?? ""))).toEqual(["a)", "b)", "c)", "d)"]);
   });
 });
 
