@@ -1,11 +1,13 @@
 # 문제 데이터 ↔ 원본 PDF 정합성 게이트 (CI: pdf-data job / 로컬: python3 scripts/verify-pdf-data.py)
 #
 # 배포 전 수동 전수 검수(2026-07)에서 쓴 대조 로직을 상시 게이트로 옮긴 것.
-# 네 축을 검사하며, 하나라도 어긋나면 종료 코드 1로 실패한다:
-#   [1] 텍스트 — JSON의 모든 스템·보기 조각이 원본 PDF 텍스트에 존재하는가
+# 여섯 축을 검사하며, 하나라도 어긋나면 종료 코드 1로 실패한다:
+#   [1] 텍스트 — JSON의 모든 스템·보기·해설 조각이 원본 PDF 텍스트에 존재하는가
 #   [2] 정답  — PDF에서 독립 추출한 정답(626문항)과 JSON answer가 일치하는가
 #   [3] 밑줄  — PDF 밑줄 선분에서 역산한 강조 위치가 해당 문항 JSON에 <u>로 존재하는가
 #   [4] 역방향 — PDF 본문의 문장 줄이 해당 문항 JSON에 남아 있는가(지문이 잘리지 않았는가)
+#   [5] 해설  — ISTQB 해설이 정답과 해설 PDF의 행과 글자 단위로 같은가, CSTS 2018 해설이 빠지지 않았는가
+#   [6] 줄바꿈 공백 — PDF 줄바꿈 자리의 공백(낱말 중간 공백·빠진 띄어쓰기)이 JSON과 같은가
 #
 # [1]은 "JSON에 있는 것이 PDF에 있는가"만 본다 — 지문이 중간에서 끊겨도 남은 앞부분은 PDF에
 # 있으니 통과한다(CSTS 2404FL 70번이 첫 문장 중간에서 잘려 있었다). [4]가 그 반대 방향이다.
@@ -29,6 +31,10 @@ CS = DATA / "(공개답안) CSTS 2404FL"
 # 의도적 불일치 허용 목록: (검사축, 세트파일, 문항번호, 사유)
 ALLOW = {
     ("text", "istqb/sample-b.json", 25): "분기 커버리지 계산식 문단 — 원문 수식·문장을 읽기 좋게 재구성(검수 승인)",
+    # 해설 축: 원본 PDF 해설의 오탈자를 JSON이 바로잡아 둔 곳(PDF를 눈으로 확인). 데이터가 맞고 PDF가 틀렸다.
+    ("expl", "istqb/sample-b.json", 6): "PDF 해설 '있어야 k기 때문입니다' — 글리프 깨짐, JSON은 '하기'",
+    ("expl", "istqb/sample-c.json", 4): "PDF 해설 '테스트 모니터링은은' — 조사 중복 오탈자, JSON은 '은' 하나",
+    ("expl", "istqb/sample-extra.json", 7): "PDF 해설 '태스트 계획' — 오탈자, JSON은 '테스트 계획'",
 }
 
 FAILS = []
@@ -45,6 +51,7 @@ def raw(p):
 def norm(s):
     s = re.sub(r"</?(u|b|i|em|strong|br|sub|sup)\s*/?>", "", s, flags=re.I)
     s = re.sub(r"[\x00-\x1f\x7f]", "", s)
+    s = re.sub(r"[\ue000-\uf8ff]", "", s)  # 기호 글꼴(Symbol)의 글머리 기호 등 사용자 정의 영역 글리프
     s = unicodedata.normalize("NFKC", s)
     s = re.sub(r"[*_`|#<>≤≥≦≧~∼〜～\-—–―·•∙‧ㆍ→⇒➔⟶↔=＝+±×÷※√°%‰&]", "", s)
     s = re.sub(r"[“”\"'‘’′″˝]", "", s)
@@ -73,6 +80,24 @@ CSTS_SETS = [
 
 def load(rel):
     return json.loads((WWW / rel).read_text())
+
+
+PLACEHOLDER = "원본 공개답안 PDF 기준 정답입니다."  # PDF에 해설이 없는 CSTS 세트의 자리표시 문구
+
+
+def expl_fragments(q):
+    """해설의 글 조각 목록(자리표시 문구·표 칸 제외)."""
+    ex = q.get("explanation")
+    if isinstance(ex, str):
+        return [] if ex == PLACEHOLDER else [ex]
+    out = []
+    for b in ex if isinstance(ex, list) else []:
+        if b.get("type") == "list":
+            for it in b.get("items", []):
+                out.append(it if isinstance(it, str) else " ".join(filter(None, [it.get("marker"), it.get("text")])))
+        elif isinstance(b.get("text"), str) and b["text"] != PLACEHOLDER:
+            out.append(b["text"])
+    return out
 
 
 # ─────────────────────────── [1] 텍스트 전수 대조 ───────────────────────────
@@ -123,7 +148,16 @@ def check_text():
                     if ("text", rel, q["number"]) not in ALLOW:
                         bad += 1
                         fail(f"[텍스트] {rel} Q{q['number']}: {fr[:60]!r}")
-    print(f"[1/3 텍스트] {total}조각 · 불일치 {bad}")
+            # 해설 조각도 같은 방식으로 본다. 이 검사가 없던 때는 해설의 계산식이 "$1,% = $1,.5"로 깨져
+            # 있어도 어떤 게이트에도 걸리지 않았다.
+            for fr in expl_fragments(q):
+                if len(norm(fr)) < 8:
+                    continue
+                total += 1
+                if not any(norm(fr) in t for t in texts) and ("expl", rel, q["number"]) not in ALLOW:
+                    bad += 1
+                    fail(f"[해설 텍스트] {rel} Q{q['number']}: {fr[:60]!r}")
+    print(f"[1/3 텍스트] {total}조각(지문·보기·해설) · 불일치 {bad}")
 
 
 # ─────────────────────────── [2] 정답 전수 대조 ───────────────────────────
@@ -572,13 +606,18 @@ def json_text(q):
     return norm("".join(parts))
 
 
-def check_reverse():
+def question_sets():
+    """(JSON 경로, PDF 파일명, 문항 수, PDF 폴더, 부록 여부) — [4]·[6]이 같은 표를 쓴다."""
     sets = [(f"istqb/sample-{k.lower()}.json", ISTQB_PDF[k][0], 40, DATA, False) for k in "ABCD"]
     # 부록 추가 문제 26개(sample-extra)는 A 세트 PDF 끝의 A1~A26이다.
     sets += [("istqb/sample-extra.json", ISTQB_PDF["A"][0], 26, DATA, True)]
     sets += [(f"csts/{jf}", pdf, mx, CS, False) for jf, pdf, mx in CSTS_SETS]
+    return sets
+
+
+def check_reverse():
     lines_total = bad = 0
-    for rel, pdf, maxq, base, appendix in sets:
+    for rel, pdf, maxq, base, appendix in question_sets():
         blocks, missing = pdf_blocks(base / pdf, maxq, REVERSE_SKIP_PAGES.get(pdf, 0), appendix)
         if blocks is None:
             fail(f"[역방향] {rel}: PDF에서 문항 {missing}번 시작을 찾지 못함")
@@ -602,17 +641,300 @@ def check_reverse():
     print(f"[4/4 역방향] PDF 문장 줄 {lines_total} · JSON에 없음 {bad}")
 
 
+# ─────────────────── [5] 해설 · [6] 줄바꿈 자리 공백 ───────────────────
+# [1]~[4]는 비교 전에 공백과 문장부호를 지운다. 그래서 다음 두 결함이 어느 검사에도 걸리지 않았다.
+#   - 해설: ISTQB 해설의 항목 라벨(A.~D.)·연결 번호 "(4)"·분수 "3/5"가 빠지거나 계산식이 "$1,% = $1,.5"로
+#     깨져도 통과했다. CSTS 2018의 "정답 및 해설"은 통째로 빠져 자리표시 문구만 보였다.
+#   - 줄바꿈 자리 공백: "준 비 중이다"처럼 낱말 중간이 벌어지거나 "올바른것은?"처럼 띄어쓰기가 빠져도 통과했다.
+#
+# [5] ① ISTQB: 정답과 해설 PDF의 행(문항)마다 해설 칸 글자가 JSON 해설과 같은가(공백·문장부호 무시).
+#     ② CSTS 2018: "정답 및 해설" 절의 문장 줄이 JSON 해설에 남아 있는가([4]와 같은 방식).
+#     원본 오탈자를 JSON이 바로잡아 둔 곳은 ALLOW("expl")에 사유와 함께 적는다.
+# [6] PDF 줄 i와 i+1 사이가 줄바꿈(줄 i가 오른쪽 여백 근처에서 끝남)일 때,
+#       줄 끝/다음 줄 앞에 공백 글리프가 있으면 띄어 쓴 자리, 없으면 낱말 중간에서 꺾인 자리다.
+#     PDF 글자 흐름과 JSON 글자 흐름을 공백을 뺀 채 정렬해(반복 문장이 있어도 위치로 짝짓는다) 같은 자리의
+#     공백이 다르면 실패한다. 줄 안에서는 한글-한글 사이를 PDF가 띄웠는데 JSON이 붙인 곳도 본다.
+#     코드·표·그림 속 글자는 정렬이 닿지 않아 대상이 아니다. 줄 안의 공백 모양(": " 앞 공백 등)은 보지 않는다.
+WS = "  　"
+# 항목 머리(글머리 기호·번호·보기 표지)로 시작하는 줄은 앞 줄의 이어짐이 아니라 새 항목이다.
+LIST_HEAD = re.compile(r"^\s*(?:[•·●▪○◦\-–]|\(?\d{1,2}\)|\d{1,2}\.|[a-eA-E][.)]|\([가-힣]\)|[가-힣]\.|[①-⑩]|[ⓐ-ⓩⒶ-Ⓩ])\s")
+HANGUL = re.compile(r"[가-힣]")
+
+
+def pdf_lines(doc, pages):
+    """쪽 범위의 텍스트 줄 [{text, x0, x1, y0, page, bold}]. 후행 공백을 보존하고 (쪽, y, x) 순으로 정렬한다."""
+    out = []
+    for pno in pages:
+        for b in doc[pno].get_text("dict")["blocks"]:
+            if b.get("type") != 0:
+                continue
+            for ln in b["lines"]:
+                t = "".join(sp["text"] for sp in ln["spans"])
+                if t.strip():
+                    f = ln["spans"][0]
+                    out.append({"text": t, "x0": ln["bbox"][0], "x1": ln["bbox"][2], "y0": ln["bbox"][1], "page": pno,
+                                "bold": "Bold" in f["font"] or bool(f["flags"] & 16)})
+    out.sort(key=lambda l: (l["page"], round(l["y0"] / 3), l["x0"]))
+    return out
+
+
+def right_margin(lines):
+    xs = sorted(l["x1"] for l in lines)
+    return xs[int(len(xs) * 0.97)] if xs else 0
+
+
+def wrap_gaps(lines, rm, tol=20):
+    """줄 목록 → (공백 없는 글 흐름 P, {줄바꿈 경계: 띄움?}, {줄 안 경계: 띄움?}). 경계 b는 P[b-1]과 P[b] 사이."""
+    chars, wraps, inline = [], {}, {}
+    page_max = {}
+    for l in lines:
+        page_max[l["page"]] = max(page_max.get(l["page"], 0), l["x1"])
+    prev = None
+    for l in lines:
+        start, sp, first = len(chars), False, True
+        for c in unicodedata.normalize("NFC", l["text"]):
+            if c.isspace():
+                sp = True
+                continue
+            if not first:
+                inline[len(chars)] = sp
+            first, sp = False, False
+            chars.append(c)
+        if len(chars) == start:
+            continue
+        if prev is not None and prev["page"] == l["page"] and start > 0:
+            full = prev["x1"] > rm - tol or prev["x1"] > page_max[prev["page"]] - tol
+            if full and not LIST_HEAD.match(l["text"]):
+                wraps[start] = prev["text"].endswith(tuple(WS)) or l["text"].startswith(tuple(WS))
+        prev = l
+    return "".join(chars), wraps, inline
+
+
+def strip_tags(text):
+    """<u>…</u> 같은 태그를 뺀 글과 (뺀 글 위치 → 원문 위치) 사상."""
+    st, mp, i = [], [], 0
+    while i < len(text):
+        m = re.match(r"</?(?:u|b|i|em|strong)\s*/?>", text[i:], re.I)
+        if m:
+            i += m.end()
+            continue
+        st.append(text[i]); mp.append(i); i += 1
+    return "".join(st), mp
+
+
+def spacing_violations(fields, lines, rm, tol=20):
+    """JSON 글 조각들의 공백이 PDF 줄바꿈 자리와 다른 곳 → [(종류, 앞뒤 글)]."""
+    import difflib
+    P, wraps, inline = wrap_gaps(lines, rm, tol)
+    if not wraps and not inline:
+        return []
+    J, loc, strips = [], [], []
+    for fi, t in enumerate(fields):
+        if not isinstance(t, str) or "|---" in t:
+            strips.append(None)
+            continue
+        st, mp = strip_tags(unicodedata.normalize("NFC", t))
+        strips.append((st, mp))
+        for pos, c in enumerate(st):
+            if not c.isspace():
+                J.append(c); loc.append((fi, pos))
+    pmap = [-1] * len(P)
+    for a, b, size in difflib.SequenceMatcher(None, P, "".join(J), autojunk=False).get_matching_blocks():
+        for k in range(size):
+            pmap[a + k] = b + k
+
+    def gap_at(b):
+        j0, j1 = pmap[b - 1], pmap[b] if b < len(P) else -1
+        if j0 < 0 or j1 != j0 + 1 or loc[j0][0] != loc[j1][0]:
+            return None
+        st, _ = strips[loc[j0][0]]
+        p0, p1 = loc[j0][1], loc[j1][1]
+        return st[p0 + 1:p1], st[max(0, p0 - 5):p0 + 1] + "⟦ ⟧" + st[p1:p1 + 6]
+
+    out = []
+    for b, spaced in sorted(wraps.items()):
+        g = gap_at(b)
+        if g is not None and bool(g[0]) != spaced:
+            out.append(("띄어쓰기 누락" if spaced else "낱말 중간 공백", g[1]))
+    for b, spaced in sorted(inline.items()):
+        if spaced and b not in wraps and b < len(P) and HANGUL.match(P[b - 1]) and HANGUL.match(P[b]):
+            g = gap_at(b)
+            if g is not None and not g[0]:
+                out.append(("띄어쓰기 누락", g[1]))
+    return out
+
+
+def json_fields(q, part):
+    """part: 'body'(지문+보기) | 'expl'(해설) → 글 조각 목록(목록 항목은 표지를 앞에 붙인다)."""
+    out = []
+
+    def blocks(bs):
+        if isinstance(bs, str):
+            out.append(bs)
+            return
+        for b in bs if isinstance(bs, list) else []:
+            if b.get("type") == "list":
+                for it in b.get("items", []):
+                    out.append(it if isinstance(it, str) else " ".join(filter(None, [it.get("marker"), it.get("text")])))
+            elif isinstance(b.get("text"), str) and b.get("type") in ("paragraph", "prompt", "note", "formula", "text"):
+                out.append(b["text"])
+
+    if part == "body":
+        blocks(q.get("stem"))
+        out += [o.get("text", "") for o in q.get("options", [])]
+    else:
+        blocks(q.get("explanation"))
+    return out
+
+
+def question_lines(path, maxq, skip_pages, appendix=False):
+    """문항 PDF → {번호: [줄 dict]}. 정답 표기 이후와 쪽 머리말·꼬리말은 버리고 첫 줄의 문항 번호를 뗀다."""
+    with fitz.open(path) as doc:
+        lines = [l for l in pdf_lines(doc, range(skip_pages, len(doc))) if not PAGE_NOISE.match(l["text"])]
+    prefix = "A" if appendix else ""
+    if appendix:  # 부록 추가 문제(A1, A2 …)만
+        lines = lines[next(i for i, l in enumerate(lines) if "부록" in l["text"]):]
+    starts, cur = [], 0
+    for n in range(1, maxq + 1):
+        pat = re.compile(r"^\s*%s%d\s*[.)](\s|$)" % (prefix, n))
+        i = next((i for i in range(cur, len(lines)) if pat.match(lines[i]["text"])), None)
+        if i is None:
+            return None, n
+        starts.append(i)
+        cur = i + 1
+    starts.append(len(lines))
+    out = {}
+    for n, (a, b) in enumerate(zip(starts, starts[1:]), start=1):
+        blk = [dict(l) for l in lines[a:b]]
+        for k, l in enumerate(blk):
+            if k > 0 and (re.match(r"\s*정답\b", l["text"]) or re.search(r"부록\b|Additional Questions|< 정답표 >", l["text"])) and not appendix:
+                blk = blk[:k]
+                break
+        blk[0]["text"] = re.sub(r"^\s*%s\d+\s*[.)]\s*" % prefix, "", blk[0]["text"], count=1)
+        out[n] = blk
+    return out, None
+
+
+def check_spacing():  # [6]
+    total = bad = 0
+    for rel, pdf, maxq, base, appendix in question_sets():
+        blocks, missing = question_lines(base / pdf, maxq, REVERSE_SKIP_PAGES.get(pdf, 0), appendix)
+        if blocks is None:
+            fail(f"[줄바꿈 공백] {rel}: PDF에서 문항 {missing}번 시작을 찾지 못함")
+            continue
+        rm = right_margin([l for ls in blocks.values() for l in ls])
+        for q in load(rel)["questions"]:
+            for kind, ctx in spacing_violations(json_fields(q, "body"), blocks.get(q["number"], []), rm):
+                bad += 1
+                fail(f"[줄바꿈 공백] {rel} Q{q['number']}: {kind} …{ctx}…")
+            total += len(blocks.get(q["number"], []))
+    # ISTQB 해설 — 정답과 해설 PDF의 행별 해설 칸
+    for k, (_, expl_pdf) in ISTQB_PDF.items():
+        rows = istqb_expl_rows(DATA / expl_pdf)
+        rm = right_margin([l for ls in rows.values() for l in ls])
+        sets = [(f"istqb/sample-{k.lower()}.json", "")] + ([("istqb/sample-extra.json", "A")] if k == "A" else [])
+        for rel, prefix in sets:
+            for q in load(rel)["questions"]:
+                lines = rows.get(f"{prefix}{q['number']}")
+                if not lines:
+                    continue
+                total += len(lines)
+                for kind, ctx in spacing_violations(json_fields(q, "expl"), lines, rm, tol=25):
+                    bad += 1
+                    fail(f"[줄바꿈 공백] {rel} Q{q['number']} 해설: {kind} …{ctx}…")
+    print(f"[6/6 줄바꿈 공백] PDF 줄 {total} · 공백 불일치 {bad}")
+
+
+HEADER_CELLS = {"정답", "해설/근거", "LO", "K-레벨", "배점", "문제 번호(#)"}
+
+
+def istqb_expl_rows(path):
+    """정답과 해설 PDF → {행 번호('1'…'40', 부록 'A1'…): [해설 칸 줄]}. 해설 칸은 x 140~625."""
+    with fitz.open(path) as doc:
+        lines = pdf_lines(doc, range(len(doc)))
+        npages = len(doc)
+    # 머리말·꼬리말: 같은 높이·같은 글이 여러 쪽에 되풀이되는 줄
+    from collections import Counter
+    key = lambda l: (round(l["y0"] / 5), re.sub(r"\d+", "#", l["text"].strip()))
+    cnt = Counter(key(l) for l in lines)
+    thr = max(3, int(npages * 0.3))
+    marker = re.compile(r"^A?\d{1,2}$")
+    # 행 번호와 "a)"·"i."·글머리 기호 같은 표지는 쪽마다 같은 자리에 되풀이되지만 머리말이 아니다.
+    list_mark = re.compile(r"\s*([a-eA-E]\)|[ivxIVX]+\.|[가-하][.)]|[•·\-\uf06c\uf0a1\uf0a7\uf0b7]|[①-⑩])\s*")
+    lines = [l for l in lines
+             if (marker.match(l["text"].strip()) and 85 <= l["x0"] <= 120) or list_mark.fullmatch(l["text"]) or cnt[key(l)] < thr]
+    marks = [l for l in lines if l["bold"] and marker.match(l["text"].strip()) and 85 <= l["x0"] <= 120]
+    pages_with_marks = {m["page"] for m in marks}
+    rows = {m["text"].strip(): [] for m in marks}
+    for l in lines:
+        t = l["text"].strip()
+        # 정답 칸(x<170의 "a" "b, c"…)·LO/K-레벨/배점 칸(x≥625)은 해설이 아니다. 세트마다 해설 칸의 왼쪽
+        # 끝이 달라(D는 x≈160) 140 미만만 버리고, 170 미만은 보기 글자뿐인 줄만 정답 칸으로 본다.
+        if l in marks or t in HEADER_CELLS or l["x0"] < 140 or l["x0"] >= 625:
+            continue
+        if l["x0"] < 170 and re.fullmatch(r"[a-e](\s*,\s*[a-e])*", t):
+            continue
+        cand = [m for m in marks if m["page"] == l["page"] and m["y0"] <= l["y0"] + 8]
+        if cand:
+            lab = max(cand, key=lambda m: m["y0"])["text"].strip()
+        else:
+            prev = [m for m in marks if m["page"] < l["page"]]
+            # 마커가 하나도 없는 쪽은 표의 다른 구획(부록 정답표 등)이다 — 앞 행의 이어짐이 아니다.
+            if not prev or l["page"] not in pages_with_marks:
+                continue
+            lab = prev[-1]["text"].strip()
+        rows[lab].append(l)
+    return rows
+
+
+def check_explanations():  # [5]
+    total = bad = 0
+    # ① ISTQB — 해설 칸 글자가 JSON 해설과 같은가
+    for k, (_, expl_pdf) in ISTQB_PDF.items():
+        rows = istqb_expl_rows(DATA / expl_pdf)
+        sets = [(f"istqb/sample-{k.lower()}.json", "")] + ([("istqb/sample-extra.json", "A")] if k == "A" else [])
+        for rel, prefix in sets:
+            for q in load(rel)["questions"]:
+                lines = rows.get(f"{prefix}{q['number']}")
+                total += 1
+                if not lines:
+                    fail(f"[해설] {rel} Q{q['number']}: PDF 해설 행을 찾지 못함")
+                    bad += 1
+                    continue
+                want, got = norm("".join(l["text"] for l in lines)), norm("".join(json_fields(q, "expl")))
+                if want != got and ("expl", rel, q["number"]) not in ALLOW:
+                    bad += 1
+                    i = next((i for i, (a, b) in enumerate(zip(want, got)) if a != b), min(len(want), len(got)))
+                    fail(f"[해설] {rel} Q{q['number']}: PDF와 글자가 다름 — PDF …{want[max(0, i - 6):i + 12]}… / JSON …{got[max(0, i - 6):i + 12]}…")
+    # ② CSTS 2018 — "정답 및 해설" 절의 문장 줄이 JSON 해설에 남아 있는가
+    with fitz.open(CS / "2018년도 CSTS 자격시험 예제(일반등급).pdf") as doc:
+        start = next(i for i, pg in enumerate(doc) if "정답 및 해설" in pg.get_text())
+        lines = [ln for i in range(start, len(doc)) for ln in doc[i].get_text().split("\n") if not PAGE_NOISE.match(ln)]
+    jn = norm("".join("".join(json_fields(q, "expl")) for q in load("csts/csts-2018-general.json")["questions"]))
+    for ln in lines:
+        n = norm(LEAD_MARK.sub("", ln))
+        if len(n) < 12 or len(re.findall(r"[가-힣]", n)) < 6 or "정답및해설" in n:
+            continue
+        total += 1
+        if n not in jn:
+            bad += 1
+            fail(f"[해설] csts-2018-general.json: PDF 해설 문장이 JSON에 없음 {ln.strip()[:50]!r}")
+    print(f"[5/6 해설] ISTQB 행 + CSTS 2018 해설 줄 {total} · 불일치 {bad}")
+
+
 def main():
     check_text()
     check_answers()
     check_underlines()
     check_reverse()
+    check_explanations()
+    check_spacing()
     if FAILS:
         print(f"\n❌ PDF 정합성 검증 실패 {len(FAILS)}건", file=sys.stderr)
         for f in FAILS:
             print(" -", f, file=sys.stderr)
         sys.exit(1)
-    print("\n✅ PDF 정합성 검증 통과 (텍스트·정답·밑줄·역방향)")
+    print("\n✅ PDF 정합성 검증 통과 (텍스트·정답·밑줄·역방향·해설·줄바꿈 공백)")
 
 
 if __name__ == "__main__":

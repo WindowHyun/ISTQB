@@ -14,7 +14,7 @@
 | --- | --- | --- |
 | `lint` | `lint` · `typecheck` · `typecheck:test` | 앱 `tsconfig`는 테스트·e2e·`middleware.ts`를 검사하지 않음 — 세 번째 명령이 없으면 그 파일들은 타입 검사를 한 번도 받지 않는다 |
 | `verify-data` | `npm run verify` | 문항 스키마·정답·이미지·재수록 표 |
-| `pdf-data` | `python3 scripts/verify-pdf-data.py` | 원본 PDF와 텍스트·정답·밑줄 대조, 그리고 PDF 문장이 JSON에서 잘리지 않았는지(역방향) |
+| `pdf-data` | `python3 scripts/verify-pdf-data.py` | 원본 PDF와 텍스트·정답·밑줄 대조, PDF 문장이 JSON에서 잘리지 않았는지(역방향), 해설 글자(ISTQB 행별·CSTS 2018), PDF 줄바꿈 자리의 공백 |
 | `unit` | `npm run test:cov` | 유닛 + 커버리지 바닥(값은 `vitest.config.ts`) |
 | `mutation` | `npm run test:mutation` | 채점·통계 순수 로직(break 85) |
 | `mutation-storage` | `npm run test:mutation:storage` | 저장 계층(break 68). **경로 필터** — 아래 참고 |

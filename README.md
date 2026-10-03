@@ -41,7 +41,7 @@ ISTQB Foundation Level v4.0 및 CSTS(SW 테스트 전문가) 한국어 기출 **
 
 - **테스트 자동화 2계층** — Vitest **유닛** + Playwright **E2E 4개 프로젝트**(기능 `react` · 비기능 `nonfunctional` · **APK/WebView** `apk`+`apk-nf`). 스모크·모드·문항유형·네비·설정·영속성·엣지·반응형·접근성·**4모드 전이 16칸 전수**·**대용량 import**·**표/그림 문항**·**라이트박스/콘솔**·**저장 불가 환경**·**오프라인 출제**. 실측 개수는 [품질 지표](#품질-지표-metrics)에 한 번만 적는다. 전체 시나리오: [`docs/e2e-test-scenarios.md`](docs/e2e-test-scenarios.md).
 - **살충제 패러독스 대응 4계층** — **속성 기반 테스트**(fast-check: 매 실행 새 입력 생성) + **뮤테이션 테스트**(Stryker, 채점·통계·저장키 핵심 8개 유틸 스코어 **94.3%**, CI break 85 게이트) + **시드 랜덤 스모크 E2E**(매일 다른 세트·답 조합, 원본 JSON을 독립 오라클로 사용·시드 로그로 재현) + **몽키 테스트 3시드**(무작위 120회 조작 후 불변식·JS 오류 검사).
-- **PDF ↔ 데이터 전수 정합성 검증(상시 CI 게이트)** — 626문항을 **원본 PDF 13종에서 독립 추출해 텍스트 2,491조각·정답 626문항·밑줄 강조 146곳을 전수 대조**하는 게이트(`scripts/verify-pdf-data.py`, CI `pdf-data` job)를 상시 운영. 배포 전 6축 검수(텍스트·정답·밑줄·강조·이미지/그래프·표)로 표 구조 손실·그림 누락·밑줄 144곳 누락을 발견·교정해 현재 불일치 0. 더해 `npm run verify`로 정답·이미지·스키마 자동 점검 + 전 문항 렌더 스윕(HTTP 404·예외·깨진 이미지 0).
+- **PDF ↔ 데이터 전수 정합성 검증(상시 CI 게이트)** — 626문항을 **원본 PDF 13종에서 독립 추출해 지문·보기·해설 텍스트·정답 626문항·밑줄 강조 146곳·줄바꿈 자리 공백을 전수 대조**하는 게이트(`scripts/verify-pdf-data.py`, CI `pdf-data` job)를 상시 운영. 배포 전 6축 검수(텍스트·정답·밑줄·강조·이미지/그래프·표)로 표 구조 손실·그림 누락·밑줄 144곳 누락을 발견·교정해 현재 불일치 0. 더해 `npm run verify`로 정답·이미지·스키마 자동 점검 + 전 문항 렌더 스윕(HTTP 404·예외·깨진 이미지 0).
 - **자격증별 컷스코어·접근성** — ISTQB 65% / CSTS **검정방법별 배점 합산 75%**(세트마다 만점이 달라 필요 점수를 세트별로 산출) 합격 판정, 색각 대비 글리프·포커스 트랩·reduced-motion 등 a11y 반영.
 - **결함 RCA & 회귀 방지** — PDF 원본 ↔ 앱 렌더를 전수 대조해 결함을 찾고, 반복 결함의 근본원인을 분석해 **클래스 단위**로 차단(케이스별 회귀 테스트 추가).
 - **CI 품질 게이트** — GitHub Actions **14-job** 통과 시에만 머지: 기능·품질 11(lint(+테스트/e2e 타입검사)·verify·**pdf-data(원본 PDF 대조)**·unit·**mutation**·**mutation-storage(영속화 계층)**·build·android-build·e2e·**nonfunctional**·**apk(WebView)**) + **보안 3(의존성 감사·시크릿 스캔·CodeQL 정적분석)**. unit은 커버리지 임계값, mutation은 뮤테이션 스코어(코어 break 85 · 영속화 계층 break 68), build는 번들 크기 예산, nonfunctional은 성능·부하·메모리·타이머·오프라인·데이터 내구성까지 게이트. 추가로 **매일 예약 E2E**(`daily-e2e.yml`, KST 09:17)가 회귀를 상시 감시하고 실패 시 이슈로 알림.
@@ -283,7 +283,7 @@ npm run test:mutation  # 뮤테이션 — 채점·통계 순수 로직 (Stryker,
 npm run test:mutation:storage  # 뮤테이션 — 영속화·상태 계층 (break 68, 약 12분)
 npm run typecheck:test # 테스트·e2e 타입 검사
 npm run verify      # 데이터 정합성 검증 (626문항 정답·이미지·스키마)
-python3 scripts/verify-pdf-data.py  # 원본 PDF 대조 게이트 (텍스트·정답·밑줄, pymupdf 필요)
+python3 scripts/verify-pdf-data.py  # 원본 PDF 대조 게이트 (텍스트·정답·밑줄·해설·줄바꿈 공백, pymupdf 필요)
 npm run build       # tsc 타입 검사 후 dist/ 정적 빌드
 npm run size        # 번들 크기 예산 검사 (build 후)
 ```
