@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>확대 화면</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1f7;--surface:#fff;--line:#dbe2ee;--line2:#cbd5e1;--blue:#2563eb;--blue-t:#1d4ed8;--navy:#0f172a;--ok:#16a34a;--ok-t:#15803d;--bad:#dc2626;--bad-t:#b91c1c;--muted:#334155;--muted2:#475569}
+*{box-sizing:border-box}body{margin:0;background:#fff}button{font-family:inherit;cursor:pointer}
+.phone{position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--navy);font-family:'Noto Sans KR',system-ui,sans-serif}
+.top{background:var(--surface);border-bottom:1px solid var(--line);padding:12px 16px 0;display:flex;flex-direction:column}
+.row{display:flex;align-items:center;gap:12px}
+.logo{width:36px;height:36px;border-radius:10px;background:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sub{font-size:12px;font-weight:700;color:var(--blue-t)}.ttl{font-size:17px;font-weight:700;line-height:1.3}
+.ibtn{width:44px;height:44px;border-radius:12px;border:1px solid var(--line2);background:#fff;display:flex;align-items:center;justify-content:center;padding:0}
+.status{display:flex;align-items:center;gap:10px;height:52px}
+.pill{background:var(--blue);color:#fff;font-size:13px;font-weight:700;padding:4px 12px;border-radius:14px}
+.wchip{min-height:44px;display:flex;align-items:center;gap:8px;padding:0 8px 0 14px;border-radius:22px;border:1px solid #fca5a5;background:#fef2f2;color:var(--bad-t);font-size:13px;font-weight:700}
+.badge{min-width:22px;height:22px;border-radius:11px;background:var(--bad-t);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center}
+.body{padding:12px 16px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:16px}
+.qhead{padding:14px 18px;display:flex;align-items:center;gap:10px}.qhead b{font-size:20px}
+.tag{font-size:12px;font-weight:700;color:#1e3a8a;background:#e0e7ff;padding:3px 10px;border-radius:12px}
+.qbody{padding:20px 16px;display:flex;flex-direction:column;gap:16px}.stem{font-size:16px;line-height:1.7}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{min-height:56px;display:flex;align-items:center;gap:12px;text-align:left;padding:10px 14px;border-radius:14px;border:1px solid var(--line2);background:#fff;font-size:15px;line-height:1.5;color:var(--navy)}
+.opt i{width:32px;height:32px;border-radius:16px;background:#eef2f7;color:var(--muted);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-style:normal}
+.bottom{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:12px 16px 24px;display:flex;flex-direction:column;gap:12px}
+.strip{display:flex;gap:3px}.strip span{flex:1;height:6px;border-radius:3px}
+.nav{display:flex;gap:10px}.nbtn{width:56px;height:52px;border-radius:14px;border:1px solid #94a3b8;background:#fff;display:flex;align-items:center;justify-content:center;padding:0}
+.nbtn[disabled]{border-color:#e2e8f0}
+.list{flex:1;height:52px;border-radius:14px;border:none;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font-size:15px;font-weight:700}
+.scrim{position:absolute;inset:0;background:rgba(15,23,42,.5)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:24px 24px 0 0;padding:10px 16px 24px;display:flex;flex-direction:column;gap:12px}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line2);align-self:center}
+.cta{height:52px;border-radius:14px;border:none;background:var(--blue);color:#fff;font-size:15px;font-weight:700}
+.chip{min-height:44px;padding:0 16px;border-radius:22px;border:1px solid #94a3b8;background:#fff;color:var(--navy);font-size:14px;font-weight:500}
+.chip.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.cell{position:relative;height:56px;border-radius:12px;font-size:16px;font-weight:700;padding:0}
+.cell svg{position:absolute;top:5px;right:5px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted)}.legend span{display:flex;align-items:center;gap:6px}.legend em{width:14px;height:14px;border-radius:4px;display:inline-block}
+.set{min-height:60px;display:flex;align-items:center;gap:12px;text-align:left;padding:8px 14px;border-radius:14px;border:1px solid var(--line2);background:#fff;color:var(--navy)}
+.set .n{font-size:15px;font-weight:700;white-space:nowrap}.set .m{font-size:12px;color:var(--muted);white-space:nowrap}
+.bar{height:4px;border-radius:2px;background:#e2e8f0;display:flex}.bar b{background:var(--blue);border-radius:2px}
+.grp{font-size:13px;font-weight:700;color:var(--muted);padding:4px 2px}
+.seg{display:flex;padding:4px;gap:4px;border-radius:14px;background:#eef2f7}.seg button{flex:1;min-height:44px;border-radius:10px;border:none;background:transparent;color:var(--muted);font-size:15px;font-weight:500}.seg .on{background:#fff;color:var(--blue-t);font-weight:700}
+</style></head><body><div class="phone" style="background:#020617;color:#fff;display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;gap:12px;padding:14px 16px"><div style="flex:1;display:flex;flex-direction:column;gap:2px"><div style="font-size:16px;font-weight:700">보기 표 확대</div><div style="font-size:13px;color:#cbd5e1">두 손가락으로 확대 · 한 손가락으로 이동</div></div><button class="ibtn" aria-label="확대 보기 닫기" style="background:transparent;border-color:#64748b"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:0 16px"><div role="img" aria-label="보기 표 (확대)" style="width:358px;background:#fff;border-radius:12px;padding:14px;color:#0f172a;font-size:17px"><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid #94a3b8;text-align:center"><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:700">운영체제</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:700">권한</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:700">브라우저</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:400">win10</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:400">admin</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:400">IE9</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:400">win8</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:400">admin</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:400">IE11</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:400">win7</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:400">user</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:400">IE9</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:400">win7</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:400">(㉠)</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:400">(㉡)</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:400">win8</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:400">user</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:400">IE9</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:400">win7</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:400">user</div><div style="padding:11px 0;border:.5px solid #cbd5e1;font-weight:400">IE11</div></div></div></div>
+<div style="padding:12px 16px 28px;display:flex;flex-direction:column;gap:12px"><div style="align-self:center;font-size:13px;color:#cbd5e1">확대 100% · 두 번 누르면 원래 크기로</div><button style="height:52px;border-radius:14px;border:none;background:#fff;color:#0f172a;font-size:15px;font-weight:700">닫고 문제로 돌아가기</button></div></div></body></html>

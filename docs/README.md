@@ -36,6 +36,12 @@
 | [`decisions/e2e-test-budget.md`](./decisions/e2e-test-budget.md) | 스펙 예산과 잡 타임아웃 부등식이 생긴 사건 |
 | [`decisions/webkit-render-cost.md`](./decisions/webkit-render-cost.md) | WebKit 렌더 비용 측정, Safari 게이트 제거 |
 
+## 설계 자료 — [`ui-mockups/`](./ui-mockups/)
+
+| 문서 | 내용 |
+| --- | --- |
+| [`ui-mockups/README.md`](./ui-mockups/README.md) | 모바일 풀이 흐름 개선안의 정적 HTML 시안 5개 화면(숫자는 예시) |
+
 ## 점검 기록
 
 읽기용 기록입니다. **당시 시점의 사실**을 보존하므로 수치를 현재값으로 덮어쓰지 않습니다.
