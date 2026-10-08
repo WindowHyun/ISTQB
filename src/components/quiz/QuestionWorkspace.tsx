@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore, QUICK_ALL } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
@@ -13,9 +13,13 @@ import { useBackDismiss } from '../../hooks/useBackDismiss';
 import { BACK_PRIORITY } from '../../utils/backGuard';
 import { answerKeyFor } from '../../utils/answerKey';
 import { clampIndex } from '../../utils/sessionDerive';
+import { isImageLightboxOpen } from '../../utils/lightbox';
 import { QuestionCard } from './QuestionCard';
 import { QuestionPalette } from './QuestionPalette';
+import { ProgressStrip } from './ProgressStrip';
 import { QuickScoreboard } from './QuickScoreboard';
+import { useQuestionStatuses } from '../../hooks/useQuestionStatuses';
+import { stripLabel, stripTones } from '../../utils/questionStatus';
 import { ErrorState } from '../common/ErrorState';
 
 export const QuestionWorkspace = () => {
@@ -41,12 +45,30 @@ export const QuestionWorkspace = () => {
     setDrawerOpen: s.setDrawerOpen, activeProduct: s.activeProduct,
   })));
   const {
-    appData, currentQuestions, listContext, answered, isGraded, canGrade, requestGrade, gradeAndShow,
+    appData, currentQuestions, answerKeyOf, listContext, answered, isGraded, canGrade, requestGrade, gradeAndShow,
     showExamGate, examLocked, // 시험 단계 파생은 useQuizSession이 단일 원천(잠금과 동일 규칙 집합)
     loadError, retryLoad,
     // 퀵은 문항 단위로 채점하고 넘어간다 — 채점/다음 두 상태를 한 버튼이 번갈아 맡는다.
     currentQuickGraded, hasNextQuestion, goNextQuestion,
   } = useQuizSession();
+  // 하단 바의 진행 스트립이 읽는 문항 상태 — 파생 규칙은 utils/questionStatus(시험·랜덤은 채점 전 정오 비공개).
+  const { statuses, summary, showCorrectness } = useQuestionStatuses({ mode, currentQuestions, answerKeyOf, isGraded });
+
+  // 하단 고정 바의 실제 높이를 --actionbar-h로 내보낸다 — .app-shell의 아래 여백이 이 값을 쓴다.
+  // 바 높이는 고정이 아니다(채점 줄·스트립이 모드와 단계에 따라 붙고 떨어지고, 제스처바 안전영역도
+  // 더해진다). 상수로 비워 두면 바가 커지는 순간 마지막 보기와 해설이 바 밑에 깔린다.
+  // 바는 문항이 실린 뒤에야 렌더되므로 ref 객체가 아니라 콜백 ref(state)로 붙는 시점을 잡는다.
+  const [actionBar, setActionBar] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!actionBar) return;
+    const root = document.documentElement;
+    const sync = () => root.style.setProperty('--actionbar-h', `${Math.ceil(actionBar.getBoundingClientRect().height)}px`);
+    sync();
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(sync);
+    ro?.observe(actionBar);
+    return () => { ro?.disconnect(); root.style.removeProperty('--actionbar-h'); };
+  }, [actionBar]);
+
   // 시험 제한시간(자격증별). null이면 제한 없음 — 종전처럼 경과 시간만 센다.
   const examLimit = mode === 'exam' ? examLimitSeconds(activeProduct) : null;
   // 경고는 임계값을 '내려가는 순간'에만 1회 울린다 — 매초 재발화나, 재응시로 시간이
@@ -191,7 +213,8 @@ export const QuestionWorkspace = () => {
       // Modal은 Esc/Tab만 가로채고 화살표는 통과시키며, 모달 포커스는 버튼이라 위 입력 가드에도 안 걸린다.
       const s = useQuizStore.getState();
       if (
-        s.settingsOpen || s.statsOpen || s.wrongNoteOpen || s.resultOpen || s.paletteOpen ||
+        isImageLightboxOpen() ||
+        s.settingsOpen || s.statsOpen || s.wrongNoteOpen || s.resultOpen || s.paletteOpen || s.setSheetOpen ||
         s.confirmGradeOpen || s.resumePrompt || s.drawerOpen ||
         s.quitExamOpen || s.gradedResume !== null
       ) {
@@ -482,7 +505,7 @@ export const QuestionWorkspace = () => {
         />
       </article>
 
-      {/* 데스크톱 인라인 팔레트(접이식). 모바일에선 CSS로 숨기고 하단바/점프핀으로 대체.
+      {/* 데스크톱 인라인 팔레트(접이식). 모바일에선 CSS로 숨기고 하단바의 '문항 목록'으로 대체.
 
           퀵에서는 통째로 뺀다 — 이 모드의 이동 수단은 ‹ › 뿐이다.
           번호로 건너뛰는 조작이 퀵에서는 뜻을 갖지 않는다: 칸에 찍히는 값은 순번이 아니라
@@ -524,30 +547,46 @@ export const QuestionWorkspace = () => {
       )}
 
       {/* 모바일 전용: 하단 고정 액션바(CSS로 ≤880px만 노출).
-          순차 이동(‹ ›)·채점·문항 점프를 한 줄에 모은다 — 점프 버튼을 본문 위에 떠 있는
-          플로팅 핀으로 두면 해설을 읽는 동안 텍스트를 가려서(스크롤해도 따라옴) 학습을 방해한다. */}
-      <nav className="mobile-actionbar" aria-label="문항 이동·채점">
-        <button type="button" className="ab-nav" aria-label="이전 문제" disabled={safeIndex === 0} onClick={goPrev}>‹</button>
-        {mode === 'quick' ? (
-          // 퀵은 세션 채점이 없다 — 이 자리는 '이 문항 채점 → 다음 문제'가 쓴다.
-          renderQuickMain('ab-main', '-m')
-        ) : canGrade ? (
+          위에서부터 진행 스트립 → (채점·결과 줄) → [‹ 문항 목록 ›] 이다. 순차 이동(‹ ›)과 문항 점프를
+          한 줄에 두되, 점프 버튼은 본문 위에 떠 있는 플로팅 핀이 아니라 이 바의 일부다 — 핀은 해설을
+          읽는 동안 텍스트를 가린다. 채점은 세션의 마무리라 이동 줄과 따로 한 줄을 차지한다. */}
+      <nav ref={setActionBar} className="mobile-actionbar" aria-label="문항 이동·채점">
+        {/* 퀵에는 스트립도 목록도 없다 — 문항이 수백 개이고 끝이 없는 모드라 '전체 중 어디'가 뜻이 없다.
+            진행 현황은 헤더의 QuickScoreboard가 맡는다. */}
+        {mode !== 'quick' && (
+          <ProgressStrip
+            tones={stripTones(statuses, safeIndex)}
+            label={stripLabel({ summary, currentIndex: safeIndex, showCorrectness })}
+          />
+        )}
+        {mode !== 'quick' && (canGrade ? (
           <button type="button" className="ab-main" data-testid="grade-button-m" onClick={requestGrade}>채점하기</button>
         ) : isGraded ? (
           <button type="button" className="ab-main subtle" onClick={() => setResultOpen(true)}>결과 요약</button>
-        ) : null}
-        {/* 데스크톱과 같은 이유로 퀵에서는 뺀다. 핀이 겸하던 'n / 총계' 표시도 함께
-            사라지지만, 퀵은 원래 분모를 보여주지 않는 모드다(진행 현황은 헤더의
-            QuickScoreboard가 맡는다). 빠진 자리는 ‹ 채점하기 › 가 1:2:1로 채운다. */}
-        {mode !== 'quick' && (
-          <button type="button" className="jump-pin" data-testid="jump-pin" aria-label="문항 이동" onClick={() => setPaletteOpen(true)}>
-            <span className="jp-dot" aria-hidden="true" />{safeIndex + 1} / {total}
-          </button>
-        )}
-        {/* 데스크톱 헤더와 같은 이유로 퀵에서는 뺀다 — 앞으로는 '채점 → 다음 문제'로만 간다. */}
-        {mode !== 'quick' && (
-          <button type="button" className="ab-nav" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
-        )}
+        ) : null)}
+        <div className="ab-row">
+          <button type="button" className="ab-nav" aria-label="이전 문제" disabled={safeIndex === 0} onClick={goPrev}>‹</button>
+          {mode === 'quick' ? (
+            // 퀵은 세션 채점이 없다 — 이 자리는 '이 문항 채점 → 다음 문제'가 쓴다.
+            renderQuickMain('ab-main', '-m')
+          ) : (
+            <button
+              type="button"
+              className="ab-list"
+              data-testid="question-list-open"
+              aria-haspopup="dialog"
+              onClick={() => setPaletteOpen(true)}
+            >
+              <span>문항 목록</span>
+              <small>{safeIndex + 1} / {total}</small>
+              <i aria-hidden="true" />
+            </button>
+          )}
+          {/* 데스크톱 헤더와 같은 이유로 퀵에서는 뺀다 — 앞으로는 '채점 → 다음 문제'로만 간다. */}
+          {mode !== 'quick' && (
+            <button type="button" className="ab-nav" aria-label="다음 문제" disabled={safeIndex === total - 1} onClick={goNext}>›</button>
+          )}
+        </div>
       </nav>
     </section>
   );

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { openImageLightbox } from './lightbox';
+import { openImageLightbox, createFigureZoomChip, FIGURE_IMAGE_ALT } from './lightbox';
 
 // 파서가 다루는 콘텐츠 블록 (loosely-typed; PDF 추출 산출물).
 type ListItem = { marker: string; text: string };
@@ -237,11 +237,13 @@ function buildRichBlocks(text: unknown, inline = false): Block[] {
     const image = document.createElement("img");
     image.className = "reference-image";
     image.src = src;
-    image.alt = "문제 참고 이미지";
+    image.alt = FIGURE_IMAGE_ALT;
     image.loading = "lazy";
     image.draggable = false;
     image.addEventListener("click", () => openFigureModal(src));
     frame.appendChild(image);
+    // 그림 아래 '눌러서 확대' 칩 — 그림이 눌린다는 것을 말로 알리고, 키보드·보조기기의 진입로가 된다.
+    frame.appendChild(createFigureZoomChip(() => openFigureModal(src)));
     return frame;
   }
 

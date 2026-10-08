@@ -1,6 +1,8 @@
 import { test, expect, Page } from "./fixtures";
 import AxeBuilder from "@axe-core/playwright";
-import { gotoQuestion, openProduct, openSet, settle } from "./helpers";
+import {
+  answerCurrent, enterExam, gotoQuestion, gotoQuestionMobile, openProduct, openQuestionList, openSet, settle, submitGrade,
+} from "./helpers";
 
 const note = (s: string) => console.log("· " + s);
 
@@ -116,7 +118,7 @@ test("axe: 다크 모드 + 모바일 390px", async ({ page }) => {
   await settle(page);
   await scan(page, "다크-데스크톱-팔레트(답한 뒤)", found);
 
-  // 뒤따르는 검사들은 모바일 전용 컨트롤(점프 핀 등)을 만지므로 폭을 되돌린다 —
+  // 뒤따르는 검사들은 모바일 전용 컨트롤(문항 목록 버튼 등)을 만지므로 폭을 되돌린다 —
   // 데스크톱으로 둔 채 넘기면 그 컨트롤이 숨어 있어 뒤 테스트가 통째로 멎는다.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
@@ -129,12 +131,76 @@ test("axe: 다크 모드 + 모바일 390px", async ({ page }) => {
   const p = idx.sets.find((s: { id: string }) => s.id === setId).path.replace(/^\.\//, "");
   const data = await (await page.request.get(`/data/${p}`)).json();
   const shortQ = data.questions.find((q: { type: string }) => q.type === "short_answer");
-  await page.getByTestId("jump-pin").click();
-  await page.getByTestId("palette-jump").getByRole("button", { name: `문제 ${shortQ.number}`, exact: true }).click();
+  await gotoQuestionMobile(page, shortQ.number);
   await expect(page.locator(".short-answer-input").first()).toBeVisible();
   await scan(page, "다크-서답형", found);
 
   note(`\n=== axe(다크·모바일) 위반 총 ${found.length}건 ===`);
+  expect(found, found.join("\n")).toEqual([]);
+});
+
+// 모바일 풀이 흐름의 새 화면 — 헤더·하단 바(진행 스트립)·문항 목록 시트·세트 선택 시트·그림 칩·확대 화면.
+// 상태 색(정답·오답·푼·안 푼)과 배지·칩은 라이트·다크 두 테마에서 같은 대비 기준을 통과해야 한다.
+// 정오 상태는 연습에서 몇 문항을 풀어 만들고, 오답 노트 배지와 'N문제 다시 풀기'는 시험을 채점해 만든다.
+test("axe: 모바일 풀이 흐름 — 헤더·하단 바·목록 시트·세트 시트·그림 확대 (라이트·다크)", async ({ page }) => {
+  test.setTimeout(300_000);
+  const found: string[] = [];
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  for (const theme of ["light", "dark"] as const) {
+    await page.goto("/");
+    await page.evaluate((t) => { localStorage.clear(); localStorage.setItem("istqb-theme", t); }, theme);
+    await openSet(page, "CSTS", "CSTS-EL-2018");
+    const at = (s: string) => `${theme}-${s}`;
+
+    for (let i = 0; i < 3; i++) {
+      await answerCurrent(page);
+      await page.getByRole("button", { name: "다음 문제" }).click();
+    }
+    await settle(page);
+    await scan(page, at("풀이 화면(헤더·하단 바)"), found);
+
+    await openQuestionList(page);
+    await settle(page);
+    await scan(page, at("문항 목록 시트(연습)"), found);
+    await page.keyboard.press("Escape");
+
+    await page.getByTestId("set-sheet-open").click();
+    await expect(page.getByTestId("set-sheet")).toBeVisible();
+    await settle(page);
+    await scan(page, at("세트 선택 시트"), found);
+    await page.keyboard.press("Escape");
+
+    // 그림 문항 — 채점 전에 본다(채점한 시험이 남은 채로 제품 게이트를 다시 열면 '결과 보기/새 회차' 모달이 뜬다).
+    await openSet(page, "CSTS", "CSTS-FL-2402");
+    await gotoQuestionMobile(page, 9);
+    await settle(page);
+    await scan(page, at("그림 문항(눌러서 확대 칩)"), found);
+    await page.getByRole("button", { name: "그림 확대해서 보기" }).first().click();
+    await expect(page.getByTestId("figure-lightbox")).toBeVisible();
+    await settle(page);
+    await scan(page, at("그림 확대 화면"), found);
+    await page.keyboard.press("Escape");
+
+    // 시험을 채점해 오답 노트 배지와 '오답 N문제 다시 풀기'를 만든다.
+    await page.getByTestId("drawer-open").click();
+    await enterExam(page);
+    await answerCurrent(page);
+    await submitGrade(page, "grade-button-m");
+    await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기", exact: true }).click();
+    await expect(page.locator(".mtb-wrong b")).toBeVisible();
+    await settle(page);
+    await scan(page, at("채점 뒤 화면(오답 노트 배지)"), found);
+
+    await openQuestionList(page);
+    await expect(page.getByTestId("retry-wrong-cta")).toBeVisible();
+    await settle(page);
+    await scan(page, at("문항 목록 시트(채점 뒤·오답 다시 풀기)"), found);
+    await page.keyboard.press("Escape");
+  }
+
+  note(`\n=== axe(모바일 풀이 흐름) 위반 총 ${found.length}건 ===`);
   expect(found, found.join("\n")).toEqual([]);
 });
 

@@ -6,7 +6,7 @@ import { Question } from '../../hooks/useQuestions';
 import { isQuestionCorrect } from '../../utils/answer';
 import { formatAnswerList } from '../../utils/answerDisplay';
 import { RichText } from '../../utils/parser';
-import { openImageLightbox } from '../../utils/lightbox';
+import { openImageLightbox, FIGURE_IMAGE_ALT, FIGURE_ZOOM_LABEL, FIGURE_ZOOM_TEXT } from '../../utils/lightbox';
 
 interface OptionItemProps {
   opt: { key: string; text: string };
@@ -159,19 +159,23 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
 
       {question.figure && !stemHasFigure && (
         <div id="questionFigure" className="question-figure">
-          <img
-            src={question.figure}
-            alt="문제 참고 이미지 (클릭하면 확대)"
-            role="button"
-            tabIndex={0}
-            onClick={() => openImageLightbox(question.figure as string)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                openImageLightbox(question.figure as string);
-              }
-            }}
-          />
+          <div className="figure-frame">
+            {/* 그림을 누르는 것(포인터)과 '눌러서 확대' 칩(키보드·보조기기)은 같은 길이다. 탭 정지점은 칩
+                하나다 — 그림에 role=button·tabIndex를 함께 두면 같은 동작이 두 번 읽히고 두 번 멈춘다. */}
+            <img
+              src={question.figure}
+              alt={FIGURE_IMAGE_ALT}
+              onClick={() => openImageLightbox(question.figure as string)}
+            />
+            <button
+              type="button"
+              className="figure-zoom-chip"
+              aria-label={FIGURE_ZOOM_LABEL}
+              onClick={() => openImageLightbox(question.figure as string)}
+            >
+              {FIGURE_ZOOM_TEXT}
+            </button>
+          </div>
         </div>
       )}
 

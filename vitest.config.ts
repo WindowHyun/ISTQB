@@ -77,11 +77,18 @@ export default defineConfig({
       //     커버리지를 고칠 때는 수정 전 값을 직접 한 번 재고 그것과 비교한다.
       //     branch 여유가 1.07%p뿐이라(76.07 vs 게이트 75) 조건을 추가할 때는
       //     그 분기의 테스트를 같은 커밋에 넣는다.
+      //
+      //   2026-10-08 82.02 / 79.35 / 77.09 / 83.85 → 80 / 77 / 75 / 81  (모바일 풀이 흐름 — 순수 모듈 추출)
+      //     문항 상태 파생(questionStatus)·세트 표시(setSheet)·확대 제스처 계산(zoomGesture)·오답 노트
+      //     집계(wrongNote)를 컴포넌트·훅 밖의 모듈로 꺼내 유닛으로 덮었고, 라이트박스의 포인터 배선은
+      //     jsdom으로 닿게 했다. 같은 UI를 훅 안에 두었다면 이 분기들은 측정 밖에 남았을 것이다.
+      //     함수 임계값은 올리지 않았다 — 새 React 훅(useWrongNote·useQuestionStatuses 등)이 0%라
+      //     여유가 2.09%p뿐이다(그 안의 순수 로직은 모듈에서 덮는다).
       thresholds: {
-        statements: 79,
-        branches: 76,
+        statements: 80,
+        branches: 77,
         functions: 75,
-        lines: 80,
+        lines: 81,
       },
     },
   },

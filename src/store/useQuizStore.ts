@@ -131,7 +131,11 @@ export interface QuizState {
   statsOpen: boolean;
   wrongNoteOpen: boolean;
   resultOpen: boolean;
+  // 문항 목록 오버레이(모바일 바텀 시트 / 데스크톱 '문항 이동' 모달). 이름은 종전 팔레트 모달에서
+  // 물려받았다 — 열고 닫는 경로가 같은 한 가지라 플래그를 하나로 둔다.
   paletteOpen: boolean;
+  // 세트 선택 바텀 시트(모바일). 드로어의 시스템 select 대신 세트를 종류별로 묶어 진행과 함께 보여 준다.
+  setSheetOpen: boolean;
   confirmGradeOpen: boolean;
   // 저장된 진행을 중간 위치에서 복원했을 때 "이어풀기" 안내 배너를 띄울지 여부.
   resumeNotice: boolean;
@@ -269,6 +273,7 @@ export interface QuizState {
   setWrongNoteOpen: (open: boolean) => void;
   setResultOpen: (open: boolean) => void;
   setPaletteOpen: (open: boolean) => void;
+  setSetSheetOpen: (open: boolean) => void;
   setConfirmGradeOpen: (open: boolean) => void;
   setResumeNotice: (show: boolean) => void;
   setResumePrompt: (show: boolean) => void;
@@ -347,6 +352,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   wrongNoteOpen: false,
   resultOpen: false,
   paletteOpen: false,
+  setSheetOpen: false,
   confirmGradeOpen: false,
   resumeNotice: false,
   resumePrompt: false,
@@ -538,6 +544,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   setWrongNoteOpen: (wrongNoteOpen) => set({ wrongNoteOpen }),
   setResultOpen: (resultOpen) => set({ resultOpen }),
   setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
+  setSetSheetOpen: (setSheetOpen) => set({ setSheetOpen }),
   setConfirmGradeOpen: (confirmGradeOpen) => set({ confirmGradeOpen }),
   setResumeNotice: (resumeNotice) => set({ resumeNotice }),
   setResumePrompt: (resumePrompt) => set({ resumePrompt }),
@@ -567,7 +574,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     set({
       setId: newSetId, chapterFilter: null,
       index: 0, elapsedSeconds: 0, lastTick: Date.now(),
-      drawerOpen: false, pendingSetChange: null,
+      drawerOpen: false, setSheetOpen: false, pendingSetChange: null,
     });
     if (prev.mode === 'random') {
       // 랜덤은 이어풀기 없음 — 바꾼 세트의 랜덤 답안을 비우고 새로 시작한다(F4).
@@ -612,7 +619,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   resetToGate: () => set({
     mode: 'home', activeProduct: null,
     drawerOpen: false, settingsOpen: false, statsOpen: false,
-    wrongNoteOpen: false, resultOpen: false, paletteOpen: false, confirmGradeOpen: false,
+    wrongNoteOpen: false, resultOpen: false, paletteOpen: false, setSheetOpen: false, confirmGradeOpen: false,
     resumeNotice: false, resumePrompt: false, quitExamOpen: false, gradedResume: null,
     pendingSetChange: null, pendingRestart: false, confirmExitExam: false,
     // 제품 게이트로 돌아가면 시험 시작 상태도 리셋(다음 진입 시 시작 게이트 재노출).

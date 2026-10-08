@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { buildWrongNoteBySet, wrongViewIndex, wrongViewStep } from './wrongNote';
+import {
+  buildQuickWrongs, buildWrongNoteBySet, countWrongNote, selectProductHistories, wrongViewIndex, wrongViewStep,
+} from './wrongNote';
 import type { ExamHistory } from '../store/useQuizStore';
 
 // 오답노트 세트 그룹 — 종전에는 AppModals의 useMemo 안에 묻혀 있어 유닛이 닿지 못했다.
@@ -184,5 +186,100 @@ describe('wrongViewIndex / wrongViewStep', () => {
   it('빈 목록에서도 죽지 않는다(퀵은 형제를 넘기지 않는다)', () => {
     expect(wrongViewIndex([], { number: 1 })).toBe(-1);
     expect(wrongViewStep([], { number: 1 }, 1)).toBeNull();
+  });
+});
+
+
+describe('selectProductHistories — 현재 제품 이력만', () => {
+  const hist = (id: string, setId: string, certification?: 'istqb' | 'csts') =>
+    round({ id, setId, ...(certification ? { certification } : {}) });
+  const all = {
+    a: hist('a', 'I-1', 'istqb'),
+    b: hist('b', 'C-1', 'csts'),
+    c: hist('c', 'I-1'),          // 과거 기록: certification 없음 → setId로 추론
+    d: hist('d', 'GONE'),         // 과거 기록 + 세트가 목록에서 사라짐 → 어느 제품도 아님
+  };
+
+  it('certification이 있으면 그것으로 가른다', () => {
+    const got = selectProductHistories(all, new Set(['I-1']), 'istqb');
+    expect(Object.keys(got).sort()).toEqual(['a', 'c']);
+  });
+
+  it('certification이 없는 과거 기록은 setId가 이 제품의 세트일 때만 이 제품 것이다', () => {
+    expect(Object.keys(selectProductHistories(all, new Set(['C-1']), 'csts'))).toEqual(['b']);
+    expect(Object.keys(selectProductHistories(all, new Set(['I-1']), 'istqb'))).not.toContain('d');
+  });
+
+  it('제품이 정해지지 않았으면(null) 필드가 있는 기록은 어느 쪽에도 속하지 않는다', () => {
+    expect(Object.keys(selectProductHistories(all, new Set(), null))).toEqual([]);
+  });
+});
+
+describe('buildQuickWrongs — 최근 퀵 오답', () => {
+  const quick = (id: string, createdAt: number, wrongItems: ReturnType<typeof W>[]) =>
+    round({ id, setId: 'QUICK', createdAt, wrongItems });
+  const title = (sid: string) => ({ S1: '가 세트', S2: '나 세트' }[sid]);
+
+  it('같은 문항이 여러 회차에서 틀리면 가장 최근 회차의 기록이 대표다', () => {
+    const got = buildQuickWrongs([
+      quick('old', 1, [W(3, ['old'], 'S1')]),
+      quick('new', 9, [W(3, ['new'], 'S1')]),
+    ], title);
+    expect(got).toHaveLength(1);
+    expect(got[0].item.myAnswer).toEqual(['new']);
+  });
+
+  it('번호가 같아도 출처 세트가 다르면 별개 문항이다', () => {
+    const got = buildQuickWrongs([quick('q', 1, [W(3, ['x'], 'S1'), W(3, ['y'], 'S2')])], title);
+    expect(got.map((e) => `${e.setId}:${e.item.number}`)).toEqual(['S1:3', 'S2:3']);
+  });
+
+  it('세트 이름(가나다) → 문항 번호 순으로 정렬한다', () => {
+    const got = buildQuickWrongs([quick('q', 1, [W(9, ['x'], 'S2'), W(5, ['x'], 'S1'), W(2, ['x'], 'S1')])], title);
+    expect(got.map((e) => `${e.setTitle}/${e.item.number}`)).toEqual(['가 세트/2', '가 세트/5', '나 세트/9']);
+  });
+
+  it('제목을 모르는 세트는 id로 대신한다', () => {
+    const got = buildQuickWrongs([quick('q', 1, [W(1, ['x'], 'UNKNOWN')])], title);
+    expect(got[0].setTitle).toBe('UNKNOWN');
+  });
+
+  it('문항에 setId가 없으면 회차의 setId를 출처로 쓴다', () => {
+    const got = buildQuickWrongs([round({ id: 'r', setId: 'S1', createdAt: 1, wrongItems: [W(4)] })], title);
+    expect(got[0].setId).toBe('S1');
+  });
+});
+
+describe('countWrongNote — 상태 줄 배지 = 노트가 나열하는 문항 수', () => {
+  it('퀵 오답과 세트별 오답을 합친다', () => {
+    const sets = buildWrongNoteBySet([
+      round({ id: 'a', setId: 'S1', createdAt: 1, wrongItems: [W(1), W(2)] }),
+      round({ id: 'b', setId: 'S2', createdAt: 2, wrongItems: [W(7)] }),
+    ], titleOf);
+    const quick = buildQuickWrongs([round({ id: 'q', setId: 'QUICK', createdAt: 3, wrongItems: [W(5, ['x'], 'S1')] })], titleOf);
+    expect(countWrongNote(sets, quick)).toBe(2 + 1 + 1);
+  });
+
+  it('여러 회차에서 같은 문항을 틀려도 한 번만 센다(노트가 합집합으로 나열한다)', () => {
+    const sets = buildWrongNoteBySet([
+      round({ id: 'a', createdAt: 1, wrongItems: [W(1), W(2)] }),
+      round({ id: 'b', createdAt: 2, wrongItems: [W(2), W(3)] }),
+    ], titleOf);
+    expect(countWrongNote(sets, [])).toBe(3);
+  });
+
+  it('극복한 문항도 노트에 남아 있으므로 센다', () => {
+    // 극복 = 최근 시험 2회 연속 정답. 목록에서 흐리게 표시될 뿐 사라지지 않는다.
+    const sets = buildWrongNoteBySet([
+      round({ id: 'a', createdAt: 1, wrongItems: [W(1)] }),
+      round({ id: 'b', createdAt: 2, wrongItems: [] }),
+      round({ id: 'c', createdAt: 3, wrongItems: [] }),
+    ], titleOf);
+    expect(sets[0].overcome.has(1)).toBe(true);
+    expect(countWrongNote(sets, [])).toBe(1);
+  });
+
+  it('아무것도 없으면 0이다', () => {
+    expect(countWrongNote([], [])).toBe(0);
   });
 });

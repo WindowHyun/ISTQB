@@ -866,6 +866,59 @@ body[data-qfont="large"] .option { font-size: 17.5px; }
   color: var(--muted);
 }
 .modal-foot b, .modal-foot strong { color: var(--text-2); }
+
+/* ── 문항 목록(시트/모달) ─────────────────────────────────────────────────
+   번호 칸의 상태는 색만으로 말하지 않는다 — 정답/오답은 기호(✓/✕)를 함께 달고, 칸마다 읽는 말이 있다
+   (QuestionListSheet). 같은 색 규칙을 범례의 견본(em)도 쓴다. */
+.qlist { display: flex; flex-direction: column; gap: 14px; }
+.qfilters { display: flex; flex-wrap: wrap; gap: 8px; }
+.qchip {
+  min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid var(--line-strong);
+  background: var(--surface); color: var(--text); font-size: 14px; font-weight: 500; cursor: pointer;
+}
+.qchip[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--surface); font-weight: 700; }
+.qgrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.qcell {
+  position: relative; height: 56px; padding: 0; border-radius: 12px; cursor: pointer;
+  border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--text-2);
+  font-size: 16px; font-weight: 700;
+}
+.qcell[data-state="answered"], .qlegend em[data-state="answered"] { background: var(--primary-50); border-color: var(--primary); color: var(--text); }
+.qcell[data-state="correct"], .qlegend em[data-state="correct"] { background: var(--success-50); border-color: var(--success); color: var(--success); }
+.qcell[data-state="wrong"], .qlegend em[data-state="wrong"] { background: var(--danger-50); border-color: var(--danger); color: var(--danger); }
+.qcell[data-state="correct"]::after, .qcell[data-state="wrong"]::after {
+  position: absolute; top: 4px; right: 6px; font-size: 11px; line-height: 1;
+}
+.qcell[data-state="correct"]::after { content: "✓"; }
+.qcell[data-state="wrong"]::after { content: "✕"; }
+/* 지금 문제는 굵은 파란 테두리 — 상태 색(배경·기호)은 그대로 두어 "지금 문제이면서 오답"도 읽힌다. */
+.qcell[aria-current="true"], .qlegend em[data-current] { border: 3px solid var(--primary); }
+.qlegend em[data-current] { background: var(--primary-50); }
+.qempty { margin: 8px 0; color: var(--muted); font-size: 14px; }
+.qlegend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0; padding: 0; list-style: none; font-size: 12px; color: var(--muted); }
+.qlegend li { display: flex; align-items: center; gap: 6px; }
+.qlegend em { width: 14px; height: 14px; border-radius: 4px; border: 1.5px solid var(--line-strong); background: var(--surface); }
+.qretry { width: 100%; height: 52px; border: 0; border-radius: 14px; background: var(--primary-solid); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+.qretry:hover { background: var(--primary-600); }
+.modal-grab { display: none; }
+
+/* ── 세트 선택 시트(SetSheet) ─────────────────────────────────────────── */
+.sset { display: flex; flex-direction: column; gap: 16px; }
+.sgrp { margin: 0 0 6px; padding: 0 2px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.slist { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.srow {
+  width: 100%; min-height: 60px; display: flex; align-items: center; gap: 12px; padding: 8px 14px;
+  border: 1px solid var(--line-strong); border-radius: 14px; background: var(--surface);
+  color: var(--text); text-align: left; cursor: pointer;
+}
+.srow[aria-current="true"] { border: 2px solid var(--primary); background: var(--primary-50); }
+.srow-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.srow-top { display: flex; align-items: baseline; gap: 8px; }
+.srow-top b { font-size: 15px; font-weight: 700; white-space: nowrap; }
+.srow-top small { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.sbar { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.sbar i { display: block; height: 100%; border-radius: 2px; background: var(--primary-solid); }
+.srow-cur { flex: none; font-size: 13px; font-weight: 700; color: var(--primary-700); }
 /* ── 오답 노트(1단계 세트 선택 → 2단계 오답 목록, 읽기 전용)(#3·#4) ───── */
 .wrong-note-sets { display: flex; flex-direction: column; gap: 8px; }
 .wrong-note-set-btn {
@@ -1239,7 +1292,9 @@ body[data-theme="dark"] .structured-marker { color: var(--primary-700); }
 .rich-text-container u { text-underline-offset: 3px; text-decoration-thickness: 1.5px; }
 .reference-image-frame {
   display: inline-flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   padding: 8px;
   background: var(--surface-2);
   border: 1px solid var(--line);
@@ -1250,40 +1305,115 @@ body[data-theme="dark"] .structured-marker { color: var(--primary-700); }
 .reference-image { max-width: 100%; height: auto; border-radius: 6px; }
 .question-figure img { cursor: zoom-in; }
 
-/* 이미지 확대 라이트박스(앱 내 — 새 탭 이탈 방지) */
+/* 이미지 확대 화면(앱 내 — 새 탭 이탈 방지). 머리(제목·안내·✕) / 무대(그림) / 바닥(배율·닫고 돌아가기).
+   색은 일부러 고정값이다 — 테마와 무관하게 어두운 무대 위에서 그림(흰 배경)을 본다. */
 .figure-lightbox {
   position: fixed;
   inset: 0;
   z-index: 100;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(2px);
+  display: flex;
+  flex-direction: column;
+  /* 불투명 — 뒤 화면이 비치면 제목·안내 글자 위에 문항 글자가 겹쳐 읽힌다. */
+  background: #020617;
+  color: #fff;
   cursor: zoom-out;
 }
+.fl-head { display: flex; align-items: center; gap: 12px; padding: calc(14px + var(--safe-top)) 16px 10px; }
+.fl-titles { flex: 1; min-width: 0; }
+.fl-title { font-size: 16px; font-weight: 700; }
+.fl-hint { font-size: 13px; color: #cbd5e1; }
+/* 입력 수단에 맞는 안내만 — 마우스에게 '두 손가락'은 낯선 말이다. */
+.fl-hint-mouse { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .fl-hint-touch { display: none; }
+  .fl-hint-mouse { display: inline; }
+}
+.figure-lightbox-close {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #64748b;
+  border-radius: 12px;
+  background: transparent;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+}
+.figure-lightbox-close:hover { background: rgba(255, 255, 255, 0.14); }
+.fl-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  overflow: hidden;
+  /* 한 손가락 끌기·두 손가락 핀치를 브라우저가 가져가 페이지를 스크롤·확대하지 않게 한다. */
+  touch-action: none;
+  cursor: default;
+}
 .figure-lightbox-img {
-  /* 컨테이너 패딩(24px×2)을 뺀 영역 기준 — 96vw면 모바일에서 패딩만큼 넘쳐 오른쪽이 잘린다. */
+  /* 컨테이너 패딩(16px×2)을 뺀 영역 기준 — 96vw면 모바일에서 패딩만큼 넘쳐 오른쪽이 잘린다. */
   max-width: 100%;
   max-height: 100%;
   border-radius: 8px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   background: #fff;
+  user-select: none;
+  -webkit-user-drag: none;
+  cursor: zoom-in;
+  will-change: transform;
 }
-.figure-lightbox-close {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  width: 44px;
-  height: 44px;
+.fl-stage[data-zoomed="true"] .figure-lightbox-img { cursor: grab; }
+.fl-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px calc(16px + var(--safe-bottom));
+}
+.fl-scale { font-size: 13px; color: #cbd5e1; }
+.fl-close-bottom {
+  width: 100%;
+  max-width: 480px;
+  height: 52px;
   border: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
-  font-size: 18px;
+  border-radius: 14px;
+  background: #fff;
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
 }
-.figure-lightbox-close:hover { background: rgba(255, 255, 255, 0.3); }
+
+/* 그림 아래 '눌러서 확대' 칩 — 그림이 눌린다는 것을 말로 알린다. */
+.figure-frame { display: inline-flex; flex-direction: column; align-items: center; gap: 10px; max-width: 100%; }
+.figure-zoom-chip {
+  --icon-zoom: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4.5 4.5M11 8.5v5M8.5 11h5'/%3E%3C/svg%3E");
+  align-self: flex-end;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 0 12px;
+  border: 0;
+  border-radius: 22px;
+  background: rgba(15, 23, 42, 0.92);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.figure-zoom-chip::before {
+  content: "";
+  width: 18px;
+  height: 18px;
+  background: currentColor;
+  -webkit-mask: var(--icon-zoom) center / contain no-repeat;
+  mask: var(--icon-zoom) center / contain no-repeat;
+}
+/* 다크 테마에서는 카드 배경과 같은 어두운 칩이 묻힌다 — 강조 파랑으로 올린다(흰 글자 대비 8.7:1). */
+body[data-theme="dark"] .figure-zoom-chip { background: var(--primary-solid); }
 
 /* 그림을 항상 흰 배경 위에 — 다크모드에서 흰 PNG가 떠 보이지 않도록 일관 처리(#6) */
 .question-figure img,
@@ -1477,35 +1607,51 @@ body[data-theme="dark"] .reference-image-frame {
 /* ── 모바일 전용 요소(기본 숨김, ≤880px에서 노출) ───────────────────── */
 .mobile-topbar { display: none; }
 .drawer-backdrop { display: none; }
-.jump-pin { display: none; }
 .mobile-actionbar { display: none; }
 
 /* ── 반응형 ──────────────────────────────────────────────────────────── */
 @media (max-width: 880px) {
-  /* 상단 컴팩트 헤더(상시 모드·진행·시간) */
+  /* 상단 헤더 — 윗줄: 세트(누르면 세트 선택 시트)·메뉴 / 아랫줄: 모드·위치·시간·오답 노트 */
   .mobile-topbar {
     display: flex;
     flex-direction: column;
-    gap: 9px;
     position: sticky;
     top: 0;
     z-index: 30;
     background: var(--surface);
     border-bottom: 1px solid var(--line);
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
-    padding: calc(11px + var(--safe-top)) 14px 11px;
+    padding: calc(12px + var(--safe-top)) 16px 0;
   }
-  .mtb-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-  .mtb-brand { display: flex; align-items: center; gap: 9px; min-width: 0; }
-  .mtb-brand img { width: 28px; height: 28px; border-radius: 9px; flex: none; }
-  .mtb-brand small { display: block; font-size: 11px; font-weight: 800; color: var(--primary); line-height: 1.1; }
-  .mtb-brand b { display: block; font-size: 13.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60vw; }
-  .mtb-menu { width: 44px; height: 44px; /* 터치 타깃 최소 44px */ border-radius: 11px; border: 1px solid var(--line-strong); background: var(--surface); font-size: 16px; color: var(--text-2); flex: none; }
-  .mtb-info { display: flex; align-items: center; gap: 9px; }
-  .mtb-chip { background: var(--primary-solid); color: #fff; font-weight: 800; font-size: 12px; padding: 4px 12px; border-radius: 999px; }
-  .mtb-meta { font-size: 12.5px; color: var(--muted); font-weight: 800; }
-  .mtb-bar { flex: 1; height: 5px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
-  .mtb-bar i { display: block; height: 100%; background: var(--primary); }
+  .mtb-row { display: flex; align-items: center; gap: 12px; }
+  .mtb-brand { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+  .mtb-brand img { width: 36px; height: 36px; border-radius: 10px; flex: none; }
+  .mtb-title {
+    display: flex; flex-direction: column; justify-content: center; min-width: 0; min-height: 44px;
+    padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left;
+  }
+  .mtb-sub { font-size: 12px; font-weight: 700; line-height: 1.3; color: var(--primary-700); }
+  /* 이름만 말줄임한다 — 표식(▾)은 이름 밖에 있어 긴 이름이어도 잘리지 않는다. */
+  .mtb-ttl { display: flex; align-items: center; min-width: 0; font-size: 17px; font-weight: 700; line-height: 1.3; }
+  .mtb-ttl > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* 누르면 열린다는 표식(▾) — 잠겨 있으면(응시 중) 흐리게. */
+  button.mtb-title .mtb-ttl i {
+    flex: none; width: 7px; height: 7px; margin-left: 8px;
+    border: solid var(--muted); border-width: 0 2px 2px 0; transform: translateY(-3px) rotate(45deg);
+  }
+  button.mtb-title[aria-disabled] .mtb-ttl i { opacity: 0.35; }
+  .mtb-menu { width: 44px; height: 44px; /* 터치 타깃 최소 44px */ border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface); font-size: 16px; color: var(--text-2); flex: none; }
+  .mtb-status { display: flex; align-items: center; gap: 10px; min-height: 52px; }
+  .mtb-chip { background: var(--primary-solid); color: #fff; font-weight: 700; font-size: 13px; padding: 4px 12px; border-radius: 999px; }
+  .mtb-pos { font-size: 14px; font-weight: 700; }
+  .mtb-time { font-size: 13px; color: var(--muted); }
+  .mtb-wrong {
+    margin-left: auto; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 14px;
+    border-radius: 22px; border: 1px solid var(--danger-200); background: var(--danger-50);
+    color: var(--danger); font-size: 13px; font-weight: 700;
+  }
+  .mtb-wrong b { min-width: 22px; height: 22px; margin-right: -6px; padding: 0 6px; border-radius: 11px; background: var(--danger); color: #fff; font-size: 12px; display: grid; place-items: center; }
+  body[data-theme="dark"] .mtb-wrong b { background: #b91c1c; }
 
   /* 세트명 중복 제거 — 상단바(.mobile-topbar)가 세트명·모드·진행·시간을 상시 노출하므로
      워크스페이스 헤더의 세트명은 같은 정보를 한 번 더 쓰는 것이다. 세로 공간이 귀한
@@ -1513,10 +1659,12 @@ body[data-theme="dark"] .reference-image-frame {
   #setMeta { display: none; }
 
   /* 한 칸 레이아웃 + 문제가 첫 화면(사이드바는 드로어로)
-     하단 패딩은 액션바 높이 + iOS safe-area(홈 인디케이터)만큼 확보해 겹침을 막는다. */
+     하단 패딩은 하단 바의 실제 높이(--actionbar-h — QuestionWorkspace가 재서 내보낸다, 안전영역 포함)
+     + 숨 쉴 간격이다. 바 높이는 모드·단계마다 달라 상수로 두면 바가 커질 때 본문이 깔린다.
+     값이 오기 전 첫 그림에는 가장 높은 구성(채점 줄 포함)을 넉넉히 가정한다. */
   .app-shell {
     grid-template-columns: 1fr;
-    padding: 12px 12px calc(96px + var(--safe-bottom));
+    padding: 12px 12px calc(var(--actionbar-h, calc(160px + var(--safe-bottom))) + 12px);
     gap: 14px;
   }
   .topbar #questionTitle { font-size: 19px; }
@@ -1581,54 +1729,76 @@ body[data-theme="dark"] .reference-image-frame {
   /* 인라인 팔레트는 숨기고 점프핀/하단바로 대체 */
   .palette-block { display: none; }
 
-  /* 하단 액션바 안의 문항 점프 버튼 — 종전에는 본문 위에 떠 있는 고정 핀이라
-     해설을 읽는 동안 텍스트를 가렸다(스크롤해도 같은 자리를 계속 덮음). */
-  .jump-pin {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    flex: none;
-    height: 54px;
-    padding: 0 14px;
-    background: var(--text);
-    color: var(--surface);
-    border: 0;
-    border-radius: 14px;
-    font-size: 13px;
-    font-weight: 800;
-    white-space: nowrap;
-  }
-  .jump-pin .jp-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
-
   /* B안: 모바일 순차 이동은 하단 액션바로 일원화 → 상단 카드의 ‹›는 숨긴다. */
   .topbar-actions { display: none; }
   /* 퀵의 주 액션도 하단바가 맡는다 — 본문의 것을 남기면 같은 버튼이 둘로 보인다. */
   .quick-actionbar { display: none; }
 
+  /* 하단 고정 바 — 진행 스트립 · (채점 줄) · [‹ 문항 목록 ›] */
   .mobile-actionbar {
     display: flex;
+    flex-direction: column;
     gap: 10px;
     position: fixed;
     left: 0; right: 0; bottom: 0;
     z-index: 45;
-    padding: 12px 14px calc(12px + var(--safe-bottom));
+    padding: 12px 16px calc(12px + var(--safe-bottom));
     background: var(--surface);
     border-top: 1px solid var(--line);
     box-shadow: 0 -4px 14px rgba(15, 23, 42, 0.08);
   }
-  /* 주 조작 영역 → 터치 타깃을 키운다(높이 54, 화살표는 양옆 넓게 차지). */
+  .ab-row { display: flex; gap: 10px; }
+  /* 주 조작 영역 → 터치 타깃을 키운다(높이 52, 화살표 56폭). */
   .mobile-actionbar .ab-nav {
-    flex: 1; min-width: 60px; height: 54px;
+    flex: none; width: 56px; height: 52px; padding: 0;
     border: 1px solid var(--line-strong); background: var(--surface);
     border-radius: 14px; font-size: 24px; line-height: 1; color: var(--text-2);
   }
   .mobile-actionbar .ab-nav:disabled { opacity: 0.4; }
   .mobile-actionbar .ab-main {
-    flex: 2; height: 54px; border: 0; border-radius: 14px;
+    height: 52px; border: 0; border-radius: 14px;
     background: var(--primary-solid); color: #fff; font-size: 16px; font-weight: 800;
   }
+  .ab-row .ab-main { flex: 1; }
   .mobile-actionbar .ab-main.subtle { background: var(--surface-3); color: var(--text-2); }
+  /* 문항 목록 열기 — 화살표 사이를 채우는 어두운 버튼. 현재 위치를 함께 말한다. */
+  .ab-list {
+    flex: 1; height: 52px; display: flex; align-items: center; justify-content: center; gap: 10px;
+    border: 0; border-radius: 14px; background: var(--text); color: var(--surface);
+    font-size: 15px; font-weight: 700;
+  }
+  .ab-list small { font-size: 14px; font-weight: 500; opacity: 0.8; }
+  .ab-list i { width: 8px; height: 8px; border: solid currentColor; border-width: 2px 0 0 2px; transform: translateY(2px) rotate(45deg); opacity: 0.8; }
+
+  /* 진행 스트립 — 문항 하나가 한 칸. 지금 문제는 색뿐 아니라 높이로도 구분한다. */
+  .progress-strip { display: flex; align-items: center; gap: 3px; height: 10px; }
+  .progress-strip[data-dense] { gap: 1px; }
+  .progress-strip span { flex: 1; height: 6px; border-radius: 3px; background: var(--line-strong); }
+  .progress-strip [data-tone="answered"] { background: var(--muted); }
+  .progress-strip [data-tone="correct"] { background: var(--success); }
+  .progress-strip [data-tone="wrong"] { background: var(--danger); }
+  .progress-strip [data-tone="current"] { height: 10px; background: var(--primary-solid); }
+
+  /* 보기 카드·라벨 — 손가락으로 누르는 크기(최소 56px, 원형 라벨 32px). */
+  .option { min-height: 56px; }
+  .option-key { width: 32px; height: 32px; }
+
+  /* 바텀 시트(Modal variant="sheet") — 아래에서 올라온다. 넓은 화면에서는 이 규칙이 걸리지 않아 가운데 모달 그대로다. */
+  .modal-backdrop.is-sheet { align-items: end; padding: 0; }
+  .modal-panel.is-sheet {
+    width: 100%; max-height: min(86vh, 760px);
+    border-radius: 24px 24px 0 0;
+    animation: sheet-up 0.22s ease-out;
+  }
+  /* 손잡이 — 아래로 끌면 닫힌다(Modal). 보이는 막대는 얇지만 누를 수 있는 자리는 넉넉하다. */
+  .modal-grab { position: relative; display: block; width: 40px; height: 4px; margin: 10px auto 0; border-radius: 2px; background: var(--line-strong); flex: none; touch-action: none; cursor: grab; }
+  .modal-grab::before { content: ""; position: absolute; inset: -14px -48px; }
+  .is-sheet .modal-header { padding: 8px 16px 12px; }
+  .is-sheet .modal-body { padding: 4px 16px 18px; }
+  .is-sheet .modal-body:last-child { padding-bottom: calc(18px + var(--safe-bottom)); }
+  .is-sheet .modal-foot { padding: 12px 16px calc(12px + var(--safe-bottom)); background: var(--surface); }
+  .is-sheet .modal-close { width: 44px; height: 44px; border-radius: 12px; }
+  @keyframes sheet-up { from { transform: translateY(32px); opacity: 0.5; } }
 }
 
 @media (max-width: 520px) {

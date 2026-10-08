@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useQuizStore, ExamHistory, QUICK_SET_ID, freshQuickRounds } from '../../store/useQuizStore';
+import { useQuizStore, QUICK_SET_ID } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { useTheme, ThemePref } from '../../hooks/useTheme';
 import { exportUserData, importUserData, removeHistoriesEverywhere } from '../../utils/storage';
@@ -12,13 +12,15 @@ import { ConfirmButtons } from '../common/ConfirmButtons';
 import { UserGuide } from '../common/UserGuide';
 import { StatsDashboard } from '../stats/StatsDashboard';
 import { latestAttemptComparison } from '../../utils/attemptStats';
-import { buildWrongNoteBySet, WrongNoteSetView } from '../../utils/wrongNote';
 import { ResultSummary } from '../quiz/ResultSummary';
 import { QuestionPalette } from '../quiz/QuestionPalette';
+import { QuestionListHost } from '../quiz/QuestionListSheet';
+import { SetSheet } from './SetSheet';
 import { loadSetQuestions, peekSetQuestions } from '../../utils/questionLoader';
 import { MODE_LABEL } from '../../utils/modeLabel';
 import { formatAnswerList } from '../../utils/answerDisplay';
 import { useBackDismiss } from '../../hooks/useBackDismiss';
+import { useWrongNote } from '../../hooks/useWrongNote';
 import { BACK_PRIORITY } from '../../utils/backGuard';
 
 const FONT_SIZES: { value: 'small' | 'normal' | 'large'; label: string }[] = [
@@ -41,10 +43,10 @@ export const AppModals = () => {
   // 슬라이스 구독(O1). elapsedSeconds는 결과 모달이 열려 있을 때만 반영해
   // 닫혀 있는 동안 타이머 틱으로 리렌더되지 않게 한다(열려 있으면 기존처럼 초 단위 갱신).
   const {
-    setId, mode, activeProduct, histories, quickRounds, resultElapsedSeconds, chapterFilter,
-    settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, confirmGradeOpen, resumePrompt,
+    setId, mode, activeProduct, histories, resultElapsedSeconds, chapterFilter,
+    settingsOpen, statsOpen, wrongNoteOpen, resultOpen, paletteOpen, setSheetOpen, confirmGradeOpen, resumePrompt,
     quitExamOpen, gradedResume, pendingSetChange,
-    setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setDrawerOpen, setConfirmGradeOpen,
+    setSettingsOpen, setStatsOpen, setWrongNoteOpen, setResultOpen, setPaletteOpen, setSetSheetOpen, setDrawerOpen, setConfirmGradeOpen,
     setMode, beginSession, clearAnswers, clearReviewTargets, setSetId, setChapterFilter, setResumePrompt,
     resetProgressForSets, clearQuickRounds,
     setQuitExamOpen, setGradedResume, setRandomDraw,
@@ -54,17 +56,17 @@ export const AppModals = () => {
     resetToGate,
   } = useQuizStore(useShallow((s) => ({
     setId: s.setId, mode: s.mode, activeProduct: s.activeProduct, histories: s.histories,
-    quickRounds: s.quickRounds, clearQuickRounds: s.clearQuickRounds,
+    clearQuickRounds: s.clearQuickRounds,
     resultElapsedSeconds: s.resultOpen ? s.elapsedSeconds : 0,
     chapterFilter: s.chapterFilter,
     settingsOpen: s.settingsOpen, statsOpen: s.statsOpen, wrongNoteOpen: s.wrongNoteOpen,
-    resultOpen: s.resultOpen, paletteOpen: s.paletteOpen, confirmGradeOpen: s.confirmGradeOpen,
+    resultOpen: s.resultOpen, paletteOpen: s.paletteOpen, setSheetOpen: s.setSheetOpen, confirmGradeOpen: s.confirmGradeOpen,
     resumePrompt: s.resumePrompt,
     quitExamOpen: s.quitExamOpen, gradedResume: s.gradedResume,
     pendingSetChange: s.pendingSetChange,
     setSettingsOpen: s.setSettingsOpen, setStatsOpen: s.setStatsOpen, setWrongNoteOpen: s.setWrongNoteOpen,
     setWrongView: s.setWrongView,
-    setResultOpen: s.setResultOpen, setPaletteOpen: s.setPaletteOpen, setDrawerOpen: s.setDrawerOpen,
+    setResultOpen: s.setResultOpen, setPaletteOpen: s.setPaletteOpen, setSetSheetOpen: s.setSetSheetOpen, setDrawerOpen: s.setDrawerOpen,
     setConfirmGradeOpen: s.setConfirmGradeOpen, setMode: s.setMode, beginSession: s.beginSession,
     clearAnswers: s.clearAnswers, clearReviewTargets: s.clearReviewTargets, setSetId: s.setSetId,
     resetProgressForSets: s.resetProgressForSets,
@@ -79,7 +81,10 @@ export const AppModals = () => {
     resetToGate: s.resetToGate,
   })));
   // examLocked — useQuizSession이 단일 원천(게이트·사이드바 잠금과 동일 규칙 집합).
-  const { appData, total, answered, gradedTotal, gradedCorrect, cstsWeighted, gradeAndShow, examLocked } = useQuizSession();
+  const {
+    appData, total, answered, gradedTotal, gradedCorrect, cstsWeighted, gradeAndShow, examLocked,
+    currentQuestions, answerKeyOf, isGraded,
+  } = useQuizSession();
   const { pref: themePref, setPref: setThemePref } = useTheme();
   // 저장값을 단언하지 않고 검증한다 — 손상된 값이 그대로 body[data-qfont]에 실리면
   // 어느 글자크기 규칙도 걸리지 않는다(useTheme의 readThemePref와 같은 이유).
@@ -105,6 +110,7 @@ export const AppModals = () => {
   useBackDismiss(statsOpen, () => setStatsOpen(false), BACK_PRIORITY.modal);
   useBackDismiss(resultOpen, () => setResultOpen(false), BACK_PRIORITY.modal);
   useBackDismiss(paletteOpen, () => setPaletteOpen(false), BACK_PRIORITY.modal);
+  useBackDismiss(setSheetOpen, () => setSetSheetOpen(false), BACK_PRIORITY.modal);
   useBackDismiss(resumePrompt, () => setResumePrompt(false), BACK_PRIORITY.modal);
   useBackDismiss(Boolean(gradedResume), () => setGradedResume(null), BACK_PRIORITY.modal);
   useBackDismiss(confirmGradeOpen, () => setConfirmGradeOpen(false), BACK_PRIORITY.confirm);
@@ -134,27 +140,12 @@ export const AppModals = () => {
     safeSetItem('istqb-q-font', fontSize);
   }, [fontSize]);
 
-  // useMemo: 아래 productHistories 메모의 의존성이라 참조가 렌더마다 바뀌면 안 된다.
-  const sets = React.useMemo(
-    () => (appData ? appData.sets.filter((s) => s.certification.toLowerCase() === activeProduct) : []),
-    [appData, activeProduct],
-  );
+  // 제품 스코프 이력·퀵 오답·세트별 오답은 useWrongNote가 단일 원천이다 — 상태 줄의 '오답 노트'
+  // 배지가 같은 모집단을 세기 때문에(배지와 노트가 다른 수를 말하면 안 된다) 한 곳에 둔다.
+  const {
+    sets, productHistories, productQuickRounds, quickWrongs, wrongNoteBySet,
+  } = useWrongNote(appData);
   const currentSet = sets.find((s) => s.id === setId);
-
-  // 통계·오답노트·이력 비우기는 현재 제품(ISTQB/CSTS) 이력만 대상으로 한다.
-  // IndexedDB 스토어는 두 제품이 공유하므로 필터 없이는 다른 제품 기록이 섞여 보인다.
-  // 신규 기록은 certification 필드로 판별하고, 필드가 없는 과거 기록만 setId로 추론한다.
-  // useMemo: 결과 모달이 열린 동안 매초(타이머 틱) 리렌더돼도 재계산·참조 변경을 막아
-  // StatsDashboard의 useMemo가 실효를 갖게 한다.
-  const productHistories = React.useMemo(() => {
-    const productSetIds = new Set(sets.map((s) => s.id));
-    const out: Record<string, ExamHistory> = {};
-    for (const [id, h] of Object.entries(histories)) {
-      const owns = h.certification ? h.certification === activeProduct : productSetIds.has(h.setId);
-      if (owns) out[id] = h;
-    }
-    return out;
-  }, [histories, sets, activeProduct]);
   // Phase 2 — 결과 모달의 "직전 회차 대비" 비교(현재 세트·모드의 최신 회차 기준).
   // productHistories(메모화·제품 필터)를 입력으로 써 다른 제품 이력 변경에는 재계산하지 않는다.
   // 챕터 미니 시험(랜덤+필터)은 같은 챕터 미니 회차끼리만 비교한다(표본 불일치 왜곡 방지).
@@ -164,54 +155,6 @@ export const AppModals = () => {
     [productHistories, setId, mode, compareChapter],
   );
   const fmtAns = (arr: string[]) => formatAnswerList(arr, '미응답');
-  // 세트별 "전 회차 오답의 합집합" — 최신 회차만 보여주면 같은 세트를 랜덤으로
-  // 재채점했을 때 이전 시험 회차의 오답이 노트에서 사라진다(QA 지적 해소).
-  // 같은 문항이 여러 회차에서 틀렸으면 가장 최근 회차의 내 답을 대표로 쓴다.
-  // 전용 뷰 타입(WrongNoteSetView) — 도메인 ExamHistory를 가짜 id(merged-*)로 위조하지 않는다.
-  // useMemo: AppModals는 answers를 구독(useQuizSession)해 답안 클릭마다 리렌더되므로,
-  // 메모 없이는 오답노트가 닫혀 있어도 매 클릭 전체 이력 정렬·병합을 재계산한다.
-  // 현재 제품의 유효(미만료) 퀵 회차 — 오답노트와 통계가 같은 모집단을 본다.
-  // 제품 필터가 빠지면 CSTS에서 푼 퀵이 ISTQB 챕터 통계에 남의 챕터로 끼어든다.
-  const productQuickRounds = React.useMemo(
-    () => freshQuickRounds(quickRounds).filter((r) => !r.certification || r.certification === activeProduct),
-    [quickRounds, activeProduct],
-  );
-
-  /**
-   * 최근 퀵 오답 — 세트 그룹과 섞지 않는다(퀵은 세트를 다 푼 것이 아니다).
-   * 보기 전용이라 상세 진입을 두지 않는다: 퀵은 여러 세트에서 뽑히므로 문항 번호가
-   * 겹치는데(A세트 3번·B세트 3번), 번호로 상세를 찾는 기존 경로로는 구분할 수 없다.
-   */
-  const quickWrongs = React.useMemo(() => {
-    const rounds = [...productQuickRounds]
-      .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)); // 최신 회차가 대표
-    const seen = new Map<string, { setId: string; setTitle: string; item: NonNullable<ExamHistory['wrongItems']>[number] }>();
-    for (const r of rounds) {
-      for (const it of r.wrongItems ?? []) {
-        const sid = it.setId ?? r.setId;
-        const key = `${sid}:${it.number}`;
-        if (seen.has(key)) continue;
-        seen.set(key, {
-          setId: sid,
-          setTitle: appData?.sets.find((x) => x.id === sid)?.title ?? sid,
-          item: it,
-        });
-      }
-    }
-    return [...seen.values()].sort((a, b) =>
-      a.setTitle.localeCompare(b.setTitle, 'ko') || a.item.number - b.item.number);
-  }, [productQuickRounds, appData]);
-
-  // 세트별 오답 합집합 — 순수 로직은 utils/wrongNote로 꺼냈다(유닛으로 고정 가능).
-  // useMemo: AppModals는 answers를 구독(useQuizSession)해 답안 클릭마다 리렌더되므로,
-  // 메모 없이는 오답노트가 닫혀 있어도 매 클릭 전체 이력 정렬·병합을 재계산한다.
-  const wrongNoteBySet: WrongNoteSetView[] = React.useMemo(
-    () => buildWrongNoteBySet(
-      Object.values(productHistories),
-      (sid) => appData?.sets.find((s) => s.id === sid)?.title,
-    ),
-    [productHistories, appData],
-  );
   const selectedWrong = wrongNoteSetId
     ? wrongNoteBySet.find((h) => h.setId === wrongNoteSetId) ?? null
     : null;
@@ -553,12 +496,17 @@ export const AppModals = () => {
       )}
 
       {paletteOpen && (
-        <Modal title="문항 이동" onClose={() => setPaletteOpen(false)}>
-          <div className="modal-body" data-testid="palette-jump">
-            <QuestionPalette onJump={() => setPaletteOpen(false)} />
-          </div>
-        </Modal>
+        <QuestionListHost
+          appData={appData}
+          currentQuestions={currentQuestions}
+          answerKeyOf={answerKeyOf}
+          isGraded={isGraded}
+          examLocked={examLocked}
+          onClose={() => setPaletteOpen(false)}
+        />
       )}
+
+      {setSheetOpen && <SetSheet appData={appData} onClose={() => setSetSheetOpen(false)} />}
 
       {wrongNoteOpen && (
         <Modal

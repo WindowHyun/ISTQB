@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { reviewTargetIds } from './useQuestions';
+import { reviewTargetIds, selectReviewQuestions } from './useQuestions';
 
 /**
  * 오답 모드가 무엇을 다시 내는가 — 특히 퀵을 섞지 않는다는 사양.
@@ -77,5 +77,38 @@ describe('reviewTargetIds — 오답 모드 대상 산정', () => {
       SET,
     );
     expect([...got]).toEqual(['mine']);
+  });
+});
+
+
+/**
+ * 오답 모드가 실제로 내놓는 문항 — 출제와 'N문제 다시 풀기'의 N이 같은 함수를 거친다.
+ * 둘이 각자 거르면 버튼은 "4문제"인데 눌러 보니 3문제인 어긋남이 생긴다.
+ */
+describe('selectReviewQuestions — 출제 목록', () => {
+  const qs = [
+    { id: 'A-001', number: 1 },
+    { id: 'A-002', number: 2 },
+    { id: 'A-003', number: 3 },
+    { number: 4 }, // id 없는 옛 문항 → legacy-4
+  ];
+
+  it('대상 id에 속한 문항만 낸다', () => {
+    const got = selectReviewQuestions(qs, new Set(['A-001', 'A-003']), new Set());
+    expect(got.map((q) => q.number)).toEqual([1, 3]);
+  });
+
+  it('이미 다시 풀어 맞힌(복습 완료) 번호는 뺀다', () => {
+    const got = selectReviewQuestions(qs, new Set(['A-001', 'A-002', 'A-003']), new Set([2]));
+    expect(got.map((q) => q.number)).toEqual([1, 3]);
+  });
+
+  it('id가 없는 문항은 legacy-번호로 찾는다', () => {
+    const got = selectReviewQuestions(qs, new Set(['legacy-4']), new Set());
+    expect(got.map((q) => q.number)).toEqual([4]);
+  });
+
+  it('대상이 문항 목록에 없으면(데이터 변경) 조용히 빠진다', () => {
+    expect(selectReviewQuestions(qs, new Set(['GONE']), new Set())).toEqual([]);
   });
 });

@@ -1,7 +1,7 @@
 import { test, expect } from "./fixtures";
-import { enterExam, openProduct, openSet, submitGrade } from "./helpers";
+import { enterExam, gotoQuestionMobile, openProduct, openQuestionList, openSet, submitGrade } from "./helpers";
 
-// 엣지: 반응형(모바일 드로어·하단바·점프핀·소형 뷰포트).
+// 엣지: 반응형(모바일 드로어·하단바·문항 목록·소형 뷰포트).
 test.describe("엣지-반응형", () => {
   test.describe("모바일(375x812)", () => {
     test.use({ viewport: { width: 375, height: 812 } });
@@ -32,13 +32,12 @@ test.describe("엣지-반응형", () => {
       await page.keyboard.press("Escape");
       await expect(page.locator(".app-shell")).toHaveAttribute("data-drawer", "closed");
     });
-    test("점프핀→문항 이동 시트로 문항을 옮긴다", async ({ page }) => {
+    test("하단 바의 '문항 목록'으로 문항을 옮긴다", async ({ page }) => {
       await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-      await page.getByTestId("jump-pin").click();
-      const sheet = page.getByTestId("palette-jump");
-      await expect(sheet).toBeVisible();
+      const sheet = await openQuestionList(page);
       await sheet.locator("button", { hasText: /^4$/ }).click();
-      await expect(page.getByTestId("jump-pin")).toContainText("4 /");
+      await expect(sheet).toHaveCount(0); // 고르면 시트가 닫힌다
+      await expect(page.getByTestId("question-list-open")).toContainText("4 /");
     });
     test("드로어에서 학습 통계가 열린다", async ({ page }) => {
       await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
@@ -70,9 +69,8 @@ test.describe("엣지-반응형", () => {
 
     test("라이트박스 이미지가 화면 폭 안에 온전히 들어온다(오른쪽 잘림 방지)", async ({ page }) => {
       await openSet(page, "CSTS", "CSTS-FL-2402");
-      // 그림 문항(9번)으로 이동 — 모바일은 점프핀 시트 사용.
-      await page.getByTestId("jump-pin").click();
-      await page.getByTestId("palette-jump").locator("button", { hasText: /^9$/ }).click();
+      // 그림 문항(9번)으로 이동 — 모바일은 문항 목록 시트 사용.
+      await gotoQuestionMobile(page, 9);
       await page.locator("#questionFigure img, #questionStem img").first().click();
       const img = page.locator(".figure-lightbox-img");
       await expect(img).toBeVisible();

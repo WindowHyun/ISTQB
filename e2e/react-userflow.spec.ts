@@ -36,11 +36,27 @@ async function pickMode(page: Page, mode: string) {
   await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
 }
 
-/** 현재 화면의 모든 문항에 첫 보기를 고른다(서답형은 건너뛴다). */
+/**
+ * 현재 화면의 모든 문항에 첫 보기를 고른다(서답형은 건너뛴다). 복수정답은 정답 개수만큼 이어서 고른다.
+ *
+ * 종전에는 첫 보기 하나만 눌렀다. 퀵에서 복수정답 문항이 뽑히면 하나만 골라서는 확정되지 않아 채점
+ * 버튼이 잠긴 채 남고, 그러면 `goNextQuestion`이 갈 곳을 못 찾아 루프가 거기서 끝난다 — 채점한 문항이
+ * 0개거나(첫 문항이 복수정답) 오답이 하나도 안 쌓여(앞선 문항을 맞힌 채 끝남) 간헐적으로 실패했다
+ * (ISTQB는 복수정답이 섞여 있다). `selectCurrent`를 그대로 쓰지 않는 이유: 서답형마다 '정답 확인' 버튼을
+ * 2초씩 기다려, 긴 루프가 이 스펙의 기본 제한시간(30초)을 넘긴다.
+ */
 async function answerAll(page: Page, max = 80) {
   for (let i = 0; i < max; i += 1) {
-    const opt = page.locator("#options .option").first();
-    if (await opt.count()) await opt.click();
+    const options = page.locator("#options .option");
+    if (await options.count()) {
+      await options.first().click();
+      if (((await page.locator("#questionTitle").textContent()) || "").includes("복수정답")) {
+        for (let k = 1, n = await options.count(); k < n; k += 1) {
+          if (await options.nth(k).isDisabled()) break; // 확정돼 잠겼다 — 더 고를 것이 없다
+          await options.nth(k).click();
+        }
+      }
+    }
     // 퀵은 한 문항씩 채점하고 넘어간다 — 답만 고르고 지나가면 집계도 기록도 남지 않는다.
     await gradeQuickIfNeeded(page);
     if (!(await goNextQuestion(page))) break;

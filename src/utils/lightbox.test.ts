@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { openImageLightbox } from './lightbox';
+import {
+  openImageLightbox, createFigureZoomChip, FIGURE_IMAGE_ALT, FIGURE_ZOOM_LABEL, FIGURE_ZOOM_TEXT,
+} from './lightbox';
 import { registerBackGuard, BACK_PRIORITY, __resetBackGuardForTest } from './backGuard';
 
 describe('openImageLightbox', () => {
@@ -135,5 +137,176 @@ describe('openImageLightbox — 뒤로가기 가드', () => {
     openImageLightbox('/b.png');
     expect(document.querySelector('.figure-lightbox')).not.toBeNull();
     expect(pushSpy).toHaveBeenCalledTimes(2);
+  });
+});
+
+
+/**
+ * 확대 화면의 구성과 제스처 배선.
+ *
+ * 계산은 zoomGesture.test.ts가 고정한다 — 여기서는 포인터·휠·키 입력이 그 계산에 닿고, 결과가
+ * 배율 안내에 반영되며, **닫기와 제스처가 서로를 오작동시키지 않는다**는 것을 본다. jsdom에는 레이아웃이
+ * 없어 크기를 직접 정한다(무대 390×700, 그림 358×200).
+ */
+describe('openImageLightbox — 구성과 제스처', () => {
+  const q = <T extends Element>(sel: string) => document.querySelector(sel) as T;
+  const label = () => q<HTMLElement>('.fl-scale').textContent;
+  const open = () => document.querySelector('.figure-lightbox') !== null;
+
+  // 포인터 이벤트 흉내 — jsdom 버전에 따라 PointerEvent가 없으므로 MouseEvent에 필요한 필드를 얹는다.
+  const pointer = (target: EventTarget, type: string, x: number, y: number, t: number, id = 1) => {
+    const e = new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0 });
+    Object.defineProperty(e, 'pointerId', { value: id });
+    Object.defineProperty(e, 'pointerType', { value: 'touch' });
+    Object.defineProperty(e, 'timeStamp', { value: t });
+    target.dispatchEvent(e);
+  };
+  const tap = (x: number, y: number, t: number) => {
+    pointer(q('.fl-stage'), 'pointerdown', x, y, t);
+    pointer(window, 'pointerup', x, y, t + 40);
+  };
+
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    document.body.style.overflow = '';
+    __resetBackGuardForTest();
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, get() { return this.classList.contains('fl-stage') ? 390 : 0; } });
+    Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get() { return this.classList.contains('fl-stage') ? 700 : 0; } });
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get() { return this.classList.contains('figure-lightbox-img') ? 358 : 0; } });
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, get() { return this.classList.contains('figure-lightbox-img') ? 200 : 0; } });
+  });
+  afterEach(() => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    for (const prop of ['clientWidth', 'clientHeight', 'offsetWidth', 'offsetHeight']) {
+      delete (HTMLElement.prototype as unknown as Record<string, unknown>)[prop];
+    }
+  });
+
+  it('제목·조작 안내·배율 안내·닫고 돌아가기가 있다', () => {
+    openImageLightbox('/a.png');
+    expect(q('.fl-title').textContent).toBe('그림 확대');
+    expect(q('.fl-hint-touch').textContent).toBe('두 손가락으로 확대 · 한 손가락으로 이동');
+    expect(label()).toBe('확대 100% · 두 번 누르면 확대');
+    expect(q('.fl-close-bottom').textContent).toBe('닫고 문제로 돌아가기');
+  });
+
+  it('✕가 첫 버튼이고 포커스를 받는다(탭 정지점은 ✕ 하나)', () => {
+    openImageLightbox('/a.png');
+    const buttons = document.querySelectorAll<HTMLElement>('.figure-lightbox button');
+    expect(buttons[0].classList.contains('figure-lightbox-close')).toBe(true);
+    expect(document.activeElement).toBe(buttons[0]);
+    expect(q<HTMLElement>('.fl-close-bottom').tabIndex).toBe(-1);
+  });
+
+  it('아래 "닫고 문제로 돌아가기" 버튼으로 닫힌다', () => {
+    openImageLightbox('/a.png');
+    q<HTMLElement>('.fl-close-bottom').click();
+    expect(open()).toBe(false);
+    expect(document.body.style.overflow).toBe('');
+  });
+
+  it('그림을 누르는 것은 닫기가 아니다(두 번 누르기·끌기가 그림 위에서 일어난다)', () => {
+    openImageLightbox('/a.png');
+    q<HTMLElement>('.figure-lightbox-img').click();
+    expect(open()).toBe(true);
+  });
+
+  it('두 번 누르면 확대하고, 다시 두 번 누르면 원래 크기로 돌아간다', () => {
+    openImageLightbox('/a.png');
+    tap(195, 350, 1000);
+    tap(195, 350, 1150);
+    expect(label()).toBe('확대 250% · 두 번 누르면 원래 크기로');
+    tap(195, 350, 2000);
+    tap(195, 350, 2150);
+    expect(label()).toBe('확대 100% · 두 번 누르면 확대');
+  });
+
+  it('느리게 두 번 누르면 두 번 누르기가 아니다(확대하지 않는다)', () => {
+    openImageLightbox('/a.png');
+    tap(195, 350, 1000);
+    tap(195, 350, 1900);
+    expect(label()).toBe('확대 100% · 두 번 누르면 확대');
+  });
+
+  it('끌고 손가락을 배경 위에서 떼도 닫히지 않는다(끝난 직후의 click은 배경 탭이 아니다)', () => {
+    openImageLightbox('/a.png');
+    pointer(q('.fl-stage'), 'pointerdown', 100, 100, 1000);
+    pointer(window, 'pointermove', 220, 140, 1050);
+    pointer(window, 'pointerup', 220, 140, 1100);
+    // 브라우저는 끌기가 끝난 자리에 click을 이어 보낸다 — 공통 조상(여기선 오버레이)이 대상이 된다.
+    q<HTMLElement>('.figure-lightbox').click();
+    expect(open(), '끌기가 끝나며 닫혔다').toBe(true);
+  });
+
+  it('두 손가락으로 벌리면 확대되고 배율 안내가 따라간다', () => {
+    openImageLightbox('/a.png');
+    const stage = q('.fl-stage');
+    pointer(stage, 'pointerdown', 145, 350, 1000, 1);
+    pointer(stage, 'pointerdown', 245, 350, 1005, 2);
+    pointer(window, 'pointermove', 95, 350, 1050, 1);
+    pointer(window, 'pointermove', 295, 350, 1055, 2);
+    expect(label()).toBe('확대 200% · 두 번 누르면 원래 크기로');
+    pointer(window, 'pointerup', 95, 350, 1100, 1);
+    pointer(window, 'pointerup', 295, 350, 1105, 2);
+    // 핀치가 끝난 직후의 click도 닫지 않는다.
+    q<HTMLElement>('.figure-lightbox').click();
+    expect(open()).toBe(true);
+  });
+
+  it('휠로 확대하고 기본 동작(페이지 스크롤)을 막는다', () => {
+    openImageLightbox('/a.png');
+    const e = new WheelEvent('wheel', { deltaY: -200, clientX: 195, clientY: 350, bubbles: true, cancelable: true });
+    q('.fl-stage').dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(true);
+    expect(label()).toBe('확대 149% · 두 번 누르면 원래 크기로');
+  });
+
+  it('키보드: + 확대 · - 축소 · 0 원래 크기', () => {
+    openImageLightbox('/a.png');
+    const press = (key: string) => document.body.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+    press('+');
+    expect(label()).toBe('확대 125% · 두 번 누르면 원래 크기로');
+    press('=');
+    expect(label()).toBe('확대 156% · 두 번 누르면 원래 크기로');
+    press('-');
+    expect(label()).toBe('확대 125% · 두 번 누르면 원래 크기로');
+    press('0');
+    expect(label()).toBe('확대 100% · 두 번 누르면 확대');
+  });
+
+  // 화살표를 놓아 두면 뒤 화면의 문항 이동(document keydown)이 라이트박스 밑에서 돌아간다.
+  it('화살표 키를 삼킨다(뒤의 문항 이동이 돌지 않는다)', () => {
+    openImageLightbox('/a.png');
+    const leaked = vi.fn();
+    document.addEventListener('keydown', leaked);
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    document.removeEventListener('keydown', leaked);
+    expect(leaked).not.toHaveBeenCalled();
+  });
+});
+
+describe('그림 확대 진입 — 칩과 대체 텍스트', () => {
+  it('문구 상수', () => {
+    expect(FIGURE_IMAGE_ALT).toBe('문제 그림 (눌러서 확대)');
+    expect(FIGURE_ZOOM_LABEL).toBe('그림 확대해서 보기');
+    expect(FIGURE_ZOOM_TEXT).toBe('눌러서 확대');
+  });
+
+  it('칩은 이름을 가진 버튼이고, 누르면 열기 콜백을 부르되 상위로 번지지 않는다', () => {
+    const onOpen = vi.fn();
+    const parentClick = vi.fn();
+    const parent = document.createElement('div');
+    parent.addEventListener('click', parentClick);
+    const chip = createFigureZoomChip(onOpen);
+    parent.appendChild(chip);
+
+    expect(chip.tagName).toBe('BUTTON');
+    expect(chip.type).toBe('button');
+    expect(chip.getAttribute('aria-label')).toBe('그림 확대해서 보기');
+    expect(chip.textContent).toBe('눌러서 확대');
+    chip.click();
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    // 그림 틀(frame)에도 확대 클릭이 걸려 있으면 한 번의 탭에 두 번 열린다.
+    expect(parentClick).not.toHaveBeenCalled();
   });
 });

@@ -207,6 +207,25 @@ export function reviewTargetIds(
   return out;
 }
 
+/**
+ * 오답 모드가 **실제로 내놓을** 문항 — 대상 id에 속하고, 이미 다시 풀어 맞힌(복습 완료) 번호가
+ * 아닌 것. 아무리 맞혀도 목록이 줄지 않으면 "오답 발견 → 보완 → 재측정" 루프의 마지막 단계가
+ * 없는 것과 같다.
+ *
+ * 출제(아래 review 분기)와 '오답 N문제 다시 풀기'의 N이 **같은 함수**를 거친다. 둘이 각자
+ * 거르면 버튼은 "4문제"라는데 눌러 보니 3문제인 어긋남이 생긴다(이 저장소에서 같은 판정의
+ * 사본이 갈려 난 결함이 여러 건이다).
+ */
+export function selectReviewQuestions<Q extends { id?: string; number: number }>(
+  questions: Q[],
+  targetIds: ReadonlySet<string>,
+  doneNumbers: ReadonlySet<number>,
+): Q[] {
+  return questions.filter(
+    (q) => targetIds.has(q.id || `legacy-${q.number}`) && !doneNumbers.has(q.number),
+  );
+}
+
 /** 출제 목록을 만든 맥락. 스토어의 현재 mode/setId와 **다를 수 있다**(CurrentList 참고). */
 export interface ListContext {
   /** 이 목록을 만든 모드. 아직 아무것도 싣지 않았으면 null. */
@@ -394,10 +413,7 @@ export function useQuestions() {
         // 이미 다시 풀어 맞힌 문항은 뺀다 — 아무리 맞혀도 목록이 줄지 않으면
         // "오답 발견 → 보완 → 재측정" 루프의 마지막 단계가 없는 것과 같다.
         const done = new Set(useQuizStore.getState().reviewedOk[setId] ?? []);
-        const reviews = questions.filter(
-          (q) => ids.has(q.id || `legacy-${q.number}`) && !done.has(q.number),
-        );
-        setSetList(reviews);
+        setSetList(selectReviewQuestions(questions, ids, done));
       } else {
         // 챕터 집중 연습(Phase 3): 연습 모드에서 필터가 있으면 해당 챕터 문항만 노출.
         // 답안 키는 문항 id 기준이라 필터를 걸거나 풀어도 기존 답안이 오염되지 않는다.

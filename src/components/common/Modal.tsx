@@ -1,4 +1,4 @@
-import { useEffect, useRef, ReactNode } from 'react';
+import { useEffect, useRef, ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
 import { lockBodyScroll } from '../../utils/scrollLock';
 import { isImageLightboxOpen } from '../../utils/lightbox';
 
@@ -17,19 +17,50 @@ interface ModalProps {
   subtitle?: ReactNode;
   /** 바닥 안내 스트립. 본문을 가르던 보조 설명을 여기로 내린다. */
   footer?: ReactNode;
+  /**
+   * 'sheet': 좁은 화면(≤880px)에서는 아래에서 올라오는 바텀 시트, 넓은 화면에서는 종전의 가운데 모달.
+   * 포커스 트랩·Esc·스크롤 잠금·백드롭 닫기는 그대로다 — 모양만 다르다.
+   */
+  variant?: 'sheet';
 }
 
 /**
  * 공용 모달: Esc 닫기 + 포커스 트랩(Tab 순환) + 열기 전 포커스 복원 + 백드롭 클릭 닫기.
  * 기존 설정·오답노트 모달과 신규 통계·결과 모달이 동일한 접근성 동작을 공유한다.
  */
-export const Modal = ({ title, onClose, children, headerExtra, icon, subtitle, footer }: ModalProps) => {
+export const Modal = ({ title, onClose, children, headerExtra, icon, subtitle, footer, variant }: ModalProps) => {
   const panelRef = useRef<HTMLElement>(null);
   // onClose는 호출부가 매 렌더 새 인라인 함수를 넘긴다 — effect 의존성으로 두면
   // 결과 모달이 열린 동안(타이머 틱으로 매초 리렌더) 포커스 강탈/스크롤락 재실행이
   // 반복되므로 ref로 최신 참조만 유지하고 effect는 마운트 시 1회만 실행한다.
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; });
+
+  // 바텀 시트 손잡이: 아래로 끌어 닫는다(✕·Esc·뒤로가기와 같은 닫기다 — 닫는 길이 하나 더 있는 것뿐이다).
+  // 끌기 동안 패널은 손가락을 따라 내려가고(DOM을 직접 만진다 — 이동마다 리렌더하지 않는다),
+  // 충분히 내렸거나 빠르게 쓸어내렸으면 닫고, 아니면 제자리로 돌아간다.
+  const grab = useRef<{ id: number; y: number; t: number } | null>(null);
+  const SWIPE_CLOSE_PX = 96;
+  const onGrabDown = (e: ReactPointerEvent<HTMLElement>) => {
+    grab.current = { id: e.pointerId, y: e.clientY, t: e.timeStamp };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    if (panelRef.current) panelRef.current.style.transition = 'none';
+  };
+  const onGrabMove = (e: ReactPointerEvent<HTMLElement>) => {
+    const g = grab.current;
+    if (!g || g.id !== e.pointerId || !panelRef.current) return;
+    panelRef.current.style.transform = `translateY(${Math.max(0, e.clientY - g.y)}px)`;
+  };
+  const onGrabUp = (e: ReactPointerEvent<HTMLElement>) => {
+    const g = grab.current;
+    if (!g || g.id !== e.pointerId) return;
+    grab.current = null;
+    const dy = Math.max(0, e.clientY - g.y);
+    const fast = e.type !== 'pointercancel' && dy / Math.max(1, e.timeStamp - g.t) > 0.5; // px/ms
+    if (e.type !== 'pointercancel' && (dy > SWIPE_CLOSE_PX || (dy > 32 && fast))) { onCloseRef.current(); return; }
+    const panel = panelRef.current;
+    if (panel) { panel.style.transition = 'transform 0.18s ease-out'; panel.style.transform = ''; }
+  };
 
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
@@ -114,16 +145,26 @@ export const Modal = ({ title, onClose, children, headerExtra, icon, subtitle, f
   });
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className={variant === 'sheet' ? 'modal-backdrop is-sheet' : 'modal-backdrop'} onClick={onClose}>
       <section
         ref={panelRef}
-        className="modal-panel"
+        className={variant === 'sheet' ? 'modal-panel is-sheet' : 'modal-panel'}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
+        {variant === 'sheet' && (
+          <span
+            className="modal-grab"
+            aria-hidden="true"
+            onPointerDown={onGrabDown}
+            onPointerMove={onGrabMove}
+            onPointerUp={onGrabUp}
+            onPointerCancel={onGrabUp}
+          />
+        )}
         <header className="modal-header">
           <div className="modal-title">
             {icon && <span className="modal-title-ico" aria-hidden="true">{icon}</span>}
