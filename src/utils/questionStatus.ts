@@ -50,13 +50,12 @@ export function isImmediateFeedbackMode(mode: string): boolean {
 /**
  * 연습·오답에서 이 답안이 정답 피드백을 **여는 답안인가**.
  *
- * QuestionCard는 보기를 고르는 즉시 피드백을 열되, 복수정답은 정답 개수만큼 다 골랐을 때,
- * 서답형은 사용자가 '정답 확인'을 누를 때 연다. 그 열림 여부는 카드의 로컬 상태라 저장되지
- * 않으므로, 같은 조건을 저장된 답안에서 다시 읽는다. 서답형은 확인 시점을 알 수 없어
- * 늘 '아직'으로 본다 — 입력 도중의 글자를 오답(✕)으로 먼저 보여 주지 않기 위해서다.
+ * 보기를 고르는 즉시 열리되, 복수정답은 정답 개수만큼 다 골랐을 때 열린다. 진위형도 고르는 즉시다. 서답형은
+ * 사용자가 '정답 확인'을 누를 때 여는데 그 시점은 저장되지 않으므로 늘 '아직'으로 본다 — 입력 도중의 글자를
+ * 오답(✕)으로 먼저 보여 주지 않기 위해서다.
  *
- * 이 판정을 읽는 곳은 둘이다: 목록·스트립(✓/✕를 칠할지)과 카드(열릴 때 피드백을 미리 펼칠지,
- * `feedbackOpenOnEntry`). 둘이 **같은 함수**를 써야 "목록은 ✕인데 열어 보니 정오가 없는" 어긋남이 없다.
+ * 이 판정을 읽는 곳은 둘이다: 목록·스트립(✓/✕를 칠할지)과 카드(`selectionRevealsFeedback`). 카드가 열림 여부를
+ * 로컬 상태로 따로 들면 둘이 갈린다(그 사례는 아래 함수에).
  */
 export function isFeedbackConfirmed(q: QuickScorable, selected: string[]): boolean {
   if (!selected.length) return false;
@@ -65,15 +64,17 @@ export function isFeedbackConfirmed(q: QuickScorable, selected: string[]): boole
 }
 
 /**
- * 카드를 (다시) 열 때 정답 피드백을 미리 펼쳐 둘 것인가.
+ * 카드가 선택만으로 정답 피드백을 펼쳐 보여야 하는가 — 연습·오답의 보기형·진위형.
  *
- * 카드는 문항을 옮기면 새로 만들어져(세트·모드·문항이 key — 다음 문항으로 피드백이 새지 않게 한다) 열림
- * 상태가 닫힌 채 시작한다. 그러면 이미 푼 문항으로 돌아왔을 때, 목록은 저장된 답안에서 ✓/✕를 칠하는데
- * 카드에는 정오도 해설도 없다 — 오답만 모아 눌러 보는 필터의 쓸모가 사라진다. 그래서 카드도 같은 판정
- * (`isFeedbackConfirmed`)으로 시작 상태를 정한다. 아직 안 푼 문항은 닫힌 채 시작하므로 새는 것이 없다.
- * 채점이 공개를 정하는 모드(시험·랜덤·퀵)에는 해당 없다 — 거기서는 graded·quickGraded가 맡는다.
+ * 카드는 이 값을 로컬 상태에 옮겨 담지 않고 저장된 답안에서 매번 파생한다. 로컬 상태로 들면 목록과 어긋난다:
+ *  · 문항을 옮겼다 돌아오면 카드는 새로 만들어져(세트·모드·문항이 key) 닫힌 채 시작하는데, 목록은 저장된 답안에서
+ *    ✓/✕를 칠한다 — 오답만 모아 눌러 보는 필터를 눌렀는데 카드에는 정오도 해설도 없다.
+ *  · 복수정답에서 선택을 하나 빼면 카드는 열린 채인데 답안은 정답 개수에 못 미쳐, 목록은 '푼 문제'로 돌아간다.
+ * 안 푼 문항은 파생값이 거짓이라 닫힌 채 시작하므로 다음 문항으로 피드백이 새지 않는다.
+ * 서답형은 해당 없다 — '정답 확인'을 누른 시점은 카드의 로컬 상태가 들고, 목록은 서답형을 정오 없이 '푼 문제'로
+ * 둔다(보수적인 쪽). 채점이 공개를 정하는 모드(시험·랜덤·퀵)에도 해당 없다 — graded·quickGraded가 맡는다.
  */
-export function feedbackOpenOnEntry(mode: string, q: QuickScorable, selected: string[]): boolean {
+export function selectionRevealsFeedback(mode: string, q: QuickScorable, selected: string[]): boolean {
   return isImmediateFeedbackMode(mode) && isFeedbackConfirmed(q, selected);
 }
 

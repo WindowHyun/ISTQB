@@ -297,6 +297,35 @@ test.describe("문항 목록 시트", () => {
     await expect(sheet.locator("button.qcell", { hasText: /^1$/ })).toHaveAttribute("data-state", verdict);
   });
 
+  test("복수정답에서 선택을 하나 빼면 카드의 정오·해설도 닫히고, 목록은 푼 문제로 돌아간다(둘이 같은 말을 한다)", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await gotoQuestionMobile(page, 6); // 6번: 복수정답(a·e)
+    await expect(page.locator("#questionTitle")).toContainText("복수정답");
+    const options = page.locator("#options .option");
+    const feedback = page.locator("#feedback");
+
+    await options.nth(0).click(); // a — 정답 개수(2)를 채우기 전에는 정오가 열리지 않는다
+    await expect(feedback, "정답 개수를 다 채우기 전에 정오가 열렸다").toHaveCount(0);
+    await options.nth(4).click(); // e — 채웠다
+    await expect(feedback).toBeVisible();
+    let sheet = await openQuestionList(page);
+    await expect(sheet.locator("button.qcell", { hasText: /^6$/ })).toHaveAttribute("data-state", "correct");
+    await page.keyboard.press("Escape");
+    await expect(sheet).toHaveCount(0);
+
+    // e를 빼면 선택이 모자란다 — 카드가 정오·해설을 열어 둔 채면 목록과 갈린다.
+    await options.nth(4).click();
+    await expect(feedback, "선택이 모자란데 카드가 정오·해설을 열어 두었다").toHaveCount(0);
+    sheet = await openQuestionList(page);
+    await expect(sheet.locator("button.qcell", { hasText: /^6$/ })).toHaveAttribute("data-state", "answered");
+    await page.keyboard.press("Escape");
+
+    // 다른 것으로 다시 채우면 다시 열린다.
+    await options.nth(2).click(); // a·c
+    await expect(feedback).toBeVisible();
+    await expect(feedback).toHaveClass(/wrong/); // 정답은 a·e — c를 골랐으니 오답
+  });
+
   test("'안 푼 문제'로 거르면 푼 칸이 빠지고, 누른 칩은 aria-pressed로 알린다", async ({ page }) => {
     await openSet(page, "CSTS", CSTS_2018);
     await answerCurrent(page);

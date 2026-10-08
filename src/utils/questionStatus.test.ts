@@ -3,12 +3,12 @@ import {
   canOfferRetryWrong,
   cellAriaLabel,
   deriveQuestionStatuses,
-  feedbackOpenOnEntry,
   indicesForFilter,
   isCorrectnessRevealed,
   isCorrectnessVisible,
   isFeedbackConfirmed,
   isImmediateFeedbackMode,
+  selectionRevealsFeedback,
   listSummaryText,
   stripLabel,
   stripTones,
@@ -66,33 +66,40 @@ describe('isFeedbackConfirmed — 연습·오답에서 피드백이 열린 문�
 });
 
 /**
- * 카드가 열릴 때의 피드백 — 목록이 ✓/✕를 칠하는 문항은 카드를 열어도 같은 정오가 보여야 한다.
+ * 카드의 피드백 — 목록이 ✓/✕를 칠하는 문항은 카드를 열어도 같은 정오가 보여야 하고, 선택이 바뀌면 둘이 함께 바뀐다.
  *
- * QuestionCard는 문항을 옮기면 새로 만들어져 열림 상태가 닫힌 채 시작한다. 시작 상태를 목록과 같은
- * 판정으로 정하지 않으면 "목록은 ✕인데 눌러 보니 정오도 해설도 없다"가 된다.
+ * 카드가 열림 여부를 로컬 상태로 따로 들면 어긋난다. 문항을 옮겼다 돌아오면 카드가 닫힌 채 시작하고,
+ * 복수정답에서 하나를 빼면 카드는 열린 채인데 목록은 '푼 문제'로 돌아간다. 카드는 이 함수로 매번 파생한다.
  */
-describe('feedbackOpenOnEntry — 카드가 열릴 때 피드백을 미리 펼치는가', () => {
+describe('selectionRevealsFeedback — 카드가 선택만으로 피드백을 펼치는가', () => {
   const q = mc(1, ['a']);
 
-  it('연습·오답에서 이미 푼(피드백이 열리는) 문항은 펼친 채 시작한다', () => {
-    expect(feedbackOpenOnEntry('practice', q, ['b'])).toBe(true);
-    expect(feedbackOpenOnEntry('review', q, ['a'])).toBe(true);
-    expect(feedbackOpenOnEntry('practice', tf(2, ['o']), ['x'])).toBe(true);
+  it('연습·오답에서 이미 푼(피드백이 열리는) 문항은 펼쳐 보인다 — 문항을 옮겼다 돌아와도 같다', () => {
+    expect(selectionRevealsFeedback('practice', q, ['b'])).toBe(true);
+    expect(selectionRevealsFeedback('review', q, ['a'])).toBe(true);
+    expect(selectionRevealsFeedback('practice', tf(2, ['o']), ['x'])).toBe(true);
   });
 
-  it('안 푼 문항은 닫힌 채 시작한다(다음 문항으로 피드백이 새지 않는다)', () => {
-    expect(feedbackOpenOnEntry('practice', q, [])).toBe(false);
-    expect(feedbackOpenOnEntry('review', q, [])).toBe(false);
+  it('안 푼 문항은 닫혀 있다(다음 문항으로 피드백이 새지 않는다)', () => {
+    expect(selectionRevealsFeedback('practice', q, [])).toBe(false);
+    expect(selectionRevealsFeedback('review', q, [])).toBe(false);
   });
 
-  it('복수정답을 덜 골랐거나 서답형이면 닫힌 채 시작한다(목록도 정오를 칠하지 않는 문항)', () => {
-    expect(feedbackOpenOnEntry('practice', mc(3, ['a', 'c']), ['a'])).toBe(false);
-    expect(feedbackOpenOnEntry('practice', short(4, ['테스트']), ['테스트'])).toBe(false);
+  it('복수정답은 정답 개수를 채우면 열리고, 하나를 빼면 다시 닫힌다', () => {
+    const multi = mc(3, ['a', 'c']);
+    expect(selectionRevealsFeedback('practice', multi, ['a'])).toBe(false); // 덜 골랐다
+    expect(selectionRevealsFeedback('practice', multi, ['a', 'c'])).toBe(true); // 채웠다
+    expect(selectionRevealsFeedback('practice', multi, ['a'])).toBe(false); // 하나를 뺐다 — 목록도 '푼 문제'로 돌아간다
+    expect(selectionRevealsFeedback('practice', multi, ['a', 'b'])).toBe(true); // 다른 것으로 바꿔 다시 채웠다
   });
 
-  it('시험·랜덤·퀵은 답이 있어도 닫힌 채 시작한다(공개는 채점이 정한다)', () => {
+  it('서답형은 선택만으로는 열리지 않는다(\'정답 확인\'은 카드의 로컬 상태가 든다)', () => {
+    expect(selectionRevealsFeedback('practice', short(4, ['테스트']), ['테스트'])).toBe(false);
+  });
+
+  it('시험·랜덤·퀵은 답이 있어도 닫혀 있다(공개는 채점이 정한다)', () => {
     for (const mode of ['exam', 'random', 'quick']) {
-      expect(feedbackOpenOnEntry(mode, q, ['a']), mode).toBe(false);
+      expect(selectionRevealsFeedback(mode, q, ['a']), mode).toBe(false);
     }
   });
 
@@ -103,7 +110,7 @@ describe('feedbackOpenOnEntry — 카드가 열릴 때 피드백을 미리 펼�
     for (const mode of ['practice', 'review', 'exam', 'random', 'quick']) {
       for (const c of cases) {
         for (const selected of picks) {
-          expect(feedbackOpenOnEntry(mode, c, selected), `${mode} ${c.id} [${selected}]`)
+          expect(selectionRevealsFeedback(mode, c, selected), `${mode} ${c.id} [${selected}]`)
             .toBe(isCorrectnessRevealed(mode, c, selected, false));
         }
       }
