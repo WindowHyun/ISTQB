@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>풀이 화면</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1f7;--surface:#fff;--line:#dbe2ee;--line2:#cbd5e1;--blue:#2563eb;--blue-t:#1d4ed8;--navy:#0f172a;--ok:#16a34a;--ok-t:#15803d;--bad:#dc2626;--bad-t:#b91c1c;--muted:#334155;--muted2:#475569}
+*{box-sizing:border-box}body{margin:0;background:#fff}button{font-family:inherit;cursor:pointer}
+.phone{position:relative;width:390px;height:844px;overflow:hidden;background:var(--bg);color:var(--navy);font-family:'Noto Sans KR',system-ui,sans-serif}
+.top{background:var(--surface);border-bottom:1px solid var(--line);padding:12px 16px 0;display:flex;flex-direction:column}
+.row{display:flex;align-items:center;gap:12px}
+.logo{width:36px;height:36px;border-radius:10px;background:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sub{font-size:12px;font-weight:700;color:var(--blue-t)}.ttl{font-size:17px;font-weight:700;line-height:1.3}
+.ibtn{width:44px;height:44px;border-radius:12px;border:1px solid var(--line2);background:#fff;display:flex;align-items:center;justify-content:center;padding:0}
+.status{display:flex;align-items:center;gap:10px;height:52px}
+.pill{background:var(--blue);color:#fff;font-size:13px;font-weight:700;padding:4px 12px;border-radius:14px}
+.wchip{min-height:44px;display:flex;align-items:center;gap:8px;padding:0 8px 0 14px;border-radius:22px;border:1px solid #fca5a5;background:#fef2f2;color:var(--bad-t);font-size:13px;font-weight:700}
+.badge{min-width:22px;height:22px;border-radius:11px;background:var(--bad-t);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center}
+.body{padding:12px 16px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:16px}
+.qhead{padding:14px 18px;display:flex;align-items:center;gap:10px}.qhead b{font-size:20px}
+.tag{font-size:12px;font-weight:700;color:#1e3a8a;background:#e0e7ff;padding:3px 10px;border-radius:12px}
+.qbody{padding:20px 16px;display:flex;flex-direction:column;gap:16px}.stem{font-size:16px;line-height:1.7}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{min-height:56px;display:flex;align-items:center;gap:12px;text-align:left;padding:10px 14px;border-radius:14px;border:1px solid var(--line2);background:#fff;font-size:15px;line-height:1.5;color:var(--navy)}
+.opt i{width:32px;height:32px;border-radius:16px;background:#eef2f7;color:var(--muted);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-style:normal}
+.bottom{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:12px 16px 24px;display:flex;flex-direction:column;gap:12px}
+.strip{display:flex;gap:3px}.strip span{flex:1;height:6px;border-radius:3px}
+.nav{display:flex;gap:10px}.nbtn{width:56px;height:52px;border-radius:14px;border:1px solid #94a3b8;background:#fff;display:flex;align-items:center;justify-content:center;padding:0}
+.nbtn[disabled]{border-color:#e2e8f0}
+.list{flex:1;height:52px;border-radius:14px;border:none;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font-size:15px;font-weight:700}
+.scrim{position:absolute;inset:0;background:rgba(15,23,42,.5)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:24px 24px 0 0;padding:10px 16px 24px;display:flex;flex-direction:column;gap:12px}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line2);align-self:center}
+.cta{height:52px;border-radius:14px;border:none;background:var(--blue);color:#fff;font-size:15px;font-weight:700}
+.chip{min-height:44px;padding:0 16px;border-radius:22px;border:1px solid #94a3b8;background:#fff;color:var(--navy);font-size:14px;font-weight:500}
+.chip.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.cell{position:relative;height:56px;border-radius:12px;font-size:16px;font-weight:700;padding:0}
+.cell svg{position:absolute;top:5px;right:5px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted)}.legend span{display:flex;align-items:center;gap:6px}.legend em{width:14px;height:14px;border-radius:4px;display:inline-block}
+.set{min-height:60px;display:flex;align-items:center;gap:12px;text-align:left;padding:8px 14px;border-radius:14px;border:1px solid var(--line2);background:#fff;color:var(--navy)}
+.set .n{font-size:15px;font-weight:700;white-space:nowrap}.set .m{font-size:12px;color:var(--muted);white-space:nowrap}
+.bar{height:4px;border-radius:2px;background:#e2e8f0;display:flex}.bar b{background:var(--blue);border-radius:2px}
+.grp{font-size:13px;font-weight:700;color:var(--muted);padding:4px 2px}
+.seg{display:flex;padding:4px;gap:4px;border-radius:14px;background:#eef2f7}.seg button{flex:1;min-height:44px;border-radius:10px;border:none;background:transparent;color:var(--muted);font-size:15px;font-weight:500}.seg .on{background:#fff;color:var(--blue-t);font-weight:700}
+</style></head><body><div class="phone"><div class="top"><div class="row"><div class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div><div style="flex:1;min-width:0;display:flex;flex-direction:column"><div class="sub">CSTS · 일반등급</div><div class="ttl">2018 일반등급 예제</div></div><button class="ibtn" aria-label="메뉴 열기"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
+<div class="status"><span class="pill">연습</span><span style="font-size:14px;font-weight:700">1 / 20</span><span style="font-size:13px;color:var(--muted2)">00:32</span><span style="flex:1"></span><button class="wchip">오답 노트<span class="badge">4</span></button></div></div><div class="body"><div class="card qhead"><b>문제 1</b><span class="tag">소프트웨어 테스트 기초</span></div><div class="card qbody"><div class="stem">소프트웨어 오류의 원인으로 잘못된 것은 무엇인가?</div><div class="opts">
+<button class="opt"><i>A</i>개발 시간이 부족하지만 요구사항에 따라 기능을 구현하였다.</button>
+<button class="opt"><i>B</i>고객의 승인 없이 개발자가 개발 중인 시스템에 기능을 추가하였다.</button>
+<button class="opt"><i>C</i>설계 문서를 잘못 이해하고 코딩을 하였다.</button>
+<button class="opt"><i>D</i>코딩 표준에 따르지 않고 시스템을 개발하였다.</button></div></div></div><div class="bottom"><div class="strip" role="img" aria-label="진행 상황"><span style="background:#2563eb"></span><span style="background:#cbd5e1"></span><span style="background:#cbd5e1"></span><span style="background:#cbd5e1"></span><span style="background:#cbd5e1"></span><span style="background:#cbd5e1"></span><span style="background:#cbd5e1"></span><span style="background:#cbd5e1"></span><span style="background:#cbd5e1"></span><span style="background:#cbd5e1"></span><span style="background:#cbd5e1"></span><span style="background:#cbd5e1"></span><span style="background:#cbd5e1"></span><span style="background:#cbd5e1"></span><span style="background:#cbd5e1"></span><span style="background:#cbd5e1"></span><span style="background:#cbd5e1"></span><span style="background:#cbd5e1"></span><span style="background:#cbd5e1"></span><span style="background:#cbd5e1"></span></div><div class="nav"><button class="nbtn" aria-label="이전 문제" disabled><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button><button class="list" aria-label="문항 목록 열기"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>문항 목록<span style="font-weight:500;color:#cbd5e1">1 / 20</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button><button class="nbtn" aria-label="다음 문제"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button></div></div></div></body></html>

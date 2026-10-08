@@ -1,6 +1,7 @@
 import { useEffect, useRef, ReactNode } from 'react';
 import { lockBodyScroll } from '../../utils/scrollLock';
 import { isImageLightboxOpen } from '../../utils/lightbox';
+import { attachSheetGrab } from '../../utils/sheetGrab';
 
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -17,19 +18,33 @@ interface ModalProps {
   subtitle?: ReactNode;
   /** 바닥 안내 스트립. 본문을 가르던 보조 설명을 여기로 내린다. */
   footer?: ReactNode;
+  /**
+   * 'sheet': 좁은 화면(≤880px)에서는 아래에서 올라오는 바텀 시트, 넓은 화면에서는 종전의 가운데 모달.
+   * 포커스 트랩·Esc·스크롤 잠금·백드롭 닫기는 그대로다 — 모양만 다르다.
+   */
+  variant?: 'sheet';
 }
 
 /**
  * 공용 모달: Esc 닫기 + 포커스 트랩(Tab 순환) + 열기 전 포커스 복원 + 백드롭 클릭 닫기.
  * 기존 설정·오답노트 모달과 신규 통계·결과 모달이 동일한 접근성 동작을 공유한다.
  */
-export const Modal = ({ title, onClose, children, headerExtra, icon, subtitle, footer }: ModalProps) => {
+export const Modal = ({ title, onClose, children, headerExtra, icon, subtitle, footer, variant }: ModalProps) => {
   const panelRef = useRef<HTMLElement>(null);
   // onClose는 호출부가 매 렌더 새 인라인 함수를 넘긴다 — effect 의존성으로 두면
   // 결과 모달이 열린 동안(타이머 틱으로 매초 리렌더) 포커스 강탈/스크롤락 재실행이
   // 반복되므로 ref로 최신 참조만 유지하고 effect는 마운트 시 1회만 실행한다.
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; });
+
+  // 바텀 시트 손잡이: 아래로 끌어 닫는다(✕·Esc·뒤로가기와 같은 닫기다). 동작은 utils/sheetGrab에 있다 —
+  // 닫기를 받아들이지 않는 부모 아래에서도 패널이 제자리로 돌아오는지를 유닛이 고정한다.
+  const grabRef = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const handle = grabRef.current;
+    if (!handle) return;
+    return attachSheetGrab(handle, () => panelRef.current, () => onCloseRef.current());
+  }, [variant]);
 
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
@@ -114,16 +129,17 @@ export const Modal = ({ title, onClose, children, headerExtra, icon, subtitle, f
   });
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className={variant === 'sheet' ? 'modal-backdrop is-sheet' : 'modal-backdrop'} onClick={onClose}>
       <section
         ref={panelRef}
-        className="modal-panel"
+        className={variant === 'sheet' ? 'modal-panel is-sheet' : 'modal-panel'}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
+        {variant === 'sheet' && <span ref={grabRef} className="modal-grab" aria-hidden="true" />}
         <header className="modal-header">
           <div className="modal-title">
             {icon && <span className="modal-title-ico" aria-hidden="true">{icon}</span>}

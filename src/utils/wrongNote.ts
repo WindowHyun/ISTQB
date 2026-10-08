@@ -95,6 +95,76 @@ export function buildWrongNoteBySet(
   return merged.sort((a, b) => (b.latestCreatedAt || 0) - (a.latestCreatedAt || 0));
 }
 
+/**
+ * 현재 제품(ISTQB/CSTS)의 이력만 고른다.
+ *
+ * IndexedDB 이력 저장소는 두 제품이 공유하므로 필터 없이는 다른 제품의 기록이 섞여 보인다.
+ * 신규 기록은 certification 필드로 판별하고, 필드가 없는 과거 기록만 setId로 추론한다 —
+ * 세트가 index.json에서 빠지거나 개명돼도 이력이 실종되지 않게 하려는 폴백이다.
+ *
+ * 종전에는 AppModals의 useMemo 안에 있었다. 모바일 상태 줄의 '오답 노트' 배지가 같은 모집단을
+ * 세야 해서(배지 숫자와 노트에 실제로 나열되는 문항 수가 달라지면 버튼이 거짓말을 한다)
+ * 한 곳으로 꺼냈다.
+ */
+export function selectProductHistories(
+  histories: Record<string, ExamHistory>,
+  productSetIds: ReadonlySet<string>,
+  activeProduct: string | null,
+): Record<string, ExamHistory> {
+  const out: Record<string, ExamHistory> = {};
+  for (const [id, h] of Object.entries(histories)) {
+    const owns = h.certification ? h.certification === activeProduct : productSetIds.has(h.setId);
+    if (owns) out[id] = h;
+  }
+  return out;
+}
+
+export type WrongItem = NonNullable<ExamHistory['wrongItems']>[number];
+
+/** 오답 노트의 '최근 퀵 오답' 한 줄 — 세트 그룹과 섞이지 않는 별도 목록이다. */
+export interface QuickWrongEntry {
+  setId: string;
+  setTitle: string;
+  item: WrongItem;
+}
+
+/**
+ * 최근 퀵 오답 — 세트 그룹과 섞지 않는다(퀵은 세트를 다 푼 것이 아니다).
+ *
+ * 같은 문항(출처 세트 + 번호)이 여러 회차에서 틀렸으면 **가장 최근 회차**의 기록이 대표다.
+ * 정렬은 세트 이름(가나다) → 문항 번호. 보기 전용 목록이라 상세 진입을 두지 않는다:
+ * 퀵은 여러 세트에서 뽑히므로 문항 번호가 겹치는데(A세트 3번·B세트 3번) 번호로 상세를
+ * 찾는 기존 경로로는 구분할 수 없다.
+ */
+export function buildQuickWrongs(
+  rounds: ExamHistory[],
+  titleOf: (setId: string) => string | undefined,
+): QuickWrongEntry[] {
+  const newestFirst = [...rounds].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+  const seen = new Map<string, QuickWrongEntry>();
+  for (const r of newestFirst) {
+    for (const it of r.wrongItems ?? []) {
+      const sid = it.setId ?? r.setId;
+      const key = `${sid}:${it.number}`;
+      if (seen.has(key)) continue;
+      seen.set(key, { setId: sid, setTitle: titleOf(sid) ?? sid, item: it });
+    }
+  }
+  return [...seen.values()].sort((a, b) =>
+    a.setTitle.localeCompare(b.setTitle, 'ko') || a.item.number - b.item.number);
+}
+
+/**
+ * 오답 노트가 나열하는 문항의 총수 — 퀵 오답 + 세트별 오답.
+ *
+ * 상태 줄의 '오답 노트 N' 배지는 이 값이다. 배지는 누르면 열리는 화면의 크기를 예고하므로
+ * 다른 모집단(예: 현재 세트의 오답만)을 세면 "4라더니 열어 보니 17개"가 된다.
+ * '극복' 표시가 붙은 문항도 노트에는 남아 있으므로(흐리게 표시) 세는 데 포함한다.
+ */
+export function countWrongNote(sets: WrongNoteSetView[], quick: QuickWrongEntry[]): number {
+  return quick.length + sets.reduce((n, s) => n + (s.wrongItems?.length ?? 0), 0);
+}
+
 /** 오답 보기 화면이 이동에 쓰는 최소 형태(스토어 wrongView의 부분집합). */
 export interface WrongViewSibling {
   number: number;

@@ -77,8 +77,9 @@ export const UserGuide = ({ onClose }: { onClose: () => void }) => (
         <h4>⚙️ 편의 기능</h4>
         <ul>
           <li>설정에서 <strong>다크 모드</strong>·<strong>글자 크기</strong>(작게/기본/크게)를 바꿀 수 있습니다.</li>
-          <li>키보드 <strong>← →</strong>로 문항 이동, <strong>문항 목록</strong>(팔레트)에서 번호로 바로 점프 — 답한 문항/빈 문항이 색으로 구분됩니다. <strong>퀵</strong>에서는 팔레트가 없고, <strong>앞으로는 채점한 뒤에만</strong> 갑니다(‹ 로 되돌아보는 것은 언제든 가능해요).</li>
-          <li>그림 문항은 이미지를 누르면 <strong>확대</strong>됩니다(Esc로 닫기).</li>
+          <li>키보드 <strong>← →</strong>로 문항 이동. 모바일은 아래 <strong>문항 목록</strong>을 누르면 번호 격자가 열려 번호로 바로 이동하고 <strong>안 푼 문제·오답만 걸러</strong> 볼 수 있습니다(정답·오답 표시는 연습·오답 모드는 바로, 시험은 <strong>채점한 뒤에만</strong> 나와요). <strong>퀵</strong>에서는 목록이 없고, <strong>앞으로는 채점한 뒤에만</strong> 갑니다(‹ 로 되돌아보는 것은 언제든 가능해요).</li>
+          <li>모바일은 위쪽 <strong>세트 이름</strong>을 누르면 세트를 고르는 목록이 열리고, 세트마다 풀이 진행이 보입니다.</li>
+          <li>그림 문항은 그림 아래 <strong>눌러서 확대</strong>를 누르면 확대 화면이 열립니다 — 두 손가락으로 늘리고, 한 손가락으로 움직이고, 두 번 누르면 확대/원래 크기(Esc·뒤로가기로 닫기).</li>
           <li>한 번 접속해두면 <strong>오프라인</strong>에서도 동작합니다(PWA).</li>
         </ul>
       </section>

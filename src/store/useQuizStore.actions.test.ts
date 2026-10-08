@@ -114,6 +114,7 @@ describe('오버레이 토글 — 인자를 그대로 반영한다', () => {
     ['setWrongNoteOpen', 'wrongNoteOpen'],
     ['setResultOpen', 'resultOpen'],
     ['setPaletteOpen', 'paletteOpen'],
+    ['setSetSheetOpen', 'setSheetOpen'],
     ['setConfirmGradeOpen', 'confirmGradeOpen'],
     ['setResumeNotice', 'resumeNotice'],
     ['setResumePrompt', 'resumePrompt'],

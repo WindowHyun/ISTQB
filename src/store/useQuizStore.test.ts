@@ -109,7 +109,7 @@ describe("useQuizStore 세션/네비/타이머 액션", () => {
     useQuizStore.setState({
       mode: "exam", activeProduct: "istqb",
       settingsOpen: true, statsOpen: true, wrongNoteOpen: true, resultOpen: true,
-      paletteOpen: true, confirmGradeOpen: true, drawerOpen: true,
+      paletteOpen: true, setSheetOpen: true, confirmGradeOpen: true, drawerOpen: true,
       resumeNotice: true, resumePrompt: true,
     });
     useQuizStore.getState().resetToGate();
@@ -118,7 +118,7 @@ describe("useQuizStore 세션/네비/타이머 액션", () => {
     expect(st.activeProduct).toBeNull();
     for (const k of [
       "settingsOpen", "statsOpen", "wrongNoteOpen", "resultOpen",
-      "paletteOpen", "confirmGradeOpen", "drawerOpen", "resumeNotice", "resumePrompt",
+      "paletteOpen", "setSheetOpen", "confirmGradeOpen", "drawerOpen", "resumeNotice", "resumePrompt",
     ] as const) expect(st[k]).toBe(false);
   });
 
@@ -144,7 +144,7 @@ describe("useQuizStore 세션/네비/타이머 액션", () => {
   it("commitSetChange는 세트 교체와 새 세션 개시를 함께 처리한다", () => {
     useQuizStore.setState({
       mode: "practice", setId: "A", index: 7, elapsedSeconds: 120,
-      chapterFilter: "테스트 기법", drawerOpen: true, pendingSetChange: "B",
+      chapterFilter: "테스트 기법", drawerOpen: true, setSheetOpen: true, pendingSetChange: "B",
     });
     useQuizStore.getState().commitSetChange("B");
     const st = useQuizStore.getState();
@@ -153,6 +153,8 @@ describe("useQuizStore 세션/네비/타이머 액션", () => {
     expect(st.elapsedSeconds).toBe(0);
     expect(st.chapterFilter).toBeNull();
     expect(st.drawerOpen).toBe(false);
+    // 세트 선택 시트에서 고른 세트로 바뀌면 시트도 닫혀야 한다 — 열린 채 남으면 풀이 화면을 가린다.
+    expect(st.setSheetOpen).toBe(false);
     expect(st.pendingSetChange).toBeNull(); // 보류 해제
   });
 

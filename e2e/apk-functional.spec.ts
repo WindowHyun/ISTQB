@@ -1,5 +1,5 @@
 import { test, expect, Page } from "./fixtures";
-import { enterExamMobile, openSet, submitGrade, closeResult, answerCurrent, quickNext } from "./helpers";
+import { enterExamMobile, expectSolved, openSet, submitGrade, closeResult, answerCurrent, quickNext } from "./helpers";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // APK(WebView) 기능 테스트 — Android 폰 에뮬레이션 + MainActivity의 안전영역
@@ -98,7 +98,7 @@ test.describe("APK 기능 · 핵심 플로우(터치)", () => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await page.locator("#options .option").first().tap();
     await expect(page.locator("#feedback")).toBeVisible();
-    await expect(page.locator(".mtb-meta").first()).toContainText("1 / 40");
+    await expectSolved(page, 1, 40);
   });
 
   test("AF6 시험: 진입→응답→채점→결과 모달이 모바일에서 완결된다", async ({ page }) => {
@@ -119,7 +119,7 @@ test.describe("APK 기능 · 핵심 플로우(터치)", () => {
     await page.reload();
     await page.getByRole("button", { name: "ISTQB" }).click();
     await expect(page.locator("#questionStem")).toBeVisible();
-    await expect(page.locator(".mtb-meta").first()).toContainText("1 / 40");
+    await expectSolved(page, 1, 40);
   });
 
   test("AF8 가로 스크롤이 생기지 않는다(콘텐츠 넘침 금지)", async ({ page }) => {
@@ -175,9 +175,10 @@ test.describe("APK 기능 · 퀵 랜덤(터치)", () => {
     await checkTarget(page.getByTestId("quick-start-btn"), "다시 섞어 시작 버튼");
     await page.getByTestId("drawer-close").tap();
 
-    // 퀵에는 진행률(N/총계)이 없다 — 끝을 정해 놓지 않아 분모가 없다. 상단바도 사이드바와
-    // 같은 규칙으로 그 자리를 비우고, 현황은 문제 헤더의 점수판이 맡는다.
-    await expect(page.locator(".mtb-meta")).toHaveCount(0);
+    // 퀵에는 위치·진행(N/총계)이 없다 — 끝을 정해 놓지 않아 분모가 없다. 상단바도 사이드바와
+    // 같은 규칙으로 그 자리를 비우고(위치·시간·하단 스트립·문항 목록), 현황은 문제 헤더의 점수판이 맡는다.
+    await expect(page.locator(".mtb-pos, .mtb-time")).toHaveCount(0);
+    await expect(page.getByTestId("progress-strip")).toHaveCount(0);
     await expect(page.locator(".quick-scoreboard .qs-item")).toHaveCount(4);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

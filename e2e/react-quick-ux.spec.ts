@@ -312,7 +312,7 @@ test("퀵: 복수정답을 일부만 고르면 점수판이 '답함'으로 세�
  * 아니라 원본 세트의 문항 번호이고, 퀵은 전 세트를 섞어 내므로 세트가 다르면 같은 번호가
  * 여러 번 나온다. 게다가 추첨 규모가 늘 '전부'라 격자가 수백 칸이 된다.
  *
- * 데스크톱(팔레트의 '⤢ 문항 이동')과 모바일(하단바의 점프 핀) 두 진입로를 함께 본다.
+ * 데스크톱(팔레트의 '⤢ 문항 이동')과 모바일(하단바의 '문항 목록' 버튼) 두 진입로를 함께 본다.
  * DOM에서 빠졌는지를 보는 이유: CSS로만 감추면 키보드·스크린리더에는 그대로 남는다.
  */
 test("퀵에서는 문항 이동(점프)과 팔레트가 사라지고 ‹ › 만 남는다", async ({ page }) => {
@@ -323,13 +323,13 @@ test("퀵에서는 문항 이동(점프)과 팔레트가 사라지고 ‹ › �
 
   // 연습에서는 셋 다 있다 — 퀵에서만 빠지는 것임을 같은 검사 안에서 못박는다.
   await expect(page.getByTestId("palette-jump-btn")).toHaveCount(1);
-  await expect(page.getByTestId("jump-pin")).toHaveCount(1);
+  await expect(page.getByTestId("question-list-open")).toHaveCount(1);
   await expect(page.locator(".palette-block")).toHaveCount(1);
 
   await enterQuick(page, "ISTQB");
 
   await expect(page.getByTestId("palette-jump-btn"), "퀵에 '문항 이동' 버튼이 남아 있다").toHaveCount(0);
-  await expect(page.getByTestId("jump-pin"), "퀵에 모바일 점프 핀이 남아 있다").toHaveCount(0);
+  await expect(page.getByTestId("question-list-open"), "퀵에 모바일 문항 목록 버튼이 남아 있다").toHaveCount(0);
   await expect(page.locator(".palette-block"), "퀵에 팔레트 블록이 남아 있다").toHaveCount(0);
   await expect(page.locator("#questionNav"), "퀵에 번호 격자가 남아 있다").toHaveCount(0);
 

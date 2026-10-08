@@ -372,6 +372,41 @@ export async function gotoQuestion(page: Page, num: number) {
 }
 
 /**
+ * 모바일 문항 목록 시트를 연다 — 하단 바의 '문항 목록' 버튼.
+ *
+ * 인라인 팔레트(#questionNav)는 ≤880px에서 CSS로 숨겨져 있어(DOM에는 남는다) `gotoQuestion`이 쓰는
+ * 클릭이 닫힌 요소를 누르다 타임아웃한다. 모바일에서 번호로 이동하는 길은 이 시트뿐이다.
+ * 시트 본문(data-testid=palette-jump)을 돌려준다.
+ */
+export async function openQuestionList(page: Page) {
+  await page.getByTestId("question-list-open").click();
+  const sheet = page.getByTestId("palette-jump");
+  await expect(sheet).toBeVisible();
+  return sheet;
+}
+
+/**
+ * 푼 문항 수를 문항 목록 시트의 요약("N / M 풀이")으로 확인하고 시트를 닫는다.
+ *
+ * 모바일 상단바는 더 이상 푼 수를 말하지 않는다(위치만 — 푼 수는 진행 스트립과 이 시트가 맡는다).
+ * 푼 수를 직접 읽는 단언이 필요한 모바일 스펙이 쓴다.
+ */
+export async function expectSolved(page: Page, solved: number, total: number) {
+  await openQuestionList(page);
+  await expect(page.locator(".modal-subtitle")).toContainText(`${solved} / ${total} 풀이`);
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("palette-jump")).toHaveCount(0);
+}
+
+/** 모바일에서 번호로 이동: 시트를 열어 칸을 누른다(누르면 시트가 닫히고 그 문항이 실린다). */
+export async function gotoQuestionMobile(page: Page, num: number) {
+  const sheet = await openQuestionList(page);
+  await sheet.locator("button.qcell", { hasText: new RegExp(`^${num}$`) }).click();
+  await expect(sheet).toHaveCount(0);
+  await expect(page.locator("#questionTitle")).toContainText(`문제 ${num}`);
+}
+
+/**
  * 화면이 자리 잡을 때까지 — 진행 중인 CSS 전환·애니메이션(드로어 슬라이드, 모달 페이드)이
  * 끝나고, 뷰포트를 바꿨다면 새 레이아웃으로 한 프레임 그려진 뒤.
  *

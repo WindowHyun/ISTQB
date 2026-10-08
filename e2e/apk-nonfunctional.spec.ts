@@ -1,5 +1,5 @@
 import { test, expect, Page } from "./fixtures";
-import { enterExamMobile, openSet } from "./helpers";
+import { enterExamMobile, expectSolved, openSet } from "./helpers";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // APK(WebView) 비기능 테스트 — 모바일 디바이스 프로파일(Pixel 7 + WebView UA)에서
@@ -97,7 +97,7 @@ test.describe("APK 비기능 · 스트레스/복원력", () => {
     const option = page.locator("#options .option").first();
     for (let i = 0; i < 30; i++) await option.tap();
     await expect(page.locator("#feedback")).toBeVisible();
-    await expect(page.locator(".mtb-meta").first()).toContainText("1 / 40");
+    await expectSolved(page, 1, 40);
   });
 
   test("ANF6 시험 40문항 완주 후 채점 응답 시간(모바일)", async ({ page }, testInfo) => {
@@ -126,7 +126,7 @@ test.describe("APK 비기능 · 스트레스/복원력", () => {
       await page.reload();
       await page.getByRole("button", { name: "ISTQB" }).click();
       await expect(page.locator("#questionStem")).toBeVisible();
-      await expect(page.locator(".mtb-meta").first()).toContainText("1 / 40");
+      await expectSolved(page, 1, 40);
     }
     note(testInfo, "재시작 5회", `${Date.now() - t0}ms`);
   });
