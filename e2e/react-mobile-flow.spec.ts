@@ -5,6 +5,7 @@ import {
   answerCurrent,
   closeResult,
   enterExam,
+  enterMiniTest,
   enterQuick,
   gotoQuestionMobile,
   openProduct,
@@ -36,6 +37,17 @@ const indexJson = JSON.parse(
 async function enterExamViaDrawer(page: Page) {
   await page.getByTestId("drawer-open").click();
   await enterExam(page);
+}
+
+// 모바일에서 미니 시험(랜덤) 진입 — 통계 버튼이 드로어 안에 있다. 시험 회차 하나가 선행돼야 한다.
+async function enterMiniTestViaDrawer(page: Page) {
+  await page.getByTestId("drawer-open").click();
+  await enterMiniTest(page);
+  // 통계 모달에서 미니 시험을 시작해도 드로어는 열린 채일 수 있다 — 닫아야 상단바가 다시 눌린다.
+  if ((await page.locator(".app-shell").getAttribute("data-drawer")) === "open") {
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".app-shell")).toHaveAttribute("data-drawer", "closed");
+  }
 }
 
 // 채점하고 결과 모달을 닫는다(하단 바의 채점 버튼).
@@ -156,15 +168,25 @@ test.describe("헤더와 상태 줄", () => {
     expect(Math.round(key!.width)).toBe(32);
   });
 
-  test("드로어가 열려 있는 동안 상단바는 접근성 트리에서 빠진다(같은 이름의 버튼이 둘로 보이지 않는다)", async ({ page }) => {
+  test("드로어가 열려 있는 동안 세트 이름·상태 줄은 접근성 트리에서 빠지고(같은 이름의 버튼이 둘로 보이지 않는다), ☰는 남는다", async ({ page }) => {
     await openSet(page, "CSTS", CSTS_2018);
     await expect(page.getByRole("button", { name: /오답 노트/ })).toHaveCount(1); // 상단바 칩(드로어는 닫혀 있다)
-    await page.getByTestId("drawer-open").click();
+    const menu = page.getByTestId("drawer-open");
+    await menu.click();
     await expect(page.locator(".app-shell")).toHaveAttribute("data-drawer", "open");
     await expect(page.getByRole("button", { name: /오답 노트/ })).toHaveCount(1); // 드로어의 버튼
-    await expect(page.locator(".mobile-topbar")).toHaveAttribute("aria-hidden", "true");
+    await expect(page.locator(".mtb-brand")).toHaveAttribute("aria-hidden", "true");
+    await expect(page.locator(".mtb-status")).toHaveAttribute("aria-hidden", "true");
+
+    // ☰는 드로어가 닫힐 때 포커스가 돌아갈 자리다 — 열리는 같은 렌더에서 그 버튼을 inert로 만들면 포커스가 밀려난
+    // 뒤에야 연 요소를 기록하게 된다. 브라우저의 포커스 정리가 효과보다 늦느냐에 기대는 순서라, 구조로 막는다.
+    const live = await menu.evaluate((el) => el.closest("[inert], [aria-hidden='true']") === null);
+    expect(live, "☰가 inert/aria-hidden 영역 안에 있다 — 닫을 때 포커스가 돌아갈 자리를 잃는다").toBe(true);
+
     await page.keyboard.press("Escape");
-    await expect(page.locator(".mobile-topbar")).not.toHaveAttribute("aria-hidden", "true");
+    await expect(page.locator(".mtb-status")).not.toHaveAttribute("aria-hidden", "true");
+    await expect(page.locator(".mtb-brand")).not.toHaveAttribute("aria-hidden", "true");
+    await expect(menu).toBeFocused();
   });
 });
 
@@ -253,6 +275,26 @@ test.describe("문항 목록 시트", () => {
     await sheet.locator("button.qcell", { hasText: /^12$/ }).click();
     await expect(sheet).toHaveCount(0);
     await expect(page.locator("#questionTitle")).toContainText("문제 12");
+  });
+
+  test("연습에서 푼 문항을 목록으로 다시 열면 카드에도 목록과 같은 정오·해설이 열려 있다", async ({ page }) => {
+    await openSet(page, "CSTS", CSTS_2018);
+    await answerCurrent(page);
+    const feedback = page.locator("#feedback");
+    await expect(feedback).toBeVisible();
+    const verdict = ((await feedback.getAttribute("class")) ?? "").includes("wrong") ? "wrong" : "correct";
+    await nextQuestion(page);
+    await expect(feedback, "안 푼 다음 문항으로 피드백이 샜다").toHaveCount(0);
+
+    // 문항을 옮겼다 돌아오면 카드는 새로 만들어진다 — 닫힌 채 열리면 "목록은 ✕인데 정오도 해설도 없다".
+    await gotoQuestionMobile(page, 1);
+    await expect(feedback, "푼 문항으로 돌아왔는데 정오·해설이 닫혀 있다").toBeVisible();
+    await expect(feedback).toHaveClass(new RegExp(verdict));
+    await expect(page.locator("#options .option.selected")).toHaveCount(1);
+
+    // 목록이 이 문항에 칠한 상태와 카드가 보여 주는 정오가 같은 말이다.
+    const sheet = await openQuestionList(page);
+    await expect(sheet.locator("button.qcell", { hasText: /^1$/ })).toHaveAttribute("data-state", verdict);
   });
 
   test("'안 푼 문제'로 거르면 푼 칸이 빠지고, 누른 칩은 aria-pressed로 알린다", async ({ page }) => {
@@ -385,9 +427,11 @@ test.describe("세트 선택 시트", () => {
     await expect(current).toHaveAttribute("data-set-id", CSTS_2018);
     await expect(current).toContainText("✓ 선택됨");
 
-    // 터치 타깃 — 행은 60px 이상이고 닫기는 44px 이상이다.
+    // 터치 타깃 — 행은 60px 이상이고 닫기는 44px 이상이다. 시트가 올라오는 동안에는 소수 위치의 변환 때문에
+    // 높이가 59.99997·43.99998처럼 어긋나 읽히므로 자리 잡은 뒤에 잰다(올림으로 덮으면 59.5도 통과한다).
+    await settle(page);
     for (const row of await sheet.locator('[data-testid="set-row"]').all()) {
-      expect(Math.round((await row.boundingBox())!.height)).toBeGreaterThanOrEqual(60); // 부동소수 오차(59.99997) 흡수
+      expect((await row.boundingBox())!.height).toBeGreaterThanOrEqual(60);
     }
     expect((await page.getByRole("button", { name: "닫기", exact: true }).boundingBox())!.height).toBeGreaterThanOrEqual(44);
   });
@@ -434,6 +478,39 @@ test.describe("세트 선택 시트", () => {
     await page.locator(`[data-testid="set-row"][data-set-id="${CSTS_2018}"]`).click();
     await expect(page.getByTestId("set-sheet")).toHaveCount(0);
     await expect(page.getByTestId("mtb-pos")).toContainText("2 / 20");
+  });
+
+  test("랜덤(미니 시험) 진행 중 다른 세트를 고르면 시트가 닫히고, 보이는 확인에서 취소·확정이 눌린다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await enterExamViaDrawer(page);
+    await answerCurrent(page);
+    await gradeAndClose(page); // 챕터 통계가 있어야 미니 시험(랜덤의 유일한 진입로)에 들어간다
+    await enterMiniTestViaDrawer(page);
+    await answerCurrent(page); // 진행이 있어야 세트를 바꿀 때 묻는다
+
+    const confirm = page.getByTestId("pending-set-change-modal");
+    const rowC = page.locator('[data-testid="set-row"][data-set-id="ISTQB-FL-V4-C"]');
+
+    // 취소 — 확인이 시트 뒤에 깔려 있으면 여기서 막힌다(시트 배경이 탭을 삼키고 Esc도 시트를 닫는다).
+    await page.getByTestId("set-sheet-open").click();
+    await rowC.click();
+    await expect(confirm).toBeVisible();
+    await expect(page.getByTestId("set-sheet"), "확인을 묻는데 시트가 열린 채다 — 시트가 확인을 덮는다").toHaveCount(0);
+    await settle(page);
+    await page.getByTestId("pending-set-change-cancel").click();
+    await expect(confirm).toHaveCount(0);
+    await expect(page.locator(".mtb-ttl"), "취소했는데 세트가 바뀌었다").toHaveText("샘플문제 A");
+    await expect(page.locator("#questionStem")).toBeVisible();
+
+    // 확정 — 이번에는 세트가 바뀌고 새 세트의 0번째 문항에서 시작한다.
+    await page.getByTestId("set-sheet-open").click();
+    await rowC.click();
+    await expect(confirm).toBeVisible();
+    await settle(page);
+    await page.getByTestId("pending-set-change-confirm").click();
+    await expect(confirm).toHaveCount(0);
+    await waitForList(page, { setId: "ISTQB-FL-V4-C" });
+    await expect(page.locator(".mtb-ttl")).toHaveText("샘플문제 C");
   });
 
   test("시험 응시 중에는 열리지 않고 이유를 알려 준다", async ({ page }) => {
@@ -531,6 +608,37 @@ test.describe("그림 문항과 확대 화면", () => {
     await page.touchscreen.tap(cx, cy);
     await page.touchscreen.tap(cx, cy);
     await expect(label).toHaveText("확대 100% · 두 번 누르면 확대");
+  });
+
+  // 그림 밖 배경의 한 점 — 무대 모서리 안쪽. 그림은 무대 가운데에 앉으므로 모서리는 늘 배경이다.
+  const backgroundPoint = async (page: Page) => {
+    const stage = (await page.locator(".fl-stage").boundingBox())!;
+    const img = (await page.locator(".figure-lightbox-img").boundingBox())!;
+    const point = { x: stage.x + 6, y: stage.y + 6 };
+    const insideImage = point.x >= img.x && point.x <= img.x + img.width && point.y >= img.y && point.y <= img.y + img.height;
+    expect(insideImage, "전제 붕괴: 고른 점이 그림 위다 — 배경 탭이 아니게 된다").toBe(false);
+    return point;
+  };
+
+  test("그림 밖 배경을 한 번 누르면 닫힌다(두 번째 탭이 없는 것을 확인한 뒤)", async ({ page }) => {
+    await openFigureQuestion(page);
+    await page.getByRole("button", { name: "그림 확대해서 보기" }).first().click();
+    const p = await backgroundPoint(page);
+    await page.touchscreen.tap(p.x, p.y);
+    await expect(page.getByTestId("figure-lightbox")).toHaveCount(0);
+    await expect(page.locator("#questionTitle")).toContainText("문제 9");
+  });
+
+  test("그림 밖 배경에서 시작한 두 번 누르기는 닫지 않고 확대한다", async ({ page }) => {
+    await openFigureQuestion(page);
+    await page.getByRole("button", { name: "그림 확대해서 보기" }).first().click();
+    const p = await backgroundPoint(page);
+    // 그림이 작으면 배경이 넓어 두 번 누르기를 빗나가기 쉽다 — 첫 탭의 click이 닫아 버리면 두 번째 탭이 닿기 전에
+    // 화면이 사라진다. 확대 배율이 바뀌었다는 것은 두 탭이 모두 확대 화면에 닿았다는 뜻이다.
+    await page.touchscreen.tap(p.x, p.y);
+    await page.touchscreen.tap(p.x, p.y);
+    await expect(page.locator(".fl-scale")).toHaveText(/250%/);
+    await expect(page.getByTestId("figure-lightbox")).toBeVisible();
   });
 
   test("두 손가락으로 벌리면 확대되고, 확대 중 그림을 한 번 눌러도 닫히지 않는다", async ({ page }) => {

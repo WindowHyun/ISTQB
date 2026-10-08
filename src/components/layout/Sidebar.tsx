@@ -5,6 +5,7 @@ import { useQuizSession } from '../../hooks/useQuizSession';
 import { startRetryWrong } from '../../hooks/useRetryWrong';
 import { requestSetChange } from '../../hooks/useSetChange';
 import { gradeKeyFor } from '../../utils/answerKey';
+import { productSets } from '../../utils/setSheet';
 import { useSetCounts } from '../../hooks/useSetCounts';
 import { TimerClock } from '../common/TimerClock';
 import { BRAND_LOGO_SRC } from '../../utils/brandLogo';
@@ -76,9 +77,7 @@ export const Sidebar = () => {
   } = useQuizSession();
 
   // 현재 선택된 제품(ISTQB/CSTS)에 속한 세트만 노출.
-  const sets = appData
-    ? appData.sets.filter((s) => s.certification.toLowerCase() === activeProduct)
-    : [];
+  const sets = productSets(appData?.sets, activeProduct);
   const currentSet = sets.find((s) => s.id === setId);
   const setCounts = useSetCounts(sets);
 

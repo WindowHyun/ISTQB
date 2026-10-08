@@ -3,10 +3,12 @@ import {
   canOfferRetryWrong,
   cellAriaLabel,
   deriveQuestionStatuses,
+  feedbackOpenOnEntry,
   indicesForFilter,
   isCorrectnessRevealed,
   isCorrectnessVisible,
   isFeedbackConfirmed,
+  isImmediateFeedbackMode,
   listSummaryText,
   stripLabel,
   stripTones,
@@ -60,6 +62,58 @@ describe('isFeedbackConfirmed — 연습·오답에서 피드백이 열린 문�
   it('서답형은 입력 도중에는 열린 것으로 보지 않는다(확인 시점을 알 수 없다)', () => {
     // 글자를 치는 중인 입력을 ✕로 먼저 보여 주지 않기 위해서다.
     expect(isFeedbackConfirmed(short(1, ['테스트']), ['테스'])).toBe(false);
+  });
+});
+
+/**
+ * 카드가 열릴 때의 피드백 — 목록이 ✓/✕를 칠하는 문항은 카드를 열어도 같은 정오가 보여야 한다.
+ *
+ * QuestionCard는 문항을 옮기면 새로 만들어져 열림 상태가 닫힌 채 시작한다. 시작 상태를 목록과 같은
+ * 판정으로 정하지 않으면 "목록은 ✕인데 눌러 보니 정오도 해설도 없다"가 된다.
+ */
+describe('feedbackOpenOnEntry — 카드가 열릴 때 피드백을 미리 펼치는가', () => {
+  const q = mc(1, ['a']);
+
+  it('연습·오답에서 이미 푼(피드백이 열리는) 문항은 펼친 채 시작한다', () => {
+    expect(feedbackOpenOnEntry('practice', q, ['b'])).toBe(true);
+    expect(feedbackOpenOnEntry('review', q, ['a'])).toBe(true);
+    expect(feedbackOpenOnEntry('practice', tf(2, ['o']), ['x'])).toBe(true);
+  });
+
+  it('안 푼 문항은 닫힌 채 시작한다(다음 문항으로 피드백이 새지 않는다)', () => {
+    expect(feedbackOpenOnEntry('practice', q, [])).toBe(false);
+    expect(feedbackOpenOnEntry('review', q, [])).toBe(false);
+  });
+
+  it('복수정답을 덜 골랐거나 서답형이면 닫힌 채 시작한다(목록도 정오를 칠하지 않는 문항)', () => {
+    expect(feedbackOpenOnEntry('practice', mc(3, ['a', 'c']), ['a'])).toBe(false);
+    expect(feedbackOpenOnEntry('practice', short(4, ['테스트']), ['테스트'])).toBe(false);
+  });
+
+  it('시험·랜덤·퀵은 답이 있어도 닫힌 채 시작한다(공개는 채점이 정한다)', () => {
+    for (const mode of ['exam', 'random', 'quick']) {
+      expect(feedbackOpenOnEntry(mode, q, ['a']), mode).toBe(false);
+    }
+  });
+
+  // 목록과 카드가 같은 판정을 쓴다는 것을 고정한다 — 한쪽 판정만 바꾸면 여기서 갈라진다.
+  it('모든 모드·답안에서 목록이 정오를 칠하는 문항과 카드가 펼치는 문항이 같다', () => {
+    const cases = [q, mc(5, ['a', 'c']), tf(6, ['o']), short(7, ['가'])];
+    const picks = [[], ['a'], ['b'], ['a', 'c'], ['o'], ['가']];
+    for (const mode of ['practice', 'review', 'exam', 'random', 'quick']) {
+      for (const c of cases) {
+        for (const selected of picks) {
+          expect(feedbackOpenOnEntry(mode, c, selected), `${mode} ${c.id} [${selected}]`)
+            .toBe(isCorrectnessRevealed(mode, c, selected, false));
+        }
+      }
+    }
+  });
+
+  it('isImmediateFeedbackMode: 연습·오답만 즉시 피드백 모드다', () => {
+    expect(isImmediateFeedbackMode('practice')).toBe(true);
+    expect(isImmediateFeedbackMode('review')).toBe(true);
+    for (const mode of ['exam', 'random', 'quick', '']) expect(isImmediateFeedbackMode(mode), mode).toBe(false);
   });
 });
 

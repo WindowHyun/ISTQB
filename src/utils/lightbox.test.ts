@@ -4,6 +4,7 @@ import {
   openImageLightbox, createFigureZoomChip, FIGURE_IMAGE_ALT, FIGURE_ZOOM_LABEL, FIGURE_ZOOM_TEXT,
 } from './lightbox';
 import { registerBackGuard, BACK_PRIORITY, __resetBackGuardForTest } from './backGuard';
+import { DOUBLE_TAP_MS } from './zoomGesture';
 
 describe('openImageLightbox', () => {
   beforeEach(() => { document.body.innerHTML = ''; document.body.style.overflow = ''; });
@@ -32,7 +33,9 @@ describe('openImageLightbox', () => {
     expect(document.body.style.overflow).toBe('');
   });
 
-  it('배경 클릭으로 닫힌다', () => {
+  // 오버레이 자체(머리·바닥 줄의 빈 곳)는 확대 대상이 아니라 두 번 누르기를 기다리지 않고 바로 닫는다.
+  // 무대 배경은 아래 '구성과 제스처'에서 — 거기는 두 번째 탭을 기다린다.
+  it('머리·바닥 줄의 빈 곳을 누르면 바로 닫힌다', () => {
     openImageLightbox('/a.png');
     document.querySelector<HTMLElement>('.figure-lightbox')?.click();
     expect(document.querySelector('.figure-lightbox')).toBeNull();
@@ -154,10 +157,14 @@ describe('openImageLightbox — 구성과 제스처', () => {
   const open = () => document.querySelector('.figure-lightbox') !== null;
 
   // 포인터 이벤트 흉내 — jsdom 버전에 따라 PointerEvent가 없으므로 MouseEvent에 필요한 필드를 얹는다.
-  const pointer = (target: EventTarget, type: string, x: number, y: number, t: number, id = 1) => {
+  // isPrimary는 새 제스처의 첫 포인터에만 참이다 — 기본은 1번 포인터가 첫 손가락, 그 밖은 뒤따르는 손가락.
+  const pointer = (
+    target: EventTarget, type: string, x: number, y: number, t: number, id = 1, primary = id === 1,
+  ) => {
     const e = new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0 });
     Object.defineProperty(e, 'pointerId', { value: id });
     Object.defineProperty(e, 'pointerType', { value: 'touch' });
+    Object.defineProperty(e, 'isPrimary', { value: primary });
     Object.defineProperty(e, 'timeStamp', { value: t });
     target.dispatchEvent(e);
   };
@@ -176,6 +183,7 @@ describe('openImageLightbox — 구성과 제스처', () => {
     Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, get() { return this.classList.contains('figure-lightbox-img') ? 200 : 0; } });
   });
   afterEach(() => {
+    vi.useRealTimers();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     for (const prop of ['clientWidth', 'clientHeight', 'offsetWidth', 'offsetHeight']) {
       delete (HTMLElement.prototype as unknown as Record<string, unknown>)[prop];
@@ -236,6 +244,80 @@ describe('openImageLightbox — 구성과 제스처', () => {
     // 브라우저는 끌기가 끝난 자리에 click을 이어 보낸다 — 공통 조상(여기선 오버레이)이 대상이 된다.
     q<HTMLElement>('.figure-lightbox').click();
     expect(open(), '끌기가 끝나며 닫혔다').toBe(true);
+  });
+
+  // 놓친 포인터 — pointerup/pointercancel이 오지 않은 손가락(시스템 제스처가 가로챈 터치 등)이 맵에 남으면
+  // 다음 탭이 '두 번째 손가락'으로 읽혀 핀치가 시작되고, 두 번 누르기·끌기가 멈춘다.
+  it('놓친 포인터가 남아 있어도 새 제스처의 첫 포인터가 닿으면 정리한다(두 번 누르기가 살아 있다)', () => {
+    openImageLightbox('/a.png');
+    pointer(q('.fl-stage'), 'pointerdown', 60, 60, 500, 9, true); // 떼는 이벤트가 오지 않는다
+    tap(195, 350, 1000);
+    tap(195, 350, 1150);
+    expect(label()).toBe('확대 250% · 두 번 누르면 원래 크기로');
+  });
+
+  it('두 번째 손가락(isPrimary가 아닌 포인터)은 정리 대상이 아니다 — 핀치는 그대로 된다', () => {
+    openImageLightbox('/a.png');
+    const stage = q('.fl-stage');
+    pointer(stage, 'pointerdown', 145, 350, 1000, 1);
+    pointer(stage, 'pointerdown', 245, 350, 1005, 2); // 뒤따르는 손가락 — 첫 손가락을 지우면 핀치가 깨진다
+    pointer(window, 'pointermove', 95, 350, 1050, 1);
+    pointer(window, 'pointermove', 295, 350, 1055, 2);
+    expect(label()).toBe('확대 200% · 두 번 누르면 원래 크기로');
+  });
+
+  // 탭이 아닌 제스처는 모두 뒤따르는 click을 삼킨다 — 끌기·핀치뿐 아니라 오래 누르기도.
+  it('오래 눌렀다 떼도 닫히지 않는다(탭이 아니면 배경 탭이 아니다)', () => {
+    vi.useFakeTimers();
+    openImageLightbox('/a.png');
+    pointer(q('.fl-stage'), 'pointerdown', 30, 30, 1000);
+    pointer(window, 'pointerup', 30, 30, 1700); // 700ms — 탭 한계(450ms)를 넘는다
+    q<HTMLElement>('.fl-stage').click();
+    vi.advanceTimersByTime(DOUBLE_TAP_MS * 3);
+    expect(open(), '오래 누른 뒤 닫혔다').toBe(true);
+  });
+
+  it('무대 배경을 한 번 누르면 두 번째 탭을 기다린 뒤에 닫힌다', () => {
+    vi.useFakeTimers();
+    openImageLightbox('/a.png');
+    tap(30, 30, 1000);
+    q<HTMLElement>('.fl-stage').click();
+    expect(open(), '두 번째 탭을 기다리지 않고 바로 닫혔다').toBe(true);
+    vi.advanceTimersByTime(DOUBLE_TAP_MS - 1);
+    expect(open()).toBe(true);
+    vi.advanceTimersByTime(2);
+    expect(open(), '기다린 뒤에도 닫히지 않았다').toBe(false);
+    expect(document.body.style.overflow).toBe('');
+  });
+
+  it('배경에서 시작한 두 번 누르기는 닫지 않고 확대한다', () => {
+    vi.useFakeTimers();
+    openImageLightbox('/a.png');
+    tap(30, 30, 1000); // 첫 탭 — 그림 밖 배경
+    q<HTMLElement>('.fl-stage').click(); // 이 click이 닫기 대기를 건다
+    vi.advanceTimersByTime(110);
+    tap(30, 30, 1150); // 두 번째 탭이 대기를 취소하고 확대한다
+    q<HTMLElement>('.fl-stage').click(); // 두 번째 탭의 click은 배경 탭이 아니다
+    vi.advanceTimersByTime(DOUBLE_TAP_MS * 3);
+    expect(open(), '두 번 누르는 도중 닫혔다').toBe(true);
+    expect(label()).toBe('확대 250% · 두 번 누르면 원래 크기로');
+  });
+
+  it('닫기 대기 중에 다른 경로로 닫으면 대기 타이머도 함께 치운다', () => {
+    vi.useFakeTimers();
+    const setSpy = vi.spyOn(globalThis, 'setTimeout');
+    const clearSpy = vi.spyOn(globalThis, 'clearTimeout');
+    openImageLightbox('/a.png');
+    tap(30, 30, 1000);
+    q<HTMLElement>('.fl-stage').click();
+    // 열고 닫을 때 쓰는 0ms 타이머와 구별하려고 대기 시간으로 집는다.
+    const at = setSpy.mock.calls.findIndex(([, ms]) => ms === DOUBLE_TAP_MS);
+    expect(at, '전제: 배경 탭이 닫기 대기를 걸었다').toBeGreaterThanOrEqual(0);
+    const pending = setSpy.mock.results[at].value;
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); // 먼저 닫는다
+    expect(open()).toBe(false);
+    expect(clearSpy, '닫은 뒤에도 닫기 대기 타이머가 남았다').toHaveBeenCalledWith(pending);
   });
 
   it('두 손가락으로 벌리면 확대되고 배율 안내가 따라간다', () => {

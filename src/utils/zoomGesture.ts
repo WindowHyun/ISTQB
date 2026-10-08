@@ -115,8 +115,14 @@ export function wheelScale(scale: number, deltaY: number): number {
 
 export interface TapRecord { t: number; x: number; y: number }
 
+/**
+ * 두 번 누르기로 보는 두 탭 사이의 최대 간격(ms). 배경 탭으로 닫는 쪽도 이 시간만큼 기다린 뒤에
+ * 닫는다 — 첫 탭에서 바로 닫으면 두 번째 탭이 닿기도 전에 확대 화면이 사라진다.
+ */
+export const DOUBLE_TAP_MS = 320;
+
 /** 직전 탭과 합쳐 두 번 누르기인가. 시간·거리 둘 다 가까워야 한다. */
-export function isDoubleTap(prev: TapRecord | null, now: TapRecord, maxMs = 320, maxDist = 28): boolean {
+export function isDoubleTap(prev: TapRecord | null, now: TapRecord, maxMs = DOUBLE_TAP_MS, maxDist = 28): boolean {
   if (!prev) return false;
   return now.t - prev.t <= maxMs && Math.hypot(now.x - prev.x, now.y - prev.y) <= maxDist;
 }

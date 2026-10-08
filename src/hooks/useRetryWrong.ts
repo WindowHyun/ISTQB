@@ -47,8 +47,12 @@ export function startRetryWrong(examLocked: boolean): boolean {
  *
  * 로드 전에는 null이다 — 0으로 돌려주면 시트가 열리는 순간 'CTA 없음'이 잠깐 비쳤다가
  * 나타나 깜빡인다. 호출부는 null이면 CTA를 내지 않는다(없는 것보다 틀린 수가 나쁘다).
+ *
+ * 켜고 끄는 매개변수는 없다. 이 훅을 부르는 문항 목록 시트의 연결부(QuestionListHost)가 시트가 열려 있는
+ * 동안에만 마운트되므로, 닫혀 있는 동안에는 세트를 읽지도 세지도 않는다 — 스위치를 하나 더 두면 늘 true만
+ * 넘기는 죽은 매개변수가 된다.
  */
-export function useReviewTargetCount(appData: AppData | null, enabled: boolean): number | null {
+export function useReviewTargetCount(appData: AppData | null): number | null {
   const { setId, reviewIds, reviewedOk } = useQuizStore(useShallow((s) => ({
     setId: s.setId, reviewIds: s.reviewIds, reviewedOk: s.reviewedOk[s.setId],
   })));
@@ -60,7 +64,7 @@ export function useReviewTargetCount(appData: AppData | null, enabled: boolean):
   );
 
   useEffect(() => {
-    if (!enabled || !path) return;
+    if (!path) return;
     const cached = peekSetQuestions(path);
     if (cached) {
       setQuestions((prev) => (prev?.path === path ? prev : { path, list: cached }));
@@ -71,7 +75,7 @@ export function useReviewTargetCount(appData: AppData | null, enabled: boolean):
       .then((list) => { if (!cancelled) setQuestions({ path, list }); })
       .catch(() => { /* 카운트는 부가 정보 — 실패하면 CTA를 내지 않는다 */ });
     return () => { cancelled = true; };
-  }, [enabled, path]);
+  }, [path]);
 
   return useMemo(() => {
     // 세트가 바뀐 직후엔 옛 세트의 문항이 남아 있을 수 있다 — 경로가 맞을 때만 센다.

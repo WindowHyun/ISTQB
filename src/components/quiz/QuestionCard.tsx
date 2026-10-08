@@ -5,6 +5,7 @@ import { answerKeyFor, gradeKeyFor } from '../../utils/answerKey';
 import { Question } from '../../hooks/useQuestions';
 import { isQuestionCorrect } from '../../utils/answer';
 import { formatAnswerList } from '../../utils/answerDisplay';
+import { feedbackOpenOnEntry, isImmediateFeedbackMode } from '../../utils/questionStatus';
 import { RichText } from '../../utils/parser';
 import { openImageLightbox, FIGURE_IMAGE_ALT, FIGURE_ZOOM_LABEL, FIGURE_ZOOM_TEXT } from '../../utils/lightbox';
 
@@ -61,12 +62,17 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
     mode: s.mode, setId: s.setId, answers: s.answers, setAnswer: s.setAnswer, graded: s.graded,
     quickGraded: s.quickGraded,
   })));
-  const [showFeedback, setShowFeedback] = useState(false);
 
   const answerKey = answerKeyFor(setId, mode, question);
   // `|| []` 폴백을 useMemo로 감싸 참조를 안정화 — handleSelect(useCallback) 의존성이
   // 매 렌더 바뀌는 것을 막는다(react-hooks/exhaustive-deps 경고 해소).
   const selected = React.useMemo(() => answers[answerKey] || [], [answers, answerKey]);
+
+  // 이미 푼 문항으로 돌아왔다면 피드백을 펼친 채 시작한다. 카드는 문항을 옮기면 새로 만들어지는데(QuestionWorkspace의
+  // key), 문항 목록·진행 스트립은 저장된 답안에서 ✓/✕를 칠한다 — 카드가 닫힌 채 열리면 "목록은 ✕인데 정오도 해설도
+  // 없는" 어긋남이 생긴다. 같은 판정(isFeedbackConfirmed)으로 시작 상태를 정해 둘을 맞춘다.
+  // 안 푼 문항은 닫힌 채 시작하므로 다음 문항으로 피드백이 새지 않는다(#79).
+  const [showFeedback, setShowFeedback] = useState(() => feedbackOpenOnEntry(mode, question, selected));
 
   const hasOptions = question.options.length > 0;
   const isTrueFalse = !hasOptions && question.type === 'true_false';
@@ -84,7 +90,7 @@ export const QuestionCard = React.memo(({ question }: { question: Question }) =>
   const isGraded = Boolean(graded[gradeKeyFor(setId, mode)]);
   const isQuick = mode === 'quick';
   // 연습·오답은 즉시 피드백. 시험은 채점 후 공개, 퀵은 **그 문항을 채점한 뒤** 공개한다.
-  const immediate = mode === 'practice' || mode === 'review';
+  const immediate = isImmediateFeedbackMode(mode);
   // 퀵의 공개·잠금은 로컬 상태가 아니라 저장된 채점 표시에서 판정한다. showFeedback은
   // 새로고침에 사라지는데, 퀵의 진행·연속은 채점 표시에서 파생하므로(quickStats) 화면만
   // 되돌아가면 "센 것은 그대로인데 다시 고를 수 있는" 상태가 된다 — 그 순간 수치가 흔들린다.

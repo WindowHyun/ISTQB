@@ -37,6 +37,22 @@ describe('requestSetChange', () => {
     expect(st.answers[q('A', 1)]).toEqual(['a']); // 진행이 보존돼 있다
   });
 
+  it('확인을 물을 때는 세트 선택 시트를 닫는다 — 시트가 확인 모달을 덮지 않게', () => {
+    // beforeEach가 시트를 연 채로 시작한다(setSheetOpen: true).
+    useQuizStore.setState({ mode: 'random', answers: { [q('A', 1)]: ['a'] } });
+    requestSetChange('B');
+    expect(useQuizStore.getState().setSheetOpen).toBe(false);
+  });
+
+  it('확인을 취소해도(pendingSetChange 해제) 시트는 다시 열리지 않는다', () => {
+    useQuizStore.setState({ mode: 'random', answers: { [q('A', 1)]: ['a'] } });
+    requestSetChange('B');
+    useQuizStore.getState().setPendingSetChange(null);
+    const st = useQuizStore.getState();
+    expect(st.setSheetOpen).toBe(false);
+    expect(st.setId).toBe('A'); // 풀던 세트 그대로
+  });
+
   it('랜덤이라도 답한 것이 없으면 묻지 않는다', () => {
     useQuizStore.setState({ mode: 'random', answers: {} });
     requestSetChange('B');

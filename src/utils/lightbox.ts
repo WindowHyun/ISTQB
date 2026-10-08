@@ -8,6 +8,7 @@
 import { lockBodyScroll } from './scrollLock';
 import { BACK_PRIORITY, registerBackGuard } from './backGuard';
 import {
+  DOUBLE_TAP_MS,
   IDENTITY,
   clampOffset,
   isDoubleTap,
@@ -57,7 +58,10 @@ export function isImageLightboxOpen(): boolean {
 
 /** 이 거리(px)를 넘게 움직이면 탭이 아니라 끌기다. zoomGesture.isTap의 기본값과 같다. */
 const DRAG_THRESHOLD = 10;
-/** 끌기·핀치가 끝난 직후의 click은 배경 탭이 아니다(손가락이 배경 위에서 떨어져도 닫히지 않게). */
+/**
+ * 탭이 아닌 제스처(끌기·핀치·오래 누르기)나 두 번 누르기가 끝난 직후의 click은 배경 탭이 아니다 —
+ * 손가락이 배경 위에서 떨어지거나 두 번째 탭이 배경에 닿아도 닫히지 않게 한다.
+ */
 const CLICK_SUPPRESS_MS = 350;
 /** 키보드 이동·확대 단위. */
 const KEY_PAN_PX = 40;
@@ -153,6 +157,13 @@ export function openImageLightbox(src: string): void {
   let moved = false; // 탭 한계를 넘어 움직였거나 핀치였다
   let lastTap: TapRecord | null = null;
   let suppressClickUntil = 0;
+  // 무대 배경을 한 번 눌렀을 때 닫기를 미루는 타이머 — 두 번째 탭이 닿으면 취소한다.
+  let backgroundCloseTimer: ReturnType<typeof setTimeout> | null = null;
+  const cancelBackgroundClose = () => {
+    if (backgroundCloseTimer === null) return;
+    clearTimeout(backgroundCloseTimer);
+    backgroundCloseTimer = null;
+  };
   const now = () => performance.now();
 
   const pair = (): [Point, Point] => {
@@ -197,16 +208,19 @@ export function openImageLightbox(src: string): void {
     const p = rel(e);
     const up: TapRecord = { t: e.timeStamp, x: p.x, y: p.y };
     if (e.type === 'pointercancel') moved = true; // 시스템이 가져간 제스처는 탭이 아니다
-    if (moved) {
+    const tap = !moved && down !== null && isTap(down, up);
+    if (!tap) {
+      // 끌기·핀치뿐 아니라 오래 누르기도 탭이 아니다. 뒤따르는 click을 배경 탭으로 읽으면 그림을 꾹 눌렀다
+      // 놓은 것만으로 확대 화면이 닫힌다.
       suppressClickUntil = now() + CLICK_SUPPRESS_MS;
       lastTap = null;
-    } else if (down && isTap(down, up)) {
-      if (isDoubleTap(lastTap, up)) {
-        apply(toggleZoom(view, p, stageSize(), contentSize()), true);
-        lastTap = null;
-      } else {
-        lastTap = up;
-      }
+    } else if (isDoubleTap(lastTap, up)) {
+      apply(toggleZoom(view, p, stageSize(), contentSize()), true);
+      lastTap = null;
+      // 두 번째 탭의 click이 배경 탭으로 읽혀 방금 한 확대를 닫아 버리지 않게 한다.
+      suppressClickUntil = now() + CLICK_SUPPRESS_MS;
+    } else {
+      lastTap = up;
     }
     gesture = null;
     down = null;
@@ -214,6 +228,15 @@ export function openImageLightbox(src: string): void {
 
   const onDown = (e: PointerEvent) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
+    // 새 제스처의 첫 포인터(isPrimary)가 닿았다면 맵에 남은 항목은 사라진 포인터의 찌꺼기다. pointerup/cancel을
+    // 잃은 포인터(시스템 제스처가 가로챈 터치 등)가 남아 있으면 다음 탭이 두 번째 손가락으로 읽혀 핀치가
+    // 시작되고, 끌기·두 번 누르기가 확대 화면을 다시 열 때까지 멈춘다.
+    if (e.isPrimary && pointers.size > 0) {
+      pointers.clear();
+      stopTracking();
+    }
+    // 새 손가락이 닿았으면 배경 탭의 닫기 대기는 끝난다 — 두 번 누르기의 두 번째 탭일 수 있다.
+    cancelBackgroundClose();
     const p = rel(e);
     pointers.set(e.pointerId, p);
     if (pointers.size === 1) {
@@ -246,6 +269,7 @@ export function openImageLightbox(src: string): void {
     // 닫는 경로가 다섯이다(✕ · 아래 버튼 · 배경 탭 · Esc · 뒤로가기) — 겹쳐도 한 번만 정리한다.
     if (closed) return;
     closed = true;
+    cancelBackgroundClose();
     document.removeEventListener('keydown', onKey, true);
     window.removeEventListener('resize', onResize);
     stopTracking();
@@ -288,11 +312,20 @@ export function openImageLightbox(src: string): void {
   };
 
   // 배경을 누르면 닫힌다. 그림을 누르는 것은 닫기가 아니다(두 번 누르기·끌기가 그림 위에서 일어난다).
-  // 끌기·핀치가 끝나며 생긴 click도 무시한다 — 손가락이 배경 위에서 떨어졌다고 닫히면 안 된다.
+  // 탭이 아닌 제스처(끌기·핀치·오래 누르기)나 두 번 누르기가 끝나며 생긴 click도 무시한다 — 손가락이
+  // 배경 위에서 떨어졌다고 닫히면 안 된다.
   overlay.addEventListener('click', (e) => {
     if (now() < suppressClickUntil) return;
     const target = e.target as Element | null;
     if (target?.closest('button, .figure-lightbox-img')) return;
+    if (target && stage.contains(target)) {
+      // 무대 배경의 한 번 누르기는 두 번 누르기의 첫 탭일 수 있다. 그림이 작으면 배경이 넓어 빗나가기 쉬운데,
+      // 첫 탭에서 바로 닫으면 두 번째 탭이 닿기도 전에 화면이 사라진다. 두 번째 탭이 없는 것을 확인한 뒤 닫는다
+      // (onDown이 대기를 취소한다). 머리·바닥 줄은 확대 대상이 아니므로 바로 닫는다.
+      cancelBackgroundClose();
+      backgroundCloseTimer = setTimeout(close, DOUBLE_TAP_MS);
+      return;
+    }
     close();
   });
   closeBtn.addEventListener('click', (e) => { e.stopPropagation(); close(); });

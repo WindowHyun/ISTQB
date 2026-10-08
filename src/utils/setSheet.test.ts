@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   groupSets,
+  productSets,
   setDisplay,
   setProgressPercent,
   setProgressText,
@@ -66,6 +67,38 @@ describe('groupSets', () => {
 
   it('빈 입력은 빈 목록이다', () => {
     expect(groupSets([])).toEqual([]);
+  });
+});
+
+describe('productSets — 현재 제품의 세트만', () => {
+  const sets = [
+    { id: 'i1', certification: 'ISTQB' },
+    { id: 'c1', certification: 'CSTS' },
+    { id: 'i2', certification: 'ISTQB' },
+    { id: 'c2', certification: 'CSTS' },
+  ];
+
+  it('index.json의 대소문자와 상관없이(소문자 제품 키와 비교) 같은 제품만 순서대로 고른다', () => {
+    expect(productSets(sets, 'istqb').map((s) => s.id)).toEqual(['i1', 'i2']);
+    expect(productSets(sets, 'csts').map((s) => s.id)).toEqual(['c1', 'c2']);
+  });
+
+  it('데이터가 아직 없거나 제품을 고르기 전이면 빈 목록이다(예외 없이)', () => {
+    expect(productSets(null, 'istqb')).toEqual([]);
+    expect(productSets(undefined, 'istqb')).toEqual([]);
+    expect(productSets(sets, null)).toEqual([]);
+    expect(productSets(sets, '')).toEqual([]);
+  });
+
+  it('모르는 제품은 아무 세트와도 맞지 않는다', () => {
+    expect(productSets(sets, 'other')).toEqual([]);
+  });
+
+  it('입력을 바꾸지 않고 항목을 그대로(같은 참조로) 돌려준다', () => {
+    const before = [...sets];
+    const picked = productSets(sets, 'csts');
+    expect(sets).toEqual(before);
+    expect(picked[0]).toBe(sets[1]);
   });
 });
 

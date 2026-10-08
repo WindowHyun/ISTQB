@@ -150,7 +150,7 @@ export const QuestionListHost = ({
     mode: s.mode, index: s.index, setIndex: s.setIndex,
   })));
   const { statuses, summary, showCorrectness } = useQuestionStatuses({ mode, currentQuestions, answerKeyOf, isGraded });
-  const reviewCount = useReviewTargetCount(appData, true);
+  const reviewCount = useReviewTargetCount(appData);
 
   // 오답 모드로 넘어가면 버려질 세션이 있는가 — 시험 응시 중이거나 채점 전 랜덤.
   const sessionInProgress = (mode === 'exam' || mode === 'random') && !isGraded;

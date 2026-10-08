@@ -4,7 +4,7 @@ import { Modal } from '../common/Modal';
 import type { AppData } from '../../hooks/useQuestions';
 import { useSetCounts } from '../../hooks/useSetCounts';
 import { requestSetChange } from '../../hooks/useSetChange';
-import { groupSets, setProgressPercent, setProgressText, solvedCountForSet } from '../../utils/setSheet';
+import { groupSets, productSets, setProgressPercent, setProgressText, solvedCountForSet } from '../../utils/setSheet';
 
 /**
  * 세트 선택 바텀 시트(모바일) — 시스템 `<select>`를 대신한다.
@@ -23,19 +23,16 @@ export const SetSheet = ({ appData, onClose }: { appData: AppData | null; onClos
   const setId = useQuizStore((s) => s.setId);
   const answers = useQuizStore((s) => s.answers);
 
-  const sets = useMemo(
-    () => (appData ? appData.sets.filter((s) => s.certification.toLowerCase() === activeProduct) : []),
-    [appData, activeProduct],
-  );
+  const sets = useMemo(() => productSets(appData?.sets, activeProduct), [appData, activeProduct]);
   const counts = useSetCounts(sets);
   const groups = useMemo(() => groupSets(sets), [sets]);
 
   const choose = (id: string) => {
     // 이미 보고 있는 세트를 다시 고르면 닫기만 한다 — commitSetChange는 위치·타이머를 처음으로 되돌린다.
     if (id === setId) { onClose(); return; }
+    // 시트를 닫는 일은 requestSetChange가 맡는다 — 바로 바뀔 때(commitSetChange)도, 랜덤 진행 중 확인을
+    // 물을 때도 시트는 닫힌다. 확인 모달과 시트가 겹쳐 있으면 시트가 확인을 덮기 때문이다.
     requestSetChange(id);
-    // 바로 바뀌었으면 commitSetChange가 시트를 닫는다. 랜덤 진행 중 확인을 거치는 경우에는 열어 둔다 —
-    // 취소하면 이 시트로 돌아와 다른 세트를 고를 수 있다.
   };
 
   return (

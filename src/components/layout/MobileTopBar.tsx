@@ -55,17 +55,19 @@ export const MobileTopBar = () => {
 
   const timerLabel = mode === 'exam' && !isGraded ? '남은 시간' : '경과 시간';
 
+  // 드로어가 열려 있으면 뒤의 상단바는 조작할 수 없다(백드롭이 덮는다). 접근성 트리와 Tab 순서에서도
+  // 뺀다 — 안 그러면 드로어의 '오답 노트' 버튼과 같은 이름의 버튼이 하나 더 남는다.
+  //
+  // **☰는 뺀 대상에서 제외한다.** 드로어가 닫힐 때 포커스가 돌아갈 자리(Sidebar의 B1 계약)인데, 그
+  // 버튼이 든 영역을 열리는 같은 렌더에서 inert로 만들면 포커스가 body로 밀려난 뒤에야 드로어가 '연
+  // 요소'를 기록할 수 있다(effect가 브라우저의 포커스 정리보다 먼저 도느냐에 기대는 순서다).
+  // 그래서 헤더 통째가 아니라 드로어와 겹치는 두 덩어리(세트 이름·상태 줄)에만 건다.
+  const behindDrawer = drawerOpen || undefined;
+
   return (
-    <header
-      className="mobile-topbar"
-      aria-label="시험 정보"
-      // 드로어가 열려 있으면 뒤의 상단바는 조작할 수 없다(백드롭이 덮는다). 접근성 트리와 Tab 순서에서도
-      // 뺀다 — 안 그러면 드로어의 '오답 노트' 버튼과 같은 이름의 버튼이 하나 더 남는다.
-      inert={drawerOpen || undefined}
-      aria-hidden={drawerOpen || undefined}
-    >
+    <header className="mobile-topbar" aria-label="시험 정보">
       <div className="mtb-row">
-        <div className="mtb-brand">
+        <div className="mtb-brand" inert={behindDrawer} aria-hidden={behindDrawer}>
           <img src={BRAND_LOGO_SRC} alt="" />
           <button
             type="button"
@@ -91,7 +93,7 @@ export const MobileTopBar = () => {
           ☰
         </button>
       </div>
-      <div className="mtb-status">
+      <div className="mtb-status" inert={behindDrawer} aria-hidden={behindDrawer}>
         {/* 챕터 미니 시험(랜덤+필터)은 일반 랜덤과 구분해 표기 — 결과 모달 라벨과 일관. */}
         <span className="mtb-chip">
           {mode === 'random' && chapterFilter ? '미니 시험' : (MODE_LABEL[mode] || mode)}

@@ -69,6 +69,21 @@ export function setDisplay(set: SetLike): SetDisplay {
   return { group: set.certification, name: set.title, context: set.certification, recognized: false };
 }
 
+/**
+ * 현재 제품(`activeProduct` — 소문자 `istqb`·`csts`)의 세트만, index.json의 순서 그대로.
+ *
+ * 사이드바의 세트 select · 세트 선택 시트 · 오답 노트 · 퀵 출제가 모두 "이 제품의 세트"를 가린다. 대소문자를
+ * 가리지 않는 비교를 각자 들고 있으면, 한 곳의 규칙만 바뀌는 순간 "사이드바와 시트가 서로 다른 세트를
+ * 나열한다"가 된다 — 입구를 하나로 모은 requestSetChange와 같은 이유로 목록도 한 함수에서 만든다.
+ */
+export function productSets<T extends { certification: string }>(
+  sets: readonly T[] | null | undefined,
+  activeProduct: string | null,
+): T[] {
+  if (!sets || !activeProduct) return [];
+  return sets.filter((s) => s.certification.toLowerCase() === activeProduct);
+}
+
 export interface SetGroup<T> {
   label: string;
   rows: { set: T; display: SetDisplay }[];

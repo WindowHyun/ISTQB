@@ -4,6 +4,7 @@ import { useQuizStore, QuizMode, QUICK_SET_ID } from '../store/useQuizStore';
 import { loadIndex, loadSetQuestions, subscribeLoads } from '../utils/questionLoader';
 import { makeCanonicalIdResolver } from '../utils/chapterStats';
 import { isReviewKeyOf } from '../utils/answerKey';
+import { productSets } from '../utils/setSheet';
 
 // Fisher–Yates shuffle: 균일 분포를 보장한다. (sort 비교자에 Math.random을 쓰면 편향됨)
 // 경계가 한 칸만 어긋나도(`* i` 또는 `i >= 0`) 조용히 편향된다 — 눈으로는 여전히
@@ -299,7 +300,7 @@ export function useQuestions() {
     const setQuickList = (questions: Question[]) =>
       setList({ mode: 'quick', setId: QUICK_SET_ID, chapter: null, questions });
 
-    const sets = appData.sets.filter((s) => s.certification.toLowerCase() === activeProduct);
+    const sets = productSets(appData.sets, activeProduct);
     if (!sets.length) return;
 
     // allSettled — 세트 하나가 실패해도 나머지로 출제한다. Promise.all이면 12세트 중
