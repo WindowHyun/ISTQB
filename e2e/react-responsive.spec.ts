@@ -175,6 +175,32 @@ test.describe("엣지-반응형", () => {
       await expect(page.locator("#questionStem")).toBeVisible();
       await expect(page.locator("#options .option").first()).toBeVisible();
     });
+
+    // 상태 줄은 모드 칩·위치·시간·오답 노트(배지 포함)가 한 줄에 서야 한다. 칸이 모자라면 flex가 칸을 눌러
+    // '시/험'·'1 / 40'·'오답 노/트'처럼 글자 중간에서 꺾이고 모드 칩이 동그라미가 된다 — 오답이 생겨 배지가 뜨는
+    // 순간부터 드러나므로 채점 뒤에 잰다. 글자 위치가 아니라 규칙(한 줄·한 높이)을 잰다.
+    test("320px에서 상태 줄이 한 줄을 지키고 오답 노트 칩의 글자가 꺾이지 않는다", async ({ page }) => {
+      await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+      await page.getByTestId("drawer-open").click();
+      await enterExam(page);
+      await page.locator("#options .option").first().click();
+      await submitGrade(page, "grade-button-m");
+      await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+      await expect(page.locator(".mtb-wrong b")).toBeVisible();
+
+      const box = (sel: string) => page.locator(sel).first().boundingBox();
+      const [chip, pos, time, wrong] = [await box(".mtb-chip"), await box(".mtb-pos"), await box(".mtb-time"), await box(".mtb-wrong")];
+      expect(chip!.height, "모드 칩이 글자 중간에서 꺾였다").toBeLessThan(36);
+      expect(pos!.height, "위치('1 / 40')가 두 줄로 꺾였다").toBeLessThan(28);
+      expect(wrong!.height, "오답 노트 칩이 두 줄로 꺾였다").toBeLessThan(48);
+      // 네 칸이 같은 줄에 선다(세로 중심이 같다).
+      const centers = [chip, pos, time, wrong].map((b) => b!.y + b!.height / 2);
+      expect(Math.max(...centers) - Math.min(...centers), `네 칸의 세로 중심이 다르다: ${centers.map(Math.round)}`).toBeLessThanOrEqual(4);
+      // 가로로 넘치지 않는다 — 칩이 오른쪽 여백(16px)을 파고들면 ☰와 오른쪽 끝이 어긋난다.
+      expect(wrong!.x + wrong!.width, `오답 노트 칩이 오른쪽 여백을 넘었다: ${JSON.stringify(wrong)}`).toBeLessThanOrEqual(320 - 16 + 1);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      expect(overflow, "페이지가 가로로 넘친다").toBeLessThanOrEqual(0);
+    });
   });
 
   test.describe("태블릿(768x1024)", () => {

@@ -1645,6 +1645,8 @@ body[data-theme="dark"] .reference-image-frame {
   .mtb-chip { background: var(--primary-solid); color: #fff; font-weight: 700; font-size: 13px; padding: 4px 12px; border-radius: 999px; }
   .mtb-pos { font-size: 14px; font-weight: 700; }
   .mtb-time { font-size: 13px; color: var(--muted); }
+  /* 상태 줄 칸은 줄바꿈하지 않는다 — 좁으면 flex가 칸을 눌러 '시/험'·'1 / 40'·'오답 노/트'처럼 글자 중간에서 꺾인다. */
+  .mtb-chip, .mtb-pos, .mtb-time, .mtb-wrong { white-space: nowrap; }
   /* 오답 노트 입구 — 경고가 아니라 길이다. 분홍 채움·빨간 테두리·빨간 글자·빨간 배지가 겹치면 에러 배너처럼 읽히고
      옆의 ☰·모드 칩과 톤도 맞지 않는다. 컨테이너는 ☰와 같은 중립 버튼으로 두고, 붉은색은 개수 배지에만 쓴다. */
   .mtb-wrong {
@@ -1660,6 +1662,11 @@ body[data-theme="dark"] .reference-image-frame {
   .mtb-wrong:active { background: var(--surface-3); }
   .mtb-wrong b { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; background: var(--danger); color: #fff; font-size: 12px; display: grid; place-items: center; }
   body[data-theme="dark"] .mtb-wrong b { background: #b91c1c; }
+  /* 320px대: 모드 칩·위치·시간·오답 노트가 한 줄에 다 들어가도록 아이콘을 빼고 여백을 줄인다. */
+  @media (max-width: 340px) {
+    .mtb-wrong { padding: 0 10px; }
+    .mtb-wrong::before { display: none; }
+  }
 
   /* 세트명 중복 제거 — 상단바(.mobile-topbar)가 세트명·모드·진행·시간을 상시 노출하므로
      워크스페이스 헤더의 세트명은 같은 정보를 한 번 더 쓰는 것이다. 세로 공간이 귀한
