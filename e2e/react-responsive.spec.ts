@@ -92,12 +92,51 @@ test.describe("엣지-반응형", () => {
       await page.getByTestId("stats-open").click();
       const mini = page.getByTestId("chapter-minitest-btn").first();
       await expect(mini).toBeVisible();
-      // 세로로 꺾이면('미/니/시/험') 높이가 4줄(≥60px)이 된다 — 한 줄이면 ~30px.
+      // 세로로 꺾이면('미/니/시/험') 높이가 4줄(≥60px)이 된다 — 한 줄이면 터치 타깃 높이(44px).
       const box = await mini.boundingBox();
       expect(box).not.toBeNull();
       expect(box!.height).toBeLessThan(45);
       const prac = await page.getByTestId("chapter-practice-btn").first().boundingBox();
       expect(prac!.height).toBeLessThan(45);
+    });
+
+    // 위 검사는 높이만 본다 — 버튼이 한 줄에 서지 않아도, 브라우저 기본 모양이어도 통과한다. 실제로 '미니 시험'은
+    // 모바일 그리드(3칸)에 자식이 4개라 혼자 아랫줄로 떨어졌고 CSS 규칙이 없어 기본 회색 버튼으로 나갔다.
+    // 위치가 아니라 **규칙**을 잰다: 한 쌍은 같은 줄에 같은 크기로 서고, 터치 타깃을 지키며, 행 밖으로 넘치지 않는다.
+    test("통계 챕터 행의 연습·미니 시험은 같은 줄에 같은 크기로 서고 터치 타깃을 지킨다", async ({ page }) => {
+      await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+      await page.getByTestId("drawer-open").click();
+      await enterExam(page);
+      await page.locator("#options .option").first().click();
+      await submitGrade(page, "grade-button-m");
+      await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+      await page.getByTestId("drawer-open").click();
+      await page.getByTestId("stats-open").click();
+      await expect(page.getByTestId("chapter-minitest-btn").first()).toBeVisible();
+
+      // 순위 행은 늘 있다. 표본 부족 행(막대 없는 3칸 변형)은 데이터에 따라 없을 수 있어 있을 때만 본다.
+      for (const rowId of ["stats-chapter-row", "stats-lowsample-row"]) {
+        const rows = page.getByTestId(rowId);
+        if (rowId === "stats-chapter-row") await expect(rows.first()).toBeVisible();
+        else if (!(await rows.count())) continue;
+
+        const row = rows.first();
+        const [r, p, m] = await Promise.all([
+          row.boundingBox(),
+          row.getByTestId("chapter-practice-btn").boundingBox(),
+          row.getByTestId("chapter-minitest-btn").boundingBox(),
+        ]);
+        const where = `${rowId}: 행 ${JSON.stringify(r)} · 연습 ${JSON.stringify(p)} · 미니 시험 ${JSON.stringify(m)}`;
+        expect(Math.abs(p!.y - m!.y), `서로 다른 줄에 있다 — ${where}`).toBeLessThanOrEqual(1);
+        expect(Math.abs(p!.width - m!.width), `폭이 다르다 — ${where}`).toBeLessThanOrEqual(2);
+        expect(Math.min(p!.height, m!.height), `터치 타깃 44px 미만 — ${where}`).toBeGreaterThanOrEqual(44);
+        expect(m!.x + m!.width, `행 오른쪽으로 넘친다 — ${where}`).toBeLessThanOrEqual(r!.x + r!.width + 1);
+        expect(p!.x, `행 왼쪽으로 넘친다 — ${where}`).toBeGreaterThanOrEqual(r!.x - 1);
+      }
+
+      // 브라우저 기본 버튼(모서리 각짐·회색 면)이 아니라 이 앱의 버튼이다 — 규칙이 아예 없던 결함의 직접 증거.
+      const radius = await page.getByTestId("chapter-minitest-btn").first().evaluate((e) => parseFloat(getComputedStyle(e).borderTopLeftRadius));
+      expect(radius, "미니 시험이 기본 버튼 모양이다(CSS 규칙 없음)").toBeGreaterThanOrEqual(8);
     });
     // react-layout에서 옮김
     test("모드 변경 시 드로어가 자동으로 닫힌다", async ({ page }) => {

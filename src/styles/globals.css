@@ -1645,12 +1645,20 @@ body[data-theme="dark"] .reference-image-frame {
   .mtb-chip { background: var(--primary-solid); color: #fff; font-weight: 700; font-size: 13px; padding: 4px 12px; border-radius: 999px; }
   .mtb-pos { font-size: 14px; font-weight: 700; }
   .mtb-time { font-size: 13px; color: var(--muted); }
+  /* 오답 노트 입구 — 경고가 아니라 길이다. 분홍 채움·빨간 테두리·빨간 글자·빨간 배지가 겹치면 에러 배너처럼 읽히고
+     옆의 ☰·모드 칩과 톤도 맞지 않는다. 컨테이너는 ☰와 같은 중립 버튼으로 두고, 붉은색은 개수 배지에만 쓴다. */
   .mtb-wrong {
-    margin-left: auto; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 14px;
-    border-radius: 22px; border: 1px solid var(--danger-200); background: var(--danger-50);
-    color: var(--danger); font-size: 13px; font-weight: 700;
+    --icon-note: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 3.5h10A1.5 1.5 0 0 1 18 5v14a1.5 1.5 0 0 1-1.5 1.5h-10zM10 8.5h5M10 12.5h5'/%3E%3C/svg%3E");
+    margin-left: auto; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 12px;
+    border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface);
+    color: var(--text); font-size: 14px; font-weight: 700;
   }
-  .mtb-wrong b { min-width: 22px; height: 22px; margin-right: -6px; padding: 0 6px; border-radius: 11px; background: var(--danger); color: #fff; font-size: 12px; display: grid; place-items: center; }
+  .mtb-wrong::before {
+    content: ""; width: 18px; height: 18px; background: var(--text-2);
+    -webkit-mask: var(--icon-note) center / contain no-repeat; mask: var(--icon-note) center / contain no-repeat;
+  }
+  .mtb-wrong:active { background: var(--surface-3); }
+  .mtb-wrong b { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; background: var(--danger); color: #fff; font-size: 12px; display: grid; place-items: center; }
   body[data-theme="dark"] .mtb-wrong b { background: #b91c1c; }
 
   /* 세트명 중복 제거 — 상단바(.mobile-topbar)가 세트명·모드·진행·시간을 상시 노출하므로
@@ -1899,24 +1907,26 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 .sc-legend { margin: 0 2px 8px; }
 .sc-legend strong { color: var(--text-2); font-weight: 800; }
 .sc-locked { margin: 0 2px 8px; color: var(--warning); font-weight: 700; }
-.stats-chapters ul { display: flex; flex-direction: column; gap: 6px; }
+.stats-chapters ul { display: flex; flex-direction: column; gap: 8px; }
 .stats-chapters li {
   display: grid;
-  /* 이름 · 바 · 정답률 · 연습 · 미니 시험 */
-  grid-template-columns: minmax(90px, 1.1fr) 2fr auto auto auto;
+  /* 넓은 화면: 이름 · 막대 · 정답률 · 버튼 한 쌍(.sc-actions)을 한 줄로 */
+  grid-template-columns: minmax(90px, 1.1fr) 2fr auto auto;
   align-items: center;
   gap: 10px;
-  padding: 7px 10px;
+  padding: 8px 12px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--surface);
 }
-.stats-chapters li.weak { border-color: var(--danger, #c0392b); }
-/* 표본 부족 그룹 — 막대(sc-bar)가 없어 4열이고, 순위가 아니므로 강조하지 않는다. */
-.stats-lowsample li { grid-template-columns: minmax(90px, 1fr) auto auto auto; }
+/* 약한 챕터는 테두리·이름을 빨갛게 두르지 않고 정답률 숫자와 막대로만 말한다 — 행마다 빨간 테두리·글자가 둘리면
+   목록 전체가 오류 화면처럼 읽힌다. 숫자가 글자로 남아 색에만 기대지도 않는다. */
+.stats-chapters li.weak .sc-rate { color: var(--danger); }
+.stats-chapters li.weak .sc-bar i { background: var(--danger); }
+/* 표본 부족 그룹 — 막대(sc-bar)가 없어 3열이고, 순위가 아니므로 강조하지 않는다. */
+.stats-lowsample li { grid-template-columns: minmax(90px, 1fr) auto auto; }
 .stats-lowsample .sc-name { color: var(--text-2); }
 .sc-rate-weak { color: var(--muted); font-weight: 700; white-space: nowrap; }
-.stats-chapters li.weak .sc-name { color: var(--danger, #c0392b); }
 /* 챕터명은 한국어라 기본값(break 허용)에서는 글자 사이 어디서든 끊긴다 — 좁은 열에서
    "소프트웨어 개발과 테스트"가 "…테스 / 트"로, "SDLC 전반의 테스트"가 "…테 / 스트"로
    꺾였다(오답노트·회차 타임라인과 같은 함정). keep-all로 어절 경계에서만 접고,
@@ -1930,27 +1940,36 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 }
 .sc-bar { display: block; height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
 .sc-bar i { display: block; height: 100%; background: var(--primary); border-radius: inherit; }
-.stats-chapters li.weak .sc-bar i { background: var(--danger, #c0392b); }
 .sc-rate { font-size: 13px; font-weight: 800; white-space: nowrap; }
 .sc-rate small { color: var(--muted); font-weight: 600; }
-.sc-practice {
+/* 연습·미니 시험은 한 쌍이다 — 같은 크기·같은 줄에 서고, 채점·기록이 걸린 미니 시험만 강조 톤을 쓴다.
+   종전에는 .sc-minitest에 규칙이 없어 브라우저 기본 회색 버튼으로 나왔고, 모바일 그리드(3칸)에 자식이
+   4개라 혼자 아랫줄로 떨어졌다. 라벨은 줄바꿈하지 않는다 — 좁은 셀에서 세로 꺾임 방지. */
+.sc-actions { display: flex; gap: 6px; }
+.sc-practice, .sc-minitest {
+  min-height: 32px;
+  padding: 0 12px;
   border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
   background: var(--surface);
-  border-radius: 8px;
-  padding: 5px 10px;
-  font-size: 12px;
-  font-weight: 700;
   color: var(--text-2);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
 }
-.sc-practice:hover { color: var(--primary); border-color: var(--primary); }
-.sc-practice:disabled { opacity: 0.5; cursor: not-allowed; }
-/* 버튼 라벨은 줄바꿈하지 않는다 — 좁은 그리드 셀에서 세로 꺾임 방지. */
-.sc-practice { white-space: nowrap; }
-/* 좁은 화면: 그리드가 버튼 폭을 짓누르므로 막대를 생략하고
-   [이름(신축) · 정답률 · 연습] 한 줄 배치로 재배열한다. */
+.sc-minitest { border-color: var(--primary-100); background: var(--primary-50); color: var(--primary-700); }
+.sc-practice:hover, .sc-minitest:hover { border-color: var(--primary); }
+.sc-practice:disabled, .sc-minitest:disabled { opacity: 0.5; cursor: not-allowed; }
+/* 좁은 화면: [이름 · 정답률] / 막대 / [연습 · 미니 시험 반반] 세 줄. 버튼은 같은 줄에 같은 폭으로 서고 터치 타깃은 44px. */
 @media (max-width: 640px) {
-  .stats-chapters li { grid-template-columns: minmax(0, 1fr) auto auto; }
-  .stats-chapters .sc-bar { display: none; }
+  .stats-chapters li { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "n r" "b b" "a a"; padding: 12px; }
+  .stats-lowsample li { grid-template-areas: "n r" "a a"; }
+  .sc-name { grid-area: n; }
+  .sc-rate { grid-area: r; }
+  .sc-bar { grid-area: b; }
+  .sc-actions { grid-area: a; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .sc-practice, .sc-minitest { min-height: 44px; font-size: 14px; }
 }
 .stats-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
 

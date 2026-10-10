@@ -113,6 +113,26 @@ test.describe("헤더와 상태 줄", () => {
     expect(badge, `배지 ${badge} ≠ 노트가 나열한 ${listed}`).toBe(listed);
   });
 
+  // 입구는 경고가 아니라 길이다. 분홍 채움·빨간 테두리·빨간 글자·빨간 배지가 겹치면 에러 배너처럼 읽히고 옆의
+  // ☰·모드 칩과 톤이 맞지 않았다. 색 값을 못 박지 않고 관계를 잰다 — 라이트·다크 어디서든 ☰와 같은 중립 버튼이어야 한다.
+  test("오답 노트 칩은 ☰와 같은 중립 버튼이고, 붉은색은 개수 배지에만 쓴다", async ({ page }) => {
+    await openSet(page, "CSTS", CSTS_2018);
+    await enterExamViaDrawer(page);
+    await answerCurrent(page);
+    await gradeAndClose(page); // 미응답은 오답으로 센다 → 배지가 뜬다
+    await expect(page.locator(".mtb-wrong b")).toBeVisible();
+
+    const style = (sel: string) => page.locator(sel).first().evaluate((e) => {
+      const s = getComputedStyle(e);
+      return { bg: s.backgroundColor, border: s.borderTopColor, color: s.color };
+    });
+    const [chip, menu, badge] = [await style(".mtb-wrong"), await style(".mtb-menu"), await style(".mtb-wrong b")];
+    expect(chip.bg, "칩 배경이 ☰와 다르다 — 경고색으로 칠했다").toBe(menu.bg);
+    expect(chip.border, "칩 테두리가 ☰와 다르다 — 경고색으로 둘렀다").toBe(menu.border);
+    expect(chip.color, "칩 글자가 배지와 같은 붉은색이다").not.toBe(badge.bg);
+    expect(badge.color, "배지는 붉은 면 위의 흰 글자다").toBe("rgb(255, 255, 255)");
+  });
+
   test("퀵에서는 위치·시간을 내리고, 세트 이름 버튼은 막힌 이유를 알려 준다", async ({ page }) => {
     await enterQuick(page, "CSTS");
     await expect(page.locator(".mtb-pos, .mtb-time")).toHaveCount(0);
