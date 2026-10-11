@@ -28,24 +28,34 @@ async function openStatsAfterGrading(page: Page) {
 }
 
 /**
- * 상태 줄(모드 칩·위치·시간·오답 노트)의 칸 상자. `content`를 주면 그 내용으로 덮어 **같은 틱에서** 잰다 —
- * 시계는 매초 다시 그려지므로 덮어쓰기와 측정을 나누면 되돌아간다.
+ * 상태 줄(모드 칩·위치·시간·오답 노트)의 칸 상자. `content`를 주면 그 내용으로 덮어 **같은 틱에서** 재고 곧바로 되돌린다 —
+ * 시계는 매초 다시 그려지므로 덮어쓰기와 측정을 나누면 되돌아가고, 되돌리지 않으면 값이 같아 다시 그려지지 않는
+ * 칸(배지)에 덮어쓴 값이 남아 다음 '실제 내용' 측정을 오염시킨다.
  */
 type StatusContent = { chip?: string; time?: string; badge?: string };
 async function measureStatusRow(page: Page, content: StatusContent = {}) {
   return page.evaluate((c) => {
     const el = (sel: string) => document.querySelector<HTMLElement>(sel)!;
-    if (c.chip) el(".mtb-chip").textContent = c.chip;
-    if (c.time) el(".mtb-time").lastChild!.textContent = c.time;
-    if (c.badge) el(".mtb-wrong b").textContent = c.badge;
+    const restore: Array<() => void> = [];
+    const put = (node: Node, text: string | undefined) => {
+      if (!text) return;
+      const prev = node.textContent;
+      node.textContent = text;
+      restore.push(() => { node.textContent = prev; });
+    };
+    put(el(".mtb-chip"), c.chip);
+    put(el(".mtb-time").lastChild!, c.time); // 시계 글자는 마지막 자식(앞의 sr-only는 스크린리더용 라벨)
+    put(el(".mtb-wrong b"), c.badge);
     const box = (sel: string) => {
       const r = el(sel).getBoundingClientRect();
       return { x: r.x, y: r.y, w: r.width, h: r.height };
     };
-    return {
+    const measured = {
       cells: { 모드: box(".mtb-chip"), 위치: box(".mtb-pos"), 시간: box(".mtb-time"), 오답노트: box(".mtb-wrong") },
       overflow: document.documentElement.scrollWidth - window.innerWidth,
     };
+    restore.forEach((undo) => undo());
+    return measured;
   }, content);
 }
 type StatusRow = Awaited<ReturnType<typeof measureStatusRow>>;
