@@ -5,7 +5,7 @@ import {
   answerCurrent,
   closeResult,
   enterExam,
-  enterMiniTest,
+  enterMiniTestMobile,
   enterQuick,
   gotoQuestionMobile,
   openProduct,
@@ -37,17 +37,6 @@ const indexJson = JSON.parse(
 async function enterExamViaDrawer(page: Page) {
   await page.getByTestId("drawer-open").click();
   await enterExam(page);
-}
-
-// 모바일에서 미니 시험(랜덤) 진입 — 통계 버튼이 드로어 안에 있다. 시험 회차 하나가 선행돼야 한다.
-async function enterMiniTestViaDrawer(page: Page) {
-  await page.getByTestId("drawer-open").click();
-  await enterMiniTest(page);
-  // 통계 모달에서 미니 시험을 시작해도 드로어는 열린 채일 수 있다 — 닫아야 상단바가 다시 눌린다.
-  if ((await page.locator(".app-shell").getAttribute("data-drawer")) === "open") {
-    await page.keyboard.press("Escape");
-    await expect(page.locator(".app-shell")).toHaveAttribute("data-drawer", "closed");
-  }
 }
 
 // 채점하고 결과 모달을 닫는다(하단 바의 채점 버튼).
@@ -129,7 +118,9 @@ test.describe("헤더와 상태 줄", () => {
     const [chip, menu, badge] = [await style(".mtb-wrong"), await style(".mtb-menu"), await style(".mtb-wrong b")];
     expect(chip.bg, "칩 배경이 ☰와 다르다 — 경고색으로 칠했다").toBe(menu.bg);
     expect(chip.border, "칩 테두리가 ☰와 다르다 — 경고색으로 둘렀다").toBe(menu.border);
-    expect(chip.color, "칩 글자가 배지와 같은 붉은색이다").not.toBe(badge.bg);
+    // 배지 색과 다르다는 것만으로는 부족하다 — 다른 붉은색으로 칠해도 통과한다. 붉은 기가 도는지 자체를 잰다.
+    const [r, g, b] = (chip.color.match(/\d+/g) ?? []).slice(0, 3).map(Number);
+    expect(r > g + 40 && r > b + 40, `칩 글자가 붉은색이다(${chip.color}) — 붉은색은 배지에만 쓴다`).toBe(false);
     expect(badge.color, "배지는 붉은 면 위의 흰 글자다").toBe("rgb(255, 255, 255)");
   });
 
@@ -534,7 +525,7 @@ test.describe("세트 선택 시트", () => {
     await enterExamViaDrawer(page);
     await answerCurrent(page);
     await gradeAndClose(page); // 챕터 통계가 있어야 미니 시험(랜덤의 유일한 진입로)에 들어간다
-    await enterMiniTestViaDrawer(page);
+    await enterMiniTestMobile(page);
     await answerCurrent(page); // 진행이 있어야 세트를 바꿀 때 묻는다
 
     const confirm = page.getByTestId("pending-set-change-modal");

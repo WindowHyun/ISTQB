@@ -1641,31 +1641,31 @@ body[data-theme="dark"] .reference-image-frame {
   }
   button.mtb-title[aria-disabled] .mtb-ttl i { opacity: 0.35; }
   .mtb-menu { width: 44px; height: 44px; /* 터치 타깃 최소 44px */ border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface); font-size: 16px; color: var(--text-2); flex: none; }
-  .mtb-status { display: flex; align-items: center; gap: 10px; min-height: 52px; }
+  /* 한 줄에 다 안 들면 접는다 — 오답 노트가 다음 줄로 내려갈 뿐 잘리거나 화면 밖으로 밀리지 않는다.
+     칸 폭은 내용에 따라 크게 달라진다(모드 라벨 '시험'→'미니 시험', 시계 '59:59'→'1:05:12', 배지 한 자리→세 자리).
+     폭 분기만으로 맞추면 다른 내용 조합에서 다시 넘친다. */
+  .mtb-status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-height: 52px; }
   .mtb-chip { background: var(--primary-solid); color: #fff; font-weight: 700; font-size: 13px; padding: 4px 12px; border-radius: 999px; }
   .mtb-pos { font-size: 14px; font-weight: 700; }
   .mtb-time { font-size: 13px; color: var(--muted); }
   /* 상태 줄 칸은 줄바꿈하지 않는다 — 좁으면 flex가 칸을 눌러 '시/험'·'1 / 40'·'오답 노/트'처럼 글자 중간에서 꺾인다. */
   .mtb-chip, .mtb-pos, .mtb-time, .mtb-wrong { white-space: nowrap; }
   /* 오답 노트 입구 — 경고가 아니라 길이다. 분홍 채움·빨간 테두리·빨간 글자·빨간 배지가 겹치면 에러 배너처럼 읽히고
-     옆의 ☰·모드 칩과 톤도 맞지 않는다. 컨테이너는 ☰와 같은 중립 버튼으로 두고, 붉은색은 개수 배지에만 쓴다. */
+     옆의 ☰·모드 칩과 톤도 맞지 않는다. 컨테이너는 ☰와 같은 중립 버튼으로 두고, 붉은색은 개수 배지에만 쓴다.
+     아이콘은 두지 않는다 — 글자만으로 입구가 읽히고, 아이콘 폭(26px)이 가장 흔한 좁은 폭(360px)에서 한 줄을 깨뜨렸다. */
   .mtb-wrong {
-    --icon-note: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 3.5h10A1.5 1.5 0 0 1 18 5v14a1.5 1.5 0 0 1-1.5 1.5h-10zM10 8.5h5M10 12.5h5'/%3E%3C/svg%3E");
     margin-left: auto; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 12px;
     border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface);
     color: var(--text); font-size: 14px; font-weight: 700;
   }
-  .mtb-wrong::before {
-    content: ""; width: 18px; height: 18px; background: var(--text-2);
-    -webkit-mask: var(--icon-note) center / contain no-repeat; mask: var(--icon-note) center / contain no-repeat;
-  }
   .mtb-wrong:active { background: var(--surface-3); }
   .mtb-wrong b { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; background: var(--danger); color: #fff; font-size: 12px; display: grid; place-items: center; }
   body[data-theme="dark"] .mtb-wrong b { background: #b91c1c; }
-  /* 320px대: 모드 칩·위치·시간·오답 노트가 한 줄에 다 들어가도록 아이콘을 빼고 여백을 줄인다. */
-  @media (max-width: 340px) {
+  /* 좁은 화면(≤380px)은 칸 사이·칩 안쪽 여백을 줄여 한 줄에 더 들어가게 한다. */
+  @media (max-width: 380px) {
+    .mtb-status { column-gap: 8px; }
+    .mtb-chip { padding: 4px 10px; }
     .mtb-wrong { padding: 0 10px; }
-    .mtb-wrong::before { display: none; }
   }
 
   /* 세트명 중복 제거 — 상단바(.mobile-topbar)가 세트명·모드·진행·시간을 상시 노출하므로
@@ -1963,12 +1963,15 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
   font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
-  cursor: pointer;
 }
 .sc-minitest { border-color: var(--primary-100); background: var(--primary-50); color: var(--primary-700); }
-.sc-practice:hover, .sc-minitest:hover { border-color: var(--primary); }
-.sc-practice:disabled, .sc-minitest:disabled { opacity: 0.5; cursor: not-allowed; }
-/* 좁은 화면: [이름 · 정답률] / 막대 / [연습 · 미니 시험 반반] 세 줄. 버튼은 같은 줄에 같은 폭으로 서고 터치 타깃은 44px. */
+/* 비활성(응시 중)에는 호버로 강조하지 않는다 — 반투명·not-allowed(전역 button:disabled)인 컨트롤이 눌릴 듯 반응하면 안 된다. */
+.sc-practice:hover:not(:disabled), .sc-minitest:hover:not(:disabled) { border-color: var(--primary); }
+/* 터치 타깃 44px은 모바일 레이아웃 전체(≤880px)의 약속이다 — 세로 태블릿(641~880px)도 터치 기기다. */
+@media (max-width: 880px) {
+  .sc-practice, .sc-minitest { min-height: 44px; font-size: 14px; }
+}
+/* 좁은 화면: [이름 · 정답률] / 막대 / [연습 · 미니 시험 반반] 세 줄. 버튼은 같은 줄에 같은 폭으로 선다. */
 @media (max-width: 640px) {
   .stats-chapters li { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "n r" "b b" "a a"; padding: 12px; }
   .stats-lowsample li { grid-template-areas: "n r" "a a"; }
@@ -1976,7 +1979,6 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
   .sc-rate { grid-area: r; }
   .sc-bar { grid-area: b; }
   .sc-actions { grid-area: a; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .sc-practice, .sc-minitest { min-height: 44px; font-size: 14px; }
 }
 .stats-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
 

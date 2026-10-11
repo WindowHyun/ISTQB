@@ -144,6 +144,19 @@ export async function enterMiniTest(page: Page) {
 }
 
 /**
+ * 모바일(≤880px) 미니 시험 진입 — 통계 버튼이 드로어 안에 있다. 시험 회차 하나가 선행돼야 한다.
+ * 통계 모달에서 미니 시험을 시작해도 드로어는 열린 채일 수 있다 — 닫아야 상단바가 다시 눌린다.
+ */
+export async function enterMiniTestMobile(page: Page) {
+  await page.getByTestId("drawer-open").click();
+  await enterMiniTest(page);
+  if ((await page.locator(".app-shell").getAttribute("data-drawer")) === "open") {
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".app-shell")).toHaveAttribute("data-drawer", "closed");
+  }
+}
+
+/**
  * 퀵 추첨을 못 박는다 — 새로고침 이어풀기가 쓰는 저장 경로(`quickDraw`)에 직접 넣는다.
  * 제품 선택 게이트에서, `openProduct`·`enterQuick` 전에 부른다.
  *

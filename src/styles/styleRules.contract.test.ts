@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+import ts from 'typescript';
 
 /**
  * 스타일 규칙이 없는 버튼 — 화면이 브라우저 기본 모양으로 나간다.
@@ -13,32 +14,53 @@ import path from 'node:path';
  * 검사: className을 가진 `<button>`의 클래스 중 **하나라도** globals.css에 `.클래스` 규칙이 있어야 한다
  * (`className="primary"`처럼 변형 클래스만 단 버튼도 그 클래스를 쓰는 규칙이 있으면 통과한다).
  * 새 버튼을 만들면 같은 커밋에 규칙을 넣는다.
+ *
+ * 범위: **정적으로 읽히는 클래스만** 본다 — 문자열·삼항·`&&`·템플릿의 정적 조각·`clsx({ on: x })`의 키.
+ * `className={변수}`·`classes.join(' ')`처럼 값이 실행 때 정해지는 버튼은 읽을 수 없어 건너뛴다
+ * (`btn-${kind}`의 `btn-`처럼 보간에 붙은 조각도 이름의 일부일 뿐이라 건너뛴다).
  */
 
-/** `<button …>` 여는 태그의 속성부 — 중괄호 균형을 맞춰 읽어 `onClick={() => …}`의 `=>`를 태그 끝으로 오인하지 않는다. */
-function tagAttributes(source: string, from: number): string {
-  let depth = 0;
-  for (let i = from; i < source.length; i += 1) {
-    const c = source[i];
-    if (c === '{') depth += 1;
-    else if (c === '}') depth -= 1;
-    else if (c === '>' && depth === 0 && source[i - 1] !== '=') return source.slice(from, i);
-  }
-  return source.slice(from);
+type Usage = { line: number; tokens: string[] };
+
+/** className 식에서 정적으로 읽히는 클래스 이름 후보. 식 안에 보이는 문자열은 모두 후보로 본다(과대 추정은 통과 쪽으로만 기운다). */
+function classTokens(node: ts.Node): string[] {
+  const out: string[] = [];
+  const add = (text: string) => out.push(...text.split(/\s+/).filter(Boolean));
+  const visit = (n: ts.Node): void => {
+    if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) {
+      add(n.text);
+    } else if (ts.isTemplateExpression(n)) {
+      // `btn-${kind} on` — 보간 옆에 붙은 조각('btn-')은 이름의 일부라 버린다. 센티널로 이어 붙인 뒤 센티널이 든 토큰을 거른다.
+      let text = n.head.text;
+      for (const span of n.templateSpans) text += `\u0000${span.literal.text}`;
+      add(text);
+      n.templateSpans.forEach((span) => visit(span.expression));
+      return;
+    } else if (ts.isPropertyAssignment(n) || ts.isShorthandPropertyAssignment(n)) {
+      // clsx({ active: on }) — 키가 클래스 이름이다.
+      if (ts.isIdentifier(n.name) || ts.isStringLiteral(n.name)) add(n.name.text);
+    }
+    ts.forEachChild(n, visit);
+  };
+  visit(node);
+  return out.filter((t) => !t.includes('\u0000'));
 }
 
-/** 소스에서 className이 달린 `<button>`의 (줄 번호, 클래스 토큰들). 값을 알 수 없는 className={변수}는 건너뛴다. */
-export function buttonClassUsages(source: string): { line: number; tokens: string[] }[] {
-  const out: { line: number; tokens: string[] }[] = [];
-  const open = /<button\b/g;
-  for (let m = open.exec(source); m; m = open.exec(source)) {
-    const attrs = tagAttributes(source, m.index + m[0].length);
-    const cm = /className=(?:"([^"]*)"|'([^']*)'|\{`([^`]*)`\}|\{"([^"]*)"\}|\{'([^']*)'\})/.exec(attrs);
-    if (!cm) continue;
-    const raw = cm[1] ?? cm[2] ?? cm[3] ?? cm[4] ?? cm[5] ?? '';
-    const tokens = raw.replace(/\$\{[^}]*\}/g, ' ').split(/\s+/).filter(Boolean);
-    if (tokens.length) out.push({ line: source.slice(0, m.index).split('\n').length, tokens });
-  }
+/** 소스에서 className이 달린 `<button>`의 (줄 번호, 클래스 토큰들). 읽을 수 있는 토큰이 없는 버튼은 건너뛴다. */
+export function buttonClassUsages(source: string, fileName = 'x.tsx'): Usage[] {
+  const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const out: Usage[] = [];
+  const visit = (n: ts.Node): void => {
+    if ((ts.isJsxOpeningElement(n) || ts.isJsxSelfClosingElement(n)) && n.tagName.getText(sf) === 'button') {
+      for (const attr of n.attributes.properties) {
+        if (!ts.isJsxAttribute(attr) || attr.name.getText(sf) !== 'className' || !attr.initializer) continue;
+        const tokens = classTokens(attr.initializer);
+        if (tokens.length) out.push({ line: sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1, tokens });
+      }
+    }
+    ts.forEachChild(n, visit);
+  };
+  visit(sf);
   return out;
 }
 
@@ -49,8 +71,8 @@ export function cssClasses(css: string): Set<string> {
 }
 
 /** 규칙이 없는 클래스만 단 버튼. */
-export function unstyledButtons(source: string, known: Set<string>) {
-  return buttonClassUsages(source).filter((u) => !u.tokens.some((t) => known.has(t)));
+export function unstyledButtons(source: string, known: Set<string>, fileName?: string) {
+  return buttonClassUsages(source, fileName).filter((u) => !u.tokens.some((t) => known.has(t)));
 }
 
 function tsxFiles(dir: string): string[] {
@@ -64,21 +86,19 @@ function tsxFiles(dir: string): string[] {
 describe('스타일 규칙이 없는 버튼 (src/**/*.tsx ↔ src/styles/globals.css)', () => {
   const css = fs.readFileSync(path.resolve(process.cwd(), 'src/styles/globals.css'), 'utf8');
   const known = cssClasses(css);
+  const root = path.resolve(process.cwd(), 'src');
 
   it('className을 단 모든 버튼은 그 클래스 중 하나 이상의 CSS 규칙이 있다', () => {
-    const root = path.resolve(process.cwd(), 'src');
-    const violations = tsxFiles(root).flatMap((file) => {
-      const source = fs.readFileSync(file, 'utf8');
-      return unstyledButtons(source, known).map(
+    const violations = tsxFiles(root).flatMap((file) =>
+      unstyledButtons(fs.readFileSync(file, 'utf8'), known, file).map(
         (u) => `${path.relative(process.cwd(), file)}:${u.line} className="${u.tokens.join(' ')}"`,
-      );
-    });
+      ),
+    );
     expect(violations, '규칙이 없는 버튼 — globals.css에 규칙을 추가하세요(브라우저 기본 버튼으로 나갑니다)').toEqual([]);
   });
 
   it('검사 대상을 실제로 읽는다(버튼도 클래스도 0개면 위 검사가 늘 통과한다)', () => {
-    const root = path.resolve(process.cwd(), 'src');
-    const total = tsxFiles(root).reduce((n, f) => n + buttonClassUsages(fs.readFileSync(f, 'utf8')).length, 0);
+    const total = tsxFiles(root).reduce((n, f) => n + buttonClassUsages(fs.readFileSync(f, 'utf8'), f).length, 0);
     expect(total).toBeGreaterThan(30);
     expect(known.has('sc-minitest')).toBe(true);
     expect(known.has('mtb-wrong')).toBe(true);
@@ -86,7 +106,7 @@ describe('스타일 규칙이 없는 버튼 (src/**/*.tsx ↔ src/styles/globals
 });
 
 describe('버튼 스캐너', () => {
-  const known = new Set(['primary', 'btn']);
+  const known = new Set(['primary', 'btn', 'on']);
 
   it('규칙이 없는 클래스만 단 버튼을 줄 번호와 함께 돌려준다', () => {
     const src = '<div>\n  <button type="button" className="ghost-btn">x</button>\n</div>';
@@ -101,9 +121,11 @@ describe('버튼 스캐너', () => {
     expect(unstyledButtons('<button type="button" onClick={go}>x</button>', known)).toEqual([]);
   });
 
-  it('속성의 `=>`를 태그 끝으로 읽지 않는다(그 뒤의 className까지 읽는다)', () => {
-    const src = '<button onClick={() => a > b} className="zzz">x</button>';
-    expect(unstyledButtons(src, known).map((u) => u.tokens)).toEqual([['zzz']]);
+  it('속성의 `=>`와 문자열 속 `>`를 태그 끝으로 읽지 않는다(그 뒤의 className까지 읽는다)', () => {
+    const arrow = '<button onClick={() => a > b} className="zzz">x</button>';
+    expect(unstyledButtons(arrow, known).map((u) => u.tokens)).toEqual([['zzz']]);
+    const inString = '<button title="a > b" className="zzz">x</button>';
+    expect(unstyledButtons(inString, known).map((u) => u.tokens)).toEqual([['zzz']]);
   });
 
   it('여러 줄로 쪼갠 속성에서도 className을 찾는다', () => {
@@ -111,13 +133,35 @@ describe('버튼 스캐너', () => {
     expect(unstyledButtons(src, known)).toHaveLength(1);
   });
 
-  it('템플릿 리터럴은 정적인 토큰만 본다', () => {
-    expect(unstyledButtons('<button className={`btn ${on ? "x" : ""}`}>x</button>', known)).toEqual([]);
-    expect(unstyledButtons('<button className={`ghost ${on ? "x" : ""}`}>x</button>', known)).toHaveLength(1);
+  it('삼항·논리식·함수 호출 안의 문자열도 읽는다 — 어느 갈래든 규칙이 없으면 걸린다', () => {
+    expect(unstyledButtons('<button className={on ? "zzz" : "yyy"}>x</button>', known).map((u) => u.tokens)).toEqual([['zzz', 'yyy']]);
+    expect(unstyledButtons('<button className={on ? "primary" : undefined}>x</button>', known)).toEqual([]);
+    expect(unstyledButtons('<button className={clsx("zzz", on && "yyy")}>x</button>', known)).toHaveLength(1);
+    expect(unstyledButtons('<button className={clsx({ zzz: on })}>x</button>', known)).toHaveLength(1);
+    expect(unstyledButtons('<button className={clsx({ on })}>x</button>', known)).toEqual([]);
   });
 
-  it('<buttonGroup> 같은 다른 태그는 버튼이 아니다', () => {
+  it('템플릿 리터럴은 정적인 토큰만 본다 — 보간에 붙은 조각은 이름의 일부라 버린다', () => {
+    expect(unstyledButtons('<button className={`btn ${on ? "x" : ""}`}>x</button>', known)).toEqual([]);
+    expect(unstyledButtons('<button className={`ghost ${on ? "x" : ""}`}>x</button>', known)).toHaveLength(1);
+    // `btn-${kind}`의 'btn-'은 '.btn-primary'·'.btn-secondary'의 앞부분이다 — 규칙이 없다고 걸면 거짓 경보다.
+    expect(unstyledButtons('<button className={`btn-${kind}`}>x</button>', known)).toEqual([]);
+    expect(unstyledButtons('<button className={`${kind}-btn`}>x</button>', known)).toEqual([]);
+  });
+
+  it('값을 알 수 없는 className(변수·join 결과)은 건너뛴다', () => {
+    expect(unstyledButtons('<button className={className}>x</button>', known)).toEqual([]);
+    expect(unstyledButtons('<button className={classes.join(" ")}>x</button>', known)).toEqual([]);
+  });
+
+  it('<buttonGroup>·<button-group>·<motion.button> 같은 다른 태그는 버튼이 아니다', () => {
     expect(unstyledButtons('<buttonGroup className="zzz" />', known)).toEqual([]);
+    expect(unstyledButtons('<button-group className="zzz" />', known)).toEqual([]);
+    expect(unstyledButtons('<motion.button className="zzz" />', known)).toEqual([]);
+  });
+
+  it('자기 닫는 `<button />`도 읽는다', () => {
+    expect(unstyledButtons('<button className="zzz" />', known)).toHaveLength(1);
   });
 
   it('CSS의 주석·url() 안에 적힌 이름은 규칙으로 치지 않는다', () => {

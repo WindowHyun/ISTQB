@@ -47,6 +47,6 @@
 
 | 화면 | 비교 |
 | --- | --- |
-| 풀이 화면 상태 줄의 `오답 노트` 칩(위 라이트·아래 다크) — 분홍 채움·빨간 테두리·빨간 글자가 겹쳐 에러 배너처럼 보이던 것을 ☰와 같은 중립 버튼 + 아이콘으로, 붉은색은 개수 배지에만 | [`compare-6-wrong-chip.png`](./screenshots/compare-6-wrong-chip.png) |
+| 풀이 화면 상태 줄의 `오답 노트` 칩(위 라이트·아래 다크) — 분홍 채움·빨간 테두리·빨간 글자가 겹쳐 에러 배너처럼 보이던 것을 ☰와 같은 중립 버튼으로, 붉은색은 개수 배지에만 | [`compare-6-wrong-chip.png`](./screenshots/compare-6-wrong-chip.png) |
 | 학습 통계 챕터 행(모바일) — 왼쪽부터 라이트 이전·이후, 다크 이전·이후. 규칙이 없어 브라우저 기본 회색 버튼으로 나가고 혼자 아랫줄로 떨어지던 `미니 시험`을 `연습`과 한 쌍(같은 줄·같은 폭·44px)으로, 약한 챕터는 행 테두리가 아니라 정답률 숫자와 막대만 붉게 | [`compare-7-stats-chapters.png`](./screenshots/compare-7-stats-chapters.png) |
 | 학습 통계(데스크톱 1280) — 한 줄 배치는 그대로, 두 버튼의 모양만 정돈 | [`compare-8-stats-desktop.png`](./screenshots/compare-8-stats-desktop.png) |
