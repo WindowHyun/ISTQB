@@ -144,6 +144,19 @@ export async function enterMiniTest(page: Page) {
 }
 
 /**
+ * 모바일(≤880px) 미니 시험 진입 — 통계 버튼이 드로어 안에 있다. 시험 회차 하나가 선행돼야 한다.
+ * 통계 모달에서 미니 시험을 시작해도 드로어는 열린 채일 수 있다 — 닫아야 상단바가 다시 눌린다.
+ */
+export async function enterMiniTestMobile(page: Page) {
+  await page.getByTestId("drawer-open").click();
+  await enterMiniTest(page);
+  if ((await page.locator(".app-shell").getAttribute("data-drawer")) === "open") {
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".app-shell")).toHaveAttribute("data-drawer", "closed");
+  }
+}
+
+/**
  * 퀵 추첨을 못 박는다 — 새로고침 이어풀기가 쓰는 저장 경로(`quickDraw`)에 직접 넣는다.
  * 제품 선택 게이트에서, `openProduct`·`enterQuick` 전에 부른다.
  *
@@ -348,11 +361,13 @@ export async function closeResult(page: Page) {
 }
 
 // "응시 1회 완료"(시험 진입→1문항 응답→채점→결과 닫기) — 회차 누적이 필요한
-// 시나리오(통계·오답노트·타임라인)의 공용 준비 시퀀스.
-export async function completeAttempt(page: Page) {
+// 시나리오(통계·오답노트·타임라인)의 공용 준비 시퀀스. 모바일 레이아웃(≤880px)에서는 모드 버튼이
+// 드로어 안에 있고 채점 버튼이 하단 액션바(`grade-button-m`)에 있으므로 `{ mobile: true }`를 준다.
+export async function completeAttempt(page: Page, opts: { mobile?: boolean } = {}) {
+  if (opts.mobile) await page.getByTestId("drawer-open").click();
   await enterExam(page);
   await page.locator("#options .option").first().click();
-  await submitGrade(page);
+  await submitGrade(page, opts.mobile ? "grade-button-m" : "grade-button");
   await closeResult(page);
 }
 
