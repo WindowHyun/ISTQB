@@ -15,9 +15,12 @@ import ts from 'typescript';
  * (`className="primary"`처럼 변형 클래스만 단 버튼도 그 클래스를 쓰는 규칙이 있으면 통과한다).
  * 새 버튼을 만들면 같은 커밋에 규칙을 넣는다.
  *
- * 범위: **정적으로 읽히는 클래스만** 본다 — 문자열·삼항·`&&`·템플릿의 정적 조각·`clsx({ on: x })`의 키.
- * `className={변수}`·`classes.join(' ')`처럼 값이 실행 때 정해지는 버튼은 읽을 수 없어 건너뛴다
- * (`btn-${kind}`의 `btn-`처럼 보간에 붙은 조각도 이름의 일부일 뿐이라 건너뛴다).
+ * 범위: **className을 달고 정적으로 읽히는 버튼만** 본다 — 문자열·삼항·`&&`·템플릿의 정적 조각·`clsx({ on: x })`의 키.
+ *  · `className={변수}`·`classes.join(' ')`처럼 값이 실행 때 정해지는 버튼은 읽을 수 없어 건너뛴다
+ *    (`btn-${kind}`의 `btn-`처럼 보간에 붙은 조각도 이름의 일부일 뿐이라 건너뛴다).
+ *  · className이 없는 맨 `<button>`은 보지 않는다. 전역 `button` 규칙은 글꼴·커서·비활성만 정하고 모양은
+ *    컨테이너 규칙(`.confirm-actions button` 등)이 칠한다 — 그런 버튼이 컨테이너 밖에 놓이면 브라우저 기본 모양으로
+ *    나가지만 이 검사는 못 잡는다. 눈으로 확인한다.
  */
 
 type Usage = { line: number; tokens: string[] };
@@ -98,10 +101,10 @@ describe('스타일 규칙이 없는 버튼 (src/**/*.tsx ↔ src/styles/globals
   });
 
   it('검사 대상을 실제로 읽는다(버튼도 클래스도 0개면 위 검사가 늘 통과한다)', () => {
+    // 제품 클래스 이름이 아니라 규모로 확인한다 — 클래스를 바꾸거나 합쳐도 이 검사가 따라 깨지지 않는다.
     const total = tsxFiles(root).reduce((n, f) => n + buttonClassUsages(fs.readFileSync(f, 'utf8'), f).length, 0);
-    expect(total).toBeGreaterThan(30);
-    expect(known.has('sc-minitest')).toBe(true);
-    expect(known.has('mtb-wrong')).toBe(true);
+    expect(total, '읽힌 버튼이 너무 적다 — 스캐너가 소스를 못 읽는다').toBeGreaterThan(30);
+    expect(known.size, '읽힌 CSS 클래스가 너무 적다 — 규칙 수집이 깨졌다').toBeGreaterThan(150);
   });
 });
 
@@ -117,7 +120,7 @@ describe('버튼 스캐너', () => {
     expect(unstyledButtons('<button className="primary extra">x</button>', known)).toEqual([]);
   });
 
-  it('className이 없는 버튼은 보지 않는다(전역 button 스타일에 맡긴 것)', () => {
+  it('className이 없는 버튼은 보지 않는다(범위 밖 — 컨테이너 규칙이 칠하는 버튼)', () => {
     expect(unstyledButtons('<button type="button" onClick={go}>x</button>', known)).toEqual([]);
   });
 

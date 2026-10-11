@@ -115,13 +115,17 @@ test.describe("헤더와 상태 줄", () => {
       const s = getComputedStyle(e);
       return { bg: s.backgroundColor, border: s.borderTopColor, color: s.color };
     });
-    const [chip, menu, badge] = [await style(".mtb-wrong"), await style(".mtb-menu"), await style(".mtb-wrong b")];
-    expect(chip.bg, "칩 배경이 ☰와 다르다 — 경고색으로 칠했다").toBe(menu.bg);
-    expect(chip.border, "칩 테두리가 ☰와 다르다 — 경고색으로 둘렀다").toBe(menu.border);
-    // 배지 색과 다르다는 것만으로는 부족하다 — 다른 붉은색으로 칠해도 통과한다. 붉은 기가 도는지 자체를 잰다.
-    const [r, g, b] = (chip.color.match(/\d+/g) ?? []).slice(0, 3).map(Number);
-    expect(r > g + 40 && r > b + 40, `칩 글자가 붉은색이다(${chip.color}) — 붉은색은 배지에만 쓴다`).toBe(false);
-    expect(badge.color, "배지는 붉은 면 위의 흰 글자다").toBe("rgb(255, 255, 255)");
+    // 테마마다 따로 선언된 규칙(다크는 body[data-theme="dark"] 아래)이라 한 테마만 보면 다른 테마의 회귀를 못 잡는다.
+    for (const theme of ["light", "dark"]) {
+      await page.evaluate((t) => { document.body.dataset.theme = t; }, theme);
+      const [chip, menu, badge] = [await style(".mtb-wrong"), await style(".mtb-menu"), await style(".mtb-wrong b")];
+      expect(chip.bg, `${theme}: 칩 배경이 ☰와 다르다 — 경고색으로 칠했다`).toBe(menu.bg);
+      expect(chip.border, `${theme}: 칩 테두리가 ☰와 다르다 — 경고색으로 둘렀다`).toBe(menu.border);
+      // 배지 색과 다르다는 것만으로는 부족하다 — 다른 붉은색으로 칠해도 통과한다. 붉은 기가 도는지 자체를 잰다.
+      const [r, g, b] = (chip.color.match(/\d+/g) ?? []).slice(0, 3).map(Number);
+      expect(r > g + 40 && r > b + 40, `${theme}: 칩 글자가 붉은색이다(${chip.color}) — 붉은색은 배지에만 쓴다`).toBe(false);
+      expect(badge.color, `${theme}: 배지는 붉은 면 위의 흰 글자다`).toBe("rgb(255, 255, 255)");
+    }
   });
 
   test("퀵에서는 위치·시간을 내리고, 세트 이름 버튼은 막힌 이유를 알려 준다", async ({ page }) => {

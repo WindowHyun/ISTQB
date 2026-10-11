@@ -1965,8 +1965,10 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
   white-space: nowrap;
 }
 .sc-minitest { border-color: var(--primary-100); background: var(--primary-50); color: var(--primary-700); }
-/* 비활성(응시 중)에는 호버로 강조하지 않는다 — 반투명·not-allowed(전역 button:disabled)인 컨트롤이 눌릴 듯 반응하면 안 된다. */
+/* 비활성(응시 중)에는 호버로 강조하지 않는다 — 반투명·not-allowed(전역 button:disabled)인 컨트롤이 눌릴 듯 반응하면 안 된다.
+   호버는 두 버튼 모두 테두리를, 연습은 글자도 강조색으로(미니 시험은 이미 강조 톤이라 글자는 그대로). */
 .sc-practice:hover:not(:disabled), .sc-minitest:hover:not(:disabled) { border-color: var(--primary); }
+.sc-practice:hover:not(:disabled) { color: var(--primary); }
 /* 터치 타깃 44px은 모바일 레이아웃 전체(≤880px)의 약속이다 — 세로 태블릿(641~880px)도 터치 기기다. */
 @media (max-width: 880px) {
   .sc-practice, .sc-minitest { min-height: 44px; font-size: 14px; }

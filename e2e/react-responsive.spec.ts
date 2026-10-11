@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "./fixtures";
 import {
+  completeAttempt,
   enterExam,
   enterMiniTestMobile,
   gotoQuestionMobile,
@@ -9,14 +10,10 @@ import {
   submitGrade,
 } from "./helpers";
 
-// 채점 1회를 마친 상태 — 오답 노트 배지와 챕터 통계가 생긴다. 모바일 레이아웃(≤880px)에서는 모드 버튼이 드로어 안에 있다.
+// 채점 1회를 마친 상태 — 오답 노트 배지와 챕터 통계가 생긴다.
 async function gradeOnceMobile(page: Page) {
   await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
-  await page.getByTestId("drawer-open").click();
-  await enterExam(page);
-  await page.locator("#options .option").first().click();
-  await submitGrade(page, "grade-button-m"); // 모바일: 하단 액션바 채점 버튼
-  await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+  await completeAttempt(page, { mobile: true });
 }
 
 // 위 상태에서 학습 통계를 연다(통계 버튼도 드로어 안에 있다).
@@ -50,8 +47,22 @@ async function measureStatusRow(page: Page, content: StatusContent = {}) {
       const r = el(sel).getBoundingClientRect();
       return { x: r.x, y: r.y, w: r.width, h: r.height };
     };
+    // 글자가 몇 줄에 걸쳐 그려졌나 — 상자 높이로는 못 센다(오답 노트 칩은 min-height 44px라 글자가 두 줄이 돼도 44px 그대로다).
+    // 스크린리더 전용 글자(.sr-only)와 배지(b)는 뺀다.
+    const lines = (sel: string) => {
+      const tops = new Set<number>();
+      const walker = document.createTreeWalker(el(sel), NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        if (!n.textContent!.trim() || n.parentElement!.closest(".sr-only, b")) continue;
+        const range = document.createRange();
+        range.selectNodeContents(n);
+        for (const r of range.getClientRects()) if (r.width > 0) tops.add(Math.round(r.top));
+      }
+      return tops.size;
+    };
     const measured = {
       cells: { 모드: box(".mtb-chip"), 위치: box(".mtb-pos"), 시간: box(".mtb-time"), 오답노트: box(".mtb-wrong") },
+      lines: { 모드: lines(".mtb-chip"), 위치: lines(".mtb-pos"), 시간: lines(".mtb-time"), 오답노트: lines(".mtb-wrong") },
       overflow: document.documentElement.scrollWidth - window.innerWidth,
     };
     restore.forEach((undo) => undo());
@@ -62,12 +73,9 @@ type StatusRow = Awaited<ReturnType<typeof measureStatusRow>>;
 
 /** 계약은 '한 줄'이 아니라 '잘리지 않음'이다 — 칸이 모자라면 오답 노트가 다음 줄로 내려가도 된다. */
 function expectStatusRowIntact(m: StatusRow, width: number, label: string) {
-  const { 모드, 위치, 시간, 오답노트 } = m.cells;
-  // 글자가 꺾이지 않는다 — 한 칸이 두 줄이 되면 높이가 한 줄의 두 배가 된다('시/험'·'1 / 40'·'오답 노/트').
-  expect(모드.h, `${label}: 모드 칩이 글자 중간에서 꺾였다`).toBeLessThan(36);
-  expect(위치.h, `${label}: 위치('1 / 40')가 두 줄로 꺾였다`).toBeLessThan(28);
-  expect(시간.h, `${label}: 시간이 두 줄로 꺾였다`).toBeLessThan(28);
-  expect(오답노트.h, `${label}: 오답 노트 칩이 두 줄로 꺾였다`).toBeLessThan(48);
+  // 글자가 꺾이지 않는다('시/험'·'1 / 40'·'오답 노/트') — 상자 높이가 아니라 글자가 그려진 줄 수로 센다.
+  // 오답 노트 칩은 min-height 44px라 글자가 두 줄이 돼도 높이가 그대로여서 높이로는 못 잡는다.
+  for (const [name, n] of Object.entries(m.lines)) expect(n, `${label}: ${name}의 글자가 ${n}줄로 꺾였다`).toBe(1);
   // 좌우 16px 여백 안에 든다 — 파고들면 ☰와 오른쪽 끝이 어긋나고, 더 나가면 화면 끝에 붙어 잘린다.
   for (const [name, b] of Object.entries(m.cells)) {
     expect(b.x, `${label}: ${name}이 왼쪽 여백을 넘었다 ${JSON.stringify(b)}`).toBeGreaterThanOrEqual(16 - 1);
@@ -205,13 +213,51 @@ test.describe("엣지-반응형", () => {
         expect(Math.abs(p!.y - m!.y), `서로 다른 줄에 있다 — ${where}`).toBeLessThanOrEqual(1);
         expect(Math.abs(p!.width - m!.width), `폭이 다르다 — ${where}`).toBeLessThanOrEqual(2);
         expect(Math.min(p!.height, m!.height), `터치 타깃 44px 미만 — ${where}`).toBeGreaterThanOrEqual(44);
+        expect(Math.abs(p!.height - m!.height), `높이가 다르다 — ${where}`).toBeLessThanOrEqual(1);
         expect(m!.x + m!.width, `행 오른쪽으로 넘친다 — ${where}`).toBeLessThanOrEqual(r!.x + r!.width + 1);
         expect(p!.x, `행 왼쪽으로 넘친다 — ${where}`).toBeGreaterThanOrEqual(r!.x - 1);
+
+        // 라벨이 한 줄이다 — 상자 높이는 min-height가 가려 두 줄 꺾임을 못 잡는다('미니 / 시험').
+        for (const id of ["chapter-practice-btn", "chapter-minitest-btn"]) {
+          const lines = await row.getByTestId(id).evaluate((e) => {
+            const range = document.createRange();
+            range.selectNodeContents(e);
+            return new Set([...range.getClientRects()].map((x) => Math.round(x.top))).size;
+          });
+          expect(lines, `${rowId}: ${id}의 라벨이 ${lines}줄로 꺾였다`).toBe(1);
+        }
       }
 
       // 브라우저 기본 버튼(모서리 각짐·회색 면)이 아니라 이 앱의 버튼이다 — 규칙이 아예 없던 결함의 직접 증거.
-      const radius = await page.getByTestId("chapter-minitest-btn").first().evaluate((e) => parseFloat(getComputedStyle(e).borderTopLeftRadius));
-      expect(radius, "미니 시험이 기본 버튼 모양이다(CSS 규칙 없음)").toBeGreaterThanOrEqual(8);
+      // 값(8px)이 아니라 관계를 잰다: 같은 쌍인 '연습'과 같은 모양이어야 하고, 각진(0) 기본 모양이 아니어야 한다.
+      const shape = (id: string) => page.getByTestId(id).first().evaluate((e) => {
+        const s = getComputedStyle(e);
+        return { radius: parseFloat(s.borderTopLeftRadius), font: s.fontSize, border: s.borderTopWidth };
+      });
+      const [practice, mini] = [await shape("chapter-practice-btn"), await shape("chapter-minitest-btn")];
+      expect(mini.radius, "미니 시험이 기본 버튼 모양이다(CSS 규칙 없음)").toBeGreaterThan(0);
+      expect(mini, "미니 시험이 연습과 다른 모양이다(한 쌍이 어긋났다)").toEqual(practice);
+
+      // 약한 챕터는 정답률 숫자와 막대만 붉다 — 행 테두리·이름이 붉으면 목록 전체가 오류 화면처럼 읽힌다. 이 시나리오의 첫 행은 가장 약한 챕터다.
+      const weakRow = page.getByTestId("stats-chapter-row").first();
+      await expect(weakRow).toHaveClass(/weak/);
+      const colors = await weakRow.evaluate((row) => {
+        const css = (el: Element | null, prop: "color" | "borderTopColor" | "backgroundColor") => getComputedStyle(el!)[prop];
+        return {
+          border: css(row, "borderTopColor"),
+          name: css(row.querySelector(".sc-name"), "color"),
+          rate: css(row.querySelector(".sc-rate"), "color"),
+          bar: css(row.querySelector(".sc-bar i"), "backgroundColor"),
+        };
+      });
+      const reddish = (rgb: string) => {
+        const [r, g, b] = (rgb.match(/\d+/g) ?? []).slice(0, 3).map(Number);
+        return r > g + 40 && r > b + 40;
+      };
+      expect(reddish(colors.border), `약한 챕터 행의 테두리가 붉다(${colors.border})`).toBe(false);
+      expect(reddish(colors.name), `약한 챕터 이름이 붉다(${colors.name})`).toBe(false);
+      expect(reddish(colors.rate), `약한 챕터의 정답률 숫자가 붉지 않다(${colors.rate})`).toBe(true);
+      expect(reddish(colors.bar), `약한 챕터의 막대가 붉지 않다(${colors.bar})`).toBe(true);
     });
     // react-layout에서 옮김
     test("모드 변경 시 드로어가 자동으로 닫힌다", async ({ page }) => {
@@ -273,7 +319,11 @@ test.describe("엣지-반응형", () => {
         // 미니 시험은 모드 라벨이 가장 길다 — 실제로 들어가 같은 규칙을 잰다.
         await enterMiniTestMobile(page);
         await expect(page.locator(".mtb-chip")).toHaveText("미니 시험");
-        expectStatusRowIntact(await measureStatusRow(page), width, "미니 시험(실제 내용)");
+        const mini = await measureStatusRow(page);
+        expectStatusRowIntact(mini, width, "미니 시험(실제 내용)");
+        // 미니 시험의 실제 내용은 360px부터 한 줄에 선다(좁은 쪽은 여유가 얇아 글꼴에 따라 접힐 수 있다 — 접혀도 위의 '잘리지 않음'은 지킨다).
+        // 오답 노트 칩에 폭을 더하는 변경(아이콘 같은)을 보통 내용의 한 줄 검사만으로는 못 잡는 폭이 있어서 둔다.
+        if (width >= 360) expectStatusRowOnOneLine(mini, "미니 시험(실제 내용)");
         expectStatusRowIntact(await measureStatusRow(page, WORST_CONTENT), width, "미니 시험 + 최장 시계·배지");
       });
     });
