@@ -40,3 +40,13 @@
 | 확대 화면 | [`compare-5-zoom.png`](./screenshots/compare-5-zoom.png) |
 
 이후 화면만 따로 남긴 것: 시험 응시 중(정오 비공개)과 채점 뒤(정오·오답 노트 배지·`오답 N문제 다시 풀기`)는 [`after-exam-states.png`](./screenshots/after-exam-states.png), 다크 테마는 [`after-dark.png`](./screenshots/after-dark.png), 확대 후(두 번 누르기)는 [`after-zoom-250.png`](./screenshots/after-zoom-250.png).
+
+### 이후 다듬은 것 — 오답 노트 칩·학습 통계 챕터 행
+
+실제 화면에서 본 뒤 두 곳을 다시 그렸다(시안 01·04의 칩도 같은 모양으로 고쳤다). 왼쪽이 이전, 오른쪽이 이후다.
+
+| 화면 | 비교 |
+| --- | --- |
+| 풀이 화면 상태 줄의 `오답 노트` 칩(위 라이트·아래 다크) — 분홍 채움·빨간 테두리·빨간 글자가 겹쳐 에러 배너처럼 보이던 것을 ☰와 같은 중립 버튼으로, 붉은색은 개수 배지에만 | [`compare-6-wrong-chip.png`](./screenshots/compare-6-wrong-chip.png) |
+| 학습 통계 챕터 행(모바일) — 왼쪽부터 라이트 이전·이후, 다크 이전·이후. 규칙이 없어 브라우저 기본 회색 버튼으로 나가고 혼자 아랫줄로 떨어지던 `미니 시험`을 `연습`과 한 쌍(같은 줄·같은 폭·44px)으로, 약한 챕터는 행 테두리가 아니라 정답률 숫자와 막대만 붉게 | [`compare-7-stats-chapters.png`](./screenshots/compare-7-stats-chapters.png) |
+| 학습 통계(데스크톱 1280) — 한 줄 배치는 그대로, 두 버튼의 모양만 정돈 | [`compare-8-stats-desktop.png`](./screenshots/compare-8-stats-desktop.png) |

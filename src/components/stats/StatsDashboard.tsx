@@ -231,32 +231,34 @@ export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGro
                       <span className="sc-rate">{ch.rate}% <small>({ch.c}/{ch.t})</small></span>
                       {/* aria-label: 행마다 같은 글자("연습")가 반복돼 스크린리더로는
                           어느 챕터의 버튼인지 알 수 없다 — 챕터명을 함께 읽어준다. */}
-                      <button
-                        type="button"
-                        className="sc-practice"
-                        data-testid="chapter-practice-btn"
-                        disabled={practiceLocked}
-                        aria-label={`${ch.name} 연습`}
-                        title={practiceLocked
-                          ? '시험 응시 중에는 집중 연습을 시작할 수 없습니다. 먼저 채점하세요.'
-                          : `현재 세트에서 '${ch.name}' 문항만 연습 (통계 미기록)`}
-                        onClick={() => onPracticeChapter(ch.name)}
-                      >
-                        연습
-                      </button>
-                      <button
-                        type="button"
-                        className="sc-minitest"
-                        data-testid="chapter-minitest-btn"
-                        disabled={practiceLocked}
-                        aria-label={`${ch.name} 미니 시험`}
-                        title={practiceLocked
-                          ? '시험 응시 중에는 미니 시험을 시작할 수 없습니다. 먼저 채점하세요.'
-                          : `'${ch.name}' 미니 시험(최대 10문항) — 채점하면 챕터 통계에 반영`}
-                        onClick={() => onMiniTestChapter(ch.name)}
-                      >
-                        미니 시험
-                      </button>
+                      <div className="sc-actions">
+                        <button
+                          type="button"
+                          className="sc-practice"
+                          data-testid="chapter-practice-btn"
+                          disabled={practiceLocked}
+                          aria-label={`${ch.name} 연습`}
+                          title={practiceLocked
+                            ? '시험 응시 중에는 집중 연습을 시작할 수 없습니다. 먼저 채점하세요.'
+                            : `현재 세트에서 '${ch.name}' 문항만 연습 (통계 미기록)`}
+                          onClick={() => onPracticeChapter(ch.name)}
+                        >
+                          연습
+                        </button>
+                        <button
+                          type="button"
+                          className="sc-minitest"
+                          data-testid="chapter-minitest-btn"
+                          disabled={practiceLocked}
+                          aria-label={`${ch.name} 미니 시험`}
+                          title={practiceLocked
+                            ? '시험 응시 중에는 미니 시험을 시작할 수 없습니다. 먼저 채점하세요.'
+                            : `'${ch.name}' 미니 시험(최대 10문항) — 채점하면 챕터 통계에 반영`}
+                          onClick={() => onMiniTestChapter(ch.name)}
+                        >
+                          미니 시험
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -295,26 +297,28 @@ export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGro
                       <span className="sc-rate sc-rate-weak">
                         <small>{ch.c}/{ch.t}문항</small>
                       </span>
-                      <button
-                        type="button"
-                        className="sc-practice"
-                        data-testid="chapter-practice-btn"
-                        disabled={practiceLocked}
-                        aria-label={`${ch.name} 연습`}
-                        onClick={() => onPracticeChapter(ch.name)}
-                      >
-                        연습
-                      </button>
-                      <button
-                        type="button"
-                        className="sc-minitest"
-                        data-testid="chapter-minitest-btn"
-                        disabled={practiceLocked}
-                        aria-label={`${ch.name} 미니 시험`}
-                        onClick={() => onMiniTestChapter(ch.name)}
-                      >
-                        미니 시험
-                      </button>
+                      <div className="sc-actions">
+                        <button
+                          type="button"
+                          className="sc-practice"
+                          data-testid="chapter-practice-btn"
+                          disabled={practiceLocked}
+                          aria-label={`${ch.name} 연습`}
+                          onClick={() => onPracticeChapter(ch.name)}
+                        >
+                          연습
+                        </button>
+                        <button
+                          type="button"
+                          className="sc-minitest"
+                          data-testid="chapter-minitest-btn"
+                          disabled={practiceLocked}
+                          aria-label={`${ch.name} 미니 시험`}
+                          onClick={() => onMiniTestChapter(ch.name)}
+                        >
+                          미니 시험
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
