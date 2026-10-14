@@ -2023,15 +2023,18 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 .stl-round-no { color: var(--muted); font-weight: 700; }
 .stl-round-mode { color: var(--primary-700); font-weight: 700; }
 .stl-round-rate { color: var(--text); font-weight: 800; }
-/* 정답률(·증감) 뒤를 밀어 소요·날짜·삭제가 오른쪽에 모이게 한다. 첫 회차는 증감이 없어 정답률 바로 뒤가 소요 시간이다 —
-   종전의 `.stl-round-rate:last-of-type`은 '마지막 span'이라 정답률에 걸리지 않아, 첫 회차만 소요 시간이 왼쪽에 붙었다. */
-.stl-round-delta { margin-right: auto; }
-.stl-round-rate + .stl-round-time, .stl-round-rate + .stl-round-date { margin-left: auto; }
+/* 정답률(·증감) 바로 뒤의 요소가 남는 폭을 밀어 소요·날짜·삭제가 오른쪽에 모이게 한다 — 그 요소가 소요 시간이든, 날짜·✕ 덩어리든
+   (소요·날짜가 없는 옛·가져온 이력은 ✕가 정답률 바로 뒤다). 종전에는 증감(`margin-right:auto`)과 `.stl-round-rate:last-of-type`
+   두 갈래였는데, 뒤의 것은 '마지막 span'이라 정답률에 걸리지 않아 첫 회차(증감 없음)만 소요 시간이 왼쪽에 붙었다. 한 규칙이면 줄이
+   접혀도 모든 행이 같은 쪽에 선다. */
+.stl-round-rate + :not(.stl-round-delta), .stl-round-delta + * { margin-left: auto; }
 .stl-round-delta.up { color: var(--success, #1c7c3c); }
 .stl-round-delta.down { color: var(--danger, #c0392b); }
 
 /* 회차 항목의 부가 정보 — 종전에는 아래 중복 목록에만 있던 소요 시간·날짜를 흡수했다. */
 .stl-round-time, .stl-round-date { color: var(--muted); font-weight: 600; }
+/* 날짜와 ✕는 한 덩어리 — 줄이 접힐 때(320px) ✕만 혼자 아랫줄로 떨어지지 않는다. */
+.stl-round-tail { display: inline-flex; align-items: center; gap: 8px; }
 /* 회차 단건 삭제 — 잘못 제출한 한 건 때문에 이력을 통째로 버리지 않아도 되게. */
 .stl-round-del {
   border: 0; background: none; cursor: pointer; padding: 0 2px;
@@ -2044,31 +2047,25 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 .stats-minis h4 { font-size: 13px; font-weight: 800; color: var(--text-2); margin-bottom: 8px; }
 .stats-minis h4 small { font-weight: 600; color: var(--muted); margin-left: 6px; }
 .mini-rounds { display: flex; flex-direction: column; gap: 6px; }
-/* 두 줄 격자: [챕터 · 출처 세트 · ✕] / [정답률 · 소요 · 날짜]. 종전에는 한 줄 흐름(flex-wrap)이라 둘째 줄이 차는 순간
+/* 두 줄 격자: [챕터 · 출처 세트 | ✕] / [정답률 · 소요 · 날짜]. 종전에는 한 줄 흐름(flex-wrap)이라 둘째 줄이 차는 순간
    ✕가 혼자 셋째 줄로 떨어졌다(날짜가 긴 '10월 11일 23:30' 같은 행만 — 행 높이도 들쭉날쭉했다). */
 .mini-rounds li {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 10px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 4px 10px;
   padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px;
   background: var(--surface); font-size: 12.5px;
 }
 .mini-rounds li > * { white-space: nowrap; }
 /* 합격선 미만은 행 테두리 대신 정답률 숫자만 붉게 — 챕터 행·회차 이력과 같은 규칙. '(4/10)'은 보조 정보라 그대로 흐리다. */
 .mini-rounds li.weak .mr-rate { color: var(--danger); }
-/* 챕터명은 한국어라 min-content가 '한 글자'다(오답노트와 같은 함정) — 줄바꿈 대신 nowrap으로 두고, 칸이 모자라는 극단(320px에
-   가장 긴 챕터)에서만 말줄임한다. */
-.mr-chapter { grid-column: 1; grid-row: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 800; color: var(--text); }
-/* 출처 세트 — 챕터명 옆의 보조 정보라 줄어들 수 있게 둔다(챕터명이 먼저 읽혀야 한다). */
-.mr-set {
-  grid-column: 2; grid-row: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--muted);
-  font-weight: 600;
-  font-size: 12px;
-}
-/* 삭제는 첫 줄 오른쪽 끝 — DOM 순서(정답률 뒤)는 그대로라 읽는 순서·탭 순서는 변하지 않는다. */
-.mini-rounds .stl-round-del { grid-column: 3; grid-row: 1; justify-self: end; }
+/* 챕터명과 출처 세트는 한 덩어리(흐름)다 — 자리가 모자라면 세트가 다음 줄로 내려갈 뿐 잘리지 않는다. 세트를 말줄임하면 같은
+   챕터를 세트 A·B에서 풀었을 때 구분 단서인 이름 끝(A·B)이 먼저 사라진다(격자 한 칸에 넣었을 때 360px에서 실제로 그랬다). */
+.mr-head { grid-column: 1; grid-row: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; }
+/* 챕터명은 한국어라 min-content가 '한 글자'다(오답노트와 같은 함정) — flex:none + nowrap. 행보다 긴 극단에서만 말줄임한다. */
+.mr-chapter { flex: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-weight: 800; color: var(--text); }
+/* 출처 세트 — 챕터명 옆의 보조 정보라 줄어들 수 있게 두되, 한 줄이 행보다 길 때만 말줄임한다. */
+.mr-set { flex: 0 1 auto; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; color: var(--muted); font-weight: 600; font-size: 12px; }
+/* 삭제는 첫 줄 오른쪽 끝 — DOM 순서(정답률 뒤)는 그대로라 읽는 순서·탭 순서는 변하지 않는다. 글자가 두 줄이 돼도 ✕는 첫 줄에 붙는다. */
+.mini-rounds .stl-round-del { grid-column: 2; grid-row: 1; align-self: start; margin-top: 3px; }
 /* 둘째 줄은 한 덩어리 — 정답률이 남는 폭을 먹어 소요·날짜가 오른쪽에 모이고, 아주 좁으면 이 덩어리 안에서만 접힌다. */
 .mr-meta { grid-column: 1 / -1; grid-row: 2; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; }
 .mr-rate { flex: 1 1 auto; min-width: 0; font-weight: 800; color: var(--text); }

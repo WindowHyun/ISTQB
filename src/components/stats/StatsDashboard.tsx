@@ -371,19 +371,22 @@ export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGro
                           {at.elapsedSeconds != null && (
                             <span className="stl-round-time">소요 {formatClock(at.elapsedSeconds)}</span>
                           )}
-                          {at.createdAt > 0 && (
-                            <span className="stl-round-date">{formatRoundDate(at.createdAt)}</span>
-                          )}
-                          <button
-                            type="button"
-                            className="stl-round-del"
-                            data-testid="round-delete-btn"
-                            aria-label={`${tl.title} ${at.round}회차 기록 삭제`}
-                            title="이 회차 기록만 삭제"
-                            onClick={() => onDeleteRound(at.id)}
-                          >
-                            ✕
-                          </button>
+                          {/* 날짜와 ✕는 한 덩어리 — 320px처럼 줄이 접힐 때 ✕만 혼자 아랫줄로 떨어지지 않는다. */}
+                          <span className="stl-round-tail">
+                            {at.createdAt > 0 && (
+                              <span className="stl-round-date">{formatRoundDate(at.createdAt)}</span>
+                            )}
+                            <button
+                              type="button"
+                              className="stl-round-del"
+                              data-testid="round-delete-btn"
+                              aria-label={`${tl.title} ${at.round}회차 기록 삭제`}
+                              title="이 회차 기록만 삭제"
+                              onClick={() => onDeleteRound(at.id)}
+                            >
+                              ✕
+                            </button>
+                          </span>
                         </li>
                       ))}
                     </ol>
@@ -402,11 +405,15 @@ export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGro
                 <ul className="mini-rounds">
                   {miniRounds.map((m) => (
                     <li key={m.id} className={m.rate < weakThreshold ? 'weak' : ''} data-testid="mini-round-item">
-                      <span className="mr-chapter">{m.chapter ?? '퀵 랜덤'}</span>
-                      {/* 같은 챕터를 세트 A·B에서 각각 미니 시험하면 챕터명만으로는 두 줄이
-                          구분되지 않는다(정답률만 다른 같은 이름 두 개). 출처 세트를 붙인다.
-                          퀵은 세트에 매이지 않아(setId가 센티넬) 붙일 것이 없다. */}
-                      {m.kind === 'mini' && <span className="mr-set">{m.title}</span>}
+                      {/* 챕터명과 출처 세트는 한 덩어리(흐름)다 — 자리가 모자라면 세트가 다음 줄로 내려갈 뿐 잘리지 않는다.
+                          세트를 말줄임하면 구분 단서인 이름 끝('…샘플문제 A'의 A)이 먼저 사라진다. */}
+                      <span className="mr-head">
+                        <span className="mr-chapter">{m.chapter ?? '퀵 랜덤'}</span>
+                        {/* 같은 챕터를 세트 A·B에서 각각 미니 시험하면 챕터명만으로는 두 줄이
+                            구분되지 않는다(정답률만 다른 같은 이름 두 개). 출처 세트를 붙인다.
+                            퀵은 세트에 매이지 않아(setId가 센티넬) 붙일 것이 없다. */}
+                        {m.kind === 'mini' && <span className="mr-set">{m.title}</span>}
+                      </span>
                       {/* 정답률·소요·날짜는 한 덩어리(둘째 줄)다 — ✕를 같은 줄 흐름에 두면 이 줄이 차는 순간 혼자 셋째 줄로
                           떨어졌다. ✕는 DOM 순서(읽는 순서)는 그대로 두고 CSS 격자에서 첫 줄 오른쪽 끝에 둔다. */}
                       <span className="mr-meta">

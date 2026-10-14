@@ -6,6 +6,7 @@ import {
   closeResult,
   enterExam,
   enterMiniTestMobile,
+  isReddish,
   enterQuick,
   gotoQuestionMobile,
   openProduct,
@@ -122,8 +123,7 @@ test.describe("헤더와 상태 줄", () => {
       expect(chip.bg, `${theme}: 칩 배경이 ☰와 다르다 — 경고색으로 칠했다`).toBe(menu.bg);
       expect(chip.border, `${theme}: 칩 테두리가 ☰와 다르다 — 경고색으로 둘렀다`).toBe(menu.border);
       // 배지 색과 다르다는 것만으로는 부족하다 — 다른 붉은색으로 칠해도 통과한다. 붉은 기가 도는지 자체를 잰다.
-      const [r, g, b] = (chip.color.match(/\d+/g) ?? []).slice(0, 3).map(Number);
-      expect(r > g + 40 && r > b + 40, `${theme}: 칩 글자가 붉은색이다(${chip.color}) — 붉은색은 배지에만 쓴다`).toBe(false);
+      expect(isReddish(chip.color), `${theme}: 칩 글자가 붉은색이다(${chip.color}) — 붉은색은 배지에만 쓴다`).toBe(false);
       expect(badge.color, `${theme}: 배지는 붉은 면 위의 흰 글자다`).toBe("rgb(255, 255, 255)");
     }
   });
