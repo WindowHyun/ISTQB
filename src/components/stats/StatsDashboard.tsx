@@ -407,11 +407,15 @@ export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGro
                           구분되지 않는다(정답률만 다른 같은 이름 두 개). 출처 세트를 붙인다.
                           퀵은 세트에 매이지 않아(setId가 센티넬) 붙일 것이 없다. */}
                       {m.kind === 'mini' && <span className="mr-set">{m.title}</span>}
-                      <span className="mr-rate">{m.rate}% <small>({m.correct}/{m.total})</small></span>
-                      {m.elapsedSeconds != null && (
-                        <span className="mr-time">소요 {formatClock(m.elapsedSeconds)}</span>
-                      )}
-                      {m.createdAt > 0 && <span className="mr-date">{formatRoundDate(m.createdAt)}</span>}
+                      {/* 정답률·소요·날짜는 한 덩어리(둘째 줄)다 — ✕를 같은 줄 흐름에 두면 이 줄이 차는 순간 혼자 셋째 줄로
+                          떨어졌다. ✕는 DOM 순서(읽는 순서)는 그대로 두고 CSS 격자에서 첫 줄 오른쪽 끝에 둔다. */}
+                      <span className="mr-meta">
+                        <span className="mr-rate">{m.rate}% <small>({m.correct}/{m.total})</small></span>
+                        {m.elapsedSeconds != null && (
+                          <span className="mr-time">소요 {formatClock(m.elapsedSeconds)}</span>
+                        )}
+                        {m.createdAt > 0 && <span className="mr-date">{formatRoundDate(m.createdAt)}</span>}
+                      </span>
                       <button
                         type="button"
                         className="stl-round-del"

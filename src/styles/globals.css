@@ -2007,7 +2007,9 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 /* 회차 항목은 한 줄에 하나. 종전에는 칩(inline-flex)을 가로로 흘렸는데, 소요 시간·
    날짜·삭제가 붙으면서 좁은 화면에서 칩이 찌그러졌다 — 한국어는 글자 사이에서
    줄바꿈되므로 min-content가 '한 글자'라 "1회"가 "1/회"로 쪼개진다(오답노트와 동일 함정). */
-.stl-rounds { display: flex; flex-direction: column; gap: 6px; }
+/* 전역 reset은 `ul`만 건드린다 — `ol`에는 기본 들여쓰기(40px)·위아래 여백(1em)이 남아, 행이 카드 안쪽 여백에 맞지 않고
+   40px 좁게 들여써져 모든 행이 두 줄(좁은 폭에서는 세 줄)로 접혔다. */
+.stl-rounds { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; }
 .stl-rounds li {
   display: flex; align-items: center; flex-wrap: wrap; gap: 3px 8px;
   padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px;
@@ -2015,13 +2017,16 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 }
 /* 모든 토큰을 통째로 줄바꿈시킨다 — 글자 단위로 쪼개지지 않게. */
 .stl-rounds li > * { flex: none; white-space: nowrap; }
-.stl-rounds li.weak { border-color: var(--danger, #c0392b); }
+/* 합격선 미만은 행 테두리를 두르지 않고 정답률 숫자만 붉게 한다(챕터 행과 같은 규칙) — 행마다 빨간 테두리가 둘리면
+   아직 합격하지 못한 사용자에게는 목록 전체가 오류 화면처럼 읽힌다. 숫자가 글자로 남아 색에만 기대지도 않는다. */
+.stl-rounds li.weak .stl-round-rate { color: var(--danger); }
 .stl-round-no { color: var(--muted); font-weight: 700; }
 .stl-round-mode { color: var(--primary-700); font-weight: 700; }
 .stl-round-rate { color: var(--text); font-weight: 800; }
-/* 정답률 뒤를 밀어 소요·날짜·삭제가 오른쪽에 모이게 한다. */
+/* 정답률(·증감) 뒤를 밀어 소요·날짜·삭제가 오른쪽에 모이게 한다. 첫 회차는 증감이 없어 정답률 바로 뒤가 소요 시간이다 —
+   종전의 `.stl-round-rate:last-of-type`은 '마지막 span'이라 정답률에 걸리지 않아, 첫 회차만 소요 시간이 왼쪽에 붙었다. */
 .stl-round-delta { margin-right: auto; }
-.stl-round-rate:last-of-type { margin-right: auto; }
+.stl-round-rate + .stl-round-time, .stl-round-rate + .stl-round-date { margin-left: auto; }
 .stl-round-delta.up { color: var(--success, #1c7c3c); }
 .stl-round-delta.down { color: var(--danger, #c0392b); }
 
@@ -2039,26 +2044,33 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 .stats-minis h4 { font-size: 13px; font-weight: 800; color: var(--text-2); margin-bottom: 8px; }
 .stats-minis h4 small { font-weight: 600; color: var(--muted); margin-left: 6px; }
 .mini-rounds { display: flex; flex-direction: column; gap: 6px; }
+/* 두 줄 격자: [챕터 · 출처 세트 · ✕] / [정답률 · 소요 · 날짜]. 종전에는 한 줄 흐름(flex-wrap)이라 둘째 줄이 차는 순간
+   ✕가 혼자 셋째 줄로 떨어졌다(날짜가 긴 '10월 11일 23:30' 같은 행만 — 행 높이도 들쭉날쭉했다). */
 .mini-rounds li {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px;
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 10px;
   padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px;
   background: var(--surface); font-size: 12.5px;
 }
 .mini-rounds li > * { white-space: nowrap; }
-.mini-rounds li.weak { border-color: var(--danger, #c0392b); }
-/* flex:none + nowrap — 챕터명이 한국어라 min-content가 '한 글자'다(오답노트와 같은 함정). */
-.mr-chapter { flex: none; font-weight: 800; color: var(--text); white-space: nowrap; }
+/* 합격선 미만은 행 테두리 대신 정답률 숫자만 붉게 — 챕터 행·회차 이력과 같은 규칙. '(4/10)'은 보조 정보라 그대로 흐리다. */
+.mini-rounds li.weak .mr-rate { color: var(--danger); }
+/* 챕터명은 한국어라 min-content가 '한 글자'다(오답노트와 같은 함정) — 줄바꿈 대신 nowrap으로 두고, 칸이 모자라는 극단(320px에
+   가장 긴 챕터)에서만 말줄임한다. */
+.mr-chapter { grid-column: 1; grid-row: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 800; color: var(--text); }
 /* 출처 세트 — 챕터명 옆의 보조 정보라 줄어들 수 있게 둔다(챕터명이 먼저 읽혀야 한다). */
 .mr-set {
-  flex: 0 1 auto;
+  grid-column: 2; grid-row: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
   color: var(--muted);
   font-weight: 600;
   font-size: 12px;
 }
+/* 삭제는 첫 줄 오른쪽 끝 — DOM 순서(정답률 뒤)는 그대로라 읽는 순서·탭 순서는 변하지 않는다. */
+.mini-rounds .stl-round-del { grid-column: 3; grid-row: 1; justify-self: end; }
+/* 둘째 줄은 한 덩어리 — 정답률이 남는 폭을 먹어 소요·날짜가 오른쪽에 모이고, 아주 좁으면 이 덩어리 안에서만 접힌다. */
+.mr-meta { grid-column: 1 / -1; grid-row: 2; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; }
 .mr-rate { flex: 1 1 auto; min-width: 0; font-weight: 800; color: var(--text); }
 .mr-rate small { color: var(--muted); font-weight: 600; }
 .mr-time, .mr-date { flex: none; color: var(--muted); font-weight: 600; }

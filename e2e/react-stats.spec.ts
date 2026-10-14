@@ -6,6 +6,8 @@ import { enterExam, modeBtn, openProduct, openSet, settle, submitGrade } from ".
 // ── react-stats.spec.ts에서 합침 ────────────────────────────────────────
 interface SeedRound {
   id: string; mode: string; correct: number; total: number; chapter?: string;
+  /** 응시 시각(ms) — 생략하면 id로 만든 고정 날짜. 날짜 글자 길이가 행 배치에 영향을 주는 검사에서만 준다. */
+  at?: number;
 }
 
 // 통계 화면은 "여러 회차가 쌓인 뒤"의 계산이 핵심이라, 실제 풀이로는 원하는 점수 조합을
@@ -29,7 +31,7 @@ async function seedHistories(page: Page, rounds: SeedRound[]) {
           id: r.id, setId: "ISTQB-FL-V4-A", mode: r.mode, certification: "istqb",
           setTitle: "ISTQB FL v4.0 샘플문제 A", answers: {},
           correct: r.correct, total: r.total, elapsedSeconds: 600,
-          createdAt: 1750000000000 + Number(r.id),
+          createdAt: r.at ?? 1750000000000 + Number(r.id),
           chapterStats: { "테스트 기초": { c: r.correct, t: r.total } },
           ...(r.chapter ? { chapter: r.chapter } : {}),
         });
@@ -147,6 +149,99 @@ test.describe("학습 통계", () => {
     // "1회"가 "1/회"로 쪼개지면 2줄이 된다(한국어 min-content = 한 글자).
     expect(worst).toBe(1);
   });
+
+  // 합격선 미만(ISTQB 65%)은 행 테두리를 두르지 않고 정답률 숫자만 붉게 한다 — 챕터 행과 같은 규칙. 행마다 빨간 테두리가
+  // 둘리면 아직 합격하지 못한 사용자에게는 목록 전체가 오류 화면처럼 읽힌다. 색 값이 아니라 관계(붉은 기)를 잰다.
+  test("미달 회차·짧은 세션은 행 테두리가 아니라 정답률 숫자만 붉다", async ({ page }) => {
+    await seedHistories(page, [
+      { id: "1000", mode: "exam", correct: 24, total: 40 },                              // 60% 미달
+      { id: "2000", mode: "exam", correct: 26, total: 40 },                              // 65% 통과(합격선 이상)
+      { id: "4000", mode: "random", correct: 4, total: 10, chapter: "테스트 기초" },     // 40% 미달
+      { id: "5000", mode: "random", correct: 9, total: 10, chapter: "테스트 도구" },     // 90% 통과
+    ]);
+    await openStats(page);
+
+    const reddish = (rgb: string) => {
+      const [r, g, b] = (rgb.match(/\d+/g) ?? []).slice(0, 3).map(Number);
+      return r > g + 40 && r > b + 40;
+    };
+    for (const [list, rate] of [[".stl-rounds li", ".stl-round-rate"], [".mini-rounds li", ".mr-rate"]] as const) {
+      const rows = await page.locator(list).evaluateAll((els, rateSel) => els.map((el) => ({
+        weak: el.classList.contains("weak"),
+        border: getComputedStyle(el).borderTopColor,
+        rate: getComputedStyle(el.querySelector(rateSel)!).color,
+      })), rate);
+      expect(rows.some((r) => r.weak), `${list}: 미달 행이 없다 — 시드가 바뀌었다`).toBe(true);
+      expect(rows.some((r) => !r.weak), `${list}: 통과 행이 없다 — 시드가 바뀌었다`).toBe(true);
+      for (const r of rows) {
+        expect(reddish(r.border), `${list}: 행 테두리가 붉다(${r.border}) — 미달은 정답률 숫자로만 짚는다`).toBe(false);
+        expect(reddish(r.rate), `${list}: ${r.weak ? "미달 행의 정답률이 붉지 않다" : "통과 행의 정답률이 붉다"}(${r.rate})`).toBe(r.weak);
+      }
+    }
+  });
+
+  // 배치는 위치가 아니라 규칙으로 잰다. 회차 행이 40px 들여써지고(ol 기본 여백) 짧은 세션의 ✕가 셋째 줄로 떨어지던 결함 —
+  // 둘 다 눌러지고 읽히므로 기능 검사는 통과했다. 날짜가 가장 긴 형식('10월 28일 23:30')·가장 긴 챕터명으로 잰다.
+  for (const width of [320, 360, 390]) {
+    test(`회차·짧은 세션 행의 배치 — ${width}px`, async ({ page }) => {
+      const at = (day: number) => new Date(2025, 9, day, 23, 30).getTime(); // 10월 N일 23:30 — 월·일이 모두 두 자리
+      await seedHistories(page, [
+        { id: "1000", mode: "exam", correct: 24, total: 40, at: at(21) },
+        { id: "2000", mode: "exam", correct: 26, total: 40, at: at(24) },
+        { id: "3000", mode: "exam", correct: 30, total: 40, at: at(28) },
+        { id: "4000", mode: "random", correct: 4, total: 10, chapter: "테스트 분석 및 설계(기법)", at: at(25) },
+        { id: "5000", mode: "random", correct: 9, total: 10, chapter: "테스트 도구", at: at(27) },
+      ]);
+      await openStats(page);
+      await page.setViewportSize({ width, height: 1400 });
+      await settle(page);
+
+      // ① 회차 행은 카드 안쪽 여백에 맞춰 선다 — 들여쓰기(ol 기본 padding 40px)가 없다.
+      const timeline = await page.locator(".set-timeline").first().evaluate((card) => {
+        const head = card.querySelector(".stl-head")!.getBoundingClientRect();
+        const rows = [...card.querySelectorAll<HTMLElement>(".stl-rounds li")].map((li) => li.getBoundingClientRect());
+        const times = [...card.querySelectorAll<HTMLElement>(".stl-round-time")].map((t) => Math.round(t.getBoundingClientRect().right));
+        const tops = [...card.querySelectorAll<HTMLElement>(".stl-round-time")].map((t) => Math.round(t.getBoundingClientRect().top));
+        return { headLeft: head.left, rowLefts: rows.map((r) => r.left), rowRights: rows.map((r) => r.right), headRight: head.right, times, tops };
+      });
+      for (const left of timeline.rowLefts) {
+        expect(Math.abs(left - timeline.headLeft), `회차 행이 카드 안쪽 여백에 맞지 않는다(들여쓰기): 행 ${left} · 카드 ${timeline.headLeft}`).toBeLessThanOrEqual(1);
+      }
+      for (const right of timeline.rowRights) expect(right, "회차 행이 카드 오른쪽을 넘었다").toBeLessThanOrEqual(timeline.headRight + 1);
+
+      // ② 소요 시간은 모든 회차 행에서 같은 줄(첫 줄)의 오른쪽 끝에 선다 — 첫 회차(증감 없음)만 왼쪽에 붙던 결함.
+      //    좁은 폭에서는 줄이 접혀 행마다 다를 수 있어 360px 이상에서만 본다.
+      if (width >= 360) {
+        expect(new Set(timeline.times).size, `소요 시간의 오른쪽 끝이 행마다 다르다: ${timeline.times}`).toBe(1);
+      }
+
+      // ③ 짧은 세션: ✕는 챕터명과 같은 첫 줄에 서고(혼자 셋째 줄로 떨어지지 않는다), 모든 칸이 행 안에 든다.
+      //    마크업 구조(.mr-meta 같은 래퍼)가 아니라 보이는 관계만 잰다.
+      const minis = await page.getByTestId("mini-round-item").evaluateAll((rows) => rows.map((li) => {
+        const box = (sel: string) => li.querySelector(sel)!.getBoundingClientRect();
+        const row = li.getBoundingClientRect();
+        const chapter = box(".mr-chapter");
+        const del = box(".stl-round-del");
+        const rate = box(".mr-rate");
+        const overflow = [...li.querySelectorAll<HTMLElement>("*")]
+          .filter((el) => el.getBoundingClientRect().right > row.right + 1 || el.getBoundingClientRect().left < row.left - 1)
+          .map((el) => el.className);
+        return {
+          label: li.querySelector(".mr-chapter")!.textContent,
+          sameLine: Math.abs((del.top + del.height / 2) - (chapter.top + chapter.height / 2)),
+          rateBelow: rate.top >= chapter.bottom - 1,
+          overflow,
+        };
+      }));
+      expect(minis.length).toBe(2);
+      for (const m of minis) {
+        expect(m.sameLine, `${m.label}: ✕가 챕터명과 다른 줄에 있다(${m.sameLine}px)`).toBeLessThanOrEqual(6);
+        expect(m.rateBelow, `${m.label}: 정답률이 첫 줄(챕터명) 아래로 가지 않았다`).toBe(true);
+        expect(m.overflow, `${m.label}: 행 밖으로 넘친 칸`).toEqual([]);
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), "페이지가 가로로 넘친다").toBeLessThanOrEqual(0);
+    });
+  }
 });
 
 // 표본이 적은 챕터는 순위에서 분리한다 — 정답률만으로 줄 세우면 1문항 챕터가 늘 1위 약점이 된다.
