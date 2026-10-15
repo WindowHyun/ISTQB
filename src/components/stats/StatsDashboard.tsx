@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Modal } from '../common/Modal';
 import { ExamHistory } from '../../store/useQuizStore';
 import { SetSummary } from '../../hooks/useQuestions';
-import { formatClock } from '../../utils/time';
+import { formatClock, formatRoundDate } from '../../utils/time';
 import { displayRatePercent } from '../../utils/scoring';
 import {
   aggregateChapterStats,
@@ -34,23 +34,15 @@ const WEAK_THRESHOLD_BY_CERT: Record<string, number> = { istqb: 65, csts: 75 };
 // 정확히 안내한다(같은 세트 반복이 아니라 다른 세트 — 아래 lowSample 섹션 주석 참조).
 const MIN_CHAPTER_SAMPLE = 5;
 
-// 회차 날짜 표기 — 로케일을 ko-KR로 고정한다. toLocaleDateString()을 인자 없이 쓰면
-// 브라우저 로케일을 따라가, 한국어 앱인데 기기에 따라 "6/15/2025"(미국식)로 나온다.
-// 포매터를 모듈 상수로 재사용한다: 이력이 수천 건 쌓이면 행마다 Intl 객체를 새로
-// 만드는 비용이 통계 렌더 시간에 그대로 실린다(NF12는 1,000건 렌더를 예산으로 잰다).
-const ROUND_DATE_FMT = new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric' });
-const ROUND_TIME_FMT = new Intl.DateTimeFormat('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
-// 날짜만 찍으면 하루에 여러 번 응시했을 때 세 줄이 모두 같은 값이라 방금 친 회차를
-// 가려낼 수 없다. 오늘 회차는 시각만, 이전 회차는 날짜+시각으로 보여준다.
-function formatRoundDate(ms: number): string {
-  const d = new Date(ms);
-  const now = new Date();
-  const sameDay = d.getFullYear() === now.getFullYear()
-    && d.getMonth() === now.getMonth()
-    && d.getDate() === now.getDate();
-  const time = ROUND_TIME_FMT.format(d);
-  return sameDay ? `오늘 ${time}` : `${ROUND_DATE_FMT.format(d)} ${time}`;
-}
+// 합격선 미만 행은 정답률 숫자를 붉게 칠한다(CSS) — 색은 눈으로 보는 단서일 뿐이라, 같은 판정을 스크린리더가 읽는
+// 글자로도 정답률 칸 안에 적는다. 행 테두리를 걷어 낸 뒤로 붉은 숫자가 유일한 시각 단서가 됐다.
+const WEAK_CUE = <span className="sr-only">합격선 미만 </span>;
+
+/** 응시 시각 칸 — 시각이 없거나 읽을 수 없는 값이면 칸을 그리지 않는다. */
+const RoundDate = ({ ms, className }: { ms: number | undefined; className: string }) => {
+  const label = formatRoundDate(ms);
+  return label ? <span className={className}>{label}</span> : null;
+};
 
 interface StatsDashboardProps {
   histories: Record<string, ExamHistory>;
@@ -76,6 +68,7 @@ interface StatsDashboardProps {
 
 export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGroups, duplicateChapters, onClose, onClear, onPracticeChapter, onMiniTestChapter, practiceLocked, certification, onDeleteRound }: StatsDashboardProps) => {
   const weakThreshold = WEAK_THRESHOLD_BY_CERT[certification ?? 'istqb'] ?? 65;
+  const isWeak = (rate: number) => rate < weakThreshold;
   // 합격 기준 배너 — 요약 카드 위에서 지금 보고 있는 정답률이 합격권인지 바로 대조할 수 있게 한다.
   const passCriterionLabel = certification === 'csts'
     ? 'CSTS 합격 기준: 검정방법별 배점 합산 75점 이상(100점 만점)'
@@ -223,12 +216,12 @@ export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGro
                 )}
                 <ul>
                   {chapterRows.map((ch) => (
-                    <li key={ch.name} className={ch.rate < weakThreshold ? 'weak' : ''} data-testid="stats-chapter-row">
+                    <li key={ch.name} className={isWeak(ch.rate) ? 'weak' : ''} data-testid="stats-chapter-row">
                       <span className="sc-name">{ch.name}</span>
                       <span className="sc-bar" aria-hidden="true">
                         <i style={{ width: `${ch.rate}%` }} />
                       </span>
-                      <span className="sc-rate">{ch.rate}% <small>({ch.c}/{ch.t})</small></span>
+                      <span className="sc-rate">{isWeak(ch.rate) && WEAK_CUE}{ch.rate}% <small>({ch.c}/{ch.t})</small></span>
                       {/* aria-label: 행마다 같은 글자("연습")가 반복돼 스크린리더로는
                           어느 챕터의 버튼인지 알 수 없다 — 챕터명을 함께 읽어준다. */}
                       <div className="sc-actions">
@@ -355,12 +348,14 @@ export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGro
                         </span>
                       ))}
                     </div>
-                    <ol className="stl-rounds">
+                    {/* `<ol>`이 아니라 `<ul>`이다 — 전역 reset이 `ul`만 비워, `<ol>`은 기본 들여쓰기(40px)·위아래 여백이 남는다.
+                        회차 번호는 '1회'처럼 글자로 적혀 있어 순서는 목록 종류에 기대지 않는다. */}
+                    <ul className="stl-rounds">
                       {tl.attempts.map((at) => (
-                        <li key={at.id} className={at.rate < weakThreshold ? 'weak' : ''}>
+                        <li key={at.id} className={isWeak(at.rate) ? 'weak' : ''}>
                           <span className="stl-round-no">{at.round}회</span>
                           <span className="stl-round-mode">{MODE_LABEL[at.mode] || at.mode}</span>
-                          <span className="stl-round-rate">{at.rate}%</span>
+                          <span className="stl-round-rate">{isWeak(at.rate) && WEAK_CUE}{at.rate}%</span>
                           {at.deltaFromPrev != null && at.deltaFromPrev !== 0 && (
                             <span className={`stl-round-delta ${at.deltaFromPrev > 0 ? 'up' : 'down'}`}>
                               {at.deltaFromPrev > 0 ? `+${at.deltaFromPrev}` : at.deltaFromPrev}
@@ -371,22 +366,23 @@ export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGro
                           {at.elapsedSeconds != null && (
                             <span className="stl-round-time">소요 {formatClock(at.elapsedSeconds)}</span>
                           )}
-                          {at.createdAt > 0 && (
-                            <span className="stl-round-date">{formatRoundDate(at.createdAt)}</span>
-                          )}
-                          <button
-                            type="button"
-                            className="stl-round-del"
-                            data-testid="round-delete-btn"
-                            aria-label={`${tl.title} ${at.round}회차 기록 삭제`}
-                            title="이 회차 기록만 삭제"
-                            onClick={() => onDeleteRound(at.id)}
-                          >
-                            ✕
-                          </button>
+                          {/* 날짜와 ✕는 한 덩어리 — 320px처럼 줄이 접힐 때 ✕만 혼자 아랫줄로 떨어지지 않는다. */}
+                          <span className="stl-round-tail">
+                            <RoundDate ms={at.createdAt} className="stl-round-date" />
+                            <button
+                              type="button"
+                              className="stl-round-del"
+                              data-testid="round-delete-btn"
+                              aria-label={`${tl.title} ${at.round}회차 기록 삭제`}
+                              title="이 회차 기록만 삭제"
+                              onClick={() => onDeleteRound(at.id)}
+                            >
+                              ✕
+                            </button>
+                          </span>
                         </li>
                       ))}
-                    </ol>
+                    </ul>
                   </div>
                 ))}
               </section>
@@ -401,17 +397,26 @@ export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGro
                 <h4>짧은 세션 <small>챕터 미니 시험 · 위 요약에는 넣지 않습니다</small></h4>
                 <ul className="mini-rounds">
                   {miniRounds.map((m) => (
-                    <li key={m.id} className={m.rate < weakThreshold ? 'weak' : ''} data-testid="mini-round-item">
-                      <span className="mr-chapter">{m.chapter ?? '퀵 랜덤'}</span>
-                      {/* 같은 챕터를 세트 A·B에서 각각 미니 시험하면 챕터명만으로는 두 줄이
-                          구분되지 않는다(정답률만 다른 같은 이름 두 개). 출처 세트를 붙인다.
-                          퀵은 세트에 매이지 않아(setId가 센티넬) 붙일 것이 없다. */}
-                      {m.kind === 'mini' && <span className="mr-set">{m.title}</span>}
-                      <span className="mr-rate">{m.rate}% <small>({m.correct}/{m.total})</small></span>
-                      {m.elapsedSeconds != null && (
-                        <span className="mr-time">소요 {formatClock(m.elapsedSeconds)}</span>
-                      )}
-                      {m.createdAt > 0 && <span className="mr-date">{formatRoundDate(m.createdAt)}</span>}
+                    <li key={m.id} className={isWeak(m.rate) ? 'weak' : ''} data-testid="mini-round-item">
+                      {/* 챕터명과 출처 세트는 한 덩어리(흐름)다 — 자리가 모자라면 세트가 다음 줄로 내려가고, 세트 이름 하나가 행보다
+                          길어도 줄바꿈할 뿐 말줄임하지 않는다. 구분 단서가 이름 끝('…샘플문제 A'의 A)이라 잘리면 같은 챕터를 두 세트에서
+                          푼 행을 가를 수 없다. */}
+                      <span className="mr-head">
+                        <span className="mr-chapter">{m.chapter ?? '퀵 랜덤'}</span>
+                        {/* 같은 챕터를 세트 A·B에서 각각 미니 시험하면 챕터명만으로는 두 줄이
+                            구분되지 않는다(정답률만 다른 같은 이름 두 개). 출처 세트를 붙인다.
+                            퀵은 세트에 매이지 않아(setId가 센티넬) 붙일 것이 없다. */}
+                        {m.kind === 'mini' && <span className="mr-set">{m.title}</span>}
+                      </span>
+                      {/* 정답률·소요·날짜는 한 덩어리(둘째 줄)다 — ✕를 같은 줄 흐름에 두면 이 줄이 차는 순간 혼자 셋째 줄로
+                          떨어졌다. ✕는 DOM 순서(읽는 순서)는 그대로 두고 CSS 격자에서 첫 줄 오른쪽 끝에 둔다. */}
+                      <span className="mr-meta">
+                        <span className="mr-rate">{isWeak(m.rate) && WEAK_CUE}{m.rate}% <small>({m.correct}/{m.total})</small></span>
+                        {m.elapsedSeconds != null && (
+                          <span className="mr-time">소요 {formatClock(m.elapsedSeconds)}</span>
+                        )}
+                        <RoundDate ms={m.createdAt} className="mr-date" />
+                      </span>
                       <button
                         type="button"
                         className="stl-round-del"

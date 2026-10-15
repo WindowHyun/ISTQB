@@ -347,6 +347,12 @@ export async function goNextQuestion(page: Page): Promise<boolean> {
   return true;
 }
 
+/**
+ * 계산된 색(getComputedStyle)이 붉은 기가 도는가 — 색 값을 못 박지 않고 '경고색으로 칠했는가'를 관계로 잰다.
+ * 파서는 순수 모듈(`cssColor.ts`)에 있고 유닛(`scripts/cssColor.test.ts`)이 읽는 형식과 던지는 형식을 고정한다.
+ */
+export { isReddish } from "./cssColor";
+
 // 채점: 채점 버튼 클릭 후 미응답 경고 모달이 뜨면 확인까지 처리한다.
 export async function submitGrade(page: Page, testid = "grade-button") {
   await page.getByTestId(testid).click();

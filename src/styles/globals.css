@@ -2007,6 +2007,8 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 /* 회차 항목은 한 줄에 하나. 종전에는 칩(inline-flex)을 가로로 흘렸는데, 소요 시간·
    날짜·삭제가 붙으면서 좁은 화면에서 칩이 찌그러졌다 — 한국어는 글자 사이에서
    줄바꿈되므로 min-content가 '한 글자'라 "1회"가 "1/회"로 쪼개진다(오답노트와 동일 함정). */
+/* 목록은 `<ul>`이다 — 전역 reset이 `ul`만 건드려서다. `<ol>`에는 기본 들여쓰기(40px)·위아래 여백(1em)이 남아, 행이 카드 안쪽
+   여백에 맞지 않고 40px 좁게 들여써져 모든 행이 한 줄씩 더 접혔다. 회차 번호는 '1회'처럼 글자로 적혀 있어 순서는 목록 종류에 기대지 않는다. */
 .stl-rounds { display: flex; flex-direction: column; gap: 6px; }
 .stl-rounds li {
   display: flex; align-items: center; flex-wrap: wrap; gap: 3px 8px;
@@ -2015,18 +2017,25 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 }
 /* 모든 토큰을 통째로 줄바꿈시킨다 — 글자 단위로 쪼개지지 않게. */
 .stl-rounds li > * { flex: none; white-space: nowrap; }
-.stl-rounds li.weak { border-color: var(--danger, #c0392b); }
+/* 합격선 미만은 행 테두리를 두르지 않고 정답률 숫자만 붉게 한다(챕터 행과 같은 규칙) — 행마다 빨간 테두리가 둘리면
+   아직 합격하지 못한 사용자에게는 목록 전체가 오류 화면처럼 읽힌다. 붉은색은 눈으로 보는 단서일 뿐이라 같은 판정을
+   정답률 칸 안의 `.sr-only` 글자('합격선 미만')로도 적는다 — 숫자가 글자로 남아 있어도 '미달'은 색에만 실려 있었다. */
+.stl-rounds li.weak .stl-round-rate { color: var(--danger); }
 .stl-round-no { color: var(--muted); font-weight: 700; }
 .stl-round-mode { color: var(--primary-700); font-weight: 700; }
 .stl-round-rate { color: var(--text); font-weight: 800; }
-/* 정답률 뒤를 밀어 소요·날짜·삭제가 오른쪽에 모이게 한다. */
-.stl-round-delta { margin-right: auto; }
-.stl-round-rate:last-of-type { margin-right: auto; }
+/* 정답률(·증감) 바로 뒤의 요소가 남는 폭을 밀어 소요·날짜·삭제가 오른쪽에 모이게 한다 — 그 요소가 소요 시간이든, 날짜·✕ 덩어리든
+   (소요·날짜가 없는 옛·가져온 이력은 ✕가 정답률 바로 뒤다). 종전에는 증감(`margin-right:auto`)과 `.stl-round-rate:last-of-type`
+   두 갈래였는데, 뒤의 것은 '마지막 span'이라 정답률에 걸리지 않아 첫 회차(증감 없음)만 소요 시간이 왼쪽에 붙었다. 한 규칙이면 줄이
+   접혀도 모든 행이 같은 쪽에 선다. */
+.stl-round-rate + :not(.stl-round-delta), .stl-round-delta + * { margin-left: auto; }
 .stl-round-delta.up { color: var(--success, #1c7c3c); }
 .stl-round-delta.down { color: var(--danger, #c0392b); }
 
 /* 회차 항목의 부가 정보 — 종전에는 아래 중복 목록에만 있던 소요 시간·날짜를 흡수했다. */
 .stl-round-time, .stl-round-date { color: var(--muted); font-weight: 600; }
+/* 날짜와 ✕는 한 덩어리 — 줄이 접힐 때(320px) ✕만 혼자 아랫줄로 떨어지지 않는다. */
+.stl-round-tail { display: inline-flex; align-items: center; gap: 8px; }
 /* 회차 단건 삭제 — 잘못 제출한 한 건 때문에 이력을 통째로 버리지 않아도 되게. */
 .stl-round-del {
   border: 0; background: none; cursor: pointer; padding: 0 2px;
@@ -2039,26 +2048,29 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 .stats-minis h4 { font-size: 13px; font-weight: 800; color: var(--text-2); margin-bottom: 8px; }
 .stats-minis h4 small { font-weight: 600; color: var(--muted); margin-left: 6px; }
 .mini-rounds { display: flex; flex-direction: column; gap: 6px; }
+/* 두 줄 격자: [챕터 · 출처 세트 | ✕] / [정답률 · 소요 · 날짜]. 종전에는 한 줄 흐름(flex-wrap)이라 둘째 줄이 차는 순간
+   ✕가 혼자 셋째 줄로 떨어졌다(날짜가 긴 '10월 11일 23:30' 같은 행만 — 행 높이도 들쭉날쭉했다). */
 .mini-rounds li {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 4px 10px;
   padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px;
   background: var(--surface); font-size: 12.5px;
 }
 .mini-rounds li > * { white-space: nowrap; }
-.mini-rounds li.weak { border-color: var(--danger, #c0392b); }
-/* flex:none + nowrap — 챕터명이 한국어라 min-content가 '한 글자'다(오답노트와 같은 함정). */
-.mr-chapter { flex: none; font-weight: 800; color: var(--text); white-space: nowrap; }
-/* 출처 세트 — 챕터명 옆의 보조 정보라 줄어들 수 있게 둔다(챕터명이 먼저 읽혀야 한다). */
-.mr-set {
-  flex: 0 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--muted);
-  font-weight: 600;
-  font-size: 12px;
-}
+/* 합격선 미만은 행 테두리 대신 정답률 숫자만 붉게 — 챕터 행·회차 이력과 같은 규칙. '(4/10)'은 보조 정보라 그대로 흐리다. */
+.mini-rounds li.weak .mr-rate { color: var(--danger); }
+/* 첫 줄(챕터명 · 출처 세트)과 둘째 줄(정답률 · 소요 · 날짜)은 각각 한 덩어리 흐름이다 — 한 줄에 다 안 들면 그 덩어리 안에서만 접힌다. */
+.mr-head, .mr-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; }
+/* 챕터명은 한국어라 min-content가 '한 글자'다(오답노트와 같은 함정) — flex:none + nowrap. 행보다 긴 극단에서만 말줄임한다. */
+.mr-chapter { flex: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-weight: 800; color: var(--text); }
+/* 출처 세트 — 챕터명 옆의 보조 정보라 자리가 모자라면 다음 줄로 내려가고, 이름 하나가 행보다 길어도 말줄임하지 않고 줄바꿈한다.
+   구분 단서가 이름 끝(A·B)이라 잘리면 같은 챕터를 두 세트에서 푼 행을 가를 수 없고, 실제 CSTS 제목('SW 테스트 전문가(CSTS) 자격시험
+   예제문제_정답포함')은 폰 폭 한 줄에 다 안 든다. `keep-all`은 어절 사이에서만 끊고(없으면 한국어는 글자 사이에서 끊긴다),
+   `overflow-wrap: anywhere`는 어절 하나가 행보다 긴 극단의 안전망이다. */
+.mr-set { flex: 0 1 auto; min-width: 0; max-width: 100%; color: var(--muted); font-weight: 600; font-size: 12px; white-space: normal; word-break: keep-all; overflow-wrap: anywhere; }
+/* 삭제는 첫 줄 오른쪽 끝 — DOM 순서(정답률 뒤)는 그대로라 읽는 순서·탭 순서는 변하지 않는다. 글자가 두 줄이 돼도 ✕는 첫 줄에 붙는다.
+   (`.mr-head`는 위치를 따로 적지 않는다 — 위치가 정해진 ✕·둘째 줄을 뺀 첫 칸이 자동 배치로 돌아온다.) */
+.mini-rounds .stl-round-del { grid-column: 2; grid-row: 1; margin-top: 3px; }
+.mr-meta { grid-column: 1 / -1; grid-row: 2; }
 .mr-rate { flex: 1 1 auto; min-width: 0; font-weight: 800; color: var(--text); }
 .mr-rate small { color: var(--muted); font-weight: 600; }
 .mr-time, .mr-date { flex: none; color: var(--muted); font-weight: 600; }

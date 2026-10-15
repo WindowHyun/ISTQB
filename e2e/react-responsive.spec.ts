@@ -4,6 +4,7 @@ import {
   enterExam,
   enterMiniTestMobile,
   gotoQuestionMobile,
+  isReddish,
   openProduct,
   openQuestionList,
   openSet,
@@ -250,14 +251,10 @@ test.describe("엣지-반응형", () => {
           bar: css(row.querySelector(".sc-bar i"), "backgroundColor"),
         };
       });
-      const reddish = (rgb: string) => {
-        const [r, g, b] = (rgb.match(/\d+/g) ?? []).slice(0, 3).map(Number);
-        return r > g + 40 && r > b + 40;
-      };
-      expect(reddish(colors.border), `약한 챕터 행의 테두리가 붉다(${colors.border})`).toBe(false);
-      expect(reddish(colors.name), `약한 챕터 이름이 붉다(${colors.name})`).toBe(false);
-      expect(reddish(colors.rate), `약한 챕터의 정답률 숫자가 붉지 않다(${colors.rate})`).toBe(true);
-      expect(reddish(colors.bar), `약한 챕터의 막대가 붉지 않다(${colors.bar})`).toBe(true);
+      expect(isReddish(colors.border), `약한 챕터 행의 테두리가 붉다(${colors.border})`).toBe(false);
+      expect(isReddish(colors.name), `약한 챕터 이름이 붉다(${colors.name})`).toBe(false);
+      expect(isReddish(colors.rate), `약한 챕터의 정답률 숫자가 붉지 않다(${colors.rate})`).toBe(true);
+      expect(isReddish(colors.bar), `약한 챕터의 막대가 붉지 않다(${colors.bar})`).toBe(true);
     });
     // react-layout에서 옮김
     test("모드 변경 시 드로어가 자동으로 닫힌다", async ({ page }) => {
