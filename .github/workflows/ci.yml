@@ -75,8 +75,10 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+      # 2.x를 막는다 — 버전을 고정하지 않았을 때 pymupdf 2.0이 나오면서 같은 데이터·같은 검증기에서
+      # 표 대조 14건이 어긋났다(1.28.2는 통과). 검증기가 2.0의 표 추출을 따라가기 전까지 1.x로 둔다.
       - name: Install pymupdf
-        run: pip install pymupdf
+        run: pip install "pymupdf<2"
       - name: Compare question data with source PDFs
         run: python3 scripts/verify-pdf-data.py
 

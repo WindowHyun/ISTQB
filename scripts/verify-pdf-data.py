@@ -13,14 +13,14 @@
 # 있으니 통과한다(CSTS 2404FL 70번이 첫 문장 중간에서 잘려 있었다). [4]가 그 반대 방향이다.
 #
 # 의도적 예외(원문 재구성 등)는 ALLOW에 문서화한다 — 몰래 지나가는 예외 금지.
-# 요구사항: pip install pymupdf
+# 요구사항: pip install "pymupdf<2"  (2.x에서는 표 대조가 어긋난다 — CI도 1.x로 고정)
 import json, re, sys, unicodedata
 from pathlib import Path
 
 try:
     import fitz  # pymupdf
 except ImportError:
-    print("pymupdf가 필요합니다: pip install pymupdf", file=sys.stderr)
+    print("pymupdf가 필요합니다: pip install \"pymupdf<2\"", file=sys.stderr)
     sys.exit(2)
 
 ROOT = Path(__file__).resolve().parent.parent
