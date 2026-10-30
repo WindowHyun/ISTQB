@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>개선안 제안 리포트</title>
+<style>
+:root{--bg:#f6f7fb;--surface:#fff;--ink:#0f172a;--muted:#475569;--line:#dbe2ee;--accent:#2563eb;--accent-soft:#e8efff;--ok:#15803d;--ok-soft:#e7f6ec;--bad:#b91c1c;--bad-soft:#fdecec;--warn:#92400e;--warn-soft:#fff4dc;--code:#eef2f7;--wire:#cbd5e1;--wire-fill:#f1f5f9}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1220;--surface:#121a2b;--ink:#e6ebf5;--muted:#a3b0c7;--line:#26324a;--accent:#7aa2ff;--accent-soft:#18274a;--ok:#5ad08a;--ok-soft:#10281b;--bad:#ff8a8a;--bad-soft:#2f1517;--warn:#f5c26b;--warn-soft:#2d2410;--code:#1a2438;--wire:#3a4963;--wire-fill:#1a2438}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 "Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;word-break:keep-all;overflow-wrap:anywhere}
+.nav{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.nav-in{max-width:920px;margin:0 auto;padding:10px 16px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.nav a{font-size:13px;padding:6px 10px;border-radius:999px;color:var(--muted);text-decoration:none;border:1px solid transparent}
+.nav a:hover{border-color:var(--line)}
+.nav a[aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.nav .brand{font-weight:800;color:var(--ink);margin-right:6px;font-size:13px}
+main{max-width:920px;margin:0 auto;padding:28px 16px 80px}
+h1{font-size:30px;line-height:1.3;margin:6px 0 8px}
+h2{font-size:22px;margin:44px 0 12px;padding-top:14px;border-top:1px solid var(--line)}
+h3{font-size:17px;margin:26px 0 8px}
+h4{font-size:15px;margin:18px 0 6px;color:var(--muted)}
+p{margin:8px 0}
+.lede{color:var(--muted);font-size:17px;margin:4px 0 14px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--accent);text-transform:uppercase}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}.tag.bad{background:var(--bad-soft);color:var(--bad)}.tag.warn{background:var(--warn-soft);color:var(--warn)}.tag.gray{background:var(--code);color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:14px 0}
+.note,.warnbox{border-radius:12px;padding:12px 16px;margin:14px 0;font-size:15px;border:1px solid var(--line)}
+.note{background:var(--accent-soft);border-color:transparent}
+.warnbox{background:var(--warn-soft);border-color:transparent;color:var(--ink)}
+.note b,.warnbox b{display:block;margin-bottom:2px}
+.grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:720px){.g2,.g3{grid-template-columns:1fr}h1{font-size:25px}}
+.tablewrap{overflow-x:auto;margin:12px 0;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+th,td{padding:9px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{background:var(--code);font-size:12.5px;color:var(--muted);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.pick,tr.pick td{background:var(--ok-soft)}
+tr.drop td{color:var(--muted)}
+code{background:var(--code);padding:1px 6px;border-radius:5px;font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+ul,ol{padding-left:22px;margin:8px 0}li{margin:4px 0}
+.src{font-size:12.5px;color:var(--muted)}
+.kv{display:grid;grid-template-columns:120px 1fr;gap:6px 14px;font-size:15px}
+.kv dt{color:var(--muted);font-weight:700}.kv dd{margin:0}
+@media(max-width:560px){.kv{grid-template-columns:1fr}.kv dt{margin-top:6px}}
+.stat{font-size:13px;color:var(--muted)}
+.foot{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+/* 결정 카드 */
+.dec{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:14px 16px;margin:14px 0}
+.dec h3{margin:0 0 6px;font-size:16px}
+.dec .row{display:grid;grid-template-columns:84px 1fr;gap:4px 12px;font-size:14.5px;margin:3px 0}
+.dec .row b{color:var(--muted)}
+@media(max-width:560px){.dec .row{grid-template-columns:1fr}}
+.dec.flip{border-left-color:var(--warn)}
+/* 플로우 */
+.flow{display:flex;flex-wrap:wrap;gap:8px 6px;align-items:center;margin:14px 0}
+.fb{background:var(--surface);border:1.5px solid var(--wire);border-radius:10px;padding:7px 11px;font-size:13.5px;line-height:1.35;text-align:center}
+.fb.hi{border-color:var(--accent);background:var(--accent-soft)}.fb.gate{border-color:var(--warn);background:var(--warn-soft)}.fb.end{border-color:var(--ok);background:var(--ok-soft)}.fb.no{border-color:var(--bad);background:var(--bad-soft)}
+.ar{color:var(--muted);font-size:15px}
+.lane{border:1px dashed var(--wire);border-radius:12px;padding:10px 12px;margin:12px 0;background:var(--surface)}
+.lane>b{font-size:12.5px;color:var(--muted);display:block;margin-bottom:4px}
+/* 와이어프레임 */
+.wfrow{display:flex;flex-wrap:wrap;gap:44px 22px;justify-content:center;margin:18px 0}
+.phone{width:290px;border:2px solid var(--wire);border-radius:26px;background:var(--surface);padding:12px;position:relative}
+.phone .cap{position:absolute;top:-24px;left:0;right:0;text-align:center;font-size:12.5px;font-weight:700;color:var(--muted)}
+.wf{border:1.5px solid var(--wire);background:var(--wire-fill);border-radius:8px;padding:7px 9px;margin:6px 0;font-size:12.5px;color:var(--muted);line-height:1.35}
+.wf.t{background:transparent;border-style:dashed}
+.wf.b{background:var(--ink);color:var(--bg);border-color:var(--ink);text-align:center;font-weight:700}
+.wf.p{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700}
+.wf.w{border-color:var(--bad);color:var(--bad);background:var(--bad-soft)}
+.wf.o{border-color:var(--ok);color:var(--ok);background:var(--ok-soft)}
+.wfr{display:flex;gap:6px}.wfr>.wf{flex:1;margin:6px 0}
+.bar{display:flex;gap:3px;margin:6px 0}.bar i{flex:1;height:7px;border-radius:4px;background:var(--wire)}.bar i.g{background:var(--ok)}.bar i.r{background:var(--bad)}.bar i.c{background:var(--accent)}
+.anno{font-size:12.5px;color:var(--muted);margin:8px 2px 0}
+.anno b{color:var(--accent)}
+.legend{font-size:13px;color:var(--muted)}
+@media print{.nav{display:none}body{background:#fff}.card,.dec,.tablewrap{break-inside:avoid}h2{break-after:avoid}}
+/* ===== 프로토타입 ===== */
+.proto{display:grid;grid-template-columns:minmax(300px,372px) 1fr;gap:24px;align-items:start;margin:16px 0}
+@media(max-width:860px){.proto{grid-template-columns:1fr}}
+.pp{width:100%;max-width:372px;margin:0 auto;border:2px solid var(--wire);border-radius:34px;background:var(--surface);padding:10px}
+.pp-wrap{position:relative;border-radius:24px;overflow:hidden;background:var(--bg)}
+.pp-screen{height:660px;display:flex;flex-direction:column;font-size:13px;line-height:1.4}
+.p-head{background:var(--surface);border-bottom:1px solid var(--line);padding:8px 10px 6px;flex:0 0 auto}
+.p-body{flex:1;overflow-y:auto;padding:10px}
+.p-bottom{flex:0 0 auto;background:var(--surface);border-top:1px solid var(--line);padding:6px 10px 10px}
+.p-top{display:flex;align-items:center;gap:8px}
+.p-logo{width:26px;height:26px;border-radius:8px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:12px;flex:0 0 26px}
+.p-ttl{flex:1;min-width:0}.p-ttl small{display:block;font-size:10.5px;font-weight:800;color:var(--accent)}
+.p-ttl b{font-size:13px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-set{all:unset;cursor:pointer;display:block;max-width:100%}
+.p-set b{display:inline}
+.p-set[disabled]{cursor:not-allowed;opacity:.75}
+.p-menu{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:16px;cursor:pointer}
+.p-stat{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;color:var(--muted)}
+.p-chip{background:var(--accent);color:#fff;border-radius:999px;padding:2px 10px;font-weight:700;font-size:12px}
+.p-chip.e{background:#b45309}.p-chip.q{background:#7c3aed}.p-chip.r{background:#0f766e}.p-chip.m{background:#0369a1}
+.p-time.warn{color:#b45309;font-weight:700}.p-time.danger{color:var(--bad);font-weight:700}
+.p-wchip{margin-left:auto;border:1px solid var(--line);border-radius:999px;padding:2px 9px;background:var(--surface);color:var(--ink);font-size:12px;cursor:pointer}
+.p-wchip b{background:var(--bad);color:#fff;border-radius:999px;padding:0 6px;margin-left:4px;font-size:11px}
+.p-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.p-card h5{margin:0 0 4px;font-size:15px;color:var(--ink)}
+.p-badge{display:inline-block;font-size:11px;background:var(--code);color:var(--muted);border-radius:6px;padding:1px 7px;margin-left:6px;font-weight:600}
+.p-q{color:var(--muted);margin:6px 0 10px;padding:10px;border:1.5px dashed var(--wire);border-radius:8px;background:var(--wire-fill);font-size:12.5px}
+.p-opt{all:unset;box-sizing:border-box;display:flex;gap:9px;align-items:center;width:100%;border:1.5px solid var(--line);border-radius:12px;padding:9px;margin:6px 0;background:var(--surface);cursor:pointer;color:var(--ink)}
+.p-opt i{flex:0 0 26px;height:26px;border-radius:13px;background:var(--code);color:var(--muted);font-style:normal;font-weight:800;display:grid;place-items:center;font-size:12px}
+.p-opt.sel{border-color:var(--accent);background:var(--accent-soft)}.p-opt.sel i{background:var(--accent);color:#fff}
+.p-opt.ok{border-color:var(--ok);background:var(--ok-soft)}.p-opt.ok i{background:var(--ok);color:#fff}
+.p-opt.no{border-color:var(--bad);background:var(--bad-soft)}.p-opt.no i{background:var(--bad);color:#fff}
+.p-opt[disabled]{cursor:default}
+.p-fb{border-radius:10px;padding:9px 10px;margin-top:8px;font-size:12.5px}
+.p-fb.ok{background:var(--ok-soft);color:var(--ok)}.p-fb.no{background:var(--bad-soft);color:var(--bad)}.p-fb small{display:block;color:var(--muted);margin-top:3px}
+.p-strip{display:flex;gap:2px;margin:2px 0 6px}.p-strip span{flex:1;height:6px;border-radius:3px;background:var(--wire)}
+.p-strip .ok{background:var(--ok)}.p-strip .no{background:var(--bad)}.p-strip .a{background:var(--accent)}.p-strip .cur{background:var(--ink)}
+.p-nav{display:flex;gap:6px}
+.p-btn{all:unset;box-sizing:border-box;cursor:pointer;border:1px solid var(--wire);background:var(--surface);color:var(--ink);border-radius:12px;padding:10px 12px;text-align:center;font-weight:700;font-size:13px;flex:1}
+.p-btn.sq{flex:0 0 44px}.p-btn.dark{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.p-btn.pri{background:var(--accent);color:#fff;border-color:var(--accent)}.p-btn.dng{border-color:var(--bad);color:var(--bad)}
+.p-btn[disabled]{opacity:.4;cursor:not-allowed}
+.p-btn.row{margin:5px 0;flex:none;display:block;width:100%}
+.p-hint{font-size:11.5px;color:var(--muted);margin:4px 0}
+.p-lock{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:7px 9px;font-size:12px;margin:6px 0}
+.p-banner{background:var(--accent-soft);border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:12px}
+.p-banner small{display:block;color:var(--muted);margin-top:2px}
+.p-banner .p-btn{margin-top:6px;padding:6px 10px;font-size:12px;display:inline-block;flex:none}
+.p-score{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--code);border-radius:10px;padding:6px;margin:0 0 10px}
+.p-score div{text-align:center}.p-score b{display:block;font-size:16px}.p-score small{font-size:10.5px;color:var(--muted)}
+.p-score .o b{color:var(--ok)}.p-score .n b{color:var(--bad)}
+.p-seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:6px 0}
+.p-seg .p-btn{padding:8px 0;font-size:12px}.p-seg .p-btn.cur{background:var(--accent);border-color:var(--accent);color:#fff}
+.p-row{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin:6px 0;background:var(--surface);color:var(--ink);width:100%;box-sizing:border-box;font:inherit;cursor:pointer;text-align:left}
+.p-row .r1{color:var(--bad);font-weight:700}.p-row .r2{color:var(--ok);font-weight:700}
+.p-row.dim{opacity:.55}
+.p-h{font-weight:800;font-size:12.5px;margin:12px 0 4px;color:var(--muted)}
+.p-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0 10px}
+.p-kpi div{border:1px solid var(--line);border-radius:10px;padding:8px 4px;text-align:center;background:var(--surface)}.p-kpi b{display:block;font-size:16px}.p-kpi small{color:var(--muted);font-size:10.5px}
+.p-ch{border:1px solid var(--line);border-radius:10px;padding:8px;margin:6px 0;background:var(--surface)}
+.p-ch.weak{border-color:var(--bad)}.p-ch.weak .nm{color:var(--bad)}
+.p-ch .t{display:flex;justify-content:space-between;font-weight:700}.p-ch .acts{display:flex;gap:6px;margin-top:6px}.p-ch .acts .p-btn{padding:7px 4px;font-size:12px}
+.p-ch .bar{height:5px;border-radius:3px;background:var(--wire);margin-top:6px;overflow:hidden}.p-ch .bar i{display:block;height:100%;background:var(--accent)}.p-ch.weak .bar i{background:var(--bad)}
+.p-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin:8px 0}
+.p-cell{border:1px solid var(--line);border-radius:8px;padding:6px 0;text-align:center;font-size:11.5px;background:var(--surface);position:relative;color:var(--ink)}
+.p-cell.ok{border-color:var(--ok);background:var(--ok-soft)}.p-cell.no{border-color:var(--bad);background:var(--bad-soft)}.p-cell.a{border-color:var(--accent);background:var(--accent-soft)}.p-cell.cur{outline:2px solid var(--ink)}
+.p-leg{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--muted);margin:4px 0}
+.p-ov{position:absolute;inset:0;background:rgba(15,23,42,.5);display:flex;flex-direction:column;justify-content:flex-end}
+.p-ov.mid{justify-content:center;padding:0 14px}
+.p-modal,.p-sheet{background:var(--surface);color:var(--ink);padding:14px}
+.p-modal{border-radius:16px;border:1px solid var(--line)}
+.p-sheet{border-radius:18px 18px 0 0;max-height:80%;overflow-y:auto}
+.p-ov.full{justify-content:flex-start;background:var(--surface)}
+.p-ov.full .p-sheet{border-radius:0;max-height:none;flex:1;overflow:auto}
+.p-modal h5,.p-sheet h5{margin:0 0 6px;font-size:15px}
+.p-modal p{margin:6px 0}
+.p-acts{display:flex;gap:8px;margin-top:10px}
+.p-x{all:unset;float:right;cursor:pointer;font-weight:800;padding:2px 8px}
+.p-gate{height:100%;display:grid;place-items:center;padding:16px}
+.p-gate .p-card{width:100%;text-align:center}
+.p-gate h5{font-size:17px}
+.p-sc{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--accent)}
+.p-res{text-align:center;padding:8px 0}.p-res strong{font-size:34px;display:block}.p-res .pass{color:var(--ok)}.p-res .fail{color:var(--bad)}
+.p-res .bd{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 10px;background:var(--ok-soft);color:var(--ok)}
+.p-res .bd.f{background:var(--bad-soft);color:var(--bad)}
+.p-dl{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0;font-size:12px}.p-dl div{background:var(--code);border-radius:8px;padding:6px 8px}.p-dl dt{color:var(--muted);font-size:11px}.p-dl dd{margin:0;font-weight:700}
+.hotmode [data-go],.hotmode [data-act]{outline:2px dashed var(--accent);outline-offset:2px}
+.hotmode [disabled]{outline:none}
+.psd{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;position:sticky;top:64px}
+.psd h4{margin:0 0 4px;color:var(--ink);font-size:16px}
+.psd .sub{color:var(--muted);font-size:13px;margin:0 0 8px}
+.psd h5{margin:12px 0 4px;font-size:12px;color:var(--muted);letter-spacing:.04em}
+.psd ul{margin:4px 0;font-size:13.5px;padding-left:18px}
+.psd .tags{display:flex;gap:5px;flex-wrap:wrap}
+.psd ol{font-size:12px;color:var(--muted);padding-left:18px;margin:4px 0}.psd ol li.now{color:var(--accent);font-weight:700}
+.sc-btns{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.sc-btns button,.tool button{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:5px 11px;cursor:pointer}
+.sc-btns button:hover,.tool button:hover{border-color:var(--accent);color:var(--accent)}
+.tool{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted);margin:8px 0}
+.tool label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+svg.sv{width:100%;height:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+svg.sv text{fill:var(--ink);font:13px "Noto Sans KR",system-ui,sans-serif}
+svg.sv .s{font-size:11.5px;fill:var(--muted)}
+svg.sv .t{font-weight:700}
+svg.sv .bx{fill:var(--surface);stroke:var(--wire);stroke-width:1.6}
+svg.sv .bx.hi{stroke:var(--accent);fill:var(--accent-soft)}svg.sv .bx.gt{stroke:var(--warn);fill:var(--warn-soft)}svg.sv .bx.ed{stroke:var(--ok);fill:var(--ok-soft)}svg.sv .bx.no{stroke:var(--bad);fill:var(--bad-soft)}
+svg.sv .ln{stroke:var(--muted);stroke-width:1.6;fill:none}svg.sv .ln.d{stroke-dasharray:5 4}
+svg.sv .ah{fill:var(--muted)}
+details.spec{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0;margin:10px 0}
+details.spec>summary{cursor:pointer;padding:11px 14px;font-weight:700;list-style:none;display:flex;gap:8px;align-items:center}
+details.spec>summary::-webkit-details-marker{display:none}
+details.spec>summary::before{content:"▸";color:var(--muted);transition:transform .15s}
+details.spec[open]>summary::before{transform:rotate(90deg)}
+details.spec .in{padding:2px 14px 14px;font-size:14.5px}
+details.spec h4{margin:12px 0 4px}
+
+</style>
+</head>
+<body>
+<header class="nav"><div class="nav-in"><span class="brand">ISTQB·CSTS 풀이 앱 · 기획 포트폴리오</span><a href="01-improvement-proposals.html" aria-current="page">개선안 제안 리포트</a><a href="02-prd.html">PRD</a><a href="03-wireframes-flows.html">와이어프레임·플로우</a><a href="04-decision-log.html">의사결정 로그</a><a href="05-metrics-proposal.html">지표 제안서</a></div></header>
+<main>
+<p class="eyebrow">Improvement Proposals</p>
+<h1>개선안 제안 리포트 2건</h1>
+<p class="lede">"무엇이 불편한가 → 버그인가 사양인가 → 안을 나란히 놓고 비교 → 추천과 그 단점 → 실행 결과" 순서로 쓴 제안서입니다.</p>
+<div class="meta">
+  <span class="tag ok">사례 1 · 구현·병합 완료(회고)</span>
+  <span class="tag warn">사례 2 · 제안 · 미구현</span>
+</div>
+
+<div class="note"><b>읽는 법</b>사례 1은 착수 전에 쓴 조사·설계 보고서(2026-07-29)를 바탕으로, 이후 구현 결과까지 이어 붙였습니다. 사례 2는 지금 코드 상태에서 새로 쓴 제안이고 수치 근거(사용자 데이터)는 없습니다. 그래서 간격 값 같은 숫자는 전부 "초기 가설"로 적었습니다.</div>
+
+<h2 id="case1">사례 1. 학습 통계 '약한 챕터' — 왜 0%가 사라지지 않는가</h2>
+
+<h3>배경</h3>
+<p>학습 통계 화면은 챕터(ISTQB 6챕터, CSTS 6도메인)별 정답률로 약점 순위를 보여 주고, 약한 챕터는 곧바로 <b>연습</b>이나 <b>미니 시험</b>으로 이어집니다. 약점 → 집중 연습 → 재측정이라는 학습 루프의 핵심 화면입니다.</p>
+
+<h3>관찰된 불편 3가지</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>#</th><th>불편</th><th>원인</th><th>판정</th></tr></thead>
+<tbody>
+<tr><td>①</td><td>표본이 23문항(챕터별 9/6/3/2/2/1)뿐인데 "전 세트 합산"이라는 라벨 때문에 확정 진단처럼 보인다</td><td>라벨이 집계 범위만 말하고 표본 규모는 말하지 않는다</td><td><span class="tag">표현 결함</span></td></tr>
+<tr><td>②</td><td>챕터 미니 시험을 몇 번 돌리면 순위가 그 결과로 뒤집힌다</td><td>미니 시험은 10문항이 한 챕터에 몰리고, 실전 1회는 40~70문항이 챕터 여섯 개로 흩어진다. 미니 3회(30문항)가 실전 1회의 해당 챕터분(약 8문항)을 압도한다</td><td><span class="tag gray">사양의 귀결</span></td></tr>
+<tr><td>③</td><td>처음에 0%였던 기록이 오래 남는다</td><td>회차별 <code>{c, t}</code>를 단순 누적하기 때문이다. 5문항 0정답 뒤 15문항 5정답이면 5/20 = 25%이고, 최신 15문항만 보면 33%다</td><td><span class="tag gray">사양의 귀결</span></td></tr>
+</tbody></table></div>
+<p><b>핵심 판단:</b> 세 불편 모두 계산 버그가 아니라 "사양이 그렇게 정의된 결과"였습니다. 그래서 수정 범위를 "코드를 고친다"가 아니라 "집계의 정의를 다시 정한다"로 잡았습니다.</p>
+<p class="src">근거: <code>docs/archive/report-weak-chapter-and-quick-random.md</code> §3.1~3.2, <code>src/utils/chapterStats.ts</code></p>
+
+<h3>대안 비교</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>안</th><th>무엇을 하나</th><th>해결하는 불편</th><th>새로 생기는 문제</th><th>구현 비용</th><th>결론</th></tr></thead>
+<tbody>
+<tr class="drop"><td>A. 기간·회차 범위</td><td>최근 N회로 집계 대상을 자른다</td><td>③을 우회</td><td>오래 안 푼 약점 챕터가 순위에서 사라진다. 표본이 게이트(5문항) 아래로 떨어져 순위가 빈다</td><td>중</td><td>제외</td></tr>
+<tr class="drop"><td>B. 세트 범위</td><td>현재 세트만 / 전 세트 토글</td><td>없음</td><td>세트당 40~70문항이라 대부분의 챕터가 표본 미달이 된다</td><td>소~중</td><td>제외</td></tr>
+<tr class="pick"><td><b>C. 문항 단위 최신 시도</b></td><td>같은 문항을 다시 풀면 최신 결과 하나만 분자·분모에 센다</td><td>③ 근본 해결, ② 완화</td><td>과거 이력에 소급 불가(문항별 정오가 이미 합계로 접혀 있다). 기록 크기 증가. 분모 상한이 챕터의 유니크 문항 수로 고정된다</td><td><b>대</b></td><td><b>채택</b></td></tr>
+<tr class="pick"><td><b>D. 추세 병기</b></td><td>순위는 그대로 두고 "최근 N회 ▲▼%p"를 옆에 표시</td><td>①·③의 인식 개선</td><td>수치는 그대로</td><td>소</td><td>보조 후보(미채택)</td></tr>
+<tr class="pick"><td><b>E. 최소 표본 재조정</b></td><td>순위에 올릴 최소 문항 수를 다시 정한다</td><td>① 소표본 오진</td><td>C와 짝으로 정해야 한다. 혼자 낮추면 1~2문항 챕터가 늘 1위 약점이 되는 옛 버그가 재발한다</td><td>소</td><td><b>C와 한 묶음</b></td></tr>
+<tr class="drop"><td>F. 회차 종류 분리·가중</td><td>미니 시험을 챕터 집계에서 빼거나 가중치를 둔다</td><td>② 직접 겨냥</td><td>"약점을 재측정하라"고 만든 기능의 결과를 약점 집계에서 빼는 자기모순</td><td>중</td><td>제외</td></tr>
+</tbody></table></div>
+
+<h3>추천과 단점</h3>
+<p><b>추천: C + E를 한 묶음으로.</b> C가 "다시 풀어서 맞히면 과거 오답이 교체된다"는, 학습 루프와 맞는 규칙을 줍니다. 미니 시험을 반복해도 같은 문항이 재출제될 뿐 분모가 늘지 않아 ②도 함께 풀립니다. 다만 C는 분모의 상한을 낮추기 때문에 E를 같이 정하지 않으면 순위가 비거나 옛 버그가 돌아옵니다.</p>
+<div class="warnbox"><b>보고서에 숨기지 않고 적은 단점</b>
+<ul>
+<li>과거 이력에 소급되지 않아 "새 회차는 문항 단위, 구 회차는 기존 누적합"인 하이브리드가 되고, 전환기에는 두 규칙이 섞인 수치가 나온다. 안내 문구가 필요하다.</li>
+<li>해당 챕터의 문항을 모두 풀어도 표본이 게이트 아래면 "더 풀면 순위에 올라옵니다" 문구가 거짓이 된다. 문구 수정이 같이 가야 한다.</li>
+<li>6개 안 중 구현 비용이 가장 크다(스키마·집계·마이그레이션·백업 정제).</li>
+</ul></div>
+
+<h3>실행 결과 — 제안서를 쓰다가 찾은 결함</h3>
+<p>보고서를 쓰던 중 이미 구현돼 있던 브랜치를 검증하다가, <b>중복 문항을 문항 id로 거르는 방식이 세트 사이에서는 전혀 작동하지 않는다</b>는 결함을 찾았습니다. 같은 문제가 여러 세트에 다른 id로 다시 실린 경우가 49그룹이었습니다. 그대로 병합했다면 "분모를 한 번만 센다"는 C안의 핵심 약속이 깨졌을 겁니다. 중복 판정 기준을 실측으로 골랐습니다.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>판정 기준</th><th>교차 그룹</th><th>문제</th></tr></thead>
+<tbody>
+<tr class="drop"><td>지문만</td><td>49그룹 · 102문항</td><td>오병합 — 지문만 같고 보기·정답이 다른 별개 문제가 묶인다</td></tr>
+<tr class="drop"><td>지문 + 보기 전문</td><td>42그룹 · 87문항</td><td>과분리 — 표기만 손질한 재수록이 갈린다("주요 작업"/"주요작업")</td></tr>
+<tr><td>지문 + 정답 + 보기 수</td><td>45그룹 · 94문항</td><td>위 둘을 모두 해결</td></tr>
+<tr class="pick"><td><b>위 기준 ∪ (지문 + 정답 본문 + 보기 수)</b></td><td><b>46그룹 · 96문항</b></td><td>보기 순서만 섞인 재수록 1건을 추가로 잡는다. 현행 기준</td></tr>
+</tbody></table></div>
+<ul>
+<li><b>결과:</b> 약한 챕터(C안)와 퀵 랜덤이 모두 구현·병합됐습니다(PR #158~#162). <code>MIN_CHAPTER_SAMPLE</code>(5)은 드라이런 결과 값을 유지하는 것이 타당해 라벨의 오표기만 고쳤습니다. D안은 채택하지 않았습니다.</li>
+<li><b>기준 선택 방식:</b> 한 가지를 정해 놓고 구현하지 않고, 네 기준을 같은 데이터에 돌려 오병합·과분리 건수를 비교했습니다.</li>
+<li><b>부수 발견:</b> 같은 문제가 세트마다 다른 챕터로 태깅된 경우가 3건 있었고, 원본은 건드리지 않고 그룹 대표(첫 id)의 챕터로 통일했습니다. 종전의 "최신 회차 우선" 규칙은 사용자가 푼 순서에 따라 통계가 달라졌기 때문입니다.</li>
+</ul>
+<p class="src">근거: 같은 보고서 §0.3·§1-C·§3.3~3.5, 현재 상태 표(상단 갱신 블록), <code>docs/harness/app-logic.md</code> '챕터 통계' 행</p>
+
+<h2 id="case2">사례 2. 오답 복습 스케줄 — "무엇을 틀렸는지"에서 "언제 다시 볼지"로</h2>
+<div class="meta"><span class="tag warn">제안 · 미구현</span><span class="tag gray">사용자 데이터 없음 — 문제 정의는 가설</span></div>
+
+<h3>현재 상태(코드 기준)</h3>
+<ul>
+<li>오답 노트는 세트별로 <b>전 회차 오답의 합집합</b>을 보여 줍니다(<code>src/utils/wrongNote.ts</code>).</li>
+<li><b>'극복' 배지</b>: 해당 세트의 <b>시험 모드 최근 2회</b>에서 모두 맞힌 문항. 랜덤·미니 시험은 근거가 불충분해 보수적으로 제외합니다(<code>attemptStats.ts</code>의 <code>overcomeNumbers</code>).</li>
+<li><b>오답 모드</b>에서 맞히면 '복습 완료'로 표시돼 재풀이 대상에서 빠지지만, 회차로 기록하지 않고 <b>시각 없이 문항 번호만</b> 저장합니다(<code>reviewedOk: Record&lt;setId, number[]&gt;</code>). 오답만 골라 푼 표본이 통계를 왜곡하기 때문입니다.</li>
+<li>퀵 랜덤의 오답은 24시간 뒤 사라집니다.</li>
+</ul>
+
+<h3>문제 가설</h3>
+<div class="card">
+<p>앱은 "무엇을 틀렸는지"는 잘 보여 주지만 <b>"언제 다시 풀어야 하는지"는 알려 주지 않습니다.</b></p>
+<ul>
+<li>'극복'은 시험을 두 번 응시해야만 바뀝니다. 문항 하나를 익히려고 40~70문항 시험을 다시 보게 됩니다.</li>
+<li>오답 모드에서 문항을 맞혀도 어느 날 맞혔는지가 남지 않아 "며칠 지났으니 다시 확인"이 불가능합니다.</li>
+<li>결과적으로 오답 노트는 쌓이기만 하고, 복습 시점은 사용자가 스스로 기억해야 합니다.</li>
+</ul>
+<p class="src">이 세 가지는 코드에서 확인한 사실이고, "그래서 사용자가 복습을 미룬다"는 <b>가설</b>입니다. 검증 방법은 지표 제안서(05)에 적었습니다.</p>
+</div>
+
+<h3>대안</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>안</th><th>내용</th><th>필요한 변경</th><th>장점</th><th>단점·위험</th></tr></thead>
+<tbody>
+<tr class="pick"><td><b>A. 경과일 표시</b></td><td>오답 노트 각 문항에 "마지막으로 틀린 지 N일" 표시, 오래된 순 정렬 옵션</td><td>화면만. 회차에 <code>createdAt</code>이 이미 있어 새 데이터가 필요 없다</td><td>가장 싸고, 소급 가능. 사용 반응을 먼저 볼 수 있다</td><td>"언제 다시 풀지"를 알려 주지는 않는다(정보 제공까지만)</td></tr>
+<tr><td><b>B. 복습 큐</b></td><td>문항별 복습 시각과 단계를 저장하고, 간격이 지난 문항을 "오늘 복습할 문항"으로 묶어 오답 모드로 연결</td><td>문항별 복습 상태 신규 필드(백업 스키마, 정제 allowlist, 왕복 테스트), 오답 모드 진입점</td><td>"무엇을 언제"에 답한다. 기존 오답 모드를 그대로 재사용</td><td>스키마 변경 비용이 크다. '극복' 정의와 복습 정의가 따로 놀면 화면이 서로 다른 말을 한다</td></tr>
+<tr class="drop"><td>C. B + 알림</td><td>복습 시점에 로컬 알림</td><td>Capacitor 알림 플러그인 + 네이티브·JS 브리지 계약 변경</td><td>잊지 않게 해 준다</td><td>웹(PWA)은 서버 푸시가 필요해 "무서버·오프라인" 원칙과 충돌. APK에서만 조용히 갈라지는 계약 위험(<code>docs/harness/android.md</code>)</td></tr>
+<tr class="drop"><td>D. 하지 않음</td><td>현행 유지</td><td>—</td><td>비용 0</td><td>가설이 맞다면 오답 노트가 "쌓이는 목록"에서 못 벗어난다</td></tr>
+</tbody></table></div>
+
+<h3>추천: A → (신호가 있으면) B, C는 제외</h3>
+<ol>
+<li><b>A를 먼저 낸다.</b> 새 저장 필드 없이 가설을 시험할 수 있고, 실패해도 되돌리기 쉽습니다.</li>
+<li><b>B로 넘어갈지는 신호로 판단한다.</b> 예를 들어 사용자가 정렬 옵션을 쓰는지, 오래된 오답부터 다시 푸는지를 로컬 지표로 봅니다(지표 제안서의 M3).</li>
+<li><b>C는 이번 범위에서 뺀다.</b> 알림은 이 제품의 구조(오프라인, 서버 없음, 웹·APK 공용 런타임)와 가장 크게 어긋나는 선택입니다.</li>
+</ol>
+
+<h3>B로 가게 될 때 미리 정해 둘 것</h3>
+<ul>
+<li><b>복습 간격 값</b>(예: 1일 → 3일 → 7일)은 근거 없는 <b>초기 가설값</b>입니다. 간격 반복(spaced repetition)이라는 일반적 학습 기법을 차용한 것이고, 이 앱의 자료로 검증된 숫자가 아닙니다.</li>
+<li><b>'극복'과 '복습 완료'를 하나의 정의로 맞출지</b> 정해야 합니다. 둘이 따로면 한 화면은 "극복", 다른 화면은 "오늘 복습"이라고 말할 수 있습니다(이 저장소에서 반복된 결함 유형: "이름과 다른 동작", <code>docs/harness/app-logic.md</code> 12번).</li>
+<li><b>새 필드는 정제 목록에 같이 추가하고 왕복 동등성 테스트로 고정</b>합니다. 정제 allowlist에서 새 필드가 조용히 유실된 적이 두 번 있었습니다(README CS5).</li>
+</ul>
+
+<h3>수용 기준(A안)</h3>
+<ul>
+<li>오답 노트의 각 문항에 마지막 오답 시각 기준 경과일이 표시된다. 시각을 읽을 수 없는 과거 기록은 "—"로 둔다(렌더 예외 금지).</li>
+<li>정렬 옵션을 바꿔도 노트 배지의 숫자(나열되는 문항 총수)가 달라지지 않는다.</li>
+<li>퀵 오답(24시간 보관)에는 경과일을 표시하지 않는다.</li>
+</ul>
+
+<h2 id="case3">부록. 이번 검토에서 새로 찾은 개선점</h2>
+<div class="meta"><span class="tag bad">문구 불일치</span><span class="tag gray">코드·가이드 대조 · 실화면 미확인</span></div>
+<div class="card">
+<p><b>사이드바의 퀵 안내 문구가 실제 기능과 반대로 말합니다.</b></p>
+<ul>
+<li>사이드바(퀵 모드): "퀵에서 틀린 문항은 <b>기록되지 않습니다</b> … 오답을 남기려면 시험 모드로 채점하면 됩니다."(<code>src/components/layout/Sidebar.tsx</code> 414~417행)</li>
+<li>같은 앱의 사용설명서: "퀵 오답은 회차 기록이 아니라 <b>오답 노트의 임시 목록</b>으로만 봅니다."(<code>UserGuide.tsx</code> 37행). README도 24시간 보관을 설명한다.</li>
+<li>같은 파일 위쪽 주석도 "방금 10문항을 틀린 사용자에게도 … 화면(오답 노트)에는 그 오답이 보인다"고 적어 두었다.</li>
+</ul>
+<p><b>원인 추정:</b> 퀵 오답 노트가 생기기 전에 쓴 문구가 남은 것으로 보입니다. 자동 테스트(<code>e2e/react-quick.spec.ts</code> 301행)는 이 안내가 <b>보이는지만</b> 확인하고 내용은 확인하지 않아서 통과합니다.</p>
+<p><b>영향:</b> 사용자가 퀵에서 틀린 문항이 오답 노트에 남는다는 사실을 모르고 시험 모드로 다시 풀 수 있습니다.</p>
+<p><b>제안:</b> 문구를 "퀵 오답은 회차 기록에는 남지 않고, 오답 노트의 임시 목록에 24시간 보관됩니다"로 맞추고, 테스트가 문구의 핵심(24시간·오답 노트)을 함께 확인하게 합니다. 이 항목은 아직 코드를 바꾸지 않았습니다.</p>
+</div>
+
+<p class="foot">이 문서는 저장소(<code>WindowHyun/ISTQB</code>)의 코드·문서·이슈를 근거로 정리했습니다. 근거는 문장마다 파일 경로로 적었고, 사용자 조사 데이터는 없어서 가설은 가설로 표시했습니다.</p>
+</main>
+</body>
+</html>
