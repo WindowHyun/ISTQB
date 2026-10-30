@@ -302,6 +302,15 @@ npm run size        # 번들 크기 예산 검사 (build 후)
 - 브라우저가 인증을 기억하므로 기기당 최초 1회만 입력하면 되고, 최초 인증 후에는 PWA 오프라인 사용도 그대로 동작합니다.
 - 로컬 개발(`npm run dev`/`preview`)·E2E·CI에는 적용되지 않습니다(Vercel 전용 파일).
 
+### 사용 통계 (선택, GA4)
+
+빌드에 `VITE_GA_ID`(GA4 측정 ID)가 있을 때만 켜지는 **최소 사용 통계**입니다. 없으면 외부로 아무것도 보내지 않습니다(로컬 개발·E2E·CI가 그 상태).
+
+- 보내는 것: 어떤 기능을 썼는지(모드 진입·시험 채점·통계/오답 노트 열기·백업 내보내기/가져오기)와 모드·제품(ISTQB/CSTS)뿐입니다.
+- 보내지 않는 것: 문항·답안·점수·챕터·세트 이름 등 학습 내용 일체, 주소의 쿼리와 리퍼러.
+- 제품 게이트와 설정에서 끌 수 있고(기본은 켜짐), 브라우저의 Do Not Track을 따릅니다. 광고 개인화·Google 신호는 끕니다.
+- 설정·운영 절차: [`docs/release-playbook.md`](docs/release-playbook.md) "사용 통계(GA4)", 규칙: [`docs/harness/app-logic.md`](docs/harness/app-logic.md).
+
 ## 라이선스 / 데이터 저작권 / 데모 정책
 
 - **소스 코드**: MIT 라이선스 — [`LICENSE`](LICENSE).

@@ -4,6 +4,8 @@ import { useQuizStore, QUICK_SET_ID } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
 import { useTheme, ThemePref } from '../../hooks/useTheme';
 import { exportUserData, importUserData, removeHistoriesEverywhere } from '../../utils/storage';
+import { track } from '../../utils/analytics';
+import { AnalyticsNotice } from '../common/AnalyticsNotice';
 import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
 import { showToast } from '../../utils/toast';
 import { isDebugEnabled, setDebugEnabled } from '../../utils/debugLog';
@@ -198,6 +200,7 @@ export const AppModals = () => {
     const result = await importUserData(file);
     // 실패 사유를 그대로 노출한다 — 종전에는 어떤 실패든 같은 문구라 무엇을 고칠지 알 수 없었고,
     // 제품이 다른 백업은 데이터를 덮어쓴 뒤 '복원했습니다'라고 알리기까지 했다.
+    if (result.ok) track('backup_import');
     showToast(
       result.ok ? '백업 파일을 복원했습니다.' : (result.reason ?? '파일 복원에 실패했습니다.'),
       result.ok ? 'success' : 'error',
@@ -743,7 +746,7 @@ export const AppModals = () => {
             <section className="settings-group">
               <h4>기록 관리</h4>
               <div className="settings-actions">
-                <button type="button" className="settings-action" onClick={exportUserData}>
+                <button type="button" className="settings-action" onClick={() => { track('backup_export'); exportUserData(); }}>
                   기록 내보내기
                 </button>
                 <label className="settings-action file-import">
@@ -752,6 +755,8 @@ export const AppModals = () => {
                 </label>
               </div>
             </section>
+
+            <AnalyticsNotice variant="settings" />
 
             <section className="settings-group">
               <h4>콘텐츠 안내</h4>

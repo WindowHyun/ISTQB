@@ -246,6 +246,13 @@ ul { margin: 0; padding: 0; list-style: none; }
 }
 .gate-guide-btn:hover { color: var(--primary); border-color: var(--primary); }
 
+/* 사용 통계 안내(제품 게이트) — 측정 ID가 있는 빌드에서만 렌더된다. 버튼은 본문 글자 크기의 링크형이다. */
+.analytics-note { margin: 12px 4px 0; font-size: 12px; line-height: 1.5; color: var(--muted); text-align: center; }
+.analytics-note-btn {
+  font: inherit; color: var(--primary); background: none; border: 0; padding: 4px 2px; cursor: pointer;
+  text-decoration: underline; min-height: 24px;
+}
+
 /* 외부 링크(a)를 버튼과 동일하게 — 구글시트 제보 링크가 버튼 묶음에 섞여 들어간다. */
 a.feedback-link {
   display: inline-flex;
