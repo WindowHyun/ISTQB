@@ -46,6 +46,7 @@ interface GtagWindow {
   dataLayer?: unknown[];
   gtag?: (...args: unknown[]) => void;
   location: { origin: string; pathname: string };
+  addEventListener?: (type: 'storage', listener: (e: { key: string | null }) => void) => void;
   [key: string]: unknown;
 }
 
@@ -81,6 +82,14 @@ export function createAnalytics(env: AnalyticsEnv) {
     // GA가 공식으로 지원하는 중단 스위치 — 이미 로드된 gtag.js도 이 값을 보고 전송을 멈춘다.
     if (id && env.win) env.win[`ga-disable-${id}`] = !enabled();
   }
+
+  // 다른 탭에서 켜고 끈 것을 이 탭의 중단 플래그에 옮긴다. 플래그는 window마다 따로라서, 한 탭에서
+  // 끄면 이미 gtag를 로드한 다른 탭은 우리 track()이 멈춰도 gtag 자체의 자동 이벤트
+  // (user_engagement 등)를 계속 보낸다. storage 이벤트는 값을 바꾼 탭이 아닌 **다른** 탭에만 온다.
+  // key가 null이면 저장소 전체를 비운 것이다(그때도 상태가 바뀐다).
+  env.win?.addEventListener?.('storage', (e) => {
+    if (e.key === null || e.key === OPT_OUT_KEY) syncDisableFlag();
+  });
 
   function init() {
     syncDisableFlag();

@@ -142,6 +142,40 @@ describe('끄기', () => {
     expect(a.enabled()).toBe(true);
   });
 
+  it('다른 탭에서 끄면 이 탭의 중단 플래그도 선다(storage 이벤트)', () => {
+    const f = fakeEnv();
+    const listeners: Array<(e: { key: string | null }) => void> = [];
+    (f.win as { addEventListener?: unknown }).addEventListener = (_t: string, fn: (e: { key: string | null }) => void) => {
+      listeners.push(fn);
+    };
+    const a = createAnalytics(f.env);
+    a.track('mode_enter', { mode: 'practice' }); // 이 탭은 이미 gtag를 로드했다
+    expect((f.win as Record<string, unknown>)['ga-disable-G-TEST1234']).toBe(false);
+
+    f.store.set(OPT_OUT_KEY, '1'); // 다른 탭이 저장소에 쓴다
+    listeners.forEach((fn) => fn({ key: OPT_OUT_KEY }));
+    expect((f.win as Record<string, unknown>)['ga-disable-G-TEST1234']).toBe(true);
+
+    f.store.set(OPT_OUT_KEY, '0'); // 다른 탭이 다시 켠다
+    listeners.forEach((fn) => fn({ key: OPT_OUT_KEY }));
+    expect((f.win as Record<string, unknown>)['ga-disable-G-TEST1234']).toBe(false);
+  });
+
+  it('상관없는 키의 storage 이벤트는 플래그를 건드리지 않는다, 저장소 전체 삭제(key=null)는 반영한다', () => {
+    const f = fakeEnv();
+    const listeners: Array<(e: { key: string | null }) => void> = [];
+    (f.win as { addEventListener?: unknown }).addEventListener = (_t: string, fn: (e: { key: string | null }) => void) => {
+      listeners.push(fn);
+    };
+    const a = createAnalytics(f.env);
+    a.track('mode_enter', { mode: 'practice' });
+    f.store.set(OPT_OUT_KEY, '1');
+    listeners.forEach((fn) => fn({ key: 'other-key' }));
+    expect((f.win as Record<string, unknown>)['ga-disable-G-TEST1234']).toBe(false);
+    listeners.forEach((fn) => fn({ key: null }));
+    expect((f.win as Record<string, unknown>)['ga-disable-G-TEST1234']).toBe(true);
+  });
+
   it('Do Not Track이면 켤 수 없다', () => {
     const f = fakeEnv({ doNotTrack: () => true });
     const a = createAnalytics(f.env);
