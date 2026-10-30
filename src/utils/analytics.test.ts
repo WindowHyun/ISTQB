@@ -113,6 +113,35 @@ describe('끄기', () => {
     expect((f.win as Record<string, unknown>)['ga-disable-G-TEST1234']).toBe(false);
   });
 
+  it('저장이 막혀 옵트아웃이 저장되지 않아도 이번 세션에서는 멈춘다', () => {
+    // 쓰기가 조용히 실패하는 환경(용량 초과·프라이빗 모드) — safeSetItem이 예외를 삼킨다.
+    const f = fakeEnv({ setItem: () => undefined });
+    const a = createAnalytics(f.env);
+    a.track('mode_enter', { mode: 'practice' });
+    const before = f.calls().length;
+    a.setOptOut(true);
+    a.track('mode_enter', { mode: 'exam' });
+    expect(a.enabled()).toBe(false);
+    expect(f.calls()).toHaveLength(before);
+    expect((f.win as Record<string, unknown>)['ga-disable-G-TEST1234']).toBe(true);
+  });
+
+  it('저장이 막힌 채 다시 켤 수도 있다(메모리 상태가 우선)', () => {
+    const f = fakeEnv({ setItem: () => undefined });
+    const a = createAnalytics(f.env);
+    a.setOptOut(true);
+    a.setOptOut(false);
+    expect(a.enabled()).toBe(true);
+  });
+
+  it('저장이 정상이면 메모리 상태를 쓰지 않아 다른 탭의 변경이 반영된다', () => {
+    const f = fakeEnv();
+    const a = createAnalytics(f.env);
+    a.setOptOut(true);
+    f.store.set(OPT_OUT_KEY, '0'); // 다른 탭에서 다시 켬
+    expect(a.enabled()).toBe(true);
+  });
+
   it('Do Not Track이면 켤 수 없다', () => {
     const f = fakeEnv({ doNotTrack: () => true });
     const a = createAnalytics(f.env);

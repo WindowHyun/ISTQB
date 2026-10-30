@@ -68,9 +68,13 @@ export interface AnalyticsEnv {
 export function createAnalytics(env: AnalyticsEnv) {
   const id = env.measurementId && ID_PATTERN.test(env.measurementId) ? env.measurementId : null;
   let loaded = false;
+  // 저장이 막힌 환경(용량 초과·프라이빗 모드)에서는 옵트아웃을 쓰지 못한다 — safeSetItem이 실패를
+  // 삼키므로 저장소만 다시 읽으면 "끄기"를 눌러도 전송이 멈추지 않는다. 쓴 값이 읽히지 않을 때만
+  // 이번 세션의 메모리 값으로 대신한다(저장이 되는 환경에서는 쓰지 않아 다른 탭의 변경이 반영된다).
+  let fallbackOptOut: boolean | null = null;
 
   const configured = () => id !== null;
-  const optedOut = () => env.getItem(OPT_OUT_KEY) === '1';
+  const optedOut = () => fallbackOptOut ?? env.getItem(OPT_OUT_KEY) === '1';
   const enabled = () => id !== null && !optedOut() && !env.doNotTrack();
 
   function syncDisableFlag() {
@@ -111,7 +115,9 @@ export function createAnalytics(env: AnalyticsEnv) {
   }
 
   function setOptOut(optOut: boolean) {
-    env.setItem(OPT_OUT_KEY, optOut ? '1' : '0');
+    const value = optOut ? '1' : '0';
+    env.setItem(OPT_OUT_KEY, value);
+    fallbackOptOut = env.getItem(OPT_OUT_KEY) === value ? null : optOut;
     syncDisableFlag();
   }
 

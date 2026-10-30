@@ -126,6 +126,7 @@ Vercel 대시보드 → **Settings → Environment Variables**:
 Vercel **Production** 환경변수 `VITE_GA_ID`에 GA4 측정 ID(`G-XXXXXXX`)를 등록하고 **재배포**합니다(Vite가 빌드 시점에 값을 박으므로 재배포해야 반영됩니다). Preview에는 등록하지 않아 프리뷰 방문이 섞이지 않게 합니다. 변수가 없으면 통계는 완전히 꺼집니다.
 
 - 이벤트: `mode_enter` · `exam_graded` · `stats_open` · `wrong_note_open` · `backup_export` · `backup_import`. 파라미터는 `mode`·`product`뿐이고 `app_platform`은 config에 실립니다.
+- 앱을 열 때마다 `page_view`가 1회 함께 들어옵니다(의도한 것 — 방문 수의 분모). GA4가 자동 수집하는 `first_visit`·`session_start`도 같이 보입니다.
 - GA4에서 `mode`·`product`·`app_platform`으로 나눠 보려면 **관리 → 맞춤 정의 → 맞춤 측정기준**에 이벤트 범위로 등록해야 합니다. 등록 전에는 이벤트 수만 보입니다.
 - **APK는 켜지지 않습니다.** Actions의 APK 빌드는 `VITE_GA_ID`를 주지 않으므로 통계가 꺼진 채 패키징됩니다. APK까지 재려면 워크플로에 변수를 넘기고, 웹과 속성을 나눌지 정해야 합니다.
 - 배포 후 확인: 게이트에 "어떤 기능을 쓰는지…" 안내가 보이고, GA4 **실시간** 보고서에 `mode_enter`가 들어오면 됩니다. 안내가 안 보이면 변수가 빌드에 반영되지 않은 것입니다.

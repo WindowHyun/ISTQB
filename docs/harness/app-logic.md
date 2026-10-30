@@ -25,6 +25,7 @@ npm run test:e2e
 - **측정 ID(`VITE_GA_ID`)가 없으면 완전히 꺼진다** — 스크립트를 받지 않고 안내·스위치도 그리지 않는다. 로컬·E2E·CI 빌드가 그 상태다. 켜진 빌드에서만 "수집합니다"라고 말한다.
 - **보내는 것은 행동 이름과 `mode`·`product`뿐이다.** 문항 id·지문·답안·점수·챕터명·세트명은 어떤 경로로도 실리지 않는다. 허용 키·값은 `sanitizeParams`가 강제하므로, 새 파라미터는 거기에 명시적으로 추가해야만 나간다.
 - 이벤트는 컴포넌트마다 흩뿌리지 않고 스토어 전이(`deriveEvents`)에서 만든다. 예외는 스토어에 전이가 없는 채점(`useQuizSession`)과 백업(`AppModals`) 둘이다. 새 진입로를 만들면 같은 모드로 들어오는 다른 입구가 이 구독에 걸리는지 본다.
+- **`page_view`는 의도해서 남긴다** — `config` 호출이 앱을 열 때마다 1회 보낸다(화면 전환은 라우팅이 없어 따로 없다). 게이트에서 아무것도 안 누르고 나가는 방문도 세어 "기능 사용 수 ÷ 방문 수"의 분모가 된다. 끄려면 `config`에 `send_page_view: false`를 준다. GA4가 자동 수집하는 `first_visit`·`session_start`·`user_engagement`도 같은 이유로 막지 않았다.
 - 이벤트: `mode_enter`(연습·시험·퀵·오답·mini — 내부 모드 `random`은 `mini`) · `exam_graded` · `stats_open` · `wrong_note_open` · `backup_export` · `backup_import`. `backup_export`는 `exportUserData`가 끝난 **뒤**에 세므로 던져진 실패(Blob·URL 생성 등)는 걸러지지만, APK 브리지의 실패는 반환값이 없어 걸러지지 않는다. 퀵은 문항마다 채점하므로 `exam_graded`를 보내지 않는다. 세션 복원(게이트 → 저장된 모드)도 `mode_enter`로 센다.
 - 사용자는 제품 게이트와 설정에서 끌 수 있다(`istqb-analytics-optout`). 브라우저의 Do Not Track이면 켤 수 없고 스위치도 내린다.
 - 기본값은 **켜짐(옵트아웃)** 이다 — 첫 방문의 첫 전송은 사용자가 끌 수 있기 전에 나간다. 옵트인으로 바꾸려면 `analytics.ts`의 `optedOut`을 `getItem(OPT_OUT_KEY) !== '0'`로 뒤집는다.
