@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PRD 약점 재측정 루프</title>
+<style>
+:root{--bg:#f6f7fb;--surface:#fff;--ink:#0f172a;--muted:#475569;--line:#dbe2ee;--accent:#2563eb;--accent-soft:#e8efff;--ok:#15803d;--ok-soft:#e7f6ec;--bad:#b91c1c;--bad-soft:#fdecec;--warn:#92400e;--warn-soft:#fff4dc;--code:#eef2f7;--wire:#cbd5e1;--wire-fill:#f1f5f9}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1220;--surface:#121a2b;--ink:#e6ebf5;--muted:#a3b0c7;--line:#26324a;--accent:#7aa2ff;--accent-soft:#18274a;--ok:#5ad08a;--ok-soft:#10281b;--bad:#ff8a8a;--bad-soft:#2f1517;--warn:#f5c26b;--warn-soft:#2d2410;--code:#1a2438;--wire:#3a4963;--wire-fill:#1a2438}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 "Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;word-break:keep-all;overflow-wrap:anywhere}
+.nav{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.nav-in{max-width:920px;margin:0 auto;padding:10px 16px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.nav a{font-size:13px;padding:6px 10px;border-radius:999px;color:var(--muted);text-decoration:none;border:1px solid transparent}
+.nav a:hover{border-color:var(--line)}
+.nav a[aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.nav .brand{font-weight:800;color:var(--ink);margin-right:6px;font-size:13px}
+main{max-width:920px;margin:0 auto;padding:28px 16px 80px}
+h1{font-size:30px;line-height:1.3;margin:6px 0 8px}
+h2{font-size:22px;margin:44px 0 12px;padding-top:14px;border-top:1px solid var(--line)}
+h3{font-size:17px;margin:26px 0 8px}
+h4{font-size:15px;margin:18px 0 6px;color:var(--muted)}
+p{margin:8px 0}
+.lede{color:var(--muted);font-size:17px;margin:4px 0 14px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--accent);text-transform:uppercase}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}.tag.bad{background:var(--bad-soft);color:var(--bad)}.tag.warn{background:var(--warn-soft);color:var(--warn)}.tag.gray{background:var(--code);color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:14px 0}
+.note,.warnbox{border-radius:12px;padding:12px 16px;margin:14px 0;font-size:15px;border:1px solid var(--line)}
+.note{background:var(--accent-soft);border-color:transparent}
+.warnbox{background:var(--warn-soft);border-color:transparent;color:var(--ink)}
+.note b,.warnbox b{display:block;margin-bottom:2px}
+.grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:720px){.g2,.g3{grid-template-columns:1fr}h1{font-size:25px}}
+.tablewrap{overflow-x:auto;margin:12px 0;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+th,td{padding:9px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{background:var(--code);font-size:12.5px;color:var(--muted);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.pick,tr.pick td{background:var(--ok-soft)}
+tr.drop td{color:var(--muted)}
+code{background:var(--code);padding:1px 6px;border-radius:5px;font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+ul,ol{padding-left:22px;margin:8px 0}li{margin:4px 0}
+.src{font-size:12.5px;color:var(--muted)}
+.kv{display:grid;grid-template-columns:120px 1fr;gap:6px 14px;font-size:15px}
+.kv dt{color:var(--muted);font-weight:700}.kv dd{margin:0}
+@media(max-width:560px){.kv{grid-template-columns:1fr}.kv dt{margin-top:6px}}
+.stat{font-size:13px;color:var(--muted)}
+.foot{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+/* 결정 카드 */
+.dec{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:14px 16px;margin:14px 0}
+.dec h3{margin:0 0 6px;font-size:16px}
+.dec .row{display:grid;grid-template-columns:84px 1fr;gap:4px 12px;font-size:14.5px;margin:3px 0}
+.dec .row b{color:var(--muted)}
+@media(max-width:560px){.dec .row{grid-template-columns:1fr}}
+.dec.flip{border-left-color:var(--warn)}
+/* 플로우 */
+.flow{display:flex;flex-wrap:wrap;gap:8px 6px;align-items:center;margin:14px 0}
+.fb{background:var(--surface);border:1.5px solid var(--wire);border-radius:10px;padding:7px 11px;font-size:13.5px;line-height:1.35;text-align:center}
+.fb.hi{border-color:var(--accent);background:var(--accent-soft)}.fb.gate{border-color:var(--warn);background:var(--warn-soft)}.fb.end{border-color:var(--ok);background:var(--ok-soft)}.fb.no{border-color:var(--bad);background:var(--bad-soft)}
+.ar{color:var(--muted);font-size:15px}
+.lane{border:1px dashed var(--wire);border-radius:12px;padding:10px 12px;margin:12px 0;background:var(--surface)}
+.lane>b{font-size:12.5px;color:var(--muted);display:block;margin-bottom:4px}
+/* 와이어프레임 */
+.wfrow{display:flex;flex-wrap:wrap;gap:44px 22px;justify-content:center;margin:18px 0}
+.phone{width:290px;border:2px solid var(--wire);border-radius:26px;background:var(--surface);padding:12px;position:relative}
+.phone .cap{position:absolute;top:-24px;left:0;right:0;text-align:center;font-size:12.5px;font-weight:700;color:var(--muted)}
+.wf{border:1.5px solid var(--wire);background:var(--wire-fill);border-radius:8px;padding:7px 9px;margin:6px 0;font-size:12.5px;color:var(--muted);line-height:1.35}
+.wf.t{background:transparent;border-style:dashed}
+.wf.b{background:var(--ink);color:var(--bg);border-color:var(--ink);text-align:center;font-weight:700}
+.wf.p{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700}
+.wf.w{border-color:var(--bad);color:var(--bad);background:var(--bad-soft)}
+.wf.o{border-color:var(--ok);color:var(--ok);background:var(--ok-soft)}
+.wfr{display:flex;gap:6px}.wfr>.wf{flex:1;margin:6px 0}
+.bar{display:flex;gap:3px;margin:6px 0}.bar i{flex:1;height:7px;border-radius:4px;background:var(--wire)}.bar i.g{background:var(--ok)}.bar i.r{background:var(--bad)}.bar i.c{background:var(--accent)}
+.anno{font-size:12.5px;color:var(--muted);margin:8px 2px 0}
+.anno b{color:var(--accent)}
+.legend{font-size:13px;color:var(--muted)}
+@media print{.nav{display:none}body{background:#fff}.card,.dec,.tablewrap{break-inside:avoid}h2{break-after:avoid}}
+/* ===== 프로토타입 ===== */
+.proto{display:grid;grid-template-columns:minmax(300px,372px) 1fr;gap:24px;align-items:start;margin:16px 0}
+@media(max-width:860px){.proto{grid-template-columns:1fr}}
+.pp{width:100%;max-width:372px;margin:0 auto;border:2px solid var(--wire);border-radius:34px;background:var(--surface);padding:10px}
+.pp-wrap{position:relative;border-radius:24px;overflow:hidden;background:var(--bg)}
+.pp-screen{height:660px;display:flex;flex-direction:column;font-size:13px;line-height:1.4}
+.p-head{background:var(--surface);border-bottom:1px solid var(--line);padding:8px 10px 6px;flex:0 0 auto}
+.p-body{flex:1;overflow-y:auto;padding:10px}
+.p-bottom{flex:0 0 auto;background:var(--surface);border-top:1px solid var(--line);padding:6px 10px 10px}
+.p-top{display:flex;align-items:center;gap:8px}
+.p-logo{width:26px;height:26px;border-radius:8px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:12px;flex:0 0 26px}
+.p-ttl{flex:1;min-width:0}.p-ttl small{display:block;font-size:10.5px;font-weight:800;color:var(--accent)}
+.p-ttl b{font-size:13px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-set{all:unset;cursor:pointer;display:block;max-width:100%}
+.p-set b{display:inline}
+.p-set[disabled]{cursor:not-allowed;opacity:.75}
+.p-menu{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:16px;cursor:pointer}
+.p-stat{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;color:var(--muted)}
+.p-chip{background:var(--accent);color:#fff;border-radius:999px;padding:2px 10px;font-weight:700;font-size:12px}
+.p-chip.e{background:#b45309}.p-chip.q{background:#7c3aed}.p-chip.r{background:#0f766e}.p-chip.m{background:#0369a1}
+.p-time.warn{color:#b45309;font-weight:700}.p-time.danger{color:var(--bad);font-weight:700}
+.p-wchip{margin-left:auto;border:1px solid var(--line);border-radius:999px;padding:2px 9px;background:var(--surface);color:var(--ink);font-size:12px;cursor:pointer}
+.p-wchip b{background:var(--bad);color:#fff;border-radius:999px;padding:0 6px;margin-left:4px;font-size:11px}
+.p-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.p-card h5{margin:0 0 4px;font-size:15px;color:var(--ink)}
+.p-badge{display:inline-block;font-size:11px;background:var(--code);color:var(--muted);border-radius:6px;padding:1px 7px;margin-left:6px;font-weight:600}
+.p-q{color:var(--muted);margin:6px 0 10px;padding:10px;border:1.5px dashed var(--wire);border-radius:8px;background:var(--wire-fill);font-size:12.5px}
+.p-opt{all:unset;box-sizing:border-box;display:flex;gap:9px;align-items:center;width:100%;border:1.5px solid var(--line);border-radius:12px;padding:9px;margin:6px 0;background:var(--surface);cursor:pointer;color:var(--ink)}
+.p-opt i{flex:0 0 26px;height:26px;border-radius:13px;background:var(--code);color:var(--muted);font-style:normal;font-weight:800;display:grid;place-items:center;font-size:12px}
+.p-opt.sel{border-color:var(--accent);background:var(--accent-soft)}.p-opt.sel i{background:var(--accent);color:#fff}
+.p-opt.ok{border-color:var(--ok);background:var(--ok-soft)}.p-opt.ok i{background:var(--ok);color:#fff}
+.p-opt.no{border-color:var(--bad);background:var(--bad-soft)}.p-opt.no i{background:var(--bad);color:#fff}
+.p-opt[disabled]{cursor:default}
+.p-fb{border-radius:10px;padding:9px 10px;margin-top:8px;font-size:12.5px}
+.p-fb.ok{background:var(--ok-soft);color:var(--ok)}.p-fb.no{background:var(--bad-soft);color:var(--bad)}.p-fb small{display:block;color:var(--muted);margin-top:3px}
+.p-strip{display:flex;gap:2px;margin:2px 0 6px}.p-strip span{flex:1;height:6px;border-radius:3px;background:var(--wire)}
+.p-strip .ok{background:var(--ok)}.p-strip .no{background:var(--bad)}.p-strip .a{background:var(--accent)}.p-strip .cur{background:var(--ink)}
+.p-nav{display:flex;gap:6px}
+.p-btn{all:unset;box-sizing:border-box;cursor:pointer;border:1px solid var(--wire);background:var(--surface);color:var(--ink);border-radius:12px;padding:10px 12px;text-align:center;font-weight:700;font-size:13px;flex:1}
+.p-btn.sq{flex:0 0 44px}.p-btn.dark{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.p-btn.pri{background:var(--accent);color:#fff;border-color:var(--accent)}.p-btn.dng{border-color:var(--bad);color:var(--bad)}
+.p-btn[disabled]{opacity:.4;cursor:not-allowed}
+.p-btn.row{margin:5px 0;flex:none;display:block;width:100%}
+.p-hint{font-size:11.5px;color:var(--muted);margin:4px 0}
+.p-lock{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:7px 9px;font-size:12px;margin:6px 0}
+.p-banner{background:var(--accent-soft);border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:12px}
+.p-banner small{display:block;color:var(--muted);margin-top:2px}
+.p-banner .p-btn{margin-top:6px;padding:6px 10px;font-size:12px;display:inline-block;flex:none}
+.p-score{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--code);border-radius:10px;padding:6px;margin:0 0 10px}
+.p-score div{text-align:center}.p-score b{display:block;font-size:16px}.p-score small{font-size:10.5px;color:var(--muted)}
+.p-score .o b{color:var(--ok)}.p-score .n b{color:var(--bad)}
+.p-seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:6px 0}
+.p-seg .p-btn{padding:8px 0;font-size:12px}.p-seg .p-btn.cur{background:var(--accent);border-color:var(--accent);color:#fff}
+.p-row{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin:6px 0;background:var(--surface);color:var(--ink);width:100%;box-sizing:border-box;font:inherit;cursor:pointer;text-align:left}
+.p-row .r1{color:var(--bad);font-weight:700}.p-row .r2{color:var(--ok);font-weight:700}
+.p-row.dim{opacity:.55}
+.p-h{font-weight:800;font-size:12.5px;margin:12px 0 4px;color:var(--muted)}
+.p-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0 10px}
+.p-kpi div{border:1px solid var(--line);border-radius:10px;padding:8px 4px;text-align:center;background:var(--surface)}.p-kpi b{display:block;font-size:16px}.p-kpi small{color:var(--muted);font-size:10.5px}
+.p-ch{border:1px solid var(--line);border-radius:10px;padding:8px;margin:6px 0;background:var(--surface)}
+.p-ch.weak{border-color:var(--bad)}.p-ch.weak .nm{color:var(--bad)}
+.p-ch .t{display:flex;justify-content:space-between;font-weight:700}.p-ch .acts{display:flex;gap:6px;margin-top:6px}.p-ch .acts .p-btn{padding:7px 4px;font-size:12px}
+.p-ch .bar{height:5px;border-radius:3px;background:var(--wire);margin-top:6px;overflow:hidden}.p-ch .bar i{display:block;height:100%;background:var(--accent)}.p-ch.weak .bar i{background:var(--bad)}
+.p-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin:8px 0}
+.p-cell{border:1px solid var(--line);border-radius:8px;padding:6px 0;text-align:center;font-size:11.5px;background:var(--surface);position:relative;color:var(--ink)}
+.p-cell.ok{border-color:var(--ok);background:var(--ok-soft)}.p-cell.no{border-color:var(--bad);background:var(--bad-soft)}.p-cell.a{border-color:var(--accent);background:var(--accent-soft)}.p-cell.cur{outline:2px solid var(--ink)}
+.p-leg{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--muted);margin:4px 0}
+.p-ov{position:absolute;inset:0;background:rgba(15,23,42,.5);display:flex;flex-direction:column;justify-content:flex-end}
+.p-ov.mid{justify-content:center;padding:0 14px}
+.p-modal,.p-sheet{background:var(--surface);color:var(--ink);padding:14px}
+.p-modal{border-radius:16px;border:1px solid var(--line)}
+.p-sheet{border-radius:18px 18px 0 0;max-height:80%;overflow-y:auto}
+.p-ov.full{justify-content:flex-start;background:var(--surface)}
+.p-ov.full .p-sheet{border-radius:0;max-height:none;flex:1;overflow:auto}
+.p-modal h5,.p-sheet h5{margin:0 0 6px;font-size:15px}
+.p-modal p{margin:6px 0}
+.p-acts{display:flex;gap:8px;margin-top:10px}
+.p-x{all:unset;float:right;cursor:pointer;font-weight:800;padding:2px 8px}
+.p-gate{height:100%;display:grid;place-items:center;padding:16px}
+.p-gate .p-card{width:100%;text-align:center}
+.p-gate h5{font-size:17px}
+.p-sc{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--accent)}
+.p-res{text-align:center;padding:8px 0}.p-res strong{font-size:34px;display:block}.p-res .pass{color:var(--ok)}.p-res .fail{color:var(--bad)}
+.p-res .bd{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 10px;background:var(--ok-soft);color:var(--ok)}
+.p-res .bd.f{background:var(--bad-soft);color:var(--bad)}
+.p-dl{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0;font-size:12px}.p-dl div{background:var(--code);border-radius:8px;padding:6px 8px}.p-dl dt{color:var(--muted);font-size:11px}.p-dl dd{margin:0;font-weight:700}
+.hotmode [data-go],.hotmode [data-act]{outline:2px dashed var(--accent);outline-offset:2px}
+.hotmode [disabled]{outline:none}
+.psd{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;position:sticky;top:64px}
+.psd h4{margin:0 0 4px;color:var(--ink);font-size:16px}
+.psd .sub{color:var(--muted);font-size:13px;margin:0 0 8px}
+.psd h5{margin:12px 0 4px;font-size:12px;color:var(--muted);letter-spacing:.04em}
+.psd ul{margin:4px 0;font-size:13.5px;padding-left:18px}
+.psd .tags{display:flex;gap:5px;flex-wrap:wrap}
+.psd ol{font-size:12px;color:var(--muted);padding-left:18px;margin:4px 0}.psd ol li.now{color:var(--accent);font-weight:700}
+.sc-btns{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.sc-btns button,.tool button{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:5px 11px;cursor:pointer}
+.sc-btns button:hover,.tool button:hover{border-color:var(--accent);color:var(--accent)}
+.tool{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted);margin:8px 0}
+.tool label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+svg.sv{width:100%;height:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+svg.sv text{fill:var(--ink);font:13px "Noto Sans KR",system-ui,sans-serif}
+svg.sv .s{font-size:11.5px;fill:var(--muted)}
+svg.sv .t{font-weight:700}
+svg.sv .bx{fill:var(--surface);stroke:var(--wire);stroke-width:1.6}
+svg.sv .bx.hi{stroke:var(--accent);fill:var(--accent-soft)}svg.sv .bx.gt{stroke:var(--warn);fill:var(--warn-soft)}svg.sv .bx.ed{stroke:var(--ok);fill:var(--ok-soft)}svg.sv .bx.no{stroke:var(--bad);fill:var(--bad-soft)}
+svg.sv .ln{stroke:var(--muted);stroke-width:1.6;fill:none}svg.sv .ln.d{stroke-dasharray:5 4}
+svg.sv .ah{fill:var(--muted)}
+details.spec{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0;margin:10px 0}
+details.spec>summary{cursor:pointer;padding:11px 14px;font-weight:700;list-style:none;display:flex;gap:8px;align-items:center}
+details.spec>summary::-webkit-details-marker{display:none}
+details.spec>summary::before{content:"▸";color:var(--muted);transition:transform .15s}
+details.spec[open]>summary::before{transform:rotate(90deg)}
+details.spec .in{padding:2px 14px 14px;font-size:14.5px}
+details.spec h4{margin:12px 0 4px}
+
+</style>
+</head>
+<body>
+<header class="nav"><div class="nav-in"><span class="brand">ISTQB·CSTS 풀이 앱 · 기획 포트폴리오</span><a href="01-improvement-proposals.html">개선안 제안 리포트</a><a href="02-prd.html" aria-current="page">PRD</a><a href="03-wireframes-flows.html">와이어프레임·플로우</a><a href="04-decision-log.html">의사결정 로그</a><a href="05-metrics-proposal.html">지표 제안서</a></div></header>
+<main>
+<p class="eyebrow">Product Requirements Document</p>
+<h1>PRD — 약점 분석 → 집중 연습 → 재측정 루프</h1>
+<p class="lede">ISTQB·CSTS 기출 풀이 앱을 "문제를 푸는 앱"에서 "약점을 찾아 다시 재는 앱"으로 바꾼 핵심 기능의 요구사항 문서입니다.</p>
+<div class="meta">
+  <span class="tag warn">사후 작성 · 구현 완료 기능</span>
+  <span class="tag gray">작성 2026-10-30</span>
+  <span class="tag gray">범위: Phase 0·2·3 + 챕터 미니 시험 + 퀵 랜덤의 약점 기여</span>
+</div>
+<div class="warnbox"><b>이 문서의 성격</b>기능은 이미 만들어졌고, 이 PRD는 코드·결정 기록·이슈에서 요구사항을 <b>되짚어 쓴</b> 것입니다. 사용자 조사나 사용 데이터는 없습니다. 그래서 문제 정의의 "사용자" 부분은 가설이라고 표시했고, 성공 지표는 목표치를 정하지 않고 측정 방법만 05 문서에 두었습니다.</div>
+
+<h2>1. 배경과 문제</h2>
+<h3>제품</h3>
+<p>ISTQB Foundation Level v4.0 샘플문제와 CSTS(SW 테스트 전문가) 기출을 합쳐 <b>12세트·626문항</b>을 푸는 오프라인 CBT 앱입니다. 웹(Vercel, 비밀번호 잠금)과 Android APK(Capacitor)가 같은 React 런타임을 씁니다. 서버·계정·사용 데이터 수집은 없습니다.</p>
+<h3>출발 문제</h3>
+<div class="card">
+<p><b>초기 버전은 "풀고 → 채점하고 → 끝"이었습니다.</b> 모든 기록이 회차 단위여서 사용자는 "내가 어느 영역에 약한지"를 알 수 없었고, 알더라도 그 영역만 골라 다시 풀어 확인할 방법이 없었습니다.</p>
+<ul>
+<li>기출 12세트에는 챕터 정보가 없어 영역별 분석이 불가능했다.</li>
+<li>약점을 연습해도 통계가 바뀌지 않아 "나아졌는지"를 잴 수단이 없었다. (진행 기록의 AS-IS 진단)</li>
+<li>같은 문제가 여러 세트에 재수록돼 있어, 단순 누적하면 같은 문항이 분모를 부풀렸다.</li>
+</ul>
+<p class="src">근거: <code>docs/archive/project-history.html</code> §2(기획 변경), <code>docs/archive/report-weak-chapter-and-quick-random.md</code> §0.3</p>
+</div>
+
+<h2>2. 대상 사용자 <span class="tag gray">가설</span></h2>
+<p>실제 인터뷰 없이 제품 성격에서 추정한 두 유형입니다. 검증 계획은 05 문서의 "검증이 필요한 가설" 절에 있습니다.</p>
+<div class="grid g2">
+<div class="card"><h3>시험 직전 수험생</h3><dl class="kv"><dt>상황</dt><dd>응시일이 가깝고, 남은 시간이 적다</dd><dt>하려는 일</dt><dd>"어디를 더 봐야 합격선을 넘나"를 빨리 알고 그 부분만 집중해서 푼다</dd><dt>필요</dt><dd>약점 순위, 챕터 단위 연습, 합격 가능성 감각</dd></dl></div>
+<div class="card"><h3>반복 학습자</h3><dl class="kv"><dt>상황</dt><dd>여러 주에 걸쳐 세트를 돌려 푼다</dd><dt>하려는 일</dt><dd>이전보다 나아졌는지 확인하고, 틀렸던 문제를 다시 본다</dd><dt>필요</dt><dd>회차 비교, 성장 이력, 오답 누적</dd></dl></div>
+</div>
+
+<h2>3. 목표와 비목표</h2>
+<div class="grid g2">
+<div class="card"><h3>목표</h3><ul>
+<li>영역(챕터)별 정답률로 <b>약점을 찾는다</b></li>
+<li>약점 챕터를 <b>한 번에 골라 풀 수 있다</b></li>
+<li>풀고 나면 <b>통계가 바뀌어</b> 나아졌는지 확인된다</li>
+<li>화면 숫자가 <b>왜 그런지 설명 가능</b>해야 한다(같은 문항을 두 번 세지 않는다)</li>
+</ul></div>
+<div class="card"><h3>비목표</h3><ul>
+<li>계정·서버·동기화(기기 간 공유 없음)</li>
+<li>문항 편집·추가 도구</li>
+<li>합격 여부를 예측하는 점수 모델</li>
+<li>시험 콘텐츠의 공개 배포(저작권 때문에 비공개 운영)</li>
+</ul></div>
+</div>
+
+<h2>4. 사용자 스토리</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>ID</th><th>스토리</th><th>핵심 인수 조건</th></tr></thead>
+<tbody>
+<tr><td>US1</td><td>수험생으로서, 챕터별 정답률을 낮은 순으로 보고 싶다. 어디부터 볼지 정하려고.</td><td>합격선 미만 챕터가 강조되고, 색만이 아니라 글자 단서도 붙는다</td></tr>
+<tr><td>US2</td><td>수험생으로서, 약한 챕터 문제만 골라 바로 풀고 싶다.</td><td>챕터 행에서 <b>연습</b>(전체 보기)과 <b>미니 시험</b>(최대 10문항)으로 진입한다</td></tr>
+<tr><td>US3</td><td>학습자로서, 미니 시험을 푼 뒤 통계가 바뀌길 원한다.</td><td>미니 시험 채점 결과가 챕터 집계에 반영된다</td></tr>
+<tr><td>US4</td><td>학습자로서, 같은 문제를 다시 맞히면 예전 오답이 사라지길 원한다.</td><td>같은 문항(세트가 달라도 재수록본이면 같은 문항)은 가장 최근 결과 하나만 센다</td></tr>
+<tr><td>US5</td><td>학습자로서, 지난번보다 나아졌는지 보고 싶다.</td><td>채점 결과에 직전 회차 대비 ▲▼ %p. 같은 모드끼리만 비교</td></tr>
+<tr><td>US6</td><td>학습자로서, 짧게 아무 세트에서 섞어 풀고 싶다.</td><td>퀵 랜덤의 결과가 챕터 약점 분석에는 기여하되 회차 기록은 남기지 않는다</td></tr>
+</tbody></table></div>
+
+<h2>5. 요구사항</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>ID</th><th>요구사항</th><th>우선</th><th>수용 기준</th><th>구현 위치</th></tr></thead>
+<tbody>
+<tr><td>FR1</td><td>626문항 전부에 챕터를 태깅한다</td><td>Must</td><td>정의(<code>www/data/taxonomy.json</code>)에 없는 챕터명이 있으면 <code>verify</code>가 실패한다</td><td><code>www/data/**</code>, <code>scripts/verify.js</code></td></tr>
+<tr><td>FR2</td><td>챕터별 정답률을 낮은 순으로 보여 준다</td><td>Must</td><td>합격선 미만 행은 강조하고 접근성용 글자 단서를 둔다. 기준은 ISTQB 65%·CSTS 75%</td><td><code>StatsDashboard.tsx</code>, <code>chapterStats.ts</code></td></tr>
+<tr><td>FR3</td><td>표본이 적은 챕터를 순위에서 분리한다</td><td>Must</td><td>5문항 미만은 "아직 판단하기 이른 챕터"로 따로 보이며 1위 약점이 되지 않는다</td><td><code>MIN_CHAPTER_SAMPLE</code></td></tr>
+<tr><td>FR4</td><td>같은 문항은 최신 결과 하나만 센다</td><td>Must</td><td>6문항을 세 번 풀어도 분모는 6. 재수록 문항(46그룹·96문항)도 한 번만 센다. 이전 이력은 기존 누적으로 폴백하고 그 사실을 안내한다</td><td><code>aggregateLatestChapterStats</code>, 중복 그룹표</td></tr>
+<tr><td>FR5</td><td>챕터 단위로 연습·미니 시험에 진입한다</td><td>Must</td><td>미니 시험은 통계 화면에서만 진입한다. 챕터 문항이 10개를 넘으면 10문항을 추첨한다. 무작위 순서에서도 정답 매핑이 유지된다</td><td><code>useQuestions.ts</code>, 모드 <code>random</code></td></tr>
+<tr><td>FR6</td><td>미니 시험은 챕터 통계에 반영하되 세트 요약에는 섞지 않는다</td><td>Must</td><td>응시 횟수·평균·최고 정답률·세트 타임라인에는 미니 시험이 포함되지 않는다(최고 정답률 부풀림 방지)</td><td><code>isSetLevelRound</code></td></tr>
+<tr><td>FR7</td><td>회차 비교를 보여 준다</td><td>Should</td><td>직전 회차 대비 ▲▼ %p. 첫 응시는 안내 문구. 같은 모드끼리만 비교한다</td><td><code>attemptStats.ts</code></td></tr>
+<tr><td>FR8</td><td>퀵 랜덤이 약점 분석에 기여한다</td><td>Should</td><td>채점한 문항이 챕터 통계에 반영된다. 회차 목록·요약·타임라인·IndexedDB에는 남지 않는다</td><td><code>useQuizSession.ts</code>, <code>quickStats.ts</code></td></tr>
+<tr><td>FR9</td><td>오답을 누적해 보여 준다</td><td>Should</td><td>세트별 전 회차 오답의 합집합. 모바일 배지의 숫자 = 노트가 나열하는 문항 수</td><td><code>wrongNote.ts</code>, <code>useWrongNote.ts</code></td></tr>
+</tbody></table></div>
+
+<h2>6. 정책 규칙(헷갈리기 쉬운 부분)</h2>
+<ul>
+<li><b>연습은 통계에 기록하지 않는다.</b> 정답률 갱신은 시험·미니 시험 채점으로만 이뤄진다(통계 화면에 그대로 안내한다).</li>
+<li><b>미니 시험은 통계 화면에서만 들어간다.</b> 모드 탭은 연습·시험·퀵·오답 4개로 유지한다.</li>
+<li><b>퀵의 오답은 24시간 뒤 사라진다.</b> 회차 기록을 남기지 않는 모드라서, 영구 보관하면 그 규칙과 모순되기 때문이다.</li>
+<li><b>합격선을 약점의 기준으로 쓴다.</b> "약하다"를 합격선 미만으로 정의했다. 이 정의가 사용자에게 맞는지는 가설이다(§9).</li>
+</ul>
+
+<h2>7. 비기능 요구</h2>
+<ul>
+<li>오프라인 동작. 문항 JSON 전 세트를 서비스워커 precache에 둔다(퀵 출제가 여기에 의존).</li>
+<li>저장이 막힌 환경(프라이빗 모드·쿼터 초과)에서도 앱에 진입할 수 있어야 한다.</li>
+<li>접근성: WCAG 2.1 AA 자동 스캔 통과, 색에만 의존하지 않는 표시, 모바일 터치 타깃 44px.</li>
+<li>데이터 정합성: 원본 PDF와 문항 데이터를 CI에서 전수 대조한다.</li>
+</ul>
+
+<h2>8. 성공 지표</h2>
+<p>이 앱은 사용 데이터를 수집하지 않으므로, 기능 성공을 재는 방법부터 <a href="05-metrics-proposal.html">05 지표 제안서</a>에서 따로 정했습니다. 이 PRD에서는 목표치를 만들지 않았습니다. 베이스라인이 없는 숫자는 근거가 되지 못하기 때문입니다.</p>
+
+<h2>9. 리스크와 열린 질문</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>항목</th><th>내용</th><th>상태</th></tr></thead>
+<tbody>
+<tr><td>약점 = 합격선 미만?</td><td>합격선을 약점 기준으로 쓰는 게 맞는지 확인한 적이 없다. 사용자가 상대적 순위("제일 약한 곳")를 더 원할 수도 있다</td><td><span class="tag warn">가설</span></td></tr>
+<tr><td>소급 불가</td><td>문항 단위 정오가 없던 구 회차는 새 규칙에 섞이지 않는다. 전환기에는 두 규칙의 수치가 공존한다</td><td><span class="tag">안내로 대응</span></td></tr>
+<tr><td>표본 5문항</td><td>최소 표본 5는 드라이런으로 유지가 타당하다고 판단했지만, 챕터 문항이 적은 세트(CSTS 2018은 챕터 여섯 개 중 다섯 개가 세트당 1~4문항)에서는 순위에 못 오른다</td><td><span class="tag warn">열림</span></td></tr>
+<tr><td>퀵 이력 보관</td><td>요약 지표에서는 분리했지만 퀵 회차 목록의 보관·정리 정책은 정하지 않았다</td><td><span class="tag warn">열림</span></td></tr>
+<tr><td>복습 시점</td><td>약점을 알려 줘도 "언제 다시 볼지"는 안내하지 않는다</td><td><a href="01-improvement-proposals.html#case2">제안서 사례 2</a></td></tr>
+</tbody></table></div>
+
+<h2>10. 단계 (실제 진행 순서)</h2>
+<div class="flow">
+<span class="fb hi">Phase 0<br>문항 분류 체계</span><span class="ar">→</span>
+<span class="fb">Phase 2<br>회차 비교·성장 이력</span><span class="ar">→</span>
+<span class="fb">Phase 3<br>챕터 약점·집중 연습</span><span class="ar">→</span>
+<span class="fb">S3<br>챕터 미니 시험</span><span class="ar">→</span>
+<span class="fb">문항 단위 최신 시도<br>+ 중복 제거</span><span class="ar">→</span>
+<span class="fb end">퀵 랜덤의<br>약점 기여</span>
+</div>
+<p class="src">근거: <code>docs/archive/project-history.html</code> Phase 0~4와 S1~S6, <code>docs/archive/report-weak-chapter-and-quick-random.md</code> 상단 상태 표</p>
+
+<p class="foot">이 문서는 저장소(<code>WindowHyun/ISTQB</code>)의 코드·문서·이슈를 근거로 정리했습니다. 근거는 문장마다 파일 경로로 적었고, 사용자 조사 데이터는 없어서 가설은 가설로 표시했습니다.</p>
+</main>
+</body>
+</html>

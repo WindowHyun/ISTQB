@@ -42,6 +42,18 @@
 | --- | --- |
 | [`ui-mockups/README.md`](./ui-mockups/README.md) | 모바일 풀이 흐름 개선안의 정적 HTML 시안 5개 화면(숫자는 예시) |
 
+## 기획 포트폴리오 — [`portfolio/`](./portfolio/)
+
+기획자 관점의 산출물입니다. 브라우저로 파일을 직접 열면 됩니다. 앱 코드와 무관하며 빌드·테스트·번들에 포함되지 않습니다. 사후 작성·제안 문서이고 사용자 조사 데이터는 없습니다.
+
+| 문서 | 내용 |
+| --- | --- |
+| [`portfolio/01-improvement-proposals.html`](./portfolio/01-improvement-proposals.html) | 개선안 제안 리포트 2건(약한 챕터 통계 회고 · 오답 복습 스케줄 제안) |
+| [`portfolio/02-prd.html`](./portfolio/02-prd.html) | 약점 분석 → 집중 연습 → 재측정 루프 PRD(사후 작성) |
+| [`portfolio/03-wireframes-flows.html`](./portfolio/03-wireframes-flows.html) | 정보 구조, 클릭 프로토타입, 상태 전이도, 화면 명세, 모달 카탈로그 |
+| [`portfolio/04-decision-log.html`](./portfolio/04-decision-log.html) | 정책 결정 15건(상황·선택지·결정·이유) |
+| [`portfolio/05-metrics-proposal.html`](./portfolio/05-metrics-proposal.html) | 수집 없이 학습 효과를 재는 지표 제안(목표치 없음) |
+
 ## 점검 기록
 
 읽기용 기록입니다. **당시 시점의 사실**을 보존하므로 수치를 현재값으로 덮어쓰지 않습니다.

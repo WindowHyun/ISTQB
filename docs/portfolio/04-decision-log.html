@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>의사결정 로그</title>
+<style>
+:root{--bg:#f6f7fb;--surface:#fff;--ink:#0f172a;--muted:#475569;--line:#dbe2ee;--accent:#2563eb;--accent-soft:#e8efff;--ok:#15803d;--ok-soft:#e7f6ec;--bad:#b91c1c;--bad-soft:#fdecec;--warn:#92400e;--warn-soft:#fff4dc;--code:#eef2f7;--wire:#cbd5e1;--wire-fill:#f1f5f9}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1220;--surface:#121a2b;--ink:#e6ebf5;--muted:#a3b0c7;--line:#26324a;--accent:#7aa2ff;--accent-soft:#18274a;--ok:#5ad08a;--ok-soft:#10281b;--bad:#ff8a8a;--bad-soft:#2f1517;--warn:#f5c26b;--warn-soft:#2d2410;--code:#1a2438;--wire:#3a4963;--wire-fill:#1a2438}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 "Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;word-break:keep-all;overflow-wrap:anywhere}
+.nav{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.nav-in{max-width:920px;margin:0 auto;padding:10px 16px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.nav a{font-size:13px;padding:6px 10px;border-radius:999px;color:var(--muted);text-decoration:none;border:1px solid transparent}
+.nav a:hover{border-color:var(--line)}
+.nav a[aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.nav .brand{font-weight:800;color:var(--ink);margin-right:6px;font-size:13px}
+main{max-width:920px;margin:0 auto;padding:28px 16px 80px}
+h1{font-size:30px;line-height:1.3;margin:6px 0 8px}
+h2{font-size:22px;margin:44px 0 12px;padding-top:14px;border-top:1px solid var(--line)}
+h3{font-size:17px;margin:26px 0 8px}
+h4{font-size:15px;margin:18px 0 6px;color:var(--muted)}
+p{margin:8px 0}
+.lede{color:var(--muted);font-size:17px;margin:4px 0 14px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--accent);text-transform:uppercase}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}.tag.bad{background:var(--bad-soft);color:var(--bad)}.tag.warn{background:var(--warn-soft);color:var(--warn)}.tag.gray{background:var(--code);color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:14px 0}
+.note,.warnbox{border-radius:12px;padding:12px 16px;margin:14px 0;font-size:15px;border:1px solid var(--line)}
+.note{background:var(--accent-soft);border-color:transparent}
+.warnbox{background:var(--warn-soft);border-color:transparent;color:var(--ink)}
+.note b,.warnbox b{display:block;margin-bottom:2px}
+.grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:720px){.g2,.g3{grid-template-columns:1fr}h1{font-size:25px}}
+.tablewrap{overflow-x:auto;margin:12px 0;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+th,td{padding:9px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{background:var(--code);font-size:12.5px;color:var(--muted);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.pick,tr.pick td{background:var(--ok-soft)}
+tr.drop td{color:var(--muted)}
+code{background:var(--code);padding:1px 6px;border-radius:5px;font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+ul,ol{padding-left:22px;margin:8px 0}li{margin:4px 0}
+.src{font-size:12.5px;color:var(--muted)}
+.kv{display:grid;grid-template-columns:120px 1fr;gap:6px 14px;font-size:15px}
+.kv dt{color:var(--muted);font-weight:700}.kv dd{margin:0}
+@media(max-width:560px){.kv{grid-template-columns:1fr}.kv dt{margin-top:6px}}
+.stat{font-size:13px;color:var(--muted)}
+.foot{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+/* 결정 카드 */
+.dec{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:14px 16px;margin:14px 0}
+.dec h3{margin:0 0 6px;font-size:16px}
+.dec .row{display:grid;grid-template-columns:84px 1fr;gap:4px 12px;font-size:14.5px;margin:3px 0}
+.dec .row b{color:var(--muted)}
+@media(max-width:560px){.dec .row{grid-template-columns:1fr}}
+.dec.flip{border-left-color:var(--warn)}
+/* 플로우 */
+.flow{display:flex;flex-wrap:wrap;gap:8px 6px;align-items:center;margin:14px 0}
+.fb{background:var(--surface);border:1.5px solid var(--wire);border-radius:10px;padding:7px 11px;font-size:13.5px;line-height:1.35;text-align:center}
+.fb.hi{border-color:var(--accent);background:var(--accent-soft)}.fb.gate{border-color:var(--warn);background:var(--warn-soft)}.fb.end{border-color:var(--ok);background:var(--ok-soft)}.fb.no{border-color:var(--bad);background:var(--bad-soft)}
+.ar{color:var(--muted);font-size:15px}
+.lane{border:1px dashed var(--wire);border-radius:12px;padding:10px 12px;margin:12px 0;background:var(--surface)}
+.lane>b{font-size:12.5px;color:var(--muted);display:block;margin-bottom:4px}
+/* 와이어프레임 */
+.wfrow{display:flex;flex-wrap:wrap;gap:44px 22px;justify-content:center;margin:18px 0}
+.phone{width:290px;border:2px solid var(--wire);border-radius:26px;background:var(--surface);padding:12px;position:relative}
+.phone .cap{position:absolute;top:-24px;left:0;right:0;text-align:center;font-size:12.5px;font-weight:700;color:var(--muted)}
+.wf{border:1.5px solid var(--wire);background:var(--wire-fill);border-radius:8px;padding:7px 9px;margin:6px 0;font-size:12.5px;color:var(--muted);line-height:1.35}
+.wf.t{background:transparent;border-style:dashed}
+.wf.b{background:var(--ink);color:var(--bg);border-color:var(--ink);text-align:center;font-weight:700}
+.wf.p{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700}
+.wf.w{border-color:var(--bad);color:var(--bad);background:var(--bad-soft)}
+.wf.o{border-color:var(--ok);color:var(--ok);background:var(--ok-soft)}
+.wfr{display:flex;gap:6px}.wfr>.wf{flex:1;margin:6px 0}
+.bar{display:flex;gap:3px;margin:6px 0}.bar i{flex:1;height:7px;border-radius:4px;background:var(--wire)}.bar i.g{background:var(--ok)}.bar i.r{background:var(--bad)}.bar i.c{background:var(--accent)}
+.anno{font-size:12.5px;color:var(--muted);margin:8px 2px 0}
+.anno b{color:var(--accent)}
+.legend{font-size:13px;color:var(--muted)}
+@media print{.nav{display:none}body{background:#fff}.card,.dec,.tablewrap{break-inside:avoid}h2{break-after:avoid}}
+/* ===== 프로토타입 ===== */
+.proto{display:grid;grid-template-columns:minmax(300px,372px) 1fr;gap:24px;align-items:start;margin:16px 0}
+@media(max-width:860px){.proto{grid-template-columns:1fr}}
+.pp{width:100%;max-width:372px;margin:0 auto;border:2px solid var(--wire);border-radius:34px;background:var(--surface);padding:10px}
+.pp-wrap{position:relative;border-radius:24px;overflow:hidden;background:var(--bg)}
+.pp-screen{height:660px;display:flex;flex-direction:column;font-size:13px;line-height:1.4}
+.p-head{background:var(--surface);border-bottom:1px solid var(--line);padding:8px 10px 6px;flex:0 0 auto}
+.p-body{flex:1;overflow-y:auto;padding:10px}
+.p-bottom{flex:0 0 auto;background:var(--surface);border-top:1px solid var(--line);padding:6px 10px 10px}
+.p-top{display:flex;align-items:center;gap:8px}
+.p-logo{width:26px;height:26px;border-radius:8px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:12px;flex:0 0 26px}
+.p-ttl{flex:1;min-width:0}.p-ttl small{display:block;font-size:10.5px;font-weight:800;color:var(--accent)}
+.p-ttl b{font-size:13px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-set{all:unset;cursor:pointer;display:block;max-width:100%}
+.p-set b{display:inline}
+.p-set[disabled]{cursor:not-allowed;opacity:.75}
+.p-menu{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:16px;cursor:pointer}
+.p-stat{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;color:var(--muted)}
+.p-chip{background:var(--accent);color:#fff;border-radius:999px;padding:2px 10px;font-weight:700;font-size:12px}
+.p-chip.e{background:#b45309}.p-chip.q{background:#7c3aed}.p-chip.r{background:#0f766e}.p-chip.m{background:#0369a1}
+.p-time.warn{color:#b45309;font-weight:700}.p-time.danger{color:var(--bad);font-weight:700}
+.p-wchip{margin-left:auto;border:1px solid var(--line);border-radius:999px;padding:2px 9px;background:var(--surface);color:var(--ink);font-size:12px;cursor:pointer}
+.p-wchip b{background:var(--bad);color:#fff;border-radius:999px;padding:0 6px;margin-left:4px;font-size:11px}
+.p-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.p-card h5{margin:0 0 4px;font-size:15px;color:var(--ink)}
+.p-badge{display:inline-block;font-size:11px;background:var(--code);color:var(--muted);border-radius:6px;padding:1px 7px;margin-left:6px;font-weight:600}
+.p-q{color:var(--muted);margin:6px 0 10px;padding:10px;border:1.5px dashed var(--wire);border-radius:8px;background:var(--wire-fill);font-size:12.5px}
+.p-opt{all:unset;box-sizing:border-box;display:flex;gap:9px;align-items:center;width:100%;border:1.5px solid var(--line);border-radius:12px;padding:9px;margin:6px 0;background:var(--surface);cursor:pointer;color:var(--ink)}
+.p-opt i{flex:0 0 26px;height:26px;border-radius:13px;background:var(--code);color:var(--muted);font-style:normal;font-weight:800;display:grid;place-items:center;font-size:12px}
+.p-opt.sel{border-color:var(--accent);background:var(--accent-soft)}.p-opt.sel i{background:var(--accent);color:#fff}
+.p-opt.ok{border-color:var(--ok);background:var(--ok-soft)}.p-opt.ok i{background:var(--ok);color:#fff}
+.p-opt.no{border-color:var(--bad);background:var(--bad-soft)}.p-opt.no i{background:var(--bad);color:#fff}
+.p-opt[disabled]{cursor:default}
+.p-fb{border-radius:10px;padding:9px 10px;margin-top:8px;font-size:12.5px}
+.p-fb.ok{background:var(--ok-soft);color:var(--ok)}.p-fb.no{background:var(--bad-soft);color:var(--bad)}.p-fb small{display:block;color:var(--muted);margin-top:3px}
+.p-strip{display:flex;gap:2px;margin:2px 0 6px}.p-strip span{flex:1;height:6px;border-radius:3px;background:var(--wire)}
+.p-strip .ok{background:var(--ok)}.p-strip .no{background:var(--bad)}.p-strip .a{background:var(--accent)}.p-strip .cur{background:var(--ink)}
+.p-nav{display:flex;gap:6px}
+.p-btn{all:unset;box-sizing:border-box;cursor:pointer;border:1px solid var(--wire);background:var(--surface);color:var(--ink);border-radius:12px;padding:10px 12px;text-align:center;font-weight:700;font-size:13px;flex:1}
+.p-btn.sq{flex:0 0 44px}.p-btn.dark{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.p-btn.pri{background:var(--accent);color:#fff;border-color:var(--accent)}.p-btn.dng{border-color:var(--bad);color:var(--bad)}
+.p-btn[disabled]{opacity:.4;cursor:not-allowed}
+.p-btn.row{margin:5px 0;flex:none;display:block;width:100%}
+.p-hint{font-size:11.5px;color:var(--muted);margin:4px 0}
+.p-lock{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:7px 9px;font-size:12px;margin:6px 0}
+.p-banner{background:var(--accent-soft);border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:12px}
+.p-banner small{display:block;color:var(--muted);margin-top:2px}
+.p-banner .p-btn{margin-top:6px;padding:6px 10px;font-size:12px;display:inline-block;flex:none}
+.p-score{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--code);border-radius:10px;padding:6px;margin:0 0 10px}
+.p-score div{text-align:center}.p-score b{display:block;font-size:16px}.p-score small{font-size:10.5px;color:var(--muted)}
+.p-score .o b{color:var(--ok)}.p-score .n b{color:var(--bad)}
+.p-seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:6px 0}
+.p-seg .p-btn{padding:8px 0;font-size:12px}.p-seg .p-btn.cur{background:var(--accent);border-color:var(--accent);color:#fff}
+.p-row{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin:6px 0;background:var(--surface);color:var(--ink);width:100%;box-sizing:border-box;font:inherit;cursor:pointer;text-align:left}
+.p-row .r1{color:var(--bad);font-weight:700}.p-row .r2{color:var(--ok);font-weight:700}
+.p-row.dim{opacity:.55}
+.p-h{font-weight:800;font-size:12.5px;margin:12px 0 4px;color:var(--muted)}
+.p-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0 10px}
+.p-kpi div{border:1px solid var(--line);border-radius:10px;padding:8px 4px;text-align:center;background:var(--surface)}.p-kpi b{display:block;font-size:16px}.p-kpi small{color:var(--muted);font-size:10.5px}
+.p-ch{border:1px solid var(--line);border-radius:10px;padding:8px;margin:6px 0;background:var(--surface)}
+.p-ch.weak{border-color:var(--bad)}.p-ch.weak .nm{color:var(--bad)}
+.p-ch .t{display:flex;justify-content:space-between;font-weight:700}.p-ch .acts{display:flex;gap:6px;margin-top:6px}.p-ch .acts .p-btn{padding:7px 4px;font-size:12px}
+.p-ch .bar{height:5px;border-radius:3px;background:var(--wire);margin-top:6px;overflow:hidden}.p-ch .bar i{display:block;height:100%;background:var(--accent)}.p-ch.weak .bar i{background:var(--bad)}
+.p-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin:8px 0}
+.p-cell{border:1px solid var(--line);border-radius:8px;padding:6px 0;text-align:center;font-size:11.5px;background:var(--surface);position:relative;color:var(--ink)}
+.p-cell.ok{border-color:var(--ok);background:var(--ok-soft)}.p-cell.no{border-color:var(--bad);background:var(--bad-soft)}.p-cell.a{border-color:var(--accent);background:var(--accent-soft)}.p-cell.cur{outline:2px solid var(--ink)}
+.p-leg{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--muted);margin:4px 0}
+.p-ov{position:absolute;inset:0;background:rgba(15,23,42,.5);display:flex;flex-direction:column;justify-content:flex-end}
+.p-ov.mid{justify-content:center;padding:0 14px}
+.p-modal,.p-sheet{background:var(--surface);color:var(--ink);padding:14px}
+.p-modal{border-radius:16px;border:1px solid var(--line)}
+.p-sheet{border-radius:18px 18px 0 0;max-height:80%;overflow-y:auto}
+.p-ov.full{justify-content:flex-start;background:var(--surface)}
+.p-ov.full .p-sheet{border-radius:0;max-height:none;flex:1;overflow:auto}
+.p-modal h5,.p-sheet h5{margin:0 0 6px;font-size:15px}
+.p-modal p{margin:6px 0}
+.p-acts{display:flex;gap:8px;margin-top:10px}
+.p-x{all:unset;float:right;cursor:pointer;font-weight:800;padding:2px 8px}
+.p-gate{height:100%;display:grid;place-items:center;padding:16px}
+.p-gate .p-card{width:100%;text-align:center}
+.p-gate h5{font-size:17px}
+.p-sc{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--accent)}
+.p-res{text-align:center;padding:8px 0}.p-res strong{font-size:34px;display:block}.p-res .pass{color:var(--ok)}.p-res .fail{color:var(--bad)}
+.p-res .bd{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 10px;background:var(--ok-soft);color:var(--ok)}
+.p-res .bd.f{background:var(--bad-soft);color:var(--bad)}
+.p-dl{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0;font-size:12px}.p-dl div{background:var(--code);border-radius:8px;padding:6px 8px}.p-dl dt{color:var(--muted);font-size:11px}.p-dl dd{margin:0;font-weight:700}
+.hotmode [data-go],.hotmode [data-act]{outline:2px dashed var(--accent);outline-offset:2px}
+.hotmode [disabled]{outline:none}
+.psd{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;position:sticky;top:64px}
+.psd h4{margin:0 0 4px;color:var(--ink);font-size:16px}
+.psd .sub{color:var(--muted);font-size:13px;margin:0 0 8px}
+.psd h5{margin:12px 0 4px;font-size:12px;color:var(--muted);letter-spacing:.04em}
+.psd ul{margin:4px 0;font-size:13.5px;padding-left:18px}
+.psd .tags{display:flex;gap:5px;flex-wrap:wrap}
+.psd ol{font-size:12px;color:var(--muted);padding-left:18px;margin:4px 0}.psd ol li.now{color:var(--accent);font-weight:700}
+.sc-btns{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.sc-btns button,.tool button{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:5px 11px;cursor:pointer}
+.sc-btns button:hover,.tool button:hover{border-color:var(--accent);color:var(--accent)}
+.tool{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted);margin:8px 0}
+.tool label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+svg.sv{width:100%;height:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+svg.sv text{fill:var(--ink);font:13px "Noto Sans KR",system-ui,sans-serif}
+svg.sv .s{font-size:11.5px;fill:var(--muted)}
+svg.sv .t{font-weight:700}
+svg.sv .bx{fill:var(--surface);stroke:var(--wire);stroke-width:1.6}
+svg.sv .bx.hi{stroke:var(--accent);fill:var(--accent-soft)}svg.sv .bx.gt{stroke:var(--warn);fill:var(--warn-soft)}svg.sv .bx.ed{stroke:var(--ok);fill:var(--ok-soft)}svg.sv .bx.no{stroke:var(--bad);fill:var(--bad-soft)}
+svg.sv .ln{stroke:var(--muted);stroke-width:1.6;fill:none}svg.sv .ln.d{stroke-dasharray:5 4}
+svg.sv .ah{fill:var(--muted)}
+details.spec{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0;margin:10px 0}
+details.spec>summary{cursor:pointer;padding:11px 14px;font-weight:700;list-style:none;display:flex;gap:8px;align-items:center}
+details.spec>summary::-webkit-details-marker{display:none}
+details.spec>summary::before{content:"▸";color:var(--muted);transition:transform .15s}
+details.spec[open]>summary::before{transform:rotate(90deg)}
+details.spec .in{padding:2px 14px 14px;font-size:14.5px}
+details.spec h4{margin:12px 0 4px}
+
+</style>
+</head>
+<body>
+<header class="nav"><div class="nav-in"><span class="brand">ISTQB·CSTS 풀이 앱 · 기획 포트폴리오</span><a href="01-improvement-proposals.html">개선안 제안 리포트</a><a href="02-prd.html">PRD</a><a href="03-wireframes-flows.html">와이어프레임·플로우</a><a href="04-decision-log.html" aria-current="page">의사결정 로그</a><a href="05-metrics-proposal.html">지표 제안서</a></div></header>
+<main>
+<p class="eyebrow">Decision Log</p>
+<h1>의사결정 로그</h1>
+<p class="lede">제품 정책을 "상황 → 선택지 → 결정 → 이유 → 이후" 순서로 정리했습니다. 정책이 <b>바뀐 것</b>도 숨기지 않고 표시했습니다.</p>
+<div class="meta"><span class="tag ok">유지</span><span class="tag warn">개정·확장</span><span class="tag bad">뒤집힘</span></div>
+
+<div class="note"><b>출처</b>각 항목은 <code>docs/archive/project-history.html</code>, <code>README.md</code>, <code>docs/archive/report-weak-chapter-and-quick-random.md</code>, <code>docs/decisions/*</code>, 코드 주석에 적힌 사실만 옮겼습니다. 기록에 이유가 없는 항목은 이유를 지어내지 않고 "기록 없음"으로 뒀습니다.</div>
+
+<h2>한눈에 보기</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>#</th><th>결정</th><th>영역</th><th>상태</th></tr></thead>
+<tbody>
+<tr><td>D1</td><td>랜덤은 이어풀기 없이 매번 새 추첨</td><td>학습 루프</td><td><span class="tag warn">확장</span></td></tr>
+<tr><td>D2</td><td>채점한 시험에 재접속하면 가드 모달</td><td>학습 루프</td><td><span class="tag warn">개정</span></td></tr>
+<tr><td>D3</td><td>앱은 항상 제품 선택 게이트에서 시작</td><td>진입</td><td><span class="tag ok">유지</span></td></tr>
+<tr><td>D4</td><td>연습은 통계에 기록하지 않음</td><td>통계</td><td><span class="tag ok">유지</span></td></tr>
+<tr><td>D5</td><td>응시 중 잠금 + 공식 '응시 포기'</td><td>시험</td><td><span class="tag ok">유지</span></td></tr>
+<tr><td>D6</td><td>챕터 미니 시험으로 재측정 루프 완성</td><td>통계</td><td><span class="tag ok">유지</span></td></tr>
+<tr><td>D7</td><td>오답 '극복' 배지(최근 시험 2회 연속 정답)</td><td>오답 노트</td><td><span class="tag ok">유지</span></td></tr>
+<tr><td>D8</td><td>랜덤 탭을 빼고 퀵에 흡수</td><td>모드</td><td><span class="tag ok">유지</span></td></tr>
+<tr><td>D9</td><td>퀵에 서답형을 포함(접두 30% 상한)</td><td>퀵</td><td><span class="tag bad">뒤집힘</span></td></tr>
+<tr><td>D10</td><td>퀵의 문항 수 선택 제거</td><td>퀵</td><td><span class="tag ok">유지</span></td></tr>
+<tr><td>D11</td><td>퀵 오답은 24시간 임시 목록</td><td>퀵</td><td><span class="tag ok">유지</span></td></tr>
+<tr><td>D12</td><td>중복 문항 판정 기준을 실측으로 선택</td><td>데이터</td><td><span class="tag ok">유지</span></td></tr>
+<tr><td>D13</td><td>새 버전 적용을 화면별로 다르게</td><td>배포</td><td><span class="tag ok">유지</span></td></tr>
+<tr><td>D14</td><td>공개 호스팅 대신 비밀번호 잠금 + 스크린샷</td><td>운영</td><td><span class="tag ok">유지</span></td></tr>
+<tr><td>D15</td><td>자동 Safari 게이트를 제거하고 실기기 확인으로</td><td>품질</td><td><span class="tag ok">유지</span></td></tr>
+</tbody></table></div>
+
+<h2>A. 학습 루프와 시험 흐름</h2>
+
+<div class="dec warn">
+<h3>D1. 랜덤은 이어풀기 없이 매번 새 추첨</h3>
+<div class="row"><b>상황</b><span>랜덤 모드는 세트 안에서 문항을 무작위로 뽑는다. 새로고침이나 재접속에서 이전 추첨을 복원할지 정해야 했다.</span></div>
+<div class="row"><b>결정</b><span>진입·재접속마다 새 추첨. 같은 세션 안에서 다시 푸는 것만 같은 추첨을 쓴다.</span></div>
+<div class="row"><b>보완</b><span>무통보로 바뀌는 것이 문제라서 재추첨 안내 토스트와 '🔀 새 문제 뽑기' 버튼을 더했다(07-12).</span></div>
+<div class="row"><b>이후</b><span>챕터 미니 시험은 추첨 결과를 저장해 새로고침해도 <b>같은 문항으로 이어 풀게</b> 바뀌었다. 세트를 바꾸려 하면 진행 중인 답안이 있을 때 확인을 받는다(README).</span></div>
+</div>
+
+<div class="dec warn">
+<h3>D2. 채점한 시험에 재접속하면 "지난 결과 보기 / 새 회차 시작"</h3>
+<div class="row"><b>상황</b><span>채점 직후 새로고침하면 미채점처럼 보였고, 같은 답안을 다시 채점해 회차가 중복으로 쌓일 수 있었다.</span></div>
+<div class="row"><b>선택지</b><span>① 재접속하면 다시 풀 수 있게 초기화(기존 정책) ② 채점 완료 회차 가드</span></div>
+<div class="row"><b>결정</b><span>②로 개정(S4). 가드 모달에는 "지난 결과 보기"와 "새 회차 시작"만 둔다.</span></div>
+<div class="row"><b>이유</b><span>동일 답안을 재채점해 회차가 중복 적립되는 것을 막는다.</span></div>
+</div>
+
+<div class="dec">
+<h3>D3. 앱은 항상 제품 선택 게이트에서 시작</h3>
+<div class="row"><b>결정</b><span>저장된 진행은 제품(ISTQB/CSTS)을 고른 뒤 복원한다.</span></div>
+<div class="row"><b>이유</b><span>기록 없음. 다만 이후 새 버전 갱신 정책(D13)이 이 게이트를 "아무것도 시작하지 않은 안전한 자리"로 이용한다.</span></div>
+</div>
+
+<div class="dec">
+<h3>D4. 연습은 통계에 기록하지 않는다</h3>
+<div class="row"><b>결정</b><span>정답률 갱신은 시험·미니 시험 채점으로만 이뤄진다. 통계 화면과 사용설명서에 그 사실을 명시한다.</span></div>
+<div class="row"><b>이유</b><span>기록 없음. 연습은 "부담 없이 개념을 익히는 모드"로 정의돼 있다(사용설명서).</span></div>
+</div>
+
+<div class="dec">
+<h3>D5. 응시 중 잠금 + 공식 '응시 포기'</h3>
+<div class="row"><b>상황(AS-IS)</b><span>응시 중에는 세트·모드 변경이 잠기는데, 빠져나갈 길이 "설정 → 처음 화면으로"라는 <b>비공식 우회로</b>뿐이었다.</span></div>
+<div class="row"><b>결정(TO-BE)</b><span>'응시 포기' 버튼 + 확인 모달을 공식 경로로 만든다. 기록은 남기지 않는다. 처음 화면 이동도 확인을 거친다(S2).</span></div>
+</div>
+
+<div class="dec">
+<h3>D6. 챕터 미니 시험으로 재측정 루프를 완성</h3>
+<div class="row"><b>상황(AS-IS)</b><span>약점 챕터를 연습해도 통계가 바뀌지 않아 재측정할 수단이 없었다.</span></div>
+<div class="row"><b>결정(TO-BE)</b><span>챕터 미니 시험(최대 10문항 추첨)을 만들고 결과를 챕터 통계에 반영한다(S3). 입구는 통계 화면 하나뿐이다.</span></div>
+<div class="row"><b>부작용과 대응</b><span>미니 시험 반복이 챕터 순위를 지배하는 문제가 생겼고, 이는 <a href="01-improvement-proposals.html#case1">개선안 리포트 사례 1</a>(문항 단위 최신 시도)로 풀었다.</span></div>
+</div>
+
+<div class="dec">
+<h3>D7. 오답 '극복' 배지</h3>
+<div class="row"><b>상황(AS-IS)</b><span>한 번 틀린 문항이 오답 노트에 영구히 "복습 대상"처럼 남았다.</span></div>
+<div class="row"><b>결정(TO-BE)</b><span>해당 세트의 시험 모드 최근 2회에서 연속 정답이면 "✓ 극복" 배지를 달고 흐리게 표시한다. 목록에서는 지우지 않는다(S6).</span></div>
+<div class="row"><b>범위</b><span>랜덤·미니 시험은 그 문항이 추첨에 들었는지 이력만으로 알 수 없어 근거에서 보수적으로 제외한다.</span></div>
+<div class="row"><b>남은 문제</b><span>"언제 다시 볼지"는 정하지 않았다 → <a href="01-improvement-proposals.html#case2">사례 2 제안</a>.</span></div>
+</div>
+
+<h2>B. 모드 설계</h2>
+
+<div class="dec">
+<h3>D8. 랜덤 탭을 빼고 퀵에 흡수</h3>
+<div class="row"><b>상황</b><span>"세트 안 무작위(랜덤)"와 "전 세트 무작위(퀵)"를 나란히 두면 무엇이 다른지 설명할 수 없었다.</span></div>
+<div class="row"><b>결정</b><span>모드 세그먼트는 연습·시험·퀵·오답 4개로 줄인다. 랜덤 모드 자체는 남기되 입구를 통계의 챕터 미니 시험 하나로 한정했다.</span></div>
+</div>
+
+<div class="dec flip">
+<h3>D9. 퀵에 서답형을 포함(접두 30% 상한)</h3>
+<div class="row"><b>처음 결정</b><span>착수 전 보고서(07-29)에서는 서답형을 <b>제외</b>로 확정했다.</span></div>
+<div class="row"><b>뒤집은 이유</b><span>퀵을 "끝을 정하지 않는 모드"로 개편하면서, 서답형을 빼면 CSTS 학습 범위의 일부가 퀵에서 영영 나오지 않는다는 점이 드러났다.</span></div>
+<div class="row"><b>보완 규칙</b><span>서답형이 몰리지 않도록 <b>앞에서 어디를 끊어 봐도</b> 30%를 넘지 않게 한다(총량이 아니라 접두 성질). 몇 문항만 풀고 그만둬도 서답형이 몰리지 않는다.</span></div>
+</div>
+
+<div class="dec">
+<h3>D10. 퀵의 문항 수 선택 제거</h3>
+<div class="row"><b>상황</b><span>종전에는 10·15·20문항 중에서 골랐다.</span></div>
+<div class="row"><b>결정</b><span>선택지를 없애고 끝을 정하지 않는다. 한 문항씩 채점하고, 앞으로 가는 ›는 채점한 뒤에만 열린다.</span></div>
+<div class="row"><b>이유</b><span>끝을 정해 놓지 않은 모드에 "10문항"을 고르게 하는 것은 거짓말이기 때문이다(코드 주석).</span></div>
+</div>
+
+<div class="dec">
+<h3>D11. 퀵 오답은 24시간 임시 목록</h3>
+<div class="row"><b>선택지</b><span>① 오답을 남기지 않는다 ② 영구 보관 ③ 만료가 있는 임시 보관</span></div>
+<div class="row"><b>결정</b><span>③. 퀵은 회차 기록을 남기지 않는 모드라 영구 보관하면 그 규칙과 모순된다. 그렇다고 방금 틀린 것을 바로 못 보면 학습이 끊기므로 24시간 만료로 절충한다.</span></div>
+<div class="row"><b>주의</b><span>사이드바의 퀵 안내 문구는 이 결정과 반대로 적혀 있다 → <a href="01-improvement-proposals.html#case3">부록</a>.</span></div>
+</div>
+
+<h2>C. 데이터·배포·운영</h2>
+
+<div class="dec">
+<h3>D12. 중복 문항 판정 기준을 실측으로 선택</h3>
+<div class="row"><b>선택지</b><span>지문만 / 지문+보기 전문 / 지문+정답+보기 수 / 위 기준과 정답 본문 기준의 합집합</span></div>
+<div class="row"><b>결정</b><span>합집합(46그룹·96문항). 오병합과 과분리를 모두 줄이는 기준을 같은 데이터에 돌려 골랐다.</span></div>
+<div class="row"><b>자세히</b><span><a href="01-improvement-proposals.html#case1">개선안 리포트 사례 1</a></span></div>
+</div>
+
+<div class="dec">
+<h3>D13. 새 버전 적용을 화면별로 다르게</h3>
+<div class="row"><b>결정</b><span>제품 선택 게이트에서는 묻지 않고 바로 적용하고, 풀이 중에는 하단 배너로 알려 한 번 눌러 갱신한다.</span></div>
+<div class="row"><b>이유</b><span>배너를 닫으면 그 세션에서는 다시 뜨지 않아 누르지 않는 사용자는 계속 옛 코드로 돈다. 게이트는 아직 시작한 것이 없어 리로드로 잃을 상태가 없다. 반대로 시험에는 제한시간이 있어 경고 없는 리로드는 사고다.</span></div>
+</div>
+
+<div class="dec">
+<h3>D14. 공개 호스팅 대신 비밀번호 잠금 + 스크린샷</h3>
+<div class="row"><b>상황</b><span>문항 본문은 제3자 저작물(ISTQB®, TTA)이다.</span></div>
+<div class="row"><b>결정</b><span>사이트 전체를 HTTP Basic Auth로 잠그고(문제 데이터와 이미지 포함), 자격증명이 설정되지 않으면 열리지 않게(fail-closed) 한다. 공개 데모는 스크린샷·GIF·로컬 실행으로 대체한다.</span></div>
+</div>
+
+<div class="dec">
+<h3>D15. 자동 Safari 게이트 제거 → 실기기 확인</h3>
+<div class="row"><b>상황</b><span>WebKit에서는 문항 하나를 그릴 때마다 메인 스레드가 1~1.4초 막히는 것을 실측했다(이슈 #169).</span></div>
+<div class="row"><b>결정</b><span>자동 Safari 게이트는 투자 대비 효과가 작아 제거하고, 엔진 계층·렌더링을 크게 바꾼 릴리스는 실기기 Safari로 확인하는 절차로 대체한다. 원인은 미검증 가설이며 분할 파싱 시도는 실패해 되돌렸다(#173).</span></div>
+<div class="row"><b>근거</b><span><code>docs/decisions/webkit-render-cost.md</code></span></div>
+</div>
+
+<p class="src">이 외에 테스트·CI 정책(뮤테이션 게이트 분리, E2E 예산)은 <code>docs/decisions/</code>에 같은 형식으로 있습니다. 기획 포트폴리오에서는 생략했습니다.</p>
+
+<p class="foot">이 문서는 저장소(<code>WindowHyun/ISTQB</code>)의 코드·문서·이슈를 근거로 정리했습니다. 근거는 문장마다 파일 경로로 적었고, 사용자 조사 데이터는 없어서 가설은 가설로 표시했습니다.</p>
+</main>
+</body>
+</html>
