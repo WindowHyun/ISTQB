@@ -746,7 +746,7 @@ export const AppModals = () => {
             <section className="settings-group">
               <h4>기록 관리</h4>
               <div className="settings-actions">
-                <button type="button" className="settings-action" onClick={() => { track('backup_export'); exportUserData(); }}>
+                <button type="button" className="settings-action" onClick={() => { void exportUserData().then(() => track('backup_export')); }}>
                   기록 내보내기
                 </button>
                 <label className="settings-action file-import">
