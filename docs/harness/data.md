@@ -6,7 +6,7 @@
 
 ```bash
 npm run verify                       # 스키마·정답·이미지 경로·재수록 표·콘텐츠 감사
-python3 scripts/verify-pdf-data.py   # 원본 PDF와 텍스트·정답·밑줄·해설·줄바꿈 공백 대조(pymupdf 필요, CI pdf-data)
+python3 scripts/verify-pdf-data.py   # 원본 PDF와 텍스트·정답·밑줄·해설·줄바꿈 공백 대조(pymupdf 1.x 필요 — `pip install "pymupdf<2"`, 2.x는 표 대조가 어긋난다. CI pdf-data)
 ```
 
 `www/data`가 정본이고 `public/data`·`dist`는 `npm run sync:assets`(빌드 전 자동)로 복사된다.
