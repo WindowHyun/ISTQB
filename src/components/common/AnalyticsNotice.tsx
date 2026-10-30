@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import {
-  analyticsBlockedByBrowser, analyticsConfigured, isAnalyticsEnabled, setAnalyticsOptOut,
+  analyticsBlockedByBrowser, analyticsConfigured, isAnalyticsEnabled, setAnalyticsOptOut, subscribeAnalytics,
 } from '../../utils/analytics';
 
 /**
@@ -11,13 +11,12 @@ import {
  * 없어서, 안내가 설정 안에만 있으면 처음 들어온 사람은 끌 길을 찾을 수 없다.
  */
 export function AnalyticsNotice({ variant }: { variant: 'gate' | 'settings' }) {
-  const [on, setOn] = useState(isAnalyticsEnabled);
+  // 마운트 때 한 번 읽지 않고 모듈의 상태를 구독한다 — 다른 탭에서 바꾸거나 같은 탭의 다른 안내(게이트·설정)가
+  // 바꿔도 문구와 버튼이 따라온다. 읽는 값은 불리언이라 스냅샷이 안정적이다.
+  const on = useSyncExternalStore(subscribeAnalytics, isAnalyticsEnabled);
   if (!analyticsConfigured()) return null;
 
-  const toggle = () => {
-    setAnalyticsOptOut(on); // 켜져 있으면 끈다(optOut=true)
-    setOn(isAnalyticsEnabled());
-  };
+  const toggle = () => setAnalyticsOptOut(on); // 켜져 있으면 끈다(optOut=true)
   // 브라우저의 Do Not Track이 켜져 있으면 우리 스위치로는 켤 수 없다 — 눌러도 안 켜지는 버튼은 내린다.
   if (analyticsBlockedByBrowser()) {
     const msg = '브라우저의 추적 방지(Do Not Track) 설정에 따라 사용 통계를 보내지 않습니다.';

@@ -73,6 +73,13 @@ export function createAnalytics(env: AnalyticsEnv) {
   // 삼키므로 저장소만 다시 읽으면 "끄기"를 눌러도 전송이 멈추지 않는다. 쓴 값이 읽히지 않을 때만
   // 이번 세션의 메모리 값으로 대신한다(저장이 되는 환경에서는 쓰지 않아 다른 탭의 변경이 반영된다).
   let fallbackOptOut: boolean | null = null;
+  // 켜짐/꺼짐이 바뀌면 화면의 안내·스위치가 따라가야 한다(다른 탭에서 바꾼 경우 포함).
+  const listeners = new Set<() => void>();
+  const notify = () => listeners.forEach((fn) => fn());
+  function subscribe(listener: () => void): () => void {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  }
 
   const configured = () => id !== null;
   const optedOut = () => fallbackOptOut ?? env.getItem(OPT_OUT_KEY) === '1';
@@ -88,7 +95,10 @@ export function createAnalytics(env: AnalyticsEnv) {
   // (user_engagement 등)를 계속 보낸다. storage 이벤트는 값을 바꾼 탭이 아닌 **다른** 탭에만 온다.
   // key가 null이면 저장소 전체를 비운 것이다(그때도 상태가 바뀐다).
   env.win?.addEventListener?.('storage', (e) => {
-    if (e.key === null || e.key === OPT_OUT_KEY) syncDisableFlag();
+    if (e.key === null || e.key === OPT_OUT_KEY) {
+      syncDisableFlag();
+      notify();
+    }
   });
 
   function init() {
@@ -128,9 +138,10 @@ export function createAnalytics(env: AnalyticsEnv) {
     env.setItem(OPT_OUT_KEY, value);
     fallbackOptOut = env.getItem(OPT_OUT_KEY) === value ? null : optOut;
     syncDisableFlag();
+    notify();
   }
 
-  return { configured, enabled, init, track, setOptOut, blockedByBrowser: env.doNotTrack };
+  return { configured, enabled, init, track, setOptOut, subscribe, blockedByBrowser: env.doNotTrack };
 }
 
 const hasWindow = typeof window !== 'undefined';
@@ -151,3 +162,4 @@ export const initAnalytics = instance.init;
 export const track = instance.track;
 export const setAnalyticsOptOut = instance.setOptOut;
 export const analyticsBlockedByBrowser = instance.blockedByBrowser;
+export const subscribeAnalytics = instance.subscribe;

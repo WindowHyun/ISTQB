@@ -176,6 +176,28 @@ describe('끄기', () => {
     expect((f.win as Record<string, unknown>)['ga-disable-G-TEST1234']).toBe(true);
   });
 
+  it('상태가 바뀌면 구독자에게 알린다 — 이 탭에서 바꿀 때와 다른 탭의 storage 이벤트 모두', () => {
+    const f = fakeEnv();
+    const storageListeners: Array<(e: { key: string | null }) => void> = [];
+    (f.win as { addEventListener?: unknown }).addEventListener = (_t: string, fn: (e: { key: string | null }) => void) => {
+      storageListeners.push(fn);
+    };
+    const a = createAnalytics(f.env);
+    let calls = 0;
+    const unsubscribe = a.subscribe(() => { calls += 1; });
+
+    a.setOptOut(true);
+    expect(calls).toBe(1);
+    storageListeners.forEach((fn) => fn({ key: OPT_OUT_KEY }));
+    expect(calls).toBe(2);
+    storageListeners.forEach((fn) => fn({ key: 'other-key' })); // 상관없는 키는 알리지 않는다
+    expect(calls).toBe(2);
+
+    unsubscribe();
+    a.setOptOut(false);
+    expect(calls).toBe(2);
+  });
+
   it('Do Not Track이면 켤 수 없다', () => {
     const f = fakeEnv({ doNotTrack: () => true });
     const a = createAnalytics(f.env);
