@@ -8,6 +8,8 @@ import { buildRoundHistory, makeRoundId } from '../utils/roundHistory';
 import { questionKey } from '../utils/chapterStats';
 import { computeCstsWeightedScore } from '../utils/scoring';
 import { saveHistoryToDB } from '../utils/storage';
+import { track } from '../utils/analytics';
+import { analyticsModeOf } from '../utils/analyticsEvents';
 // 파생 계산은 순수 계층으로 꺼내 두었다 — 이 훅은 조립과 React 배선만 맡는다.
 // 왜 꺼냈는지는 utils/sessionDerive.ts 머리 주석 참고(이 파일은 커버리지 0%였다).
 import {
@@ -168,6 +170,8 @@ export function useQuizSession() {
       addHistory(history);
       // 채점 이력을 IndexedDB에 영속화(새로고침 후 통계 대시보드에서 조회).
       saveHistoryToDB(history);
+      // 사용 통계: 어떤 기능을 쓰는지만 센다(시험/미니 시험 채점 횟수). 점수·문항은 보내지 않는다.
+      track('exam_graded', { mode: analyticsModeOf(mode) ?? undefined, product: snapshot.activeProduct ?? undefined });
     }
     if (mode !== 'quick') {
       // 모드별로 저장해 랜덤 채점이 시험 오답 목록을 덮어쓰지 않게 한다(오답 모드는 합집합을 읽음).

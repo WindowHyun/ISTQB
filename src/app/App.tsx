@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore } from '../store/useQuizStore';
 import { restorePersistentSnapshot, flushPersist } from '../utils/storage';
 import { safeSetItem } from '../utils/safeStorage';
+import { AnalyticsNotice } from '../components/common/AnalyticsNotice';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { UserGuide } from '../components/common/UserGuide';
 import { FEEDBACK_SHEET_URL } from '../utils/links';
@@ -184,6 +185,7 @@ export const App = () => {
               📝 이슈·보완점 제보
             </a>
           </div>
+          <AnalyticsNotice variant="gate" />
         </div>
 
         <section className="gate-info-card" aria-label="제공 콘텐츠">

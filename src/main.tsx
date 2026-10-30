@@ -5,7 +5,14 @@ import { App } from './app/App';
 import { DebugConsole } from './components/debug/DebugConsole';
 import { UpdatePrompt } from './components/common/UpdatePrompt';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { initAnalytics, track } from './utils/analytics';
+import { startAnalyticsEvents } from './utils/analyticsEvents';
+import { useQuizStore } from './store/useQuizStore';
 import './styles/globals.css';
+
+// 사용 통계 — 측정 ID가 없거나 사용자가 껐으면 아무 일도 하지 않는다(utils/analytics.ts).
+initAnalytics();
+startAnalyticsEvents(useQuizStore, track);
 
 const rootElement = document.getElementById('root');
 if (rootElement) {

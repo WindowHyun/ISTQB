@@ -2,6 +2,11 @@
 /// <reference types="vite-plugin-pwa/client" />
 /// <reference types="vite-plugin-pwa/react" />
 
+interface ImportMetaEnv {
+  /** GA4 측정 ID(G-XXXXXXX). 없으면 사용 통계는 완전히 꺼진다 — utils/analytics.ts */
+  readonly VITE_GA_ID?: string;
+}
+
 // Android WebView(APK) 네이티브 백업 브리지 — MainActivity의 BackupBridge가
 // addJavascriptInterface(..., "AndroidBackup")로 주입한다. 웹에서는 undefined.
 interface AndroidBackupBridge {
