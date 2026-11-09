@@ -18,6 +18,12 @@ def hasReleaseSigning = releaseStorePath && releaseStorePassword && releaseKeyAl
 def versionCodeEnv = System.getenv("ISTQB_VERSION_CODE")
 def resolvedVersionCode = versionCodeEnv ? 1000 + versionCodeEnv.toInteger() : 3
 
+// versionName — CI가 태그에서 뽑아 넘기면(v1.0.2 → 1.0.2) 그것을 쓴다. 코드로 읽어 오던 방식과 달리 사람이
+// package.json과 이 파일 두 곳을 맞출 필요가 없다 — 어긋남은 CI의 릴리스 게이트가 막는다. 넘기지 않는 로컬·수동
+// 빌드는 개발 표기를 유지한다.
+def versionNameEnv = System.getenv("ISTQB_VERSION_NAME")
+def resolvedVersionName = versionNameEnv ? versionNameEnv : "1.0.2-dev"
+
 android {
     namespace "com.local.istqbfl"
     compileSdk rootProject.ext.compileSdkVersion
@@ -38,7 +44,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode resolvedVersionCode
-        versionName "1.0.2-dev"
+        versionName resolvedVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

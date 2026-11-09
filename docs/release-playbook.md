@@ -78,6 +78,8 @@ git push origin main
 git push origin v1.0.2
 ```
 
+> **APK 버전 이름(`versionName`)은 태그에서 나옵니다** — CI가 `v1.0.2` → `1.0.2`로 `ISTQB_VERSION_NAME`을 넘기므로 `android/app/build.gradle`은 고치지 않습니다. 대신 워크플로의 **릴리스 게이트**가 태그를 밀 때 (1) 커밋이 `main`에 있는지, (2) 그 커밋의 CI가 성공했는지, (3) 태그가 `package.json`의 `version`과 같은지를 확인하고, 하나라도 어긋나면 APK를 내지 않습니다. 게이트에 걸리면 원인을 고친 뒤(CI가 아직 도는 중이었다면 끝난 뒤) 같은 워크플로를 다시 실행합니다.
+
 > **태그를 밀면 Android 워크플로가 자동으로 돕니다**(`v*` 트리거). 웹만 배포하고 APK는 나중에 하려면 **태그를 밀지 말고** `main` 푸시만 합니다.
 
 현재 저장소에는 태그가 하나도 없습니다. 첫 태그를 만드는 것이라면 위 순서가 그대로 첫 릴리스가 됩니다.
@@ -130,6 +132,10 @@ Vercel **Production** 환경변수 `VITE_GA_ID`에 GA4 측정 ID(`G-XXXXXXX`)를
 - GA4에서 `mode`·`product`·`app_platform`으로 나눠 보려면 **관리 → 맞춤 정의 → 맞춤 측정기준**에 이벤트 범위로 등록해야 합니다. 등록 전에는 이벤트 수만 보입니다.
 - **APK는 켜지지 않습니다.** Actions의 APK 빌드는 `VITE_GA_ID`를 주지 않으므로 통계가 꺼진 채 패키징됩니다. APK까지 재려면 워크플로에 변수를 넘기고, 웹과 속성을 나눌지 정해야 합니다.
 - 배포 후 확인: 게이트에 "어떤 기능을 쓰는지…" 안내가 보이고, GA4 **실시간** 보고서에 `mode_enter`가 들어오면 됩니다. 안내가 안 보이면 변수가 빌드에 반영되지 않은 것입니다.
+
+### 보안 헤더
+
+`vercel.json`의 전 경로 규칙이 `X-Content-Type-Options: nosniff` · `Referrer-Policy` · `Permissions-Policy`(쓰지 않는 기기 권한 차단) · `frame-ancestors 'none'`(+ `X-Frame-Options`)를 겁니다. 앱 동작에 영향이 거의 없는 것만 넣었습니다. **`script-src` CSP는 아직 없습니다** — GA 등 허용 호스트와 인라인 스크립트를 실측하지 않고 enforce하면 앱이 통째로 깨지므로, `Content-Security-Policy-Report-Only`로 먼저 위반을 확인한 뒤 올립니다. 값은 `vercel.config.test.ts`가 고정하지만 **헤더가 실제로 나가는지는 Preview/운영 배포의 응답으로만 확인됩니다**(`vite preview`에는 없음) — 배포 뒤 `curl -sI <주소> | grep -i -E "x-content|referrer|permissions|frame"`로 봅니다.
 
 ### 캐시 헤더
 
