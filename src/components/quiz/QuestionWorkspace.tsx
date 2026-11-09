@@ -76,6 +76,16 @@ export const QuestionWorkspace = () => {
   const prevRemainingRef = useRef<number | null>(null);
   // 자동 제출 중복 방지(채점 액션 자체도 멱등이지만 토스트까지 겹치지 않게).
   const autoSubmittedRef = useRef(false);
+  // 타이머 effect가 부를 채점 함수 — 렌더마다 최신 것으로 갈아 끼운다.
+  // effect는 gradeAndShow를 의존성에 둘 수 없다(렌더마다 새로 만들어져, 넣으면 매 렌더 타이머가
+  // 재시작된다). 그렇다고 effect가 만들어진 렌더의 함수를 계속 부르면 **그 렌더의** answers·
+  // wrongQuestions로 채점한다 — handleGrade가 이것들을 스토어가 아니라 렌더 클로저에서 읽기
+  // 때문이다. 응시를 시작한 뒤에 고른 답안은 effect를 다시 만들지 않으므로(의존성이 아니다)
+  // 앱이 켜진 채 만료되면 빈 답안으로 채점돼 전 문항이 오답으로 기록된다(결과 모달만 렌더 때
+  // 값을 읽어 정답으로 보인다). 이 effect는 아래 타이머 effect보다 먼저 선언해야 한다 — 같은
+  // 커밋에서 먼저 돌아야 복원 직후 즉시 1회 판정도 최신 함수를 본다.
+  const gradeAndShowRef = useRef(gradeAndShow);
+  useEffect(() => { gradeAndShowRef.current = gradeAndShow; });
 
   useEffect(() => {
     // 채점 후에는 타이머를 정지한다 — 결과가 나온 뒤에도 시간이 계속 오르면
@@ -112,7 +122,7 @@ export const QuestionWorkspace = () => {
       if (remaining <= 0) {
         autoSubmittedRef.current = true;
         showToast('제한시간이 종료되어 자동으로 제출했습니다.', 'info', 5000);
-        gradeAndShow(); // 미응답은 오답 처리(수동 채점과 동일 규칙)
+        gradeAndShowRef.current(); // 미응답은 오답 처리(수동 채점과 동일 규칙)
         return;
       }
       if (prev == null) return; // 첫 틱은 기준선만 잡는다(재응시 직후 오발화 방지)
@@ -175,11 +185,10 @@ export const QuestionWorkspace = () => {
       flushPersist();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-    // gradeAndShow는 렌더마다 새로 생성되지만 의존성에 넣으면 매 렌더 타이머가 재시작된다 —
-    // 항상 최신 스토어 상태를 읽어 동작하므로 effect 재실행 없이 안전하다.
+    // 채점 함수는 의존성이 아니라 gradeAndShowRef로 부른다(위 주석) — effect를 다시 만들지 않고도
+    // 그 시점의 최신 답안을 본다.
     // currentQuestions.length: 0 → N으로 바뀌는 시점에 effect가 다시 돌아야
     // 로드 전에 건너뛴 만료 판정이 즉시 이어진다.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, isGraded, showExamGate, startTimer, tickTimer, examLimit, examStartedAtForSet, currentQuestions.length]);
 
   // 응시 중에는 뒤로가기를 한 번 막고 확인을 받는다.

@@ -1,5 +1,7 @@
+import { readFileSync } from "fs";
+import path from "path";
 import { test, expect, Page } from "./fixtures";
-import { enterExam, modeBtn, openSet } from "./helpers";
+import { enterExam, goNextQuestion, modeBtn, openSet } from "./helpers";
 
 // 남은 시간(#timerText)을 초로 읽는다 — "59:58" 또는 "1:00:00" 양쪽 표기를 다룬다.
 async function remainingSeconds(page: Page): Promise<number> {
@@ -21,6 +23,32 @@ async function rewindExamStart(page: Page, minutes: number) {
       localStorage.setItem(k, JSON.stringify(o));
     }
   }, minutes);
+}
+
+// IndexedDB에 저장된 회차(history)의 요약 — 채점 결과가 기록에 어떻게 남았는지 본다.
+async function readRounds(page: Page) {
+  return page.evaluate(async () => {
+    const db: IDBDatabase = await new Promise((res, rej) => {
+      const r = indexedDB.open("istqb-db", 1);
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    return new Promise<{ correct: number; total: number; wrong: number }[]>((res) => {
+      const tx = db.transaction("history", "readonly");
+      const q = tx.objectStore("history").getAll();
+      q.onsuccess = () => res(q.result.map((h: { correct: number; total: number; wrongItems?: unknown[] }) => (
+        { correct: h.correct, total: h.total, wrong: h.wrongItems?.length ?? 0 }
+      )));
+    });
+  });
+}
+
+// 데이터 파일의 앞 n문항(보기형)과 정답 키 — 시험 모드는 세트 순서 그대로 출제한다.
+function firstChoiceQuestions(file: string, n: number): { number: number; answer: string[] }[] {
+  const data = JSON.parse(readFileSync(path.resolve(process.cwd(), "www/data", file), "utf8"));
+  const qs = data.questions.slice(0, n) as { number: number; type: string; answer: string[] }[];
+  expect(qs.every((q) => q.type === "multiple_choice"), "앞 문항이 보기형이 아니면 이 테스트의 풀이 절차를 고쳐야 한다").toBe(true);
+  return qs;
 }
 
 // 시험 제한시간은 '응시 시작 벽시계'가 기준이어야 한다. 경과 누계만 쓰면 앱을 껐다 켠
@@ -60,20 +88,35 @@ test.describe("시험 제한시간", () => {
 
     // 문항 로드를 기다리지 않고 제출하면 0/0 유령 회차가 남는다 —
     // 자동 제출은 canGrade를 거치지 않으므로 total 가드가 따로 필요하다.
-    const rounds = await page.evaluate(async () => {
-      const db: IDBDatabase = await new Promise((res, rej) => {
-        const r = indexedDB.open("istqb-db", 1);
-        r.onsuccess = () => res(r.result);
-        r.onerror = () => rej(r.error);
-      });
-      return new Promise<{ total: number }[]>((res) => {
-        const tx = db.transaction("history", "readonly");
-        const q = tx.objectStore("history").getAll();
-        q.onsuccess = () => res(q.result.map((h: { total: number }) => ({ total: h.total })));
-      });
-    });
+    const rounds = await readRounds(page);
     expect(rounds).toHaveLength(1);
     expect(rounds[0].total).toBe(40); // 0이 아니어야 한다
+  });
+
+  // 위 두 테스트는 '꺼졌다 켜진 뒤 복원'만 덮는다. 그 경로에서는 복원된 답안이 타이머 effect가
+  // 만들어지기 전에 이미 스토어에 있어서, effect가 붙잡은 채점 함수가 **만들어진 시점의 답안**을
+  // 읽는 결함이 가려진다(앱이 켜진 채 만료되면 채점은 빈 답안으로 돌아 40문항이 전부 오답으로
+  // 기록되는데, 결과 모달만 렌더 때 값을 읽어 정답으로 보인다). 가짜 시계로 응시 도중에
+  // 만료시켜 그 경로를 직접 탄다 — 설치 뒤에도 시간은 정상 속도로 흐르고, 건너뛰기는 한 번이다.
+  test("응시 도중 제한시간이 끝나면 그때까지 고른 답안으로 채점·기록된다", async ({ page }) => {
+    const solved = firstChoiceQuestions("istqb/sample-a.json", 3);
+    await page.clock.install();
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await enterExam(page);
+
+    for (const [i, q] of solved.entries()) {
+      if (i > 0) expect(await goNextQuestion(page), "다음 문항으로 넘어가지 못했다").toBe(true);
+      for (const key of q.answer) {
+        await page.getByRole("button", { name: new RegExp(`^선택지 ${key}(,|$)`) }).click();
+      }
+    }
+
+    await page.clock.fastForward("01:01:00"); // 60분 제한을 넘긴다 — 앱은 켜진 채다
+    await expect(page.getByTestId("result-summary")).toBeVisible();
+
+    // 저장은 비동기이므로 기다린다. 정답 3문항이 그대로 기록돼야 한다(결함: correct 0 · 오답 40).
+    await expect.poll(() => readRounds(page), { message: "자동 제출 회차가 고른 답안과 다르게 기록됐다" })
+      .toEqual([{ correct: solved.length, total: 40, wrong: 40 - solved.length }]);
   });
 });
 
