@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Modal } from '../common/Modal';
 import { ExamHistory } from '../../store/useQuizStore';
 import { SetSummary } from '../../hooks/useQuestions';
@@ -39,6 +39,47 @@ const MIN_CHAPTER_SAMPLE = 5;
 const WEAK_CUE = <span className="sr-only">합격선 미만 </span>;
 
 /** 응시 시각 칸 — 시각이 없거나 읽을 수 없는 값이면 칸을 그리지 않는다. */
+/**
+ * 회차 한 건 삭제 — ✕를 한 번 누르면 '삭제 / 취소'로 바뀌고, '삭제'를 눌러야 지운다(2단계 확인).
+ *
+ * 종전에는 15×13px 글자 버튼이 확인 없이 바로 지웠다. 오탭 한 번이 회차와, 그 회차가 만든 복습 대상까지
+ * 되돌릴 수 없게 지운다. 확인은 `ConfirmButtons`와 같은 방식(로컬 무장 상태 — 모달이 닫히면 해제)이지만 이 행은
+ * 한 줄에 날짜와 함께 들어가야 해서 짧은 라벨을 쓴다. 터치 타깃은 모바일 레이아웃 전체(≤880px)에서 44px이다(CSS).
+ */
+const RoundDeleteButton = ({ label, onConfirm }: { label: string; onConfirm: () => void }) => {
+  const [armed, setArmed] = useState(false);
+  if (!armed) {
+    return (
+      <button
+        type="button"
+        className="stl-round-del"
+        data-testid="round-delete-btn"
+        aria-label={`${label} 삭제`}
+        title="이 회차 기록만 삭제"
+        onClick={() => setArmed(true)}
+      >
+        ✕
+      </button>
+    );
+  }
+  return (
+    <span className="stl-round-confirm">
+      <button
+        type="button"
+        className="stl-round-del danger"
+        data-testid="round-delete-confirm"
+        aria-label={`${label} 정말 삭제`}
+        onClick={() => { setArmed(false); onConfirm(); }}
+      >
+        삭제
+      </button>
+      <button type="button" className="stl-round-del" data-testid="round-delete-cancel" aria-label="삭제 취소" onClick={() => setArmed(false)}>
+        취소
+      </button>
+    </span>
+  );
+};
+
 const RoundDate = ({ ms, className }: { ms: number | undefined; className: string }) => {
   const label = formatRoundDate(ms);
   return label ? <span className={className}>{label}</span> : null;
@@ -369,16 +410,10 @@ export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGro
                           {/* 날짜와 ✕는 한 덩어리 — 320px처럼 줄이 접힐 때 ✕만 혼자 아랫줄로 떨어지지 않는다. */}
                           <span className="stl-round-tail">
                             <RoundDate ms={at.createdAt} className="stl-round-date" />
-                            <button
-                              type="button"
-                              className="stl-round-del"
-                              data-testid="round-delete-btn"
-                              aria-label={`${tl.title} ${at.round}회차 기록 삭제`}
-                              title="이 회차 기록만 삭제"
-                              onClick={() => onDeleteRound(at.id)}
-                            >
-                              ✕
-                            </button>
+                            <RoundDeleteButton
+                              label={`${tl.title} ${at.round}회차 기록`}
+                              onConfirm={() => onDeleteRound(at.id)}
+                            />
                           </span>
                         </li>
                       ))}
@@ -417,18 +452,10 @@ export const StatsDashboard = ({ histories, quickRounds = [], sets, duplicateGro
                         )}
                         <RoundDate ms={m.createdAt} className="mr-date" />
                       </span>
-                      <button
-                        type="button"
-                        className="stl-round-del"
-                        data-testid="round-delete-btn"
-                        aria-label={m.kind === 'quick'
-                          ? '퀵 랜덤 기록 삭제'
-                          : `${m.title} ${m.chapter} 미니 시험 기록 삭제`}
-                        title="이 회차 기록만 삭제"
-                        onClick={() => onDeleteRound(m.id)}
-                      >
-                        ✕
-                      </button>
+                      <RoundDeleteButton
+                        label={m.kind === 'quick' ? '퀵 랜덤 기록' : `${m.title} ${m.chapter} 미니 시험 기록`}
+                        onConfirm={() => onDeleteRound(m.id)}
+                      />
                     </li>
                   ))}
                 </ul>

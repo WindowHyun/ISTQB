@@ -113,9 +113,9 @@ test("회차 1건을 지워도 그 오답이 오답 모드에 남지 않는다",
   await expect(del).toBeVisible();
   const rounds = page.getByTestId("round-delete-btn");
   const roundsBefore = await rounds.count();
-  // 회차 단건 삭제에는 확인 단계가 없다(이력 비우기와 달리 즉시 실행) — 확인 클릭을
-  // 넣어 두면 존재하지 않는 요소를 기다리는 죽은 분기가 된다.
+  // 회차 단건 삭제도 2단계 확인이다(✕ → '삭제') — 오탭 방지(R-20).
   await del.click();
+  await page.getByTestId("round-delete-confirm").click();
   // 삭제(IndexedDB)가 반영돼 회차가 하나 줄 때까지.
   await expect(rounds).toHaveCount(roundsBefore - 1);
   await page.keyboard.press("Escape");

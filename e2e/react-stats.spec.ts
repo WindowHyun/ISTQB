@@ -186,9 +186,45 @@ test.describe("학습 통계", () => {
     await openStats(page);
     expect((await summaryOf(page)).attempts).toBe("3");
 
+    // ✕ 한 번은 지우지 않는다 — 오탭 한 번이 회차와 복습 대상까지 되돌릴 수 없게 지우던 결함(R-20).
     await page.getByTestId("round-delete-btn").first().click();
+    await expect(page.getByTestId("round-delete-confirm")).toBeVisible();
+    expect((await summaryOf(page)).attempts, "확인 없이 지워졌다").toBe("3");
+    // 취소하면 그대로다.
+    await page.getByTestId("round-delete-cancel").click();
+    await expect(page.getByTestId("round-delete-confirm")).toHaveCount(0);
+    expect((await summaryOf(page)).attempts).toBe("3");
+
+    await page.getByTestId("round-delete-btn").first().click();
+    await page.getByTestId("round-delete-confirm").click();
     // 이력을 통째로 버리지 않고 잘못된 회차 하나만 정리할 수 있어야 한다.
     await expect.poll(async () => (await summaryOf(page)).attempts).toBe("2");
+  });
+
+  // 터치 타깃은 박스가 아니라 눌리는 영역으로 잰다 — 박스를 키우면 행이 접히고 ✕가 첫 줄에서 밀린다(배치 규칙이 막는다).
+  // ✕ 중심에서 위·아래·좌·우로 22px 떨어진 점을 눌러도 ✕가 눌려야 44px 타깃이다.
+  test("회차 삭제 ✕는 눌리는 영역이 44px 이상이다", async ({ page }) => {
+    await seedHistories(page, MIXED);
+    await openStats(page);
+    await page.setViewportSize({ width: 390, height: 800 });
+    await settle(page);
+    const btns = page.getByTestId("round-delete-btn");
+    const n = await btns.count();
+    expect(n).toBeGreaterThan(0);
+    for (let i = 0; i < n; i++) {
+      await btns.nth(i).scrollIntoViewIfNeeded();
+      const hits = await btns.nth(i).evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const onIt = (x: number, y: number) => {
+          const hit = document.elementFromPoint(x, y);
+          return hit === el || el.contains(hit);
+        };
+        return { up: onIt(cx, cy - 21), down: onIt(cx, cy + 21), left: onIt(cx - 21, cy), right: onIt(cx + 21, cy) };
+      });
+      expect(hits, `✕ #${i}의 눌리는 영역이 44px에 못 미친다`).toEqual({ up: true, down: true, left: true, right: true });
+    }
   });
 
   test("중복이던 전체 이력 목록은 없고, 소요 시간·날짜는 회차에 남아 있다", async ({ page }) => {
@@ -282,6 +318,7 @@ test.describe("학습 통계", () => {
     await expect(broken, "읽을 수 없는 시각이면 날짜 칸을 그리지 않는다").toHaveCount(1);
     await expect(broken).toContainText("소요");
     await broken.getByTestId("round-delete-btn").click();
+    await broken.getByTestId("round-delete-confirm").click();
     await expect(rows).toHaveCount(1);
     await expect(page.locator(".stl-round-date")).toHaveCount(1);
   });

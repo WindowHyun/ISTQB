@@ -2047,8 +2047,17 @@ body[data-theme="dark"] .option.wrong .option-key { background: #b91c1c; }
 .stl-round-del {
   border: 0; background: none; cursor: pointer; padding: 0 2px;
   color: var(--muted); font-size: 13px; font-weight: 800; line-height: 1;
+  /* 글자 크기·행 배치는 그대로 두고, 눌리는 영역만 키운다 — 박스를 키우면 행이 접히고 ✕가 첫 줄에서 밀린다
+     (react-stats의 배치 규칙이 잰다). 투명 ::after가 버튼의 일부로 눌린다. */
+  position: relative;
 }
+.stl-round-del::after { content: ''; position: absolute; inset: -16px -14px; }
 .stl-round-del:hover { color: var(--danger, #c0392b); }
+.stl-round-del.danger { color: var(--danger, #c0392b); }
+/* 2단계 확인: ✕ 자리에 '삭제 / 취소'가 들어온다. 줄이 접혀도 둘이 떨어지지 않게 한 덩어리로 둔다.
+   둘이 나란하므로 히트 영역은 가로로 겹치지 않게 좁힌다. */
+.stl-round-confirm { display: inline-flex; align-items: center; gap: 14px; white-space: nowrap; }
+.stl-round-confirm .stl-round-del::after { inset: -16px -8px; }
 
 /* 챕터 미니 시험 기록 — 타임라인에서 빠지는 10문항 회차를 챕터명과 함께 보여준다. */
 .stats-minis { margin: 14px 0 4px; }
