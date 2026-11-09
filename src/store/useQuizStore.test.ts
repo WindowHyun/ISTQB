@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useQuizStore, freshQuickRounds, QUICK_ROUND_TTL_MS, ExamHistory } from "./useQuizStore";
+import { useQuizStore, freshQuickRounds, QUICK_ROUND_TTL_MS, QUICK_CLOCK_SKEW_MS, ExamHistory } from "./useQuizStore";
 
 // #75 채점 루프가 의존하는 store 액션 검증 (#76 — store 로직 유닛 테스트).
 function reset() {
@@ -440,6 +440,24 @@ describe('clearReviewTargets — 세트·모드의 오답 대상 전부', () => 
     });
   });
 
+  // 모드가 붙기 전의 옛 키(setId 단독)는 reviewTargetIds가 읽는데 어떤 초기화 경로도 지우지 않아, 이력을
+  // 비워도 오답 모드에 유령 문항이 남았다(R-09f). 시험 대상을 비울 때와 세트 초기화 때 함께 지운다.
+  it('시험 대상을 비우면 옛 단독 키도 비우고, 랜덤만 비울 때는 건드리지 않는다', () => {
+    const seed = () => useQuizStore.setState({ reviewIds: { A: ['legacy'], 'A-exam': ['e1'], AB: ['other'], 'A-random': ['r1'] } });
+    seed();
+    useQuizStore.getState().clearReviewTargets('A', 'exam');
+    expect(useQuizStore.getState().reviewIds).toEqual({ AB: ['other'], 'A-random': ['r1'] }); // 접두가 비슷한 AB는 그대로
+    seed();
+    useQuizStore.getState().clearReviewTargets('A', 'random');
+    expect(useQuizStore.getState().reviewIds.A, '랜덤 초기화가 옛 시험 키를 지웠다').toEqual(['legacy']);
+  });
+
+  it('세트 진행 초기화는 옛 단독 키도 지운다', () => {
+    useQuizStore.setState({ reviewIds: { A: ['legacy'], 'A-exam': ['e1'], AB: ['other'] } });
+    useQuizStore.getState().resetProgressForSets(['A']);
+    expect(useQuizStore.getState().reviewIds).toEqual({ AB: ['other'] });
+  });
+
   it('지울 것이 없으면 상태 참조를 바꾸지 않는다(불필요한 저장·리렌더 방지)', () => {
     useQuizStore.setState({ reviewIds: { 'A-exam': ['e1'] } });
     const before = useQuizStore.getState().reviewIds;
@@ -464,6 +482,22 @@ describe('퀵 임시 회차(quickRounds)', () => {
     const kept = round('new', 'istqb', now - QUICK_ROUND_TTL_MS + 1_000);
     const gone = round('old', 'istqb', now - QUICK_ROUND_TTL_MS - 1_000);
     expect(freshQuickRounds([kept, gone], now).map((r) => r.id)).toEqual(['new']);
+  });
+
+  // 나이가 음수(createdAt이 미래)이면 '< TTL'이 늘 참이라 만료되지 않았다 — 손상 백업의 1e20이나 시계를
+  // 크게 되돌렸다 되감은 기기에서 퀵 오답이 영구히 남았다(R-09c). 기기 시계가 조금 어긋난 것은 허용한다.
+  it('TTL 경계: 정확히 24시간이면 버리고, 1ms 전이면 남긴다', () => {
+    const now = 1_700_000_000_000;
+    expect(freshQuickRounds([round('edge', 'istqb', now - QUICK_ROUND_TTL_MS)], now)).toEqual([]);
+    expect(freshQuickRounds([round('in', 'istqb', now - QUICK_ROUND_TTL_MS + 1)], now).map((r) => r.id)).toEqual(['in']);
+  });
+
+  it('createdAt이 미래인 회차는 시계 어긋남 허용치를 넘으면 버린다', () => {
+    const now = 1_700_000_000_000;
+    const skewed = round('skew', 'istqb', now + QUICK_CLOCK_SKEW_MS);        // 허용치 안(경계 포함)
+    const beyond = round('far', 'istqb', now + QUICK_CLOCK_SKEW_MS + 1);     // 허용치 밖
+    const absurd = round('huge', 'istqb', 1e20);
+    expect(freshQuickRounds([skewed, beyond, absurd], now).map((r) => r.id)).toEqual(['skew']);
   });
 
   it('createdAt이 없는 회차는 즉시 만료로 본다(무기한 잔존 방지)', () => {

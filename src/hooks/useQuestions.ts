@@ -82,6 +82,34 @@ export interface AppData {
 const MINI_TEST_SIZE = 10;
 const RANDOM_DRAW_SIZE = 40;
 
+/** 저장된 퀵 추첨을 어떻게 복원할지. */
+export type QuickRestore =
+  | { kind: 'full'; questions: Question[] }
+  /** 일부 세트를 못 불러와 일부만 풀렸다 — 보이는 것만 내되 **저장된 추첨은 덮어쓰지 않는다**. */
+  | { kind: 'partial'; questions: Question[] }
+  | { kind: 'redraw' };
+
+/**
+ * 저장된 추첨(`quickDraw`)과 지금 불러온 풀로 복원 방식을 정한다.
+ *
+ * 오프라인(서비스워커 캐시 부분 적중)에서 일부 세트만 로드되면 추첨의 문항 id가 다 풀리지 않는다. 종전에는
+ * 그때 무조건 새로 뽑아 저장된 추첨을 더 작은 것으로 덮어써, 온라인으로 돌아와도 풀던 추첨이 복구되지 않고
+ * 답안만 남았다(R-09e). 로드가 실패한 세트가 있고 일부라도 풀렸으면 보이는 만큼만 내고 추첨은 그대로 둔다.
+ */
+export function resolveQuickRestore(
+  saved: { certification: string; items: { id: string }[] } | null | undefined,
+  product: string,
+  pool: ReadonlyMap<string, Question>,
+  failedSets: number,
+): QuickRestore {
+  if (!saved || saved.certification !== product || !saved.items.length) return { kind: 'redraw' };
+  const restored = saved.items.map((it) => pool.get(it.id)).filter((q): q is Question => !!q);
+  if (restored.length === saved.items.length) return { kind: 'full', questions: restored };
+  // id가 다 풀리지 않는 이유가 로드 실패가 아니면(데이터 변경 등) 새로 추첨한다.
+  if (failedSets > 0 && restored.length > 0) return { kind: 'partial', questions: restored };
+  return { kind: 'redraw' };
+}
+
 /**
  * 퀵 랜덤 추첨 풀을 만든다 — 제품의 전 세트에서 뽑되 같은 문제를 두 번 넣지 않는다.
  *
@@ -337,16 +365,10 @@ export function useQuestions() {
         );
 
         // 저장된 추첨이 현재 제품과 맞으면 같은 문항으로 이어푼다 — 새로고침 이어풀기.
-        const saved = useQuizStore.getState().quickDraw;
-        if (saved && saved.certification === activeProduct && saved.items.length) {
-          const restored = saved.items
-            .map((it) => withSource.get(it.id))
-            .filter((q): q is Question => !!q);
-          if (restored.length === saved.items.length) {
-            setQuickList(restored);
-            return;
-          }
-          // id가 다 풀리지 않으면(데이터 변경 등) 아래에서 새로 추첨한다.
+        const restore = resolveQuickRestore(useQuizStore.getState().quickDraw, activeProduct, withSource, failed);
+        if (restore.kind !== 'redraw') {
+          setQuickList(restore.questions);
+          return;
         }
 
         const size = useQuizStore.getState().quickSize;

@@ -9,18 +9,32 @@ const DB_VERSION = 1;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
+/** 열기가 이 시간 안에 끝나지 않으면 실패로 본다 — 끝나지 않는 Promise를 캐시하면 저장·조회가 영영 매달린다. */
+export const DB_OPEN_TIMEOUT_MS = 10_000;
+
 function getDb(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise;
-  const p = new Promise<IDBDatabase>((resolve, reject) => {
+  const p: Promise<IDBDatabase> = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
+    const timer = setTimeout(() => reject(new Error('IndexedDB open timeout')), DB_OPEN_TIMEOUT_MS);
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: "id" });
       }
     };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      clearTimeout(timer);
+      const db = request.result;
+      // 연결이 닫히면(스토리지 정리·iOS Safari 백그라운드의 비정상 종료) 캐시된 핸들은 죽은 것이다 — 그대로
+      // 두면 reload 전까지 모든 이력 저장이 실패한다. 캐시를 비워 다음 호출이 다시 연다.
+      const drop = () => { if (dbPromise === p) dbPromise = null; };
+      db.onclose = drop;
+      // 다른 탭이 버전을 올리려 하면 우리 연결이 그 업그레이드를 막는다 — 닫고 캐시를 비운다.
+      db.onversionchange = () => { drop(); db.close(); };
+      resolve(db);
+    };
+    request.onerror = () => { clearTimeout(timer); reject(request.error); };
   });
   // 열기 실패(일시 오류 등) 시 캐시를 비워 다음 호출이 재시도하도록 한다(#P2-2).
   // 거부된 Promise를 영구 캐시하면 새로고침 전까지 이력 저장/조회가 고착된다.
@@ -409,6 +423,10 @@ export function sanitizeUiState(value: unknown): Partial<QuizState> {
     }
     if (Object.keys(marks).length) out.quickGraded = marks;
   }
+  // 퀵을 나갈 때 돌아갈 세트 — 비어 있지 않은 문자열만 통과.
+  if (typeof value.preQuickSetId === 'string' && value.preQuickSetId) {
+    out.preQuickSetId = value.preQuickSetId;
+  }
   if (typeof value.quickRoundId === 'string' && value.quickRoundId) {
     out.quickRoundId = value.quickRoundId;
   }
@@ -551,15 +569,18 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
     // store의 activeProduct를 바꿨을 수 있고, 그때 store를 읽으면 남의 답안을 이 제품
     // 스코프로 들여온다(게이트 연타 시 실측됨 — storage.gaterace.test.ts).
     const snapshotRaw = localStorage.getItem(persistenceKey(activeProduct));
-    if (snapshotRaw) {
-      // 스냅샷은 UI 상태와 답안이 한 JSON에 들어 있어 쪼갤 수 없다 — 깨지면 둘 다 간다.
-      const snapshot = parseOr<{ uiState?: unknown; answers?: unknown }>(snapshotRaw, '스냅샷', {});
-      uiState = snapshot.uiState || {};
-      answers = snapshot.answers || {};
-    } else {
-      uiState = parseOr(localStorage.getItem(uiStorageKey(activeProduct)), 'UI 상태', {});
-      answers = parseOr(localStorage.getItem(storageKey(activeProduct)), '답안', {});
-    }
+    // 스냅샷은 UI 상태와 답안의 합본이지만 각각의 per-key 사본이 따로 저장돼 있다. 스냅샷이 깨졌거나
+    // (JSON null·배열·조각 없음) 한쪽 조각만 없으면 **그 조각만** 사본에서 채운다 — 멀쩡한 사본을 버리면
+    // 풀던 자리와 답안을 잃고, 저장값이 JSON null이면 snapshot.uiState에서 TypeError로 복원 전체가
+    // 중단됐다. 스냅샷에서 온전한 조각은 종전대로 우선한다.
+    const snapshot = snapshotRaw ? parseOr<unknown>(snapshotRaw, '스냅샷', null) : null;
+    const snap: UnknownRecord = isPlainObject(snapshot) ? snapshot : {};
+    uiState = isPlainObject(snap.uiState)
+      ? snap.uiState
+      : parseOr(localStorage.getItem(uiStorageKey(activeProduct)), 'UI 상태', {});
+    answers = isPlainObject(snap.answers)
+      ? snap.answers
+      : parseOr(localStorage.getItem(storageKey(activeProduct)), '답안', {});
     
     const restoredUi = sanitizeUiState(uiState);
     const sanitizedAnswers = sanitizeAnswers(answers);
@@ -704,6 +725,8 @@ export const saveUiState = debounce((state: Partial<QuizState>) => {
       // 이번 퀵 세션의 회차 id. 없으면 새로고침 뒤 첫 채점이 새 회차를 만들어,
       // 한 세션의 오답이 24시간 목록에 두 덩어리로 갈린다.
       quickRoundId: state.quickRoundId,
+      // 퀵을 나갈 때 돌아갈 세트. 없으면 퀵 중 새로고침 뒤 나갈 때 원래 세트가 아니라 첫 세트로 간다.
+      preQuickSetId: state.preQuickSetId,
       // 챕터 집중 연습/미니 시험의 필터 — 영속화하지 않으면 새로고침 시 전체 세트로
       // 돌아가 랜덤(이어풀기)과 동작이 어긋난다. 배너의 '전체 보기'로 언제든 해제 가능.
       chapterFilter: state.chapterFilter,
@@ -991,6 +1014,7 @@ export async function exportUserData() {
       quickDraw: state.quickDraw,
       quickGraded: state.quickGraded,
       quickRoundId: state.quickRoundId,
+      preQuickSetId: state.preQuickSetId,
       chapterFilter: state.chapterFilter,
       // 시험 제한시간의 벽시계 기준점. 빠뜨리면 응시 중에 만든 백업을 복원했을 때
       // QuestionWorkspace의 syncExamElapsed가 기준점을 못 찾아 아무 일도 하지 않고,
@@ -1082,6 +1106,18 @@ export async function importUserData(file: File): Promise<ImportResult> {
           resolve({ ok: false, reason: '이 백업은 더 최신 버전 앱에서 만들어졌습니다. 앱을 업데이트해 주세요.' });
           return;
         }
+        // 필드 형식 검증 — 아무것도 쓰기 전에 한다(원자성). truthy만 보면 {"answers":"oops"}가 기존 답안을
+        // 덮고도 성공 토스트가 뜬다. 없는 필드는 '건드리지 않는다'이고, 있는데 객체가 아니면 손상이다.
+        for (const field of ['histories', 'state', 'answers'] as const) {
+          const v = data[field];
+          // null은 없는 것과 같다. 이력은 옛 백업의 배열 형태도 받는다(Object.values가 둘 다 읽는다).
+          const okShape = v == null || isPlainObject(v) || (field === 'histories' && Array.isArray(v));
+          if (!okShape) {
+            console.error(`백업의 ${field} 형식이 올바르지 않습니다 — 가져오기를 중단합니다.`);
+            resolve({ ok: false, reason: `파일 형식이 올바르지 않습니다(${field}).` });
+            return;
+          }
+        }
         const product = getActiveProduct();
         // 제품이 다른 백업을 그대로 적용하면 현재 제품의 답안이 통째로 교체되고,
         // 가져온 이력은 certification 필터에 걸려 통계에도 안 보인다 — 무엇을 잃었는지
@@ -1144,7 +1180,7 @@ export async function importUserData(file: File): Promise<ImportResult> {
         }
         if (data.answers) {
           // 원시 저장만 하고 실제 유입은 복원 단계의 sanitizeAnswers가 정제한다(종전 동작 동일).
-          saveAnswers(data.answers as Record<string, string[]>, product);
+          saveAnswers(sanitizeAnswers(data.answers), product);
           saveAnswers.flush();
         }
         if (persistWriteFailed) {
@@ -1241,6 +1277,7 @@ useQuizStore.subscribe((state, prevState) => {
     state.navCollapsed !== prevState.navCollapsed ||
     state.randomDraw !== prevState.randomDraw ||
     state.quickDraw !== prevState.quickDraw ||
+    state.preQuickSetId !== prevState.preQuickSetId ||
     state.chapterFilter !== prevState.chapterFilter ||
     // 시험 시작 시각이 잡히는 순간 즉시 저장한다 — 이걸 놓치면 앱을 껐다 켰을 때
     // 기준점이 없어 제한시간이 처음부터 다시 흐른다.

@@ -40,6 +40,64 @@ describe('storage IndexedDB', () => {
     expect(warn).toHaveBeenCalled();
   });
 
+  // 연결이 닫히면(스토리지 정리·iOS Safari 백그라운드) 캐시된 핸들이 남아 reload 전까지 이력 저장이 계속
+  // 실패했다. 닫힘·버전 변경 이벤트에서 캐시를 비워 다음 호출이 다시 연다(R-08b).
+  describe('연결 수명', () => {
+    async function withOpenSpy() {
+      const s = await freshStorage();
+      const realOpen = indexedDB.open.bind(indexedDB);
+      const dbs: IDBDatabase[] = [];
+      const spy = vi.spyOn(indexedDB, 'open').mockImplementation(((name: string, version?: number) => {
+        const req = realOpen(name, version);
+        req.addEventListener('success', () => dbs.push(req.result));
+        return req;
+      }) as typeof indexedDB.open);
+      return { s, spy, dbs };
+    }
+
+    it('연결이 닫히면(onclose) 다음 저장이 다시 열어 성공한다', async () => {
+      const { s, spy, dbs } = await withOpenSpy();
+      await s.saveHistoryToDB(hist('life-1'));
+      expect(spy).toHaveBeenCalledTimes(1);
+
+      dbs[0].onclose?.(new Event('close')); // 브라우저가 연결을 닫았다
+      await s.saveHistoryToDB(hist('life-2'));
+      expect(spy, '닫힌 핸들을 그대로 써서 다시 열지 않았다').toHaveBeenCalledTimes(2);
+      expect((await s.loadHistoriesFromDB())['life-2']).toBeTruthy();
+    });
+
+    it('다른 탭이 버전을 올리려 하면(onversionchange) 연결을 닫아 막지 않고, 다음 호출이 다시 연다', async () => {
+      const { s, spy, dbs } = await withOpenSpy();
+      await s.saveHistoryToDB(hist('life-3'));
+      const closeSpy = vi.spyOn(dbs[0], 'close');
+
+      dbs[0].onversionchange?.(new Event('versionchange') as IDBVersionChangeEvent);
+      expect(closeSpy, '연결을 닫지 않으면 다른 탭의 업그레이드가 막힌다').toHaveBeenCalledTimes(1);
+      await s.saveHistoryToDB(hist('life-4'));
+      expect(spy).toHaveBeenCalledTimes(2);
+    });
+
+    it('열기가 끝나지 않으면 시간 제한 뒤 실패로 돌려주고, 다음 호출이 다시 시도한다', async () => {
+      const s = await freshStorage();
+      vi.useFakeTimers();
+      try {
+        const never = {} as IDBOpenDBRequest; // 어떤 이벤트도 오지 않는다
+        const open = vi.spyOn(indexedDB, 'open').mockImplementationOnce((() => never) as typeof indexedDB.open);
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const pending = s.loadHistoriesFromDB();
+        await vi.advanceTimersByTimeAsync(s.DB_OPEN_TIMEOUT_MS);
+        await expect(pending).resolves.toEqual({}); // 영원히 매달리지 않는다
+        // 거부된 열기를 캐시하지 않는다 — 다음 호출은 실제 open으로 간다.
+        vi.useRealTimers();
+        open.mockRestore();
+        await s.saveHistoryToDB(hist('life-5'));
+        expect((await s.loadHistoriesFromDB())['life-5']).toBeTruthy();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
   it('일시적 open 실패 후 다음 호출이 재시도해 정상 저장된다(P2-2: 거부 캐시 미고착)', async () => {
     const s = await freshStorage();
     const realOpen = indexedDB.open.bind(indexedDB);

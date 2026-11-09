@@ -299,6 +299,69 @@ describe('restorePersistentSnapshot — 랜덤/시험 복원 착지', () => {
     expect(store.useQuizStore.getState().examStarted[PRIOR]).toBe(true);
   });
 
+  it('퀵 중 새로고침 뒤 퀵을 나가면 원래 세트로 돌아간다(preQuickSetId 영속)', async () => {
+    seed({ mode: 'quick', setId: 'QUICK', index: 0, preQuickSetId: 'ISTQB-FL-V4-B' }, {});
+    await storage.restorePersistentSnapshot('istqb');
+    expect(store.useQuizStore.getState().preQuickSetId).toBe('ISTQB-FL-V4-B');
+    store.useQuizStore.getState().setMode('practice');
+    expect(store.useQuizStore.getState().setId, '첫 세트로 갔다').toBe('ISTQB-FL-V4-B');
+  });
+
+  it('퀵에 들어가면 돌아갈 세트가 저장된다(저장 허용 목록과 트리거)', async () => {
+    await storage.restorePersistentSnapshot('istqb');
+    store.useQuizStore.setState({ mode: 'practice', setId: SET });
+    store.useQuizStore.getState().setMode('quick'); // preQuickSetId = SET, 모드가 바뀌어 저장이 걸린다
+    storage.saveUiState.flush();
+    const saved = JSON.parse(localStorage.getItem(UI) ?? '{}');
+    expect(saved.preQuickSetId).toBe(SET);
+  });
+
+  // 스냅샷은 UI 상태와 답안의 합본이지만, 각각의 per-key 사본이 따로 저장돼 있다. 스냅샷이 깨졌거나 한쪽
+  // 조각이 없을 때 멀쩡한 사본을 버리면 풀던 자리와 답안을 잃고, 저장값이 JSON null이면 TypeError로 복원
+  // 전체가 중단됐다(R-08e).
+  describe('스냅샷이 손상됐을 때는 per-key 사본으로 복원한다', () => {
+    const SNAP = 'istqb-fl-v4-sample-history-snapshot';
+    const ui = { mode: 'practice', setId: SET, index: 5 };
+    const ans = { [`${SET}-practice-Q1`]: ['a'] };
+
+    function seedBoth(snapshot: string) {
+      seed(ui, ans);
+      localStorage.setItem(SNAP, snapshot);
+    }
+
+    it.each([
+      ['JSON null', 'null'],
+      ['빈 객체', '{}'],
+      ['배열', '[1,2]'],
+      ['uiState·answers가 문자열', '{"uiState":"x","answers":"y"}'],
+    ])('%s', async (_label, raw) => {
+      seedBoth(raw);
+      await storage.restorePersistentSnapshot('istqb');
+      const s = store.useQuizStore.getState();
+      expect(s.mode, '복원이 중단돼 기본값에 머물렀다').toBe('practice');
+      expect(s.index).toBe(5);
+      expect(s.answers[`${SET}-practice-Q1`]).toEqual(['a']);
+    });
+
+    it('한쪽 조각만 없으면 그 조각만 사본에서 채운다(스냅샷의 온전한 조각은 그대로 쓴다)', async () => {
+      seed(ui, ans);
+      localStorage.setItem(SNAP, JSON.stringify({ answers: { [`${SET}-practice-Q2`]: ['b'] } })); // uiState 없음
+      await storage.restorePersistentSnapshot('istqb');
+      const s = store.useQuizStore.getState();
+      expect(s.index, 'uiState는 사본에서').toBe(5);
+      expect(s.answers, '답안은 스냅샷에서').toEqual({ [`${SET}-practice-Q2`]: ['b'] });
+    });
+
+    it('스냅샷이 온전하면 사본보다 스냅샷을 우선한다(종전 동작)', async () => {
+      seed({ mode: 'practice', setId: SET, index: 1 }, {});
+      localStorage.setItem(SNAP, JSON.stringify({ uiState: { mode: 'exam', setId: SET, index: 9 }, answers: {} }));
+      await storage.restorePersistentSnapshot('istqb');
+      const s = store.useQuizStore.getState();
+      expect(s.mode).toBe('exam');
+      expect(s.index).toBe(9);
+    });
+  });
+
   // IndexedDB를 읽으려다 동기로 던져도(연결이 닫히는 중 등) 복원이 중단되면 안 된다. 중단되면 스토어가
   // 기본값(홈, 빈 답안)에 머물고, 다음 디바운스 저장이 사용자의 저장된 위치를 그 기본값으로 덮는다.
   // 잃어도 되는 것은 이력뿐이다 — 위치·답안은 localStorage에 멀쩡히 있다.

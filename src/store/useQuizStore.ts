@@ -16,10 +16,20 @@ export const QUICK_SET_ID = 'QUICK';
  */
 export const QUICK_ROUND_TTL_MS = 24 * 60 * 60 * 1000;
 
-/** 만료되지 않은 퀵 회차만 고른다(읽는 시점에 거른다 — 타이머를 두면 앱이 꺼진 동안 안 돈다). */
+/** 기기 시계가 이만큼 어긋난 것은 시계 오차로 보고 그대로 둔다(그 밖의 미래 시각은 손상으로 본다). */
+export const QUICK_CLOCK_SKEW_MS = 5 * 60 * 1000;
+
+/**
+ * 만료되지 않은 퀵 회차만 고른다(읽는 시점에 거른다 — 타이머를 두면 앱이 꺼진 동안 안 돈다).
+ * 나이가 음수인(createdAt이 미래인) 회차는 허용 오차를 넘으면 버린다 — 그대로 두면 `나이 < TTL`이 늘
+ * 참이라 영구히 만료되지 않는다.
+ */
 export function freshQuickRounds(rounds: ExamHistory[] | undefined, now = Date.now()): ExamHistory[] {
   if (!rounds?.length) return [];
-  return rounds.filter((r) => now - (r.createdAt ?? 0) < QUICK_ROUND_TTL_MS);
+  return rounds.filter((r) => {
+    const age = now - (r.createdAt ?? 0);
+    return age < QUICK_ROUND_TTL_MS && age >= -QUICK_CLOCK_SKEW_MS;
+  });
 }
 
 /**
@@ -442,7 +452,10 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     const reviewIds = { ...state.reviewIds };
     let changed = false;
     for (const key of Object.keys(reviewIds)) {
-      if (!isReviewKeyOf(key, setId, mode)) continue;
+      // 옛 단독 키(setId만 — 모드가 붙기 전 데이터)는 reviewTargetIds가 시험 대상과 함께 읽는다.
+      // 시험 대상을 비울 때 같이 지운다. 아니면 비운 뒤에도 오답 모드에 유령 문항이 남는다.
+      const legacy = mode === 'exam' && key === setId;
+      if (!legacy && !isReviewKeyOf(key, setId, mode)) continue;
       delete reviewIds[key];
       changed = true;
     }
@@ -503,7 +516,8 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     // 세트 id가 서로의 접두인 경우에 남의 키까지 지운다).
     const reviewIds = { ...state.reviewIds };
     for (const key of Object.keys(reviewIds)) {
-      if (gradeKeys.has(key.split('#')[0])) delete reviewIds[key];
+      // 옛 단독 키(key === setId)도 이 세트의 오답 대상이다 — 정확히 같은 id일 때만(접두 비교 금지).
+      if (gradeKeys.has(key.split('#')[0]) || setIds.includes(key)) delete reviewIds[key];
     }
     const examStarted = { ...state.examStarted };
     const examStartedAt = { ...state.examStartedAt };

@@ -36,6 +36,56 @@ describe('importUserData (Phase 4)', () => {
     expect((await s.importUserData(backupFile('"not-an-object"'))).ok).toBe(false);
   });
 
+  // 필드가 truthy이기만 하면 통과시키던 때: {"answers":"oops"} 백업이 기존 답안을 덮고도 성공 토스트가 떴고,
+  // 정제 전 값이 그대로 라이브 스토어에 들어갔다(R-08f). 형식이 틀린 필드는 **아무것도 쓰기 전에** 거부한다.
+  describe('필드 형식 검증', () => {
+    const ANS = 'istqb-fl-v4-sample-answers';
+
+    it.each([
+      ['answers가 문자열', { answers: 'oops' }],
+      ['answers가 배열', { answers: ['a'] }],
+      ['state가 문자열', { state: 'oops' }],
+      ['state가 배열', { state: [1] }],
+      ['histories가 문자열', { histories: 'oops' }],
+    ])('%s이면 거부하고 기존 저장값을 건드리지 않는다', async (_label, bad) => {
+      const s = await freshStorage();
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      localStorage.setItem(ANS, JSON.stringify({ keep: ['a'] }));
+      const r = await s.importUserData(backupFile({ schemaVersion: 2, product: 'istqb', ...bad }));
+      expect(r.ok).toBe(false);
+      expect(r.reason).toMatch(/형식/);
+      expect(JSON.parse(localStorage.getItem(ANS) ?? '{}')).toEqual({ keep: ['a'] });
+    });
+
+    it('답안은 정제를 거쳐 저장된다(문자열이 아닌 선택은 버린다)', async () => {
+      const s = await freshStorage();
+      const r = await s.importUserData(backupFile({
+        schemaVersion: 2, product: 'istqb',
+        answers: { 'S-exam-Q1': ['a'], 'S-exam-Q2': 'b', 'S-exam-Q3': [1, null] },
+      }));
+      expect(r.ok).toBe(true);
+      expect(JSON.parse(localStorage.getItem(ANS) ?? '{}')).toEqual({ 'S-exam-Q1': ['a'] });
+    });
+
+    it('null 필드는 없는 것으로, 이력의 배열 형태는 옛 백업으로 받는다', async () => {
+      const s = await freshStorage();
+      const r = await s.importUserData(backupFile({
+        schemaVersion: 2, product: 'istqb', answers: null, state: null,
+        histories: [{ id: 'old-1', setId: 'ISTQB-FL-V4-A', mode: 'exam', answers: {}, correct: 1, total: 2 }],
+      }));
+      expect(r.ok).toBe(true);
+      expect((await s.loadHistoriesFromDB())['old-1']).toBeTruthy();
+    });
+
+    it('필드가 없으면 건드리지 않는다(이력만 든 백업)', async () => {
+      const s = await freshStorage();
+      localStorage.setItem(ANS, JSON.stringify({ keep: ['a'] }));
+      const r = await s.importUserData(backupFile({ schemaVersion: 2, product: 'istqb', histories: {} }));
+      expect(r.ok).toBe(true);
+      expect(JSON.parse(localStorage.getItem(ANS) ?? '{}')).toEqual({ keep: ['a'] });
+    });
+  });
+
   it('JSON 파싱 불가 파일은 거부한다', async () => {
     const s = await freshStorage();
     vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -264,6 +314,30 @@ describe('백업 × 퀵 랜덤', () => {
       certification: 'istqb', items: [{ id: 'ISTQB-FL-V4-A-003', setId: 'ISTQB-FL-V4-A' }],
     });
     expect(parsed.answers['QUICK-quick-ISTQB-FL-V4-A-003']).toEqual(['b']);
+  });
+
+  // 퀵을 나갈 때 돌아갈 세트(preQuickSetId). 영속화하지 않으면 퀵 중 새로고침 뒤 퀵을 나갈 때 원래 세트가
+  // 아니라 첫 세트로 간다 — 영속화 목록 세 곳(저장 허용·저장 트리거·정제)과 내보내기를 함께 고친다(R-09d).
+  it('내보내기에 퀵에서 돌아갈 세트가 담기고, 정제가 통과시킨다', async () => {
+    vi.resetModules();
+    const s = await import('./storage');
+    const { useQuizStore } = await import('../store/useQuizStore');
+    useQuizStore.setState({ mode: 'quick', setId: 'QUICK', preQuickSetId: 'ISTQB-FL-V4-B' });
+    let captured = '';
+    const realBlob = globalThis.Blob;
+    vi.stubGlobal('Blob', class extends realBlob {
+      constructor(parts: BlobPart[], opts?: BlobPropertyBag) { super(parts, opts); captured = String(parts[0]); }
+    });
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    vi.stubGlobal('URL', { ...URL, createObjectURL: () => 'blob:x', revokeObjectURL: () => {} });
+    await s.exportUserData();
+    vi.unstubAllGlobals();
+    expect(JSON.parse(captured).state.preQuickSetId).toBe('ISTQB-FL-V4-B');
+
+    expect(s.sanitizeUiState({ preQuickSetId: 'ISTQB-FL-V4-B' }).preQuickSetId).toBe('ISTQB-FL-V4-B');
+    for (const bad of [42, '', null, ['x']]) {
+      expect(s.sanitizeUiState({ preQuickSetId: bad }), JSON.stringify(bad)).not.toHaveProperty('preQuickSetId');
+    }
   });
 
   it('가져온 퀵 추첨이 정제를 통과해 UI 상태로 복원된다', async () => {
