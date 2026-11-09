@@ -80,6 +80,43 @@ describe('모든 세트 — 구조 계약', () => {
   });
 });
 
+describe('모든 세트 — 글꼴이 있어야만 그려지는 글자(사설 영역)가 없다', () => {
+  // 사설 영역(PUA, U+E000–U+F8FF)은 글리프를 그 글꼴이 정한다 — PDF의 기호 글꼴(Wingdings의
+  // 화살표 등)이 코드 그대로 따라 들어온 것이다. 그 글꼴이 없는 기기(대부분의 폰·맥)에서는
+  // 전부 두부(□)로 보인다. 실제로 ISTQB-FL-V4-B-032 해설의 실행 순서 화살표 10개가 그랬다.
+  // 이 구간은 PDF 대조(scripts/verify-pdf-data.py)가 비교 전에 지워서 그쪽 게이트에는 걸리지
+  // 않고, 렌더 테스트(parser.render.test.ts)도 목록 마커의 PUA만 본다 — 여기가 유일한 문이다.
+  // 화살표는 같은 뜻이면서 어느 기기에서나 그려지는 `→`(U+2192)로 옮긴다.
+  const PUA = /[-]/;
+
+  // 문항 객체 안의 모든 문자열(지문·보기·해설·표 칸·코드 줄 …)을 경로와 함께 훑는다.
+  function* strings(value: unknown, at: string): Generator<[string, string]> {
+    if (typeof value === 'string') yield [at, value];
+    else if (Array.isArray(value)) for (const [i, v] of value.entries()) yield* strings(v, `${at}[${i}]`);
+    else if (value && typeof value === 'object') {
+      for (const [k, v] of Object.entries(value)) yield* strings(v, `${at}.${k}`);
+    }
+  }
+
+  it.each(loaded.map(({ set }) => set.id))('%s — 어떤 문자열에도 사설 영역 문자가 없다', (setId) => {
+    const { questions } = loaded.find(({ set }) => set.id === setId)!;
+    const found: string[] = [];
+    for (const q of questions) {
+      for (const [at, text] of strings(q, q.id ?? `#${q.number}`)) {
+        const hit = [...text].find((ch) => PUA.test(ch));
+        if (hit) found.push(`${at} U+${hit.codePointAt(0)!.toString(16).toUpperCase()}`);
+      }
+    }
+    expect(found).toEqual([]);
+  });
+
+  it('검사가 헛돌지 않는다 — 훑개가 중첩 위치의 사설 영역 문자를 실제로 찾는다', () => {
+    const sample = { id: 'X', explanation: [{ text: 'TC1  TC2' }], options: [{ text: '정상' }] };
+    const hits = [...strings(sample, 'X')].filter(([, text]) => PUA.test(text));
+    expect(hits).toEqual([['X.explanation[0].text', 'TC1  TC2']]);
+  });
+});
+
 describe('모든 세트 — 퀵 랜덤 풀 기여', () => {
   const canonical = makeCanonicalIdResolver(index.duplicateGroups);
 
