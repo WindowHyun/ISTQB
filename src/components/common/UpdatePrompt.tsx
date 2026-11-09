@@ -5,6 +5,7 @@ import { useQuizStore } from '../../store/useQuizStore';
 import { startUpdateChecks } from '../../utils/swUpdateCheck';
 import { isAtProductGate } from '../../utils/sessionDerive';
 import { flushPersist } from '../../utils/storage';
+import { showToast } from '../../utils/toast';
 
 // 새 버전(서비스워커) 감지 시 하단 배너로 알리고, 사용자가 1탭으로 갱신한다.
 // registerType: 'prompt' + injectRegister: false 와 함께 동작한다.
@@ -33,7 +34,14 @@ export const UpdatePrompt = () => {
       // 재등록(StrictMode 이중 실행 포함) 시 기존 감시를 먼저 걷어 중복을 막는다.
       if (registration) {
         stopChecksRef.current?.();
-        stopChecksRef.current = startUpdateChecks(registration);
+        stopChecksRef.current = startUpdateChecks(registration, undefined, undefined, {
+          // 사이트 인증이 갱신 요청을 막으면 옛 빌드에 머문다 — 새로고침이 인증을 다시 받게 한다(R-03 · D-01 C).
+          onBlocked: () => showToast(
+            '새 버전을 확인하지 못했습니다. 사이트 인증이 만료됐을 수 있어요 — 앱을 새로고침해 주세요.',
+            'info',
+            8000,
+          ),
+        });
       }
     },
   });

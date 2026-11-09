@@ -23,6 +23,36 @@ export const SW_UPDATE_PERIOD_MS = 15 * 60 * 1000;
 /** 이 간격 안에 겹쳐 들어온 확인은 건너뛴다(탭 전환 연타 방지). */
 export const SW_UPDATE_MIN_INTERVAL_MS = 60 * 1000;
 
+/**
+ * 사이트 잠금(Basic 인증)이 갱신 요청을 막고 있는지 — sw.js를 가볍게 다시 물어 401/403이면 참.
+ *
+ * `registration.update()`는 실패 원인을 알려 주지 않는다(오프라인도, 서버 오류도, 인증 만료도 같은 거부다).
+ * 이 앱은 사이트 전체가 Basic 인증이라 브라우저를 다시 켠 뒤에는 `/sw.js` 요청이 401을 받아 갱신이 조용히
+ * 실패하고, 설치한 사용자는 옛 빌드(정정되기 전 정답 포함)에 머문다(R-03). 근본 해결(인증 방식 변경)은 인프라
+ * 결정이라, 여기서는 **원인이 인증일 때 그 사실을 사용자에게 알리는 것**까지만 한다(D-01 C). 오프라인에서는
+ * 묻지 않는다 — 그때의 실패는 정상이다.
+ */
+export async function probeUpdateBlocked(
+  url: string = '/sw.js',
+  fetchImpl: typeof fetch | undefined = typeof fetch === 'function' ? fetch : undefined,
+): Promise<boolean> {
+  if (!fetchImpl) return false;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+  try {
+    const res = await fetchImpl(url, { method: 'HEAD', cache: 'no-store', credentials: 'same-origin' });
+    return res.status === 401 || res.status === 403;
+  } catch {
+    return false;
+  }
+}
+
+export interface UpdateCheckOptions {
+  /** 갱신이 인증에 막혔다고 판단되면 세션당 한 번 부른다. */
+  onBlocked?: () => void;
+  /** 테스트용 — 기본은 `probeUpdateBlocked`. */
+  probe?: () => Promise<boolean>;
+}
+
 /** ServiceWorkerRegistration 중 이 모듈이 쓰는 부분만. 테스트가 흉내내기 쉽다. */
 interface UpdateTarget {
   update: () => Promise<unknown>;
@@ -37,10 +67,13 @@ export function startUpdateChecks(
   registration: UpdateTarget,
   periodMs: number = SW_UPDATE_PERIOD_MS,
   minIntervalMs: number = SW_UPDATE_MIN_INTERVAL_MS,
+  options: UpdateCheckOptions = {},
 ): () => void {
   if (typeof window === 'undefined' || typeof document === 'undefined') return () => {};
 
   let lastCheckedAt = Date.now();
+  let notifiedBlocked = false;
+  const probe = options.probe ?? (() => probeUpdateBlocked());
 
   const check = (): void => {
     const elapsed = Date.now() - lastCheckedAt;
@@ -57,6 +90,15 @@ export function startUpdateChecks(
     // 그 사이 다른 확인이 시각을 갱신했다면(요청이 길어진 경우) 그 값을 덮지 않는다.
     registration.update().catch(() => {
       if (lastCheckedAt === startedAt) lastCheckedAt = previous;
+      // 실패의 원인이 인증이면 알린다(세션당 한 번 — 매 확인마다 토스트가 쌓이지 않게).
+      if (options.onBlocked && !notifiedBlocked) {
+        void probe().then((blocked) => {
+          if (blocked && !notifiedBlocked) {
+            notifiedBlocked = true;
+            options.onBlocked?.();
+          }
+        });
+      }
     });
   };
 
