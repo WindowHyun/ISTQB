@@ -51,6 +51,16 @@ function firstChoiceQuestions(file: string, n: number): { number: number; answer
   return qs;
 }
 
+// 앞 문항을 차례로 정답으로 푼다(시험은 세트 순서 그대로 출제한다).
+async function answerAll(page: Page, solved: { number: number; answer: string[] }[]) {
+  for (const [i, q] of solved.entries()) {
+    if (i > 0) expect(await goNextQuestion(page), "다음 문항으로 넘어가지 못했다").toBe(true);
+    for (const key of q.answer) {
+      await page.getByRole("button", { name: new RegExp(`^선택지 ${key}(,|$)`) }).click();
+    }
+  }
+}
+
 // 시험 제한시간은 '응시 시작 벽시계'가 기준이어야 한다. 경과 누계만 쓰면 앱을 껐다 켠
 // 시간이 빠져 60/90분 제한을 닫았다 열기만으로 무한히 늘릴 수 있었다.
 test.describe("시험 제한시간", () => {
@@ -104,18 +114,38 @@ test.describe("시험 제한시간", () => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await enterExam(page);
 
-    for (const [i, q] of solved.entries()) {
-      if (i > 0) expect(await goNextQuestion(page), "다음 문항으로 넘어가지 못했다").toBe(true);
-      for (const key of q.answer) {
-        await page.getByRole("button", { name: new RegExp(`^선택지 ${key}(,|$)`) }).click();
-      }
-    }
+    await answerAll(page, solved);
 
     await page.clock.fastForward("01:01:00"); // 60분 제한을 넘긴다 — 앱은 켜진 채다
     await expect(page.getByTestId("result-summary")).toBeVisible();
 
     // 저장은 비동기이므로 기다린다. 정답 3문항이 그대로 기록돼야 한다(결함: correct 0 · 오답 40).
     await expect.poll(() => readRounds(page), { message: "자동 제출 회차가 고른 답안과 다르게 기록됐다" })
+      .toEqual([{ correct: solved.length, total: 40, wrong: 40 - solved.length }]);
+  });
+
+  // 같은 결함이 백그라운드 복귀 경로에도 있었다(visibilitychange → checkExamDeadline). 화면이 가려진 동안은
+  // 타이머가 멈추므로 시계만 건너뛰어서는 만료가 안 걸린다 — 숨김 → 시계 점프 → 복귀의 순서로 탄다.
+  test("백그라운드에 있다가 돌아와 만료를 처리해도 그때까지 고른 답안으로 기록된다", async ({ page }) => {
+    const solved = firstChoiceQuestions("istqb/sample-a.json", 3);
+    await page.clock.install();
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await enterExam(page);
+    await answerAll(page, solved);
+
+    const setHidden = (hidden: boolean) => page.evaluate((h) => {
+      Object.defineProperty(document, "hidden", { configurable: true, get: () => h });
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => (h ? "hidden" : "visible") });
+      document.dispatchEvent(new Event("visibilitychange"));
+    }, hidden);
+
+    await setHidden(true);
+    await page.clock.fastForward("01:01:00"); // 가려진 동안 제한시간이 지난다
+    await expect(page.getByTestId("result-summary")).toHaveCount(0); // 아직 아무도 제출하지 않았다
+    await setHidden(false);
+    await expect(page.getByTestId("result-summary")).toBeVisible();
+
+    await expect.poll(() => readRounds(page), { message: "복귀 시 자동 제출 회차가 고른 답안과 다르게 기록됐다" })
       .toEqual([{ correct: solved.length, total: 40, wrong: 40 - solved.length }]);
   });
 });
