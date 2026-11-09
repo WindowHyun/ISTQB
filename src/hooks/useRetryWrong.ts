@@ -28,23 +28,36 @@ export function openWrongNote(examLocked: boolean): boolean {
  * 두 버튼이 각자 조립하면 한쪽에만 응시 잠금 가드나 "오답 없음" 안내가 있는 상태가 되고,
  * 시험 응시 중에 시트로 오답 풀기를 시작해 타이머를 잃는 식의 우회로가 열린다.
  *
+ * `reviewableCount`는 오답 모드가 **실제로 내놓을** 문항 수다(`useReviewTargetCount`) — 두 입구가 같은
+ * 소스를 쓴다. 예전에는 사이드바가 `reviewTargetIds(...).size`만 봐서, 오답을 모두 복습 완료한 세트에서도
+ * 진입 처리(답안 초기화·세션 리셋)를 하고 빈 오답 화면으로 갔다. 실제 출제는 `reviewedOk`로 복습 완료한
+ * 문항을 빼므로 범위가 갈렸던 것이다. 로드 전(`null`)에는 시작하지 않는다 — 틀린 수로 판정하느니 없는 편이 낫다.
+ *
  * 스토어를 getState()로 읽는 이유: 이벤트 시점의 값이 필요하고, 구독하면 이 함수를 부르는
  * 컴포넌트가 오답 대상이 바뀔 때마다 리렌더된다.
  */
-export function startRetryWrong(examLocked: boolean): boolean {
+export function startRetryWrong(examLocked: boolean, reviewableCount: number | null): boolean {
   // 응시 중 잠금 — 이 진입로는 세그먼트 밖이라 disabled에 걸리지 않지만 setMode+resetTimer를
   // 호출하므로, 여기서 막지 않으면 잠금을 우회해 시험 타이머가 소실된다.
   if (examLocked) {
     showToast('시험 응시 중에는 오답 풀기를 시작할 수 없습니다. 먼저 채점하세요.', 'info');
     return false;
   }
+  if (reviewableCount === null) {
+    showToast('오답 정보를 불러오는 중입니다. 잠시 뒤 다시 눌러 주세요.', 'info');
+    return false;
+  }
   const { reviewIds, setId, clearAnswers, setMode, beginSession } = useQuizStore.getState();
-  // 현재 세트에 오답이 없으면 빈 오답 모드로 이동하지 않고 안내만 한다(모드 유지).
-  // 판정은 useQuestions의 reviewTargetIds가 단일 원천이다.
-  if (reviewTargetIds(reviewIds, setId).size === 0) {
+  // 현재 세트에 다시 풀 오답이 없으면 빈 오답 모드로 이동하지 않고 안내만 한다(모드 유지).
+  if (reviewableCount === 0) {
     // 퀵을 빼고 안내한다 — 퀵 오답은 세트 버킷에 담기지 않는 사양이라, 넣어 두면
     // "퀵으로 채점했는데 왜 없냐"는 잘못된 기대를 이 문구가 직접 만들어 낸다.
-    showToast('현재 문제 세트에는 오답이 없습니다. 시험 모드에서 채점하면 기록됩니다.', 'info');
+    showToast(
+      reviewTargetIds(reviewIds, setId).size === 0
+        ? '현재 문제 세트에는 오답이 없습니다. 시험 모드에서 채점하면 기록됩니다.'
+        : '이 세트의 오답은 모두 복습을 마쳤습니다.',
+      'info',
+    );
     return false;
   }
   // 이전 재풀이 답안을 비우고 오답(review) 모드로 전환해 틀린 문항만 새로 푼다.

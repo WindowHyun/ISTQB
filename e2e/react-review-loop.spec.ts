@@ -63,6 +63,39 @@ test.describe("오답 재풀이 루프", () => {
     await expect.poll(() => page.locator("#questionNav button").count()).toBe(39);
   });
 
+  // 사이드바 가드가 '다시 풀 문항 수'(복습 완료를 뺀 실제 출제 수)로 판정하는지 — 예전에는 오답 기록의
+  // 유무만 봐서, 모두 복습을 마친 세트에서도 진입 처리를 하고 빈 오답 화면으로 갔다(R-10).
+  test("오답을 모두 복습 완료했으면 사이드바 '오답 다시 풀기'는 안내만 하고 모드를 바꾸지 않는다", async ({ page }) => {
+    await openSet(page, "ISTQB", SET);
+    await enterExam(page);
+    await submitGrade(page); // 전부 미응답 → 40문항 오답
+    await page.getByTestId("result-summary").getByRole("button", { name: "닫기" }).click();
+
+    // 저장을 확정시킨 뒤 '복습 완료' 목록을 40문항 전부로 채운다(40번의 풀이를 흉내낸다).
+    await page.goto("/");
+    await page.evaluate((setId: string) => {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i)!;
+        const raw = localStorage.getItem(k);
+        if (!raw || !raw.includes("reviewIds")) continue;
+        const o = JSON.parse(raw);
+        const target = o.reviewIds ? o : o.uiState;
+        if (!target?.reviewIds) continue;
+        target.reviewedOk = { ...(target.reviewedOk ?? {}), [setId]: Array.from({ length: 40 }, (_, n) => n + 1) };
+        localStorage.setItem(k, JSON.stringify(o));
+      }
+    }, SET);
+
+    await page.getByRole("button", { name: "ISTQB" }).click();
+    // 채점이 끝난 시험은 시작 게이트로 복원된다 — 문항 본문이 아니라 사이드바 버튼을 기다린다.
+    const retry = page.getByRole("button", { name: /오답 다시 풀기|오답 풀기/ });
+    await expect(retry).toBeVisible({ timeout: 20_000 });
+    const modeBefore = await page.locator(".workspace").getAttribute("data-list-mode");
+    await retry.click();
+    await expect(page.getByText("이 세트의 오답은 모두 복습을 마쳤습니다.")).toBeVisible();
+    await expect(page.locator(".workspace")).toHaveAttribute("data-list-mode", modeBefore ?? "exam");
+  });
+
   test("맞힌 게 없으면 복습 완료를 누를 수 없다", async ({ page }) => {
     await openSet(page, "ISTQB", SET);
     await enterExam(page);

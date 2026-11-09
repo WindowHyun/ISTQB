@@ -166,7 +166,7 @@ export const QuestionListHost = ({
       showCorrectness={showCorrectness}
       retryCount={offer ? reviewCount : null}
       onJump={(i) => { setIndex(i); onClose(); }}
-      onRetry={() => { if (startRetryWrong(examLocked)) onClose(); }}
+      onRetry={() => { if (startRetryWrong(examLocked, reviewCount)) onClose(); }}
       onClose={onClose}
     />
   );

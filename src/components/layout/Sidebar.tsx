@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore, QUICK_ALL } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
-import { startRetryWrong, openWrongNote } from '../../hooks/useRetryWrong';
+import { startRetryWrong, openWrongNote, useReviewTargetCount } from '../../hooks/useRetryWrong';
 import { requestSetChange } from '../../hooks/useSetChange';
 import { gradeKeyFor } from '../../utils/answerKey';
 import { productSets } from '../../utils/setSheet';
@@ -142,8 +142,10 @@ export const Sidebar = () => {
   };
 
   // 시트의 'N문제 다시 풀기'와 같은 길을 쓴다(응시 잠금 가드·오답 없음 안내 포함).
+  // 판정에 쓰는 수도 시트와 같은 소스다(useReviewTargetCount — 복습 완료를 뺀 실제 출제 수).
+  const reviewCount = useReviewTargetCount(appData);
   const handleRetryWrong = () => {
-    if (startRetryWrong(examLocked)) closeDrawer();
+    if (startRetryWrong(examLocked, reviewCount)) closeDrawer();
   };
 
   // 브랜드 부제 — 자격증과 이 제품이 담은 범위(세트·문항 수)를 한 줄로 보여준다.
