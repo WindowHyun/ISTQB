@@ -98,7 +98,11 @@ export async function saveHistoryToDB(history: ExamHistory) {
 export async function loadHistoriesFromDB(): Promise<Record<string, ExamHistory>> {
   try {
     const db = await getDb();
-    return new Promise((resolve) => {
+    // return await — await 없이 Promise를 돌려주면 db.transaction()이 동기로 던졌을 때(연결이 닫히는 중
+    // InvalidStateError 등) executor의 예외가 '거부된 Promise'가 되어 아래 catch를 건너뛴다. 그러면 이력이
+    // 빈 채로 이어가는 대신 복원 전체가 중단돼 스토어가 기본값에 머물고, 다음 디바운스 저장이 사용자의
+    // 저장된 위치를 그 기본값으로 덮는다.
+    return await new Promise((resolve) => {
       const tx = db.transaction(STORE_NAME, "readonly");
       const request = tx.objectStore(STORE_NAME).getAll();
       request.onsuccess = () => {
@@ -330,6 +334,11 @@ export function sanitizeHistory(value: unknown): ExamHistory | null {
         // 덮어쓴다. 없는 경우(일반 회차)는 만들어 붙이지 않는다 — 호출부가
         // `it.setId ?? h.setId`로 회차 setId를 폴백하기 때문이다.
         if (typeof it.setId === "string" && it.setId) item.setId = it.setId;
+        // qid(문항의 이력 식별자)는 회차를 지운 뒤 오답 모드 대상을 남은 회차로 다시 만드는 입력이다
+        // (recomputeReviewTargets). allowlist에서 빠지면 IndexedDB를 읽을 때마다(새로고침마다) 사라져,
+        // 재로드 뒤 회차를 하나 지우면 그 세트의 복습 대상이 통째로 비고, 가져오기는 저장소의 원본 qid까지
+        // 다시 쓰며 파괴한다. 과거 기록처럼 없는 경우는 만들어 붙이지 않는다 — 재계산이 '없음'을 근거로 비운다.
+        if (typeof it.qid === "string" && it.qid) item.qid = it.qid;
         return item;
       });
   }
@@ -483,6 +492,29 @@ export function findGradedExamMatch(
   return findGradedRoundMatch(histories, setId, 'exam', answers, null);
 }
 
+/**
+ * 시작 시각(examStartedAt)이 남아 있는 세트 중 **아직 끝나지 않은 응시**의 id.
+ *
+ * 시험을 시작하고 답을 하나도 고르지 않은 채 새로고침하면 복원할 시험 답안이 없어 응시 개시의
+ * 증거가 없다 — 시작 게이트가 다시 떠서 세트·모드 잠금이 풀리고, 시작을 누르면 기준점이 새로
+ * 찍혀 **제한시간이 처음부터 다시 시작된다.** 시작 시각은 영속화되므로 그것도 증거로 쓴다.
+ *
+ * 다만 시작 시각은 채점해도 지워지지 않는다(재응시 때 clearAnswers가 지운다). 답 없이 채점·자동
+ * 제출된 응시는 복원할 답안이 없어 '채점됨'도 되살릴 수 없는데(findGradedRoundMatch는 빈 답안을
+ * 판정하지 않는다), 이때 시작 시각만 보고 응시 중으로 복원하면 만료된 시계가 다시 자동 제출해
+ * 0점 회차가 새로고침마다 쌓인다. 그래서 시작 시각 **이후에** 기록된 시험 회차가 있으면 끝난
+ * 응시로 본다(createdAt이 없는 과거 회차는 끝난 것으로 세지 않는다).
+ */
+export function unfinishedExamSetIds(
+  examStartedAt: Record<string, number>,
+  histories: Record<string, ExamHistory>,
+): string[] {
+  const examRounds = Object.values(histories).filter((h) => h.mode === 'exam');
+  return Object.entries(examStartedAt)
+    .filter(([setId, startedAt]) => !examRounds.some((h) => h.setId === setId && (h.createdAt ?? 0) >= startedAt))
+    .map(([setId]) => setId);
+}
+
 export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts') {
   // 떠나는 제품의 채점 상태를 세션 캐시에 보관(제품 재방문 시 복원).
   if (lastRestoredProduct && lastRestoredProduct !== activeProduct) {
@@ -541,6 +573,10 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
     for (const key of Object.keys(sanitizedAnswers)) {
       const sep = key.indexOf('-exam-');
       if (sep > 0) restoredExamStarted[key.slice(0, sep)] = true;
+    }
+    // 답이 없어도 시작 시각이 남은 미완료 응시는 응시 중이다(unfinishedExamSetIds 주석).
+    for (const id of unfinishedExamSetIds(restoredUi.examStartedAt ?? {}, histories)) {
+      restoredExamStarted[id] = true;
     }
     useQuizStore.getState().hydrate({
       // 세션 스코프 기본값(목록의 단일 원천은 스토어의 sessionScopeDefaults)을 깔아

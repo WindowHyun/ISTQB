@@ -28,6 +28,18 @@ describe('storage IndexedDB', () => {
     expect(loaded['rt-1'].setId).toBe('ISTQB-FL-V4-A');
   });
 
+  // await 없이 Promise를 돌려주던 때는 db.transaction()이 동기로 던지면(연결이 닫히는 중 InvalidStateError 등)
+  // executor의 예외가 '거부된 Promise'가 되어 try/catch를 건너뛰고 호출부로 새어 나갔다.
+  it('트랜잭션을 여는 순간 동기로 던져도 빈 이력으로 돌려준다(거부로 새지 않는다)', async () => {
+    const s = await freshStorage();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(IDBDatabase.prototype, 'transaction').mockImplementationOnce(() => {
+      throw new DOMException('연결이 닫히는 중', 'InvalidStateError');
+    });
+    await expect(s.loadHistoriesFromDB()).resolves.toEqual({});
+    expect(warn).toHaveBeenCalled();
+  });
+
   it('일시적 open 실패 후 다음 호출이 재시도해 정상 저장된다(P2-2: 거부 캐시 미고착)', async () => {
     const s = await freshStorage();
     const realOpen = indexedDB.open.bind(indexedDB);
@@ -170,6 +182,26 @@ describe('storage IndexedDB', () => {
 
     expect(useQuizStore.getState().reviewIds['S3-exam']).toEqual(['2']);
   });
+  // 새로고침 뒤에는 이력이 IndexedDB에서 정제를 거쳐 올라온다. 정제가 qid를 흘리면 위 재계산은 늘 빈
+  // 목록을 만든다 — 위 테스트들은 스토어에 qid가 든 객체를 직접 넣어 정제를 우회하므로 이 결함을 못 봤다.
+  it('새로고침(IndexedDB 읽기) 뒤에도 최신 회차를 지우면 남은 회차의 오답이 대상이 된다', async () => {
+    const s = await freshStorage();
+    const { useQuizStore } = await import('../store/useQuizStore');
+    const mk = (id: string, createdAt: number, qid: string): ExamHistory => ({
+      id, setId: 'S5', mode: 'exam', answers: {}, correct: 0, total: 1, createdAt,
+      wrongItems: [{ number: 1, myAnswer: [], correctAnswer: [], qid }],
+    });
+    await s.saveHistoryToDB(mk('old5', 1, 'Q-old'));
+    await s.saveHistoryToDB(mk('new5', 2, 'Q-new'));
+    const loaded = await s.loadHistoriesFromDB(); // 새로고침: 저장된 이력이 정제를 거쳐 올라온다
+    expect(loaded.new5.wrongItems?.[0].qid, '정제가 qid를 흘렸다').toBe('Q-new');
+    useQuizStore.setState({ histories: loaded, reviewIds: { 'S5-exam': ['Q-new'] } });
+
+    await s.removeHistoriesEverywhere(['new5']);
+
+    expect(useQuizStore.getState().reviewIds['S5-exam']).toEqual(['Q-old']); // 수정 전: []
+  });
+
   // qid가 없는 과거 기록은 번호밖에 없어 재구성이 불가능하다. 지운 회차의 오답을 계속
   // 내보내는 것보다 비우는 편이 낫다 — 다시 채점하면 채워진다.
   it('과거 기록(qid 없음)만 남으면 오답 대상을 비운다 — 유령 출제보다 빈 쪽', async () => {

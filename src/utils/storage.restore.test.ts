@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { findGradedExamMatch, findGradedRoundMatch } from './storage';
+import { findGradedExamMatch, findGradedRoundMatch, unfinishedExamSetIds } from './storage';
 import type { ExamHistory } from '../store/useQuizStore';
 
 /**
@@ -125,6 +125,49 @@ describe('findGradedRoundMatch — 답안이 최신 채점 회차와 같은지',
 });
 
 /**
+ * unfinishedExamSetIds — 답 없이 시작만 한 시험을 '응시 중'으로 되살릴지 정하는 규칙.
+ * 틀리면 두 방향으로 깨진다: 되살리지 못하면 새로고침으로 제한시간이 처음부터 다시 시작되고,
+ * 끝난 응시까지 되살리면 만료된 시계가 다시 자동 제출해 0점 회차가 새로고침마다 쌓인다.
+ */
+describe('unfinishedExamSetIds — 시작 시각이 남은 미완료 응시', () => {
+  const STARTED = 10_000;
+
+  it('회차가 없으면 시작 시각이 있는 세트는 모두 진행 중이다', () => {
+    expect(unfinishedExamSetIds({ [SET]: STARTED, B: 5 }, {})).toEqual([SET, 'B']);
+  });
+
+  it('시작 시각이 없으면 비어 있다', () => {
+    expect(unfinishedExamSetIds({}, byId(round({ createdAt: 99_999 })))).toEqual([]);
+  });
+
+  it('시작 시각 이후에 기록된 시험 회차가 있으면 끝난 응시다 — 같은 시각도 포함한다', () => {
+    const after = byId(round({ createdAt: STARTED + 1 }));
+    expect(unfinishedExamSetIds({ [SET]: STARTED }, after)).toEqual([]);
+    const same = byId(round({ createdAt: STARTED }));
+    expect(unfinishedExamSetIds({ [SET]: STARTED }, same), '시작과 같은 시각에 끝난 회차').toEqual([]);
+  });
+
+  it('시작 시각보다 앞선 회차는 이전 응시의 것이라 이번 응시를 끝내지 않는다', () => {
+    expect(unfinishedExamSetIds({ [SET]: STARTED }, byId(round({ createdAt: STARTED - 1 })))).toEqual([SET]);
+  });
+
+  it('다른 세트나 다른 모드(랜덤)의 회차는 끝난 응시의 근거가 아니다', () => {
+    const other = round({ id: 'r-other', setId: 'ISTQB-FL-V4-B', createdAt: STARTED + 1 });
+    const rnd = round({ id: 'r-rand', mode: 'random', createdAt: STARTED + 1 });
+    expect(unfinishedExamSetIds({ [SET]: STARTED }, byId(other, rnd))).toEqual([SET]);
+  });
+
+  it('createdAt이 없는 과거 회차는 끝난 응시로 세지 않는다', () => {
+    expect(unfinishedExamSetIds({ [SET]: STARTED }, byId(round({ createdAt: undefined })))).toEqual([SET]);
+  });
+
+  it('세트마다 따로 판정한다', () => {
+    const doneA = round({ id: 'r-a', setId: 'A', createdAt: STARTED + 1 });
+    expect(unfinishedExamSetIds({ A: STARTED, B: STARTED }, byId(doneA))).toEqual(['B']);
+  });
+});
+
+/**
  * 복원 착지 지점 — restorePersistentSnapshot을 실제로 태워 분기 결과를 본다.
  * 여기가 커버리지 미실행 구간의 가장 큰 덩어리(497-532)다.
  */
@@ -215,5 +258,60 @@ describe('restorePersistentSnapshot — 랜덤/시험 복원 착지', () => {
     seed({ mode: 'exam', setId: SET, index: 0 }, {});
     await storage.restorePersistentSnapshot('istqb');
     expect(store.useQuizStore.getState().resumePrompt).toBe(false);
+  });
+
+  // 시험을 시작하고 답을 하나도 고르지 않은 채 새로고침하는 경우. 응시 개시의 증거가 시험 답안뿐이던
+  // 때는 시작 게이트가 다시 떠서 세트·모드 잠금이 풀리고, 시작을 누르면 기준점이 새로 찍혀 제한시간이
+  // 처음부터 다시 시작됐다(시작 시각은 영속화되는데 복원이 무시했다).
+  it('시험을 시작만 하고 답이 없어도 시작 시각이 남아 있으면 응시 중으로 복원한다', async () => {
+    const startedAt = Date.now() - 5 * 60_000;
+    seed({ mode: 'exam', setId: SET, index: 0, examStartedAt: { [SET]: startedAt } }, {});
+    await storage.restorePersistentSnapshot('istqb');
+    const s = store.useQuizStore.getState();
+    expect(s.examStarted[SET], '시작 게이트가 다시 뜨고 잠금이 풀린다').toBe(true);
+    expect(s.examStartedAt[SET], '기준점이 바뀌면 제한시간이 다시 시작된다').toBe(startedAt);
+    expect(s.resumePrompt, '답이 없으니 이어풀기/새로 풀기 선택은 없다').toBe(false);
+  });
+
+  // 시작 시각은 채점해도 지워지지 않는다. 답 없이 채점된 응시를 시작 시각만 보고 되살리면 만료된
+  // 시계가 다시 자동 제출해 0점 회차가 새로고침마다 쌓인다. IndexedDB는 이 파일에서 공유되므로
+  // 세트 id를 따로 쓴다.
+  it('시작 시각 뒤에 기록된 시험 회차가 있으면 끝난 응시로 보고 응시 중으로 되살리지 않는다', async () => {
+    const DONE = 'ISTQB-FL-V4-R08C-DONE';
+    const startedAt = Date.now() - 2 * 3600_000;
+    await storage.saveHistoryToDB(round({
+      id: 'r08c-done', setId: DONE, answers: {}, correct: 0, total: 40, createdAt: startedAt + 60 * 60_000,
+    }));
+    seed({ mode: 'exam', setId: DONE, index: 0, examStartedAt: { [DONE]: startedAt } }, {});
+    await storage.restorePersistentSnapshot('istqb');
+    expect(
+      store.useQuizStore.getState().examStarted[DONE],
+      '끝난 응시를 되살리면 만료된 시계가 다시 자동 제출한다',
+    ).toBeFalsy();
+  });
+
+  it('시작 시각보다 앞선 회차만 있으면(이전 응시의 것) 이번 응시는 진행 중으로 복원한다', async () => {
+    const PRIOR = 'ISTQB-FL-V4-R08C-PRIOR';
+    const startedAt = Date.now() - 60_000;
+    await storage.saveHistoryToDB(round({ id: 'r08c-prior', setId: PRIOR, answers: {}, createdAt: startedAt - 1 }));
+    seed({ mode: 'exam', setId: PRIOR, index: 0, examStartedAt: { [PRIOR]: startedAt } }, {});
+    await storage.restorePersistentSnapshot('istqb');
+    expect(store.useQuizStore.getState().examStarted[PRIOR]).toBe(true);
+  });
+
+  // IndexedDB를 읽으려다 동기로 던져도(연결이 닫히는 중 등) 복원이 중단되면 안 된다. 중단되면 스토어가
+  // 기본값(홈, 빈 답안)에 머물고, 다음 디바운스 저장이 사용자의 저장된 위치를 그 기본값으로 덮는다.
+  // 잃어도 되는 것은 이력뿐이다 — 위치·답안은 localStorage에 멀쩡히 있다.
+  it('IndexedDB 읽기가 동기로 던져도 저장된 위치·답안은 복원한다', async () => {
+    seed({ mode: 'exam', setId: SET, index: 4 }, { [`${SET}-exam-Q1`]: ['a'] });
+    vi.spyOn(IDBDatabase.prototype, 'transaction').mockImplementation(() => {
+      throw new DOMException('연결이 닫히는 중', 'InvalidStateError');
+    });
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await storage.restorePersistentSnapshot('istqb');
+    const s = store.useQuizStore.getState();
+    expect(s.mode, '복원이 중단돼 기본값(홈)에 머물렀다').toBe('exam');
+    expect(s.index).toBe(4);
+    expect(s.answers[`${SET}-exam-Q1`]).toEqual(['a']);
   });
 });

@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { sanitizeAnswers, sanitizeUiState, sanitizeHistory } from "./storage";
+import { buildRoundHistory } from "./roundHistory";
+import { answerKeyFor } from "./answerKey";
 import type { ExamHistory } from "../store/useQuizStore";
+import type { Question } from "../hooks/useQuestions";
 
 // 외부 입력(localStorage/백업 JSON) 검증 로직 유닛 테스트 (#65/#76).
 describe("sanitizeAnswers", () => {
@@ -189,6 +192,51 @@ describe('sanitizeHistory — 퀵 모드 보존', () => {
   });
 });
 
+// qid — 오답 모드 출제 대상(reviewIds)과 같은 식별자다. 회차를 지운 뒤 남은 회차로 그 대상을 다시 만드는
+// 입력이라(recomputeReviewTargets), 정제가 흘리면 IndexedDB를 읽을 때마다(새로고침마다) 사라진다:
+// 재로드 뒤 회차를 하나 지우면 그 세트의 복습 대상이 통째로 비고, 가져오기는 저장소의 원본 qid까지 파괴한다.
+describe('sanitizeHistory — wrongItems[].qid 보존', () => {
+  const wrong = (item: Record<string, unknown>) =>
+    sanitizeHistory({
+      id: 'h', setId: 'S', mode: 'exam', answers: {},
+      wrongItems: [{ number: 3, myAnswer: ['a'], correctAnswer: ['b'], ...item }],
+    })!.wrongItems![0];
+
+  it('문자열 qid는 보존한다', () => {
+    expect(wrong({ qid: 'ISTQB-FL-V4-A-003' })).toEqual({
+      number: 3, myAnswer: ['a'], correctAnswer: ['b'], qid: 'ISTQB-FL-V4-A-003',
+    });
+  });
+
+  // 과거 기록에는 qid가 없다. 없는 것을 빈 문자열 등으로 채우면 recomputeReviewTargets가 '있다'고 읽는다.
+  it('qid가 없는 과거 기록에는 만들어 붙이지 않는다', () => {
+    expect(wrong({})).not.toHaveProperty('qid');
+  });
+
+  it('문자열이 아니거나 빈 qid는 버린다(조작 백업 방어)', () => {
+    for (const qid of [42, null, '', ['x'], {}]) {
+      expect(wrong({ qid }), `qid=${JSON.stringify(qid)}`).not.toHaveProperty('qid');
+    }
+  });
+
+  // 쓰는 쪽(buildRoundHistory)과 읽는 쪽(정제)을 직접 잇는다 — 한쪽에 필드를 더하고 다른 쪽을 빠뜨리는 것이
+  // 이 결함의 형태였다. 두 목록을 손으로 맞추지 않고 실제 출력을 왕복시킨다.
+  it('buildRoundHistory가 만든 오답 항목은 JSON을 거쳐 정제를 통과해도 그대로다', () => {
+    const SET = 'ISTQB-FL-V4-A';
+    const qs: Question[] = [1, 2].map((n) => ({
+      id: `${SET}-00${n}`, number: n, type: 'multiple_choice', stem: '', answer: ['a'],
+      options: [{ key: 'a', text: '' }, { key: 'b', text: '' }], chapter: '테스트 기초',
+    }));
+    const keyOf = (q: Question) => answerKeyFor(SET, 'exam', q);
+    const h = buildRoundHistory({
+      setId: SET, mode: 'exam', questions: qs, answers: { [keyOf(qs[0])]: ['b'] }, answerKeyOf: keyOf,
+      wrongQuestions: qs, elapsedSeconds: 10, now: 1_000, id: 'r1',
+    });
+    expect(h.wrongItems?.every((it) => typeof it.qid === 'string'), '쓰는 쪽이 qid를 남기지 않는다').toBe(true);
+    expect(sanitizeHistory(JSON.parse(JSON.stringify(h)))!.wrongItems).toEqual(h.wrongItems);
+  });
+});
+
 describe('sanitizeUiState — quickDraw', () => {
   it('제품과 (문항 id, 출처 세트)가 온전하면 통과한다', () => {
     const ui = sanitizeUiState({
@@ -222,8 +270,17 @@ describe('sanitizeUiState — quickDraw', () => {
 // 그래서 개별 필드 테스트가 아니라 클래스를 막는다: 아래 fixture는 Required<ExamHistory>라
 // 인터페이스에 필드가 하나 추가되면 타입 검사가 먼저 깨져 여기를 고치게 되고, 채우고 나면
 // 왕복 동등성이 정제 누락을 잡는다.
+//
+// 안쪽 필드도 같다: Required<ExamHistory>는 바깥 필드만 강제하므로 wrongItems 항목의 선택 필드(setId·qid)는
+// 빠진 채로도 컴파일된다. 실제로 qid가 그렇게 빠져 정제가 조용히 버렸다(회차를 지운 뒤 오답 대상 재계산이 비는 결함).
+// 항목도 Required로 적어 두면 항목 타입에 필드가 늘 때 여기가 먼저 깨진다.
+type WrongItem = Required<NonNullable<ExamHistory['wrongItems']>[number]>;
 describe('sanitizeHistory — 필드 유실 가드(전 필드 왕복)', () => {
   it('저장되는 모든 필드가 정제를 통과해 그대로 돌아온다', () => {
+    const items: WrongItem[] = [
+      { number: 3, myAnswer: ['a'], correctAnswer: ['b'], setId: 'CSTS-EL-2018', qid: 'CSTS-EL-2018-003' },
+      { number: 7, myAnswer: ['c'], correctAnswer: ['d'], setId: 'CSTS-EL-2019', qid: 'CSTS-EL-2019-007' },
+    ];
     const full: Required<ExamHistory> = {
       id: 'h-full',
       setId: 'CSTS-EL-2018',
@@ -235,10 +292,7 @@ describe('sanitizeHistory — 필드 유실 가드(전 필드 왕복)', () => {
       elapsedSeconds: 421,
       createdAt: 1_770_000_000_000,
       setTitle: 'CSTS 실전 2018',
-      wrongItems: [
-        { number: 3, myAnswer: ['a'], correctAnswer: ['b'], setId: 'CSTS-EL-2018' },
-        { number: 7, myAnswer: ['c'], correctAnswer: ['d'], setId: 'CSTS-EL-2019' },
-      ],
+      wrongItems: items,
       chapterStats: { 테스트설계: { c: 4, t: 6 } },
       chapterQuestions: { 테스트설계: { ok: ['Q1', 'Q2'], no: ['Q3'] } },
       cstsWeighted: { score: 11.5, maxScore: 14 },
