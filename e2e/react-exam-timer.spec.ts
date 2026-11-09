@@ -103,6 +103,27 @@ test.describe("시험 제한시간", () => {
     expect(rounds[0].total).toBe(40); // 0이 아니어야 한다
   });
 
+  // 응답이 한 건도 없는 만료는 0점 회차로 남기지 않는다(expiredExamAction). 시험을 열어 두고 잊거나
+  // 시작만 하고 앱을 닫았다가 만료 뒤에 돌아온 경우다. 수동 채점은 이 규칙을 타지 않는다.
+  test("답 없이 시작만 한 시험이 만료되면 기록 없이 게이트로 돌아가고 다시 만료되지 않는다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await enterExam(page); // 응시 시작 시각이 저장된다 — 답은 고르지 않는다
+
+    await page.goto("/");
+    await rewindExamStart(page, 61);
+
+    await page.getByRole("button", { name: "ISTQB" }).click();
+    // 결과 모달이 뜨지 않고 제품 게이트로 돌아온다.
+    await expect(page.getByRole("button", { name: "ISTQB" })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("result-summary")).toHaveCount(0);
+    expect(await readRounds(page)).toEqual([]);
+
+    // 시작 시각까지 비웠으므로 다시 들어가면 새 응시 게이트가 뜬다(옛 시각으로 복원돼 또 만료되지 않는다).
+    await page.getByRole("button", { name: "ISTQB" }).click();
+    await expect(page.getByTestId("result-summary")).toHaveCount(0);
+    expect(await readRounds(page)).toEqual([]);
+  });
+
   // 위 두 테스트는 '꺼졌다 켜진 뒤 복원'만 덮는다. 그 경로에서는 복원된 답안이 타이머 effect가
   // 만들어지기 전에 이미 스토어에 있어서, effect가 붙잡은 채점 함수가 **만들어진 시점의 답안**을
   // 읽는 결함이 가려진다(앱이 켜진 채 만료되면 채점은 빈 답안으로 돌아 40문항이 전부 오답으로

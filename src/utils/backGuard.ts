@@ -167,3 +167,18 @@ export function __resetBackGuardForTest(): void {
   pushed = false;
   ignorePop = false;
 }
+
+/**
+ * 화면 위에 오버레이(모달·드로어·확인 창·라이트박스)가 열려 있는가.
+ *
+ * 키보드 이동처럼 "뒤 화면을 건드려도 되는가"를 묻는 곳이 쓴다. 스토어 플래그를 일일이 나열하면 새 오버레이마다
+ * 목록이 빠졌다(`pendingSetChange`·`pendingRestart`·`confirmExitExam`이 그랬다) — 오버레이는 등록이 이미
+ * 규칙이라(`useBackDismiss`) 이 레지스트리가 단일 원천이다. 시험 응시 중 이탈 가드(`BACK_PRIORITY.exam`)와
+ * 전체화면(`screen`)은 화면 자체의 가드라 오버레이가 아니므로 뺀다 — 안 그러면 응시 중에는 늘 참이다.
+ */
+export function hasOpenOverlay(): boolean {
+  for (const g of guards) {
+    if (g.priority > BACK_PRIORITY.exam) return true;
+  }
+  return false;
+}

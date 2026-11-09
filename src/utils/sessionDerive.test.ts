@@ -3,7 +3,7 @@ import type { Question } from '../hooks/useQuestions';
 import {
   selectGradableQuestions, tallySession, selectCorrectQuestions,
   deriveExamStage, clampIndex, deriveQuickControls, deriveCanGrade, progressPercentOf,
-  isAtProductGate,
+  isAtProductGate, expiredExamAction,
 } from './sessionDerive';
 
 /**
@@ -265,5 +265,15 @@ describe('isAtProductGate — 게이트인가', () => {
   // 빈 문자열은 '고르지 않음'과 같게 다룬다 — 손상된 저장값이 그대로 실릴 수 있다.
   it('제품이 빈 문자열이면 게이트로 본다', () => {
     expect(isAtProductGate({ mode: 'practice', activeProduct: '' })).toBe(true);
+  });
+});
+
+describe('expiredExamAction — 만료된 시험의 처리', () => {
+  it('응답이 한 건도 없으면 기록하지 않고 버린다', () => {
+    expect(expiredExamAction(0)).toBe('discard');
+  });
+  it('하나라도 답했으면 고른 답안으로 채점한다', () => {
+    expect(expiredExamAction(1)).toBe('grade');
+    expect(expiredExamAction(40)).toBe('grade');
   });
 });

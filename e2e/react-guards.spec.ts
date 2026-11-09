@@ -52,6 +52,39 @@ test.describe("확인 가드", () => {
     await expect(page.getByTestId("wrong-note")).toBeVisible();
   });
 
+  // R-12: 키보드 좌우 화살표는 열린 오버레이와 `select` 뒤에서 문항을 넘기면 안 된다. 오버레이 판정은 스토어
+  // 플래그 목록이 아니라 뒤로가기 레지스트리(hasOpenOverlay)가 단일 원천이다 — 시험 나가기 확인 창
+  // (confirmExitExam)은 예전 목록에 빠져 있었다.
+  test("확인 창이 열려 있는 동안 좌우 화살표는 문항을 넘기지 않는다", async ({ page }) => {
+    await openSet(page, "ISTQB", SET);
+    await enterExam(page);
+    await page.locator("#options .option").first().click();
+    const title = page.locator("#questionTitle");
+    const before = await title.textContent();
+
+    await page.goBack();
+    await expect(page.getByTestId("confirm-exit-exam-modal")).toBeVisible();
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowRight");
+    await expect(title, "확인 창 뒤에서 문항이 넘어갔다").toHaveText(before ?? "");
+
+    await page.getByTestId("confirm-exit-cancel").click();
+    await page.keyboard.press("ArrowRight");
+    await expect(title, "확인 창을 닫으면 다시 이동해야 한다").not.toHaveText(before ?? "");
+  });
+
+  test("세트 셀렉트에 포커스가 있을 때 화살표는 문항을 넘기지 않는다", async ({ page }) => {
+    await openSet(page, "ISTQB", SET);
+    const title = page.locator("#questionTitle");
+    await expect(title).toBeVisible();
+    const before = await title.textContent();
+    const select = page.locator("#examSelect");
+    test.skip(!(await select.isVisible()), "데스크톱 사이드바에서만 의미가 있다");
+    await select.focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(title).toHaveText(before ?? "");
+  });
+
   test("한 문항도 안 풀고 채점하면 0점 회차로 기록된다고 알린다", async ({ page }) => {
     await openSet(page, "ISTQB", SET);
     await enterExam(page);

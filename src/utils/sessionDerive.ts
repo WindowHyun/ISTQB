@@ -193,3 +193,17 @@ export function isAtProductGate(input: {
 }): boolean {
   return input.mode === 'home' || !input.activeProduct;
 }
+
+/**
+ * 제한시간이 끝난 시험을 어떻게 닫을까.
+ *
+ * 만료는 원칙적으로 제출이다 — 고른 답안으로 채점하고 미응답은 오답으로 센다(수동 채점과 같은 규칙).
+ * 다만 **응답이 한 건도 없는** 만료는 기록하지 않고 버린다. 시험을 열어 두고 잊었거나, 시작만 하고 앱을
+ * 닫았다가 만료 뒤에 돌아온 경우인데, 0점 회차는 약점 분석에 정보가 없고 챕터 분모만 키운다.
+ * 수동 채점은 이 규칙을 타지 않는다 — 사용자가 직접 누른 0점은 의도된 기록이다.
+ */
+export type ExpiredExamAction = 'grade' | 'discard';
+
+export function expiredExamAction(answered: number): ExpiredExamAction {
+  return answered > 0 ? 'grade' : 'discard';
+}

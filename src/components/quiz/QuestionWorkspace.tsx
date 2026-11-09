@@ -12,7 +12,9 @@ import { formatClock } from '../../utils/time';
 import { useBackDismiss } from '../../hooks/useBackDismiss';
 import { BACK_PRIORITY } from '../../utils/backGuard';
 import { answerKeyFor } from '../../utils/answerKey';
-import { clampIndex } from '../../utils/sessionDerive';
+import { clampIndex, expiredExamAction } from '../../utils/sessionDerive';
+import { keyNavTarget } from '../../utils/keyNav';
+import { hasOpenOverlay } from '../../utils/backGuard';
 import { isImageLightboxOpen } from '../../utils/lightbox';
 import { QuestionCard } from './QuestionCard';
 import { QuestionPalette } from './QuestionPalette';
@@ -85,7 +87,16 @@ export const QuestionWorkspace = () => {
   // 값을 읽어 정답으로 보인다). 이 effect는 아래 타이머 effect보다 먼저 선언해야 한다 — 같은
   // 커밋에서 먼저 돌아야 복원 직후 즉시 1회 판정도 최신 함수를 본다.
   const gradeAndShowRef = useRef(gradeAndShow);
-  useEffect(() => { gradeAndShowRef.current = gradeAndShow; });
+  // 만료 시점의 응답 수도 같은 이유로 ref로 읽는다 — 응답이 0건이면 기록하지 않고 게이트로 돌린다.
+  const answeredRef = useRef(answered);
+  const setIdRef = useRef(setId);
+  const questionsRef = useRef(currentQuestions);
+  useEffect(() => {
+    gradeAndShowRef.current = gradeAndShow;
+    answeredRef.current = answered;
+    setIdRef.current = setId;
+    questionsRef.current = currentQuestions;
+  });
 
   useEffect(() => {
     // 채점 후에는 타이머를 정지한다 — 결과가 나온 뒤에도 시간이 계속 오르면
@@ -121,6 +132,15 @@ export const QuestionWorkspace = () => {
       prevRemainingRef.current = remaining;
       if (remaining <= 0) {
         autoSubmittedRef.current = true;
+        if (expiredExamAction(answeredRef.current) === 'discard') {
+          // 응답이 없는 만료는 0점 회차로 남기지 않는다(expiredExamAction 주석).
+          showToast('제한시간이 종료됐지만 응답이 없어 기록하지 않았습니다.', 'info', 5000);
+          // 시작 시각까지 비운다 — 남기면 다시 들어올 때 옛 시작 시각으로 응시 중이 복원돼 곧바로 또 만료된다.
+          const store = useQuizStore.getState();
+          store.clearAnswers(setIdRef.current, 'exam');
+          store.resetToGate();
+          return;
+        }
         showToast('제한시간이 종료되어 자동으로 제출했습니다.', 'info', 5000);
         gradeAndShowRef.current(); // 미응답은 오답 처리(수동 채점과 동일 규칙)
         return;
@@ -210,43 +230,34 @@ export const QuestionWorkspace = () => {
     if (resumeNotice && index <= 0) setResumeNotice(false);
   }, [resumeNotice, index, setResumeNotice]);
 
-  // 키보드 좌우 화살표로 문항 이동 (입력 필드 포커스 시 제외)
+  // 키보드 좌우 화살표로 문항 이동 — 판정은 utils/keyNav가 맡는다.
+  // 목록은 렌더마다 갱신되는 ref로 읽는다(의존성에 길이만 두면 퀵 '다시 섞어 시작'처럼 길이가 같은 새 목록을
+  // 이전 목록으로 보게 된다 — gradeAndShowRef와 같은 결함 클래스). 오버레이는 뒤로가기 레지스트리가 단일 원천이다.
   useEffect(() => {
-    const total = currentQuestions.length;
     const handleKey = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
-        return;
-      }
-      // 오버레이(모달/드로어)가 열려 있으면 화살표가 뒤 문항을 바꾸지 않도록 무시한다.
-      // Modal은 Esc/Tab만 가로채고 화살표는 통과시키며, 모달 포커스는 버튼이라 위 입력 가드에도 안 걸린다.
+      const list = questionsRef.current;
+      const total = list.length;
       const s = useQuizStore.getState();
-      if (
-        isImageLightboxOpen() ||
-        s.settingsOpen || s.statsOpen || s.wrongNoteOpen || s.resultOpen || s.paletteOpen || s.setSheetOpen ||
-        s.confirmGradeOpen || s.resumePrompt || s.drawerOpen ||
-        s.quitExamOpen || s.gradedResume !== null
-      ) {
-        return;
+      // 퀵에서 앞으로 가는 길은 '채점 후'뿐이다 — 버튼(‹ ›의 ›)을 없앤 것과 같은 규칙을 키보드에도 건다.
+      // 아니면 화살표 하나로 채점하지 않은 문항을 미리 넘겨볼 수 있다.
+      let forwardBlocked = false;
+      if (s.mode === 'quick') {
+        const q = list[clampIndex(s.index, total)];
+        forwardBlocked = !q || !s.quickGraded[answerKeyFor(s.setId, 'quick', q)];
       }
-      if (event.key === 'ArrowLeft') setIndex((i) => Math.max(0, i - 1));
-      else if (event.key === 'ArrowRight') {
-        // 퀵에서 앞으로 가는 길은 '채점 후'뿐이다 — 버튼(‹ ›의 ›)을 없앤 것과 같은 규칙을
-        // 키보드에도 건다. 아니면 화살표 하나로 채점하지 않은 문항을 미리 넘겨볼 수 있다.
-        if (s.mode === 'quick') {
-          const q = currentQuestions[clampIndex(s.index, total)];
-          if (!q || !s.quickGraded[answerKeyFor(s.setId, 'quick', q)]) return;
-        }
-        setIndex((i) => Math.min(total - 1, i + 1));
-      }
+      const next = keyNavTarget({
+        key: event.key,
+        target: event.target as HTMLElement | null,
+        overlayOpen: isImageLightboxOpen() || hasOpenOverlay(),
+        total,
+        index: s.index,
+        forwardBlocked,
+      });
+      if (next != null) setIndex(next);
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-    // currentQuestions는 배열 참조가 매 렌더 바뀔 수 있어 의존성에 넣으면 리스너가 계속
-    // 재등록된다. 핸들러는 길이(total)만 미리 읽고 나머지는 이벤트 시점의 스토어에서
-    // 읽으므로(퀵의 채점 여부 판정 포함) 목록 길이만 의존성으로 충분하다.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setIndex, currentQuestions.length]);
+  }, [setIndex]);
 
   /**
    * 지금 실린 출제 목록이 **어느 맥락에서 만들어졌는지**를 DOM에 적는다.
