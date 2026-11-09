@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures";
-import { completeAttempt, enterExam, enterMiniTest, openProduct, openSet } from "./helpers";
+import { closeResult, completeAttempt, enterExam, enterMiniTest, openProduct, openSet, submitGrade } from "./helpers";
 
 const SET = "ISTQB-FL-V4-A";
 
@@ -34,6 +34,24 @@ test.describe("확인 가드", () => {
 
   // B4: 세트 변경과 같은 손실인데 이 경로만 확인 없이 즉시 실행됐다.
   // B5: 0문항 채점은 0점 회차가 영구 기록된다 — 무엇이 남는지 알려야 한다.
+  // 오답 노트에는 같은 세트의 이전 회차 오답과 정답이 있다. 모바일 상단바는 응시 중 칩을 내리는데
+  // 사이드바 버튼은 가드 없이 열었다 — 입구가 둘인데 규칙이 한쪽에만 있던 결함(R-13).
+  test("응시 중에는 사이드바의 오답 노트 버튼이 노트를 열지 못하고, 채점하면 연다", async ({ page }) => {
+    await openSet(page, "ISTQB", SET);
+    await enterExam(page);
+    await page.locator("#options .option").first().click();
+    const entry = page.locator(".sidebar-controls .actions button.subtle", { hasText: "오답 노트" });
+
+    await entry.click();
+    await expect(page.getByTestId("toast")).toContainText("시험 응시 중에는 오답 노트를 열 수 없습니다");
+    await expect(page.getByTestId("wrong-note"), "응시 중에 정답이 든 노트가 열렸다").toHaveCount(0);
+
+    await submitGrade(page);
+    await closeResult(page);
+    await entry.click();
+    await expect(page.getByTestId("wrong-note")).toBeVisible();
+  });
+
   test("한 문항도 안 풀고 채점하면 0점 회차로 기록된다고 알린다", async ({ page }) => {
     await openSet(page, "ISTQB", SET);
     await enterExam(page);

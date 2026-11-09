@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useQuizStore, QUICK_ALL } from '../../store/useQuizStore';
 import { useQuizSession } from '../../hooks/useQuizSession';
-import { startRetryWrong } from '../../hooks/useRetryWrong';
+import { startRetryWrong, openWrongNote } from '../../hooks/useRetryWrong';
 import { requestSetChange } from '../../hooks/useSetChange';
 import { gradeKeyFor } from '../../utils/answerKey';
 import { productSets } from '../../utils/setSheet';
@@ -29,14 +29,14 @@ export const Sidebar = () => {
   const {
     mode, setId, activeProduct, drawerOpen,
     setMode, setSetId, beginSession, clearAnswers,
-    setStatsOpen, setSettingsOpen, setWrongNoteOpen, setResultOpen, setDrawerOpen,
+    setStatsOpen, setSettingsOpen, setResultOpen, setDrawerOpen,
     setQuitExamOpen, startQuick,
   } = useQuizStore(useShallow((s) => ({
     mode: s.mode, setId: s.setId, activeProduct: s.activeProduct, drawerOpen: s.drawerOpen,
     setMode: s.setMode, setSetId: s.setSetId, beginSession: s.beginSession,
     clearAnswers: s.clearAnswers,
     setStatsOpen: s.setStatsOpen, setSettingsOpen: s.setSettingsOpen,
-    setWrongNoteOpen: s.setWrongNoteOpen, setResultOpen: s.setResultOpen,
+    setResultOpen: s.setResultOpen,
     setDrawerOpen: s.setDrawerOpen,
     setQuitExamOpen: s.setQuitExamOpen,
     startQuick: s.startQuick,
@@ -404,7 +404,7 @@ export const Sidebar = () => {
             {mode !== 'quick' && (
               <button type="button" onClick={handleRetryWrong}>오답 다시 풀기</button>
             )}
-            <button type="button" className="subtle" onClick={() => { setWrongNoteOpen(true); closeDrawer(); }}>
+            <button type="button" className="subtle" onClick={() => { if (openWrongNote(examLocked)) closeDrawer(); }}>
               오답 노트
             </button>
           </div>

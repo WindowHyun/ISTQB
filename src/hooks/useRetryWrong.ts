@@ -6,6 +6,22 @@ import { loadSetQuestions, peekSetQuestions } from '../utils/questionLoader';
 import { showToast } from '../utils/toast';
 
 /**
+ * 오답 노트를 연다. 열었으면 true — 부르는 쪽이 자기 오버레이(드로어)를 닫는다.
+ *
+ * 오답 노트에는 같은 세트의 이전 회차 오답과 **정답**이 있어, 시험 응시 중에는 입구가 되면 안 된다.
+ * 모바일 상단바는 응시 잠금 중 칩을 아예 내리는데 사이드바 버튼은 가드 없이 열었다 — 입구가 둘인데
+ * 규칙이 한쪽에만 있던 결함이다. 가드는 입구가 아니라 이 함수에 둔다(`startRetryWrong`과 같은 이유).
+ */
+export function openWrongNote(examLocked: boolean): boolean {
+  if (examLocked) {
+    showToast('시험 응시 중에는 오답 노트를 열 수 없습니다. 먼저 채점하세요.', 'info');
+    return false;
+  }
+  useQuizStore.getState().setWrongNoteOpen(true);
+  return true;
+}
+
+/**
  * 오답 다시 풀기를 시작한다. 시작했으면 true — 부르는 쪽이 자기 오버레이(드로어·시트)를 닫는다.
  *
  * 사이드바의 '오답 다시 풀기'와 문항 목록 시트의 'N문제 다시 풀기'가 **같은 길**을 쓴다.
