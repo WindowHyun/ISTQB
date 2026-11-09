@@ -140,6 +140,8 @@ export function isAnswered(selected: string[], parts?: AnswerPart[]): boolean {
   if (parts && parts.length) {
     return parts.every((_, i) => (selected[i] ?? '').trim() !== '');
   }
-  return selected.length > 0;
+  // 공백만 든 입력([' '])은 답이 아니다 — 서답형에서 지운 칸·공백 한 칸이 '답함'으로 세어지면 시험의
+  // '미응답 N개' 경고에서 빠진다. 세트 시트의 풀이 진행(solvedQuestionIds)도 이 함수를 쓴다.
+  return selected.some((v) => String(v).trim() !== '');
 }
 

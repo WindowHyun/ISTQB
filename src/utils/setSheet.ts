@@ -1,4 +1,5 @@
 import { answerKeyPrefix } from './answerKey';
+import { isAnswered } from './answer';
 
 /**
  * 세트 선택 시트가 그리는 데이터 — 순수 계층.
@@ -121,8 +122,8 @@ export function solvedQuestionIds(answers: Record<string, string[]>, setId: stri
     const prefix = answerKeyPrefix(setId, mode);
     for (const [key, selected] of Object.entries(answers)) {
       if (!key.startsWith(prefix)) continue;
-      // 빈 문자열만 든 칸(서답형 지운 뒤)은 답이 아니다.
-      if (Array.isArray(selected) && selected.some((v) => String(v).trim() !== '')) {
+      // 답함의 단일 원천은 isAnswered다 — 빈 칸·공백만 든 칸(서답형 지운 뒤)은 답이 아니다.
+      if (Array.isArray(selected) && isAnswered(selected)) {
         out.add(key.slice(prefix.length));
       }
     }

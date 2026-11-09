@@ -84,6 +84,15 @@ describe("isAnswered", () => {
     expect(isAnswered(["a", "b"])).toBe(true);
     expect(isAnswered([])).toBe(false);
   });
+  // 서답형에 공백만 넣으면 [' ']로 저장된다 — 답으로 세면 시험의 '미응답 N개' 경고에서 빠져, 나머지를 다 풀 때
+  // 확인 없이 오답으로 채점됐다(다답형은 이미 trim했다).
+  it("공백만 든 입력은 답이 아니다(단일 칸)", () => {
+    expect(isAnswered([" "])).toBe(false);
+    expect(isAnswered(["\t"])).toBe(false);
+    expect(isAnswered(["", " "])).toBe(false);
+    expect(isAnswered([" 답 "])).toBe(true);
+    expect(isAnswered(["a", " "])).toBe(true); // 하나라도 실제 선택이 있으면
+  });
   it("다답형은 모든 칸이 채워져야 답함(부분 입력은 미응답)", () => {
     expect(isAnswered(["4", "7"], parts)).toBe(true);
     expect(isAnswered(["4", ""], parts)).toBe(false); // 반쪽

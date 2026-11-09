@@ -8,6 +8,7 @@ import {
   solvedCountForSet,
   solvedQuestionIds,
 } from './setSheet';
+import { isAnswered } from './answer';
 
 /**
  * 세트 선택 시트의 표시 데이터. 원제목은 PDF 출처 표기라 한 줄에 다 들어오지 않아
@@ -164,5 +165,16 @@ describe('진행 문구·막대', () => {
     expect(setProgressPercent(99, 70)).toBe(100);
     expect(setProgressPercent(3, undefined)).toBe(0);
     expect(setProgressPercent(3, 0)).toBe(0);
+  });
+});
+
+// 같은 술어, 다른 범위 — 시험의 '미응답' 경고(isAnswered)와 세트 시트의 풀이 진행이 따로 판정하면 한쪽에서
+// 공백 입력이 '답함'이고 다른 쪽에서 '안 풂'이 된다(R-11). 같은 선택값에서 두 판정이 같아야 한다.
+describe('solvedQuestionIds × isAnswered — 답함의 단일 원천', () => {
+  const SET = 'ISTQB-FL-V4-A';
+  const cases: string[][] = [['a'], ['a', 'b'], [], [' '], ['\t'], ['', ' '], [' 답 '], ['a', ' ']];
+  it.each(cases)('선택값 %j', (...selected) => {
+    const answers = { [`${SET}-practice-Q1`]: selected };
+    expect(solvedQuestionIds(answers, SET).has('Q1')).toBe(isAnswered(selected));
   });
 });
