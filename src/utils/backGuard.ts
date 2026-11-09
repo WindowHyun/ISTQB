@@ -94,8 +94,26 @@ function onPopState(): void {
   sync();
 }
 
+/**
+ * 이전 문서가 남긴 가드 항목을 걷어 낸다. 앱 시작 시(모듈 로드) 1회 불린다.
+ *
+ * 오버레이를 연 채 새로고침하면 history의 `{__overlayGuard: true}` 항목은 남는데 `pushed`는 모듈
+ * 변수라 false로 돌아간다 — 앱은 그 항목을 모르고, 게이트에서 뒤로가기가 무시되며 APK에서는
+ * `canGoBack`이 참이라 종료까지 두 번 눌러야 한다. 우리 항목은 현재 항목 위에 쌓인 것이므로
+ * `back()`으로 걷어 낸다. 그 popstate는 오버레이를 닫는 신호가 아니라 `ignorePop`으로 삼킨다.
+ */
+export function dropStaleGuard(): boolean {
+  if (!canUseHistory()) return false;
+  const state = window.history.state as { __overlayGuard?: boolean } | null;
+  if (!state?.__overlayGuard) return false;
+  ignorePop = true;
+  window.history.back();
+  return true;
+}
+
 if (canUseHistory()) {
   window.addEventListener('popstate', onPopState);
+  dropStaleGuard();
 }
 
 /**

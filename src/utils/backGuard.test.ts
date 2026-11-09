@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { registerBackGuard, BACK_PRIORITY, __resetBackGuardForTest } from './backGuard';
+import { registerBackGuard, dropStaleGuard, BACK_PRIORITY, __resetBackGuardForTest } from './backGuard';
 
 // jsdom의 history는 실제로 동작하지만 back()이 비동기라 테스트에서 다루기 번거롭다.
 // 여기서는 "가드를 몇 번 쌓고 되돌렸는지"와 "뒤로가기 시 어떤 오버레이가 닫히는지"를
@@ -19,6 +19,35 @@ describe('backGuard', () => {
     pushSpy = vi.spyOn(window.history, 'pushState').mockImplementation(() => {});
     // back()은 실제 popstate를 만들지 않는다 — 테스트가 직접 popstate()로 흉내낸다.
     backSpy = vi.spyOn(window.history, 'back').mockImplementation(() => {});
+  });
+
+  // 오버레이를 연 채 새로고침하면 history의 가드 항목은 남는데 앱은 그것을 모른다 — 게이트의 뒤로가기가
+  // 무시되고 APK에서는 종료까지 두 번 눌러야 했다(R-16).
+  describe('이전 문서가 남긴 가드 항목', () => {
+    it('남아 있으면 back()으로 걷어 내고, 그 popstate는 오버레이를 닫지 않는다', () => {
+      window.history.replaceState({ __overlayGuard: true }, '');
+      const close = vi.fn();
+      expect(dropStaleGuard()).toBe(true);
+      expect(backSpy).toHaveBeenCalledTimes(1);
+
+      popstate(); // back()이 만든 popstate — 삼켜야 한다
+      const off = registerBackGuard({ priority: BACK_PRIORITY.modal, close });
+      expect(close).not.toHaveBeenCalled();
+      expect(pushSpy, '삼킨 뒤에는 새 오버레이가 가드를 정상으로 쌓는다').toHaveBeenCalledTimes(1);
+      off();
+    });
+
+    it('없으면 아무것도 하지 않는다', () => {
+      window.history.replaceState(null, '');
+      expect(dropStaleGuard()).toBe(false);
+      expect(backSpy).not.toHaveBeenCalled();
+    });
+
+    it('상태가 다른 항목(다른 가드 표식 없음)은 건드리지 않는다', () => {
+      window.history.replaceState({ other: 1 }, '');
+      expect(dropStaleGuard()).toBe(false);
+      expect(backSpy).not.toHaveBeenCalled();
+    });
   });
 
   it('오버레이가 열리면 history 가드를 한 번만 쌓는다', () => {
