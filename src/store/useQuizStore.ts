@@ -312,6 +312,13 @@ export interface QuizState {
 // 함수형인 이유: 상수 객체면 중첩 {}가 모듈 공유 참조로 hydrate에 유입돼, 어딘가에서
 // 직접 변이하는 코드가 생기는 순간 제품 간 상태가 오염되는 잠복 결함이 된다.
 export const sessionScopeDefaults = () => ({
+  // 풀이 위치도 제품 스코프다. 빠져 있으면 저장값이 없는 제품에 처음 들어갈 때 이전 제품의 위치(예: 13번 ·
+  // 20:34)로 열리고 그 값이 새 제품 키에 저장된다. 저장값이 있으면 아래 복원이 이 기본값을 덮는다(R-08d).
+  // setId가 빈 문자열인 것은 스토어의 초기값과 같다 — 세트 미선택이며 사이드바가 첫 세트를 고른다.
+  setId: '' as string,
+  index: 0,
+  elapsedSeconds: 0,
+  navCollapsed: false,
   graded: {} as Record<string, boolean>,
   examStarted: {} as Record<string, boolean>,
   examStartedAt: {} as Record<string, number>,
@@ -422,13 +429,20 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   addHistory: (history) => set((state) => ({
     histories: { ...state.histories, [history.id]: history }
   })),
-  addQuickRound: (round) => set((state) => ({
+  addQuickRound: (round) => set((state) => {
     // 넣을 때 만료분을 함께 버린다 — 읽는 쪽에서도 거르지만, 저장소가 무한정 자라는 것은 막는다.
     // 같은 id는 갈아끼운다: 퀵은 문항마다 채점하지만 회차는 세션당 하나이고, 채점할 때마다
     // 그 회차가 자란다. 덧붙이기만 하면 한 세션이 문항 수만큼의 회차로 쪼개져 24시간
     // 오답 목록이 파편화되고 저장소도 그만큼 부푼다.
-    quickRounds: [...freshQuickRounds(state.quickRounds).filter((r) => r.id !== round.id), round],
-  })),
+    const fresh = freshQuickRounds(state.quickRounds);
+    // 갈아끼워도 **최초 시각은 지킨다**(R-09a·b, 결정 D-06 B·D-07 B). 재조립마다 createdAt을 now로 찍으면 24시간
+    // 만료가 채점할 때마다 새로 시작돼 만료된 오답이 되살아나고, 같은 세션에서 먼저 틀린 문항의 '최신 시각'도
+    // 매번 뒤로 밀려 이후 시험의 정답이 챕터 통계에서 무시된다. 이미 만료돼 걸러진 회차를 잇는 채점이면
+    // fresh에 없으므로 새 회차로 시작한다(그때는 새 시각이 맞다).
+    const prev = fresh.find((r) => r.id === round.id);
+    const next = prev?.createdAt != null ? { ...round, createdAt: prev.createdAt } : round;
+    return { quickRounds: [...fresh.filter((r) => r.id !== round.id), next] };
+  }),
   setWrongView: (wrongView) => set({ wrongView }),
   markQuickGraded: (key) => set((state) => ({
     quickGraded: { ...state.quickGraded, [key]: true },

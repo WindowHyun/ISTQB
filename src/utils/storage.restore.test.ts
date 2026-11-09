@@ -319,6 +319,30 @@ describe('restorePersistentSnapshot — 랜덤/시험 복원 착지', () => {
   // 스냅샷은 UI 상태와 답안의 합본이지만, 각각의 per-key 사본이 따로 저장돼 있다. 스냅샷이 깨졌거나 한쪽
   // 조각이 없을 때 멀쩡한 사본을 버리면 풀던 자리와 답안을 잃고, 저장값이 JSON null이면 TypeError로 복원
   // 전체가 중단됐다(R-08e).
+  // R-08d(D-08 A): 풀이 위치도 제품 스코프다 — sessionScopeDefaults에 없으면 저장값이 없는 제품에 처음 들어갈 때
+  // 이전 제품의 위치로 열리고 그 값이 새 제품 키에 저장된다.
+  describe('제품을 바꿀 때 이전 제품의 풀이 위치가 새지 않는다', () => {
+    it('저장값이 없는 제품은 위치·경과 시간·사이드바 접힘이 기본값으로 열린다', async () => {
+      store.useQuizStore.setState({
+        activeProduct: 'istqb', setId: SET, index: 12, elapsedSeconds: 20 * 60 + 34, navCollapsed: true,
+      });
+      await storage.restorePersistentSnapshot('csts'); // CSTS는 저장된 것이 없다
+      const s = store.useQuizStore.getState();
+      expect(s.index, '이전 제품의 문항 번호가 새어들었다').toBe(0);
+      expect(s.elapsedSeconds, '이전 제품의 경과 시간이 새어들었다').toBe(0);
+      expect(s.navCollapsed).toBe(false);
+      expect(s.setId, '이전 제품의 세트가 새어들었다').toBe('');
+    });
+
+    it('저장값이 있는 제품은 그 값이 기본값을 덮는다', async () => {
+      store.useQuizStore.setState({ activeProduct: 'csts', setId: 'CSTS-X', index: 7, elapsedSeconds: 99, navCollapsed: true });
+      seed({ mode: 'practice', setId: SET, index: 5, elapsedSeconds: 61, navCollapsed: false });
+      await storage.restorePersistentSnapshot('istqb');
+      const s = store.useQuizStore.getState();
+      expect([s.setId, s.index, s.elapsedSeconds, s.navCollapsed]).toEqual([SET, 5, 61, false]);
+    });
+  });
+
   describe('스냅샷이 손상됐을 때는 per-key 사본으로 복원한다', () => {
     const SNAP = 'istqb-fl-v4-sample-history-snapshot';
     const ui = { mode: 'practice', setId: SET, index: 5 };

@@ -510,6 +510,34 @@ describe('퀵 임시 회차(quickRounds)', () => {
     expect(useQuizStore.getState().quickRounds.map((r) => r.id)).toEqual(['new']);
   });
 
+  // R-09a·b(D-06 B·D-07 B): 같은 id를 갈아끼워도 최초 시각을 지킨다. 재조립마다 now로 찍으면 24시간 만료가
+  // 채점할 때마다 다시 시작돼 만료된 오답이 되살아난다.
+  it('같은 회차를 다시 넣어도 createdAt은 최초 시각을 유지한다', () => {
+    const first = Date.now() - 60 * 60 * 1000; // 한 시간 전에 시작한 세션
+    useQuizStore.setState({ quickRounds: [round('s1', 'istqb', first)] });
+    useQuizStore.getState().addQuickRound({ ...round('s1', 'istqb', Date.now()), correct: 5, total: 6 });
+    const [r, ...rest] = useQuizStore.getState().quickRounds;
+    expect(rest, '같은 id는 하나로 합쳐진다').toEqual([]);
+    expect(r.createdAt, '재조립이 시각을 now로 덮어 만료가 되살아났다').toBe(first);
+    expect(r.total, '내용은 새 값으로 갈아끼워진다').toBe(6);
+  });
+
+  it('이미 만료돼 걸러진 회차를 잇는 채점은 새 회차로 시작한다(새 시각)', () => {
+    const now = Date.now();
+    useQuizStore.setState({ quickRounds: [round('s2', 'istqb', now - 25 * 60 * 60 * 1000)] });
+    useQuizStore.getState().addQuickRound(round('s2', 'istqb', now));
+    expect(useQuizStore.getState().quickRounds).toHaveLength(1);
+    expect(useQuizStore.getState().quickRounds[0].createdAt).toBe(now);
+  });
+
+  it('다른 id의 회차는 각자의 시각을 가진다', () => {
+    const now = Date.now();
+    useQuizStore.setState({ quickRounds: [round('a', 'istqb', now - 1000)] });
+    useQuizStore.getState().addQuickRound(round('b', 'istqb', now));
+    const byId = Object.fromEntries(useQuizStore.getState().quickRounds.map((r) => [r.id, r.createdAt]));
+    expect(byId).toEqual({ a: now - 1000, b: now });
+  });
+
   it('clearQuickRounds는 해당 자격증 회차만 지운다', () => {
     const now = Date.now();
     useQuizStore.setState({
