@@ -48,9 +48,16 @@ export function startUpdateChecks(
     // 얼어붙으므로(시각을 하루 되돌리면 하루 동안), 어긋난 시점은 한 번 확인하고
     // 기준을 다시 잡는다.
     if (elapsed >= 0 && elapsed < minIntervalMs) return;
-    lastCheckedAt = Date.now();
+    const previous = lastCheckedAt;
+    const startedAt = Date.now();
+    lastCheckedAt = startedAt;
     // 오프라인·서버 오류로 실패하는 것은 정상이다 — 다음 시점에 다시 묻는다.
-    registration.update().catch(() => {});
+    // 실패한 확인은 '확인한 것'이 아니므로 간격을 되돌린다. 그러지 않으면 재연결 직후의 online
+    // 이벤트가 방금 실패한 확인이 남긴 최소 간격에 막혀 새 버전 배너가 주기만큼 늦어진다.
+    // 그 사이 다른 확인이 시각을 갱신했다면(요청이 길어진 경우) 그 값을 덮지 않는다.
+    registration.update().catch(() => {
+      if (lastCheckedAt === startedAt) lastCheckedAt = previous;
+    });
   };
 
   const onVisibilityChange = (): void => {

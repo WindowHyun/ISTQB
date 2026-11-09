@@ -107,6 +107,37 @@ describe('swUpdateCheck', () => {
     expect(registration.update).toHaveBeenCalledTimes(1);
   });
 
+  // 재연결 직후의 online 이벤트가 이전 실패가 남긴 최소 간격에 막혀, 새 버전 배너가 최대 주기만큼 늦어졌다.
+  // 실패한 확인은 '확인한 것'이 아니므로 간격을 소진하지 않는다.
+  it('실패한 확인은 최소 간격을 소진하지 않는다 — 곧바로 이어지는 재연결이 다시 묻는다', async () => {
+    registration.update.mockRejectedValueOnce(new Error('offline'));
+    vi.advanceTimersByTime(SW_UPDATE_MIN_INTERVAL_MS);
+    window.dispatchEvent(new Event('focus'));
+    expect(registration.update).toHaveBeenCalledTimes(1);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    window.dispatchEvent(new Event('online'));
+    expect(registration.update).toHaveBeenCalledTimes(2);
+  });
+
+  it('확인이 진행 중일 때는 겹친 확인을 계속 건너뛴다', () => {
+    registration.update.mockReturnValueOnce(new Promise(() => {})); // 끝나지 않는 요청
+    vi.advanceTimersByTime(SW_UPDATE_MIN_INTERVAL_MS);
+    window.dispatchEvent(new Event('focus'));
+    window.dispatchEvent(new Event('online'));
+    expect(registration.update).toHaveBeenCalledTimes(1);
+  });
+
+  it('성공한 확인은 간격을 그대로 소진한다', async () => {
+    vi.advanceTimersByTime(SW_UPDATE_MIN_INTERVAL_MS);
+    window.dispatchEvent(new Event('focus'));
+    await Promise.resolve();
+    await Promise.resolve();
+    window.dispatchEvent(new Event('online'));
+    expect(registration.update).toHaveBeenCalledTimes(1);
+  });
+
   it('확인이 실패해도 예외가 새지 않는다 — 오프라인이면 정상적으로 실패한다', async () => {
     registration.update.mockRejectedValue(new Error('offline'));
     vi.advanceTimersByTime(SW_UPDATE_MIN_INTERVAL_MS);
