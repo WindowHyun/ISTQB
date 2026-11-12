@@ -5,6 +5,7 @@ import { useQuizSession } from '../../hooks/useQuizSession';
 import { useTheme, ThemePref } from '../../hooks/useTheme';
 import { exportUserData, importUserData, removeHistoriesEverywhere } from '../../utils/storage';
 import { track } from '../../utils/analytics';
+import { muteTransitions } from '../../utils/analyticsEvents';
 import { AnalyticsNotice } from '../common/AnalyticsNotice';
 import { safeGetItem, safeSetItem } from '../../utils/safeStorage';
 import { showToast } from '../../utils/toast';
@@ -197,7 +198,9 @@ export const AppModals = () => {
 
   const runImport = async (file: File) => {
     setPendingImport(null);
-    const result = await importUserData(file);
+    // 가져오기는 저장된 모드로 스토어를 덮는다 — 그 전이를 '모드 진입'으로 세지 않게 그동안 멈춘다
+    // (가져오기 자체는 아래 backup_import가 센다).
+    const result = await muteTransitions(() => importUserData(file));
     // 실패 사유를 그대로 노출한다 — 종전에는 어떤 실패든 같은 문구라 무엇을 고칠지 알 수 없었고,
     // 제품이 다른 백업은 데이터를 덮어쓴 뒤 '복원했습니다'라고 알리기까지 했다.
     if (result.ok) track('backup_import');

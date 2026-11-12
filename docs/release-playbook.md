@@ -130,6 +130,8 @@ Vercel **Production** 환경변수 `VITE_GA_ID`에 GA4 측정 ID(`G-XXXXXXX`)를
 - GA4에서 `mode`·`product`·`app_platform`으로 나눠 보려면 **관리 → 맞춤 정의 → 맞춤 측정기준**에 이벤트 범위로 등록해야 합니다. 등록 전에는 이벤트 수만 보입니다.
 - **APK는 켜지지 않습니다.** Actions의 APK 빌드는 `VITE_GA_ID`를 주지 않으므로 통계가 꺼진 채 패키징됩니다. APK까지 재려면 워크플로에 변수를 넘기고, 웹과 속성을 나눌지 정해야 합니다.
 - 배포 후 확인: 게이트에 "어떤 기능을 쓰는지…" 안내가 보이고, GA4 **실시간** 보고서에 `mode_enter`가 들어오면 됩니다. 안내가 안 보이면 변수가 빌드에 반영되지 않은 것입니다.
+- **리퍼러가 정말 안 나가는지는 아직 확인하지 못했습니다.** 코드는 `config`에 `page_referrer: ''`를 주는데, gtag가 빈 문자열을 "지정 안 함"으로 읽으면 `document.referrer`가 그대로 실립니다(공식 문서는 빈 값의 동작을 적지 않습니다). 외부 링크로 들어와 GA4 **DebugView**나 네트워크 탭의 `collect` 요청에서 `dr` 파라미터가 비어 있는지 한 번 봅니다. 실려 있으면 README의 "리퍼러를 보내지 않는다"가 거짓이 되므로 코드를 고칩니다.
+- 수치를 읽을 때: `mode_enter`는 모드 전환 수(회차 수가 아님)라 `exam_graded ÷ mode_enter`는 완료율이 아니고, `mini`는 미니 시험에서 이어진 세트 전체 랜덤까지 포함합니다([`harness/app-logic.md`](harness/app-logic.md) "사용 통계").
 
 ### 캐시 헤더
 

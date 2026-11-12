@@ -246,11 +246,15 @@ ul { margin: 0; padding: 0; list-style: none; }
 }
 .gate-guide-btn:hover { color: var(--primary); border-color: var(--primary); }
 
-/* 사용 통계 안내(제품 게이트) — 측정 ID가 있는 빌드에서만 렌더된다. 버튼은 본문 글자 크기의 링크형이다. */
+/* 사용 통계 안내(제품 게이트) — 측정 ID가 있는 빌드에서만 렌더된다.
+   버튼은 링크처럼 보이지만 문장 끝에 붙이지 않고 아랫줄에 따로 둔다: 처음 들어온 사람이 통계를 끌 수 있는
+   유일한 자리라 게이트의 다른 버튼과 같은 터치 타깃(44px)을 지켜야 하는데, 12px 문장 안의 인라인 링크로는
+   높이가 24px에 그쳤다. 폭은 글자에 맞추고(min-width로 44px 바닥만 둔다) 가운데에 놓는다. */
 .analytics-note { margin: 12px 4px 0; font-size: 12px; line-height: 1.5; color: var(--muted); text-align: center; }
 .analytics-note-btn {
-  font: inherit; color: var(--primary); background: none; border: 0; padding: 4px 2px; cursor: pointer;
-  text-decoration: underline; min-height: 24px;
+  display: block; margin: 0 auto; min-height: 44px; min-width: 44px; padding: 0 12px;
+  font: inherit; color: var(--primary); background: none; border: 0; cursor: pointer;
+  text-decoration: underline;
 }
 
 /* 외부 링크(a)를 버튼과 동일하게 — 구글시트 제보 링크가 버튼 묶음에 섞여 들어간다. */

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createAnalytics, OPT_OUT_KEY, sanitizeParams, type AnalyticsEnv } from './analytics';
+import {
+  analyticsNoticeView, browserSignalsNoTracking, createAnalytics, OPT_OUT_KEY, sanitizeParams,
+  type AnalyticsEnv, type AnalyticsStatus,
+} from './analytics';
 
 function fakeEnv(over: Partial<AnalyticsEnv> = {}) {
   const store = new Map<string, string>();
@@ -210,6 +213,110 @@ describe('끄기', () => {
   it('window·document가 없는 환경(SSR·유닛)에서도 던지지 않는다', () => {
     const a = createAnalytics(fakeEnv({ win: undefined, doc: undefined }).env);
     expect(() => { a.init(); a.track('stats_open'); }).not.toThrow();
+  });
+});
+
+describe('status — 안내·스위치가 그릴 상태', () => {
+  it('측정 ID가 없으면 unconfigured(브라우저 신호보다 먼저다 — 꺼진 빌드는 아무 말도 하지 않는다)', () => {
+    expect(createAnalytics(fakeEnv({ measurementId: undefined }).env).status()).toBe('unconfigured');
+    expect(createAnalytics(fakeEnv({ measurementId: undefined, doNotTrack: () => true }).env).status()).toBe('unconfigured');
+  });
+
+  it('브라우저 신호가 있으면 저장된 선택과 무관하게 blocked', () => {
+    const f = fakeEnv({ doNotTrack: () => true });
+    const a = createAnalytics(f.env);
+    expect(a.status()).toBe('blocked');
+    a.setOptOut(true);
+    expect(a.status()).toBe('blocked');
+  });
+
+  it('켜짐 ↔ 꺼짐: 저장이 되면 on / off', () => {
+    const a = createAnalytics(fakeEnv().env);
+    expect(a.status()).toBe('on');
+    a.setOptOut(true);
+    expect(a.status()).toBe('off');
+    a.setOptOut(false);
+    expect(a.status()).toBe('on');
+  });
+
+  it('껐는데 저장되지 않았으면 off-unsaved — 다음 방문에 다시 켜진다는 것을 알릴 수 있다', () => {
+    const a = createAnalytics(fakeEnv({ setItem: () => undefined }).env);
+    a.setOptOut(true);
+    expect(a.status()).toBe('off-unsaved');
+    expect(a.enabled()).toBe(false);
+    // 다시 켠 것도 저장되지 않지만, 켜짐은 기본값이라 알릴 것이 없다.
+    a.setOptOut(false);
+    expect(a.status()).toBe('on');
+  });
+
+  it('이전 방문에서 저장된 끄기는 저장이 막힌 지금도 그냥 off다(남아 있는 값이다)', () => {
+    const f = fakeEnv({ setItem: () => undefined });
+    f.store.set(OPT_OUT_KEY, '1');
+    expect(createAnalytics(f.env).status()).toBe('off');
+  });
+});
+
+describe('analyticsNoticeView — 상태별 문구와 스위치', () => {
+  it('꺼진 빌드는 아무것도 그리지 않는다', () => {
+    expect(analyticsNoticeView('unconfigured')).toBeNull();
+  });
+
+  it('브라우저가 막았으면 눌러도 안 켜지는 버튼을 내린다', () => {
+    const v = analyticsNoticeView('blocked');
+    expect(v?.action).toBeNull();
+    expect(v?.text).toContain('Global Privacy Control');
+    expect(v?.text).toContain('Do Not Track');
+  });
+
+  it('버튼은 지금 상태의 반대로 가는 일을 이름과 동작 모두에서 말한다', () => {
+    expect(analyticsNoticeView('on')?.action).toEqual({ label: '사용 통계 끄기', optOut: true });
+    expect(analyticsNoticeView('off')?.action).toEqual({ label: '사용 통계 켜기', optOut: false });
+    expect(analyticsNoticeView('off-unsaved')?.action).toEqual({ label: '사용 통계 켜기', optOut: false });
+  });
+
+  it('켜져 있을 때만 "집계합니다"라고 말한다', () => {
+    const says = (s: AnalyticsStatus) => analyticsNoticeView(s)?.text ?? '';
+    expect(says('on')).toContain('집계합니다');
+    for (const s of ['off', 'off-unsaved', 'blocked'] as const) {
+      expect(says(s)).not.toContain('집계합니다');
+      expect(says(s)).toContain('보내지 않');
+    }
+  });
+
+  it('저장되지 않은 끄기는 다음 방문에 다시 켜진다고 알린다 — 저장된 끄기는 그 말을 하지 않는다', () => {
+    expect(analyticsNoticeView('off-unsaved')?.text).toContain('다시 켜집니다');
+    expect(analyticsNoticeView('off')?.text).not.toContain('다시 켜집니다');
+  });
+
+  it('스위치를 누른 결과가 화면이 말한 상태가 된다(문구 ↔ 동작 왕복)', () => {
+    const a = createAnalytics(fakeEnv().env);
+    for (const expected of ['off', 'on', 'off'] as const) {
+      const action = analyticsNoticeView(a.status())?.action;
+      a.setOptOut(action!.optOut);
+      expect(a.status()).toBe(expected);
+    }
+  });
+});
+
+describe('browserSignalsNoTracking — 브라우저의 추적 거부 신호', () => {
+  it('신호가 없으면 false(속성이 없는 브라우저 포함)', () => {
+    expect(browserSignalsNoTracking(undefined, undefined)).toBe(false);
+    expect(browserSignalsNoTracking({}, {})).toBe(false);
+    expect(browserSignalsNoTracking({ doNotTrack: null, globalPrivacyControl: false }, {})).toBe(false);
+    expect(browserSignalsNoTracking({ doNotTrack: '0' }, { doNotTrack: 'unspecified' })).toBe(false);
+  });
+
+  it('Global Privacy Control — DNT를 없앤 브라우저(Firefox 등)의 신호', () => {
+    expect(browserSignalsNoTracking({ globalPrivacyControl: true }, {})).toBe(true);
+    // 불리언 true만 신호다(문자열 등 다른 값을 넓게 받아들이지 않는다).
+    expect(browserSignalsNoTracking({ globalPrivacyControl: 'true' }, {})).toBe(false);
+  });
+
+  it('Do Not Track — 표준 값과 옛 구현의 자리·값', () => {
+    expect(browserSignalsNoTracking({ doNotTrack: '1' }, {})).toBe(true);
+    expect(browserSignalsNoTracking({ doNotTrack: 'yes' }, {})).toBe(true);
+    expect(browserSignalsNoTracking({ msDoNotTrack: '1' }, {})).toBe(true);
+    expect(browserSignalsNoTracking({}, { doNotTrack: '1' })).toBe(true);
   });
 });
 

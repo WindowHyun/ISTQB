@@ -237,6 +237,12 @@ export interface QuizState {
   markQuickGraded: (key: string) => void;
   /** 오답 보기 화면을 연다(null이면 닫고 풀이 화면으로 돌아간다). */
   setWrongView: (view: QuizState['wrongView']) => void;
+  /**
+   * 오답 보기 화면에서 노트로 되돌아간다 — 화면을 닫고 노트를 여는 일을 **한 번의 set**으로 한다.
+   * 둘로 나눠 부르면 사이에 "화면도 노트도 닫힌" 상태가 끼어, 스토어 전이를 보는 쪽
+   * (사용 통계의 `wrong_note_open`)이 되돌아온 것을 새로 연 것으로 센다.
+   */
+  backToWrongNote: () => void;
   // 오답(review) 대상 문항 id 목록. 키는 `${setId}-${mode}`(챕터 미니 회차는 `#챕터`가 붙고,
   // 과거 데이터는 setId 단독일 수 있음 — answerKey.reviewKeyFor).
   setReviewIds: (key: string, ids: string[]) => void;
@@ -420,6 +426,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     quickRounds: [...freshQuickRounds(state.quickRounds).filter((r) => r.id !== round.id), round],
   })),
   setWrongView: (wrongView) => set({ wrongView }),
+  backToWrongNote: () => set({ wrongView: null, wrongNoteOpen: true }),
   markQuickGraded: (key) => set((state) => ({
     quickGraded: { ...state.quickGraded, [key]: true },
     // 퀵 진입로는 둘인데(모드 세그먼트, 퀵 패널의 재추첨) 세그먼트는 startQuick을 거치지

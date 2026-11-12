@@ -27,7 +27,16 @@ npm run test:e2e
 - 이벤트는 컴포넌트마다 흩뿌리지 않고 스토어 전이(`deriveEvents`)에서 만든다. 예외는 스토어에 전이가 없는 채점(`useQuizSession`)과 백업(`AppModals`) 둘이다. 새 진입로를 만들면 같은 모드로 들어오는 다른 입구가 이 구독에 걸리는지 본다.
 - **`page_view`는 의도해서 남긴다** — `config` 호출이 앱을 열 때마다 1회 보낸다(화면 전환은 라우팅이 없어 따로 없다). 게이트에서 아무것도 안 누르고 나가는 방문도 세어 "기능 사용 수 ÷ 방문 수"의 분모가 된다. 끄려면 `config`에 `send_page_view: false`를 준다. GA4가 자동 수집하는 `first_visit`·`session_start`·`user_engagement`도 같은 이유로 막지 않았다.
 - 이벤트: `mode_enter`(연습·시험·퀵·오답·mini — 내부 모드 `random`은 `mini`) · `exam_graded` · `stats_open` · `wrong_note_open` · `backup_export` · `backup_import`. `backup_export`는 `exportUserData`가 끝난 **뒤**에 세므로 던져진 실패(Blob·URL 생성 등)는 걸러지지만, APK 브리지의 실패는 반환값이 없어 걸러지지 않는다. 퀵은 문항마다 채점하므로 `exam_graded`를 보내지 않는다. 세션 복원(게이트 → 저장된 모드)도 `mode_enter`로 센다.
-- 사용자는 제품 게이트와 설정에서 끌 수 있다(`istqb-analytics-optout`). 끄면 다른 열린 탭도 `storage` 이벤트로 중단 플래그를 맞춘다 — 플래그는 window마다 따로라, 맞추지 않으면 그 탭의 gtag가 자동 이벤트를 계속 보낸다. 안내·스위치(`AnalyticsNotice`)도 마운트 때 한 번 읽지 않고 `subscribeAnalytics`를 구독해 다른 탭의 변경을 따라간다. 브라우저의 Do Not Track이면 켤 수 없고 스위치도 내린다.
+- **스토어 전이가 곧 사용자의 행동은 아니다 — 앱이 스스로 만드는 전이를 가려낸다.** 두 자리에서 실제로 부풀었다:
+  - 오답 보기 화면에서 노트로 돌아오면 노트가 다시 열린다. 그것은 같은 방문의 계속이라 `wrong_note_open`으로 세지 않는다(직전 상태에 `wrongView`가 있으면 돌아온 것). 이 판정은 돌아오기가 **한 번의 set**이라는 데 기댄다 — 스토어의 `backToWrongNote`가 그것이고, 화면을 닫는 set과 노트를 여는 set으로 나누면 문항을 하나 볼 때마다 한 번씩 더 센다(`analyticsEvents.test.ts`가 실제 스토어로 동선을 밟아 고정한다).
+  - 백업 가져오기는 저장된 모드로 스토어를 덮는다. 그 전이는 `mode_enter`가 아니라 `backup_import`다 — 호출부가 `muteTransitions`로 감싸 그동안의 전이를 세지 않는다. 스토어를 통째로 덮는 새 경로를 만들면 같은 것을 본다.
+- **수치를 읽는 법**(대시보드에서 잘못 나누기 쉬운 곳):
+  - `mode_enter`는 모드가 **바뀐** 횟수이지 회차 수가 아니다. 같은 모드에서 다시 응시하거나 퀵을 다시 섞어도 늘지 않으므로 `exam_graded ÷ mode_enter`는 완료율이 아니다(100%를 넘을 수 있다).
+  - `mini`는 내부 모드 `random` 전체다. 미니 시험에서 세트를 바꾸거나 채점한 미니 시험이 복원되면 챕터 제한이 풀린 세트 전체 랜덤이 되는데 그것도 `mini`로 센다. 챕터 필터는 모드가 바뀐 뒤에 따로 놓여(진입·복원 모두) 전이 시점에는 둘을 가를 수 없고, 채점 쪽만 가르면 진입과 채점의 이름이 갈린다.
+- 사용자는 제품 게이트와 설정에서 끌 수 있다(`istqb-analytics-optout`). 끄면 다른 열린 탭도 `storage` 이벤트로 중단 플래그를 맞춘다 — 플래그는 window마다 따로라, 맞추지 않으면 그 탭의 gtag가 자동 이벤트를 계속 보낸다. 안내·스위치(`AnalyticsNotice`)도 마운트 때 한 번 읽지 않고 `subscribeAnalytics`를 구독해 다른 탭의 변경을 따라간다. 무엇을 말하고 무엇을 누르게 하는지는 컴포넌트가 아니라 `analyticsNoticeView(status)`가 정한다 — 컴포넌트는 측정 ID가 없는 테스트 빌드에서 렌더되지 않아 E2E가 닿지 않기 때문이다.
+- 브라우저가 추적 거부 신호를 보내면 켤 수 없고 스위치도 내린다(`browserSignalsNoTracking`). `navigator.doNotTrack`만 봐서는 대부분을 놓친다 — Firefox와 Safari가 그 속성을 없앴다. Global Privacy Control을 함께 보고, 옛 구현의 자리·값(`'yes'`, `window.doNotTrack`, `msDoNotTrack`)도 본다. 신호가 아예 없는 브라우저는 알 길이 없어 스위치가 유일한 길이다.
+- 끈 것을 저장하지 못하면(저장 차단·용량 초과) 이번 세션만 꺼진다(메모리 값). 그때는 "보내지 않는 중"에서 그치지 않고 **다음에 열면 다시 켜진다**고 알린다(`off-unsaved`) — 다음 방문의 첫 전송은 다시 끄기 전에 나가므로, 꺼졌다고만 말하면 거짓이다.
+- **측정 ID가 있는 빌드를 띄우는 자동 검사는 없다.** 안내의 렌더·배치·터치 타깃(게이트의 끄기 버튼은 44px)은 `VITE_GA_ID`를 넣은 빌드에서 손으로 확인한다. 운영 빌드는 게이트에 이 안내가 붙어 E2E가 보는 화면과 다르다는 점도 기억한다.
 - 기본값은 **켜짐(옵트아웃)** 이다 — 첫 방문의 첫 전송은 사용자가 끌 수 있기 전에 나간다. 옵트인으로 바꾸려면 `analytics.ts`의 `optedOut`을 `getItem(OPT_OUT_KEY) !== '0'`로 뒤집는다.
 
 ## 시나리오 매트릭스

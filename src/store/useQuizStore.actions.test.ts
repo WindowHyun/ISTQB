@@ -104,6 +104,27 @@ describe('markReviewed / unmarkReviewed — 오답 재풀이 진척', () => {
   });
 });
 
+describe('backToWrongNote — 오답 보기 화면에서 노트로', () => {
+  const view = { setId: S, number: 3, myAnswer: ['A'], correctAnswer: ['B'] };
+
+  it('화면을 닫고 노트를 연다', () => {
+    useQuizStore.setState({ wrongView: view, wrongNoteOpen: false });
+    useQuizStore.getState().backToWrongNote();
+    expect(useQuizStore.getState().wrongView).toBeNull();
+    expect(useQuizStore.getState().wrongNoteOpen).toBe(true);
+  });
+
+  it('한 번의 전이다 — 화면도 노트도 닫힌 중간 상태를 구독자에게 보이지 않는다', () => {
+    // 둘로 나눠 set하면 그 사이 상태를 본 구독자(사용 통계)가 돌아온 것을 새로 연 것으로 센다.
+    useQuizStore.setState({ wrongView: view, wrongNoteOpen: false });
+    const seen: Array<{ view: boolean; note: boolean }> = [];
+    const stop = useQuizStore.subscribe((s) => seen.push({ view: s.wrongView !== null, note: s.wrongNoteOpen }));
+    useQuizStore.getState().backToWrongNote();
+    stop();
+    expect(seen).toEqual([{ view: false, note: true }]);
+  });
+});
+
 describe('오버레이 토글 — 인자를 그대로 반영한다', () => {
   // 단순해 보이지만 뮤테이션이 가장 잘 살아남는 자리다: 인자를 무시하고 상수를 넣어도
   // 여는 경로만 밟는 검사는 통과한다. 켜고 끄기를 모두 본다.

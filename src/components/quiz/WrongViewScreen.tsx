@@ -28,8 +28,8 @@ import { BACK_PRIORITY } from '../../utils/backGuard';
  * 나빠졌을 자리다(형제 목록은 `wrongView.siblings`가 나른다).
  */
 export const WrongViewScreen = () => {
-  const { wrongView, setWrongView, setWrongNoteOpen } = useQuizStore(useShallow((s) => ({
-    wrongView: s.wrongView, setWrongView: s.setWrongView, setWrongNoteOpen: s.setWrongNoteOpen,
+  const { wrongView, setWrongView, backToNote } = useQuizStore(useShallow((s) => ({
+    wrongView: s.wrongView, setWrongView: s.setWrongView, backToNote: s.backToWrongNote,
   })));
   const { appData } = useQuestions();
   const path = wrongView ? appData?.sets.find((s) => s.id === wrongView.setId)?.path ?? null : null;
@@ -57,7 +57,6 @@ export const WrongViewScreen = () => {
   // 언마운트된 상태라, 안드로이드에서 뒤로가기를 누르면 **앱이 그대로 종료됐다**
   // (해설을 읽다 뒤로가기 한 번에 앱이 사라진다). 웹에서는 브라우저가 페이지를 떠났다.
   const close = () => setWrongView(null);
-  const backToNote = () => { setWrongView(null); setWrongNoteOpen(true); };
   useBackDismiss(Boolean(wrongView), backToNote, BACK_PRIORITY.screen);
 
   if (!wrongView) return null;
