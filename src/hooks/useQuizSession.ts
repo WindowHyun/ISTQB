@@ -1,6 +1,6 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useQuizStore } from '../store/useQuizStore';
+import { useQuizStore, freshQuickRounds } from '../store/useQuizStore';
 import { useQuestions, Question } from './useQuestions';
 import { isQuestionCorrect } from '../utils/answer';
 import { answerKeyFor, gradeKeyFor, reviewKeyFor } from '../utils/answerKey';
@@ -15,6 +15,7 @@ import { analyticsModeOf } from '../utils/analyticsEvents';
 import {
   selectGradableQuestions, tallySession, selectCorrectQuestions,
   deriveExamStage, clampIndex, deriveQuickControls, deriveCanGrade, progressPercentOf,
+  listMatchesSession, mergeReviewTargets, scopeQuickRound,
 } from '../utils/sessionDerive';
 
 // 사이드바(통계·채점·진행률)와 워크스페이스(문항·네비)가 공유하는 파생 상태/액션.
@@ -111,14 +112,20 @@ export function useQuizSession() {
   const canGrade = deriveCanGrade({ mode, canGradeQuestion, isGraded, total, examUnderway });
   const progressPercent = progressPercentOf(answered, total);
 
-  const handleGrade = () => {
+  /** 채점을 실제로 했으면 true. 가드에 걸려 아무것도 기록하지 않았으면 false. */
+  const handleGrade = (): boolean => {
     // 멱등성 가드 — 같은 tick 더블클릭 등으로 재진입해도 회차/통계가 이중 집계되지 않게 한다.
     // 버튼 disabled(canGrade)는 리렌더 이후에야 반영되므로 채점 상태를 직접 확인한다.
-    if (useQuizStore.getState().graded[gradeKey]) return;
+    if (useQuizStore.getState().graded[gradeKey]) return false;
     // 문항이 아직 로드되지 않았으면 채점하지 않는다. canGrade에만 total>0 가드가 있어
     // 버튼 경로는 막혔지만, 제한시간 자동 제출은 canGrade를 거치지 않고 직접 호출된다 —
     // 복원 직후(문항 fetch 진행 중)에 만료가 걸리면 0/0 유령 회차가 기록됐다.
-    if (total === 0) return;
+    if (total === 0) return false;
+    // 실린 목록이 이 세션(모드·세트·챕터)의 것이어야 한다 — 세트를 바꾼 직후 새 목록이 오기 전에
+    // 자동 제출이 걸리면 옛 세트의 문항이 새 세트의 키로 기록된다(listMatchesSession 참고).
+    if (!listMatchesSession(listContext, {
+      mode, setId, chapterFilter: useQuizStore.getState().chapterFilter,
+    })) return false;
     // 오답 목록은 위 메모(wrongQuestions)와 같은 판정을 재사용한다 — 따로 계산하면
     // 판정 규칙이 갈라져 화면 표시와 기록이 어긋날 수 있다.
     // 퀵은 확정한 문항까지만 회차로 남기므로(gradableQuestions) 오답도 그 범위로 좁힌다 —
@@ -178,13 +185,28 @@ export function useQuizSession() {
       // 챕터 미니 시험은 내부 모드가 random이라 채점 키가 세트 전체 랜덤과 같다 —
       // 그대로 쓰면 10문항 미니 한 번이 40문항 랜덤의 오답 목록을 통째로 갈아치운다.
       // 회차 레코드의 chapter와 같은 값으로 키를 갈라 둔다(answerKey.reviewKeyFor).
-      setReviewIds(reviewKeyFor(setId, mode, snapshot.chapterFilter), wrongIds);
+      // 이번 회차가 다룬 문항만 갈아끼운다 — 랜덤·미니는 매번 다른 표본이라 키 전체를 덮으면
+      // 서로의 오답 대상을 지운다(mergeReviewTargets 참고).
+      const reviewKey = reviewKeyFor(setId, mode, snapshot.chapterFilter);
+      setReviewIds(reviewKey, mergeReviewTargets(
+        snapshot.reviewIds[reviewKey], gradableQuestions.map(questionKey), wrongIds,
+      ));
       // 다시 틀린 문항은 '복습함'에서 되돌린다 — 아니면 한 번 복습했다는 이유로
       // 이후 계속 오답인데도 재풀이 목록에 영영 나타나지 않는다.
       unmarkReviewed(setId, wrongQs.map((q) => q.number));
     }
+    // 시험의 제한시간 기준점은 채점과 함께 끝난다. 남겨 두면 새로고침 뒤 이 시험에 다시 들어갈 때
+    // (graded는 비영속이라 미채점처럼 보인다) 옛 시각으로 제한시간 초과를 판정해 같은 답안이
+    // 자동 제출로 한 번 더 기록된다.
+    if (mode === 'exam') useQuizStore.getState().setExamStartedAt(setId, null);
     setGraded(gradeKey, true);
+    return true;
   };
+  // 제한시간 타이머 effect는 시작 시점의 렌더가 만든 함수를 붙잡은 채 오래 산다(의존성에 넣으면
+  // 매 렌더 타이머가 재시작된다). 그 함수가 클로저의 answers·목록으로 채점하면 응시를 시작한 시점의
+  // 빈 답안으로 회차가 기록되므로, 부르는 시점에 **가장 최근 렌더의 handleGrade**를 쓴다.
+  const handleGradeRef = useRef(handleGrade);
+  handleGradeRef.current = handleGrade;
 
   // 오답 모드 '복습 완료' — 지금 맞힌 문항을 재풀이 대상에서 뺀다.
   // 오답 모드는 즉시 피드백이라 이미 정오답이 확정돼 있으므로 별도 채점이 필요 없다.
@@ -218,22 +240,28 @@ export function useQuizSession() {
     const wrongQs = gradedQs.filter((q) =>
       !isQuestionCorrect(q.answer, answers[answerKeyOf(q)] || [], q.type, q.answerParts, q.acceptedAnswers));
     const snapshot = useQuizStore.getState();
+    // 이 회차가 이미 알고 있는 문항에 방금 것만 더한다 — 며칠 전 채점 표시까지 지금 시각으로 다시
+    // 기록하지 않는다(scopeQuickRound 참고). 시각은 회차를 처음 만든 때를 지킨다.
+    const roundId = snapshot.quickRoundId ?? makeRoundId();
+    const prior = freshQuickRounds(snapshot.quickRounds).find((r) => r.id === roundId);
+    const roundQs = scopeQuickRound(prior, gradedQs, currentQuestion, answerKeyOf);
+    const roundWrongQs = wrongQs.filter((q) => roundQs.includes(q));
     addQuickRound(buildRoundHistory({
       setId,
       mode,
-      questions: gradedQs,
+      questions: roundQs,
       answers,
       answerKeyOf,
-      wrongQuestions: wrongQs,
+      wrongQuestions: roundWrongQs,
       certification: snapshot.activeProduct ?? undefined,
       setTitle: '퀵 랜덤',
       elapsedSeconds: snapshot.elapsedSeconds,
       // 방금 채점한 문항까지 포함한 gradedQs 기준으로 계산된다 — 넘겨받은 값을 쓰면
       // 추첨 전체(최대 440문항)를 모집단으로 삼아 correct/total과 어긋났다.
       weighted: snapshot.activeProduct === 'csts',
-      now: Date.now(),
+      now: prior?.createdAt ?? Date.now(),
       // markQuickGraded가 방금 보장한 값이다(없으면 그 자리에서 만든다).
-      id: snapshot.quickRoundId ?? makeRoundId(),
+      id: roundId,
     }));
   };
 
@@ -243,9 +271,11 @@ export function useQuizSession() {
   };
 
   // 채점 후 결과 요약 모달을 자동으로 띄운다(사이드바·모바일 하단바 공용).
-  const gradeAndShow = () => {
-    handleGrade();
-    setResultOpen(true);
+  // 채점했을 때만 결과를 띄우고 그 여부를 돌려준다 — 가드에 걸린 자동 제출은 다음 틱에 다시 시도한다.
+  const gradeAndShow = (): boolean => {
+    const graded = handleGradeRef.current();
+    if (graded) setResultOpen(true);
+    return graded;
   };
 
   // 채점 요청: 미응답이 있으면 확인 모달을 먼저 띄우고, 없으면 바로 채점한다.

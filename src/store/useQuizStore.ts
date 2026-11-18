@@ -308,6 +308,12 @@ export interface QuizState {
 // 함수형인 이유: 상수 객체면 중첩 {}가 모듈 공유 참조로 hydrate에 유입돼, 어딘가에서
 // 직접 변이하는 코드가 생기는 순간 제품 간 상태가 오염되는 잠복 결함이 된다.
 export const sessionScopeDefaults = () => ({
+  // 위치도 제품 스코프다 — 저장된 UI 상태가 없는 제품에 처음 들어가면 복원이 덮을 값이 없어
+  // 이전 제품의 세트·문항 번호·경과 시간이 그대로 살아남는다(ISTQB 18번 문항에서 CSTS를 열면
+  // CSTS 첫 세트가 18번 문항·15분 경과 상태로 열리고 그 값이 CSTS 키에 저장됐다).
+  setId: '' as string,
+  index: 0 as number,
+  elapsedSeconds: 0 as number,
   graded: {} as Record<string, boolean>,
   examStarted: {} as Record<string, boolean>,
   examStartedAt: {} as Record<string, number>,

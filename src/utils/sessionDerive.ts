@@ -1,4 +1,5 @@
 import type { Question } from '../hooks/useQuestions';
+import type { ExamHistory } from '../store/useQuizStore';
 import { isQuestionCorrect } from './answer';
 import { isQuickCommitted, isAnsweredInMode } from './quickStats';
 import { isGradedMode } from './modeLabel';
@@ -192,4 +193,62 @@ export function isAtProductGate(input: {
   activeProduct: string | null;
 }): boolean {
   return input.mode === 'home' || !input.activeProduct;
+}
+
+/**
+ * 지금 실린 출제 목록이 **현재 세션의 것인가**.
+ *
+ * 모드·세트·챕터는 스토어에서 동기로 바뀌고 목록은 비동기로 온다(useQuestions의 CurrentList 참고).
+ * 그 사이 구간에 채점하면 — 제한시간 자동 제출은 canGrade를 거치지 않고 직접 불린다 — **옛 세트의
+ * 문항으로 새 세트의 키에 회차를 기록한다**: total은 옛 세트 문항 수, 전부 오답, 챕터 통계 오염.
+ * 챕터는 랜덤(미니 시험)에서만 목록의 맥락이다(연습의 필터는 채점과 무관하다).
+ */
+export function listMatchesSession(
+  list: { mode: string | null; setId: string | null; chapter: string | null },
+  session: { mode: string; setId: string; chapterFilter: string | null },
+): boolean {
+  if (list.mode !== session.mode || list.setId !== session.setId) return false;
+  if (session.mode === 'random') return list.chapter === (session.chapterFilter ?? null);
+  return true;
+}
+
+/**
+ * 채점 뒤의 오답 대상(reviewIds) — **이번 회차가 다룬 문항만** 갈아끼운다.
+ *
+ * 종전에는 `setReviewIds(key, wrongIds)`로 키 전체를 덮어썼다. 시험은 회차가 곧 세트 전체라
+ * 같지만, 랜덤·챕터 미니 시험은 매번 다른 표본이다 — 두 번째 표본의 오답이 첫 표본의 오답
+ * 대상을 통째로 지워, 다시 풀지도 맞히지도 않은 문항이 오답 모드에서 사라지고 오답 노트(이력
+ * 합집합)에만 남았다. 이번 회차가 다룬 문항(roundIds)은 이번 결과로 정하고(맞혔으면 빠지고
+ * 틀렸으면 들어온다), 다루지 않은 문항은 이전 판정을 그대로 둔다.
+ */
+export function mergeReviewTargets(
+  prev: string[] | undefined,
+  roundIds: string[],
+  wrongIds: string[],
+): string[] {
+  const covered = new Set(roundIds);
+  const kept = (prev ?? []).filter((id) => !covered.has(id));
+  return [...new Set([...kept, ...wrongIds])];
+}
+
+/**
+ * 퀵 회차에 담을 문항 — **이 회차가 이미 알고 있는 문항 + 방금 채점한 문항 하나**.
+ *
+ * 퀵의 채점 표시(quickGraded)는 추첨이 남아 있는 동안 계속 쌓이고 추첨은 며칠씩 남을 수 있다.
+ * 채점할 때마다 '채점된 문항 전부'로 회차를 다시 만들면, 며칠 전에 푼 문항이 새 회차에 실려
+ * 지금 시각을 달고 챕터 통계의 '최신 결과'가 된다(그 사이 시험에서 맞힌 결과를 뒤집는다).
+ * 24시간이 지나 만료된 회차도 다음 채점 한 번에 통째로 되살아난다.
+ *
+ * 회차가 아직 유효하면(prior) 그 회차에 담긴 문항(답안 스냅샷의 키)만 이어 가고, 없거나
+ * 만료됐으면 방금 채점한 문항 하나로 새로 시작한다.
+ */
+export function scopeQuickRound(
+  prior: Pick<ExamHistory, 'answers'> | undefined,
+  gradedQuestions: Question[],
+  current: Question,
+  answerKeyOf: (q: Question) => string,
+): Question[] {
+  if (!prior) return [current];
+  const known = new Set(Object.keys(prior.answers ?? {}));
+  return gradedQuestions.filter((q) => q === current || known.has(answerKeyOf(q)));
 }

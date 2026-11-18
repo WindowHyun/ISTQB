@@ -512,3 +512,26 @@ export async function gotoStable(page: Page, url = "/") {
     await page.goto(url);
   }
 }
+
+/**
+ * 저장된 회차(IndexedDB)를 그대로 읽는다 — 화면이 보여 주는 값이 아니라 **기록된 값**을 단언할 때 쓴다.
+ * 결과 모달의 점수와 저장된 회차가 갈린 결함(제한시간 자동 제출이 옛 답안으로 기록)은 화면만 봐서는
+ * 보이지 않았다.
+ */
+export async function readHistoryRounds(page: Page) {
+  return page.evaluate(async () => {
+    const db: IDBDatabase = await new Promise((res, rej) => {
+      const r = indexedDB.open("istqb-db", 1);
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    return new Promise<Array<{
+      id: string; setId: string; mode: string; correct?: number; total?: number;
+      answers: Record<string, string[]>; wrongItems?: unknown[];
+    }>>((res) => {
+      const tx = db.transaction("history", "readonly");
+      const q = tx.objectStore("history").getAll();
+      q.onsuccess = () => res(q.result);
+    });
+  });
+}

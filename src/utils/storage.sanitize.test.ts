@@ -113,6 +113,35 @@ describe("sanitizeHistory", () => {
   });
 });
 
+// qid는 오답 대상(reviewIds)을 이력에서 다시 만들 때 쓰는 식별자다. allowlist에서 빠지면 읽을 때마다
+// (loadHistoriesFromDB) 사라지고, 가져오기는 그렇게 정제한 값을 DB에 put하므로 영구히 지워진다 —
+// 새로고침 뒤 회차 하나를 지우는 것만으로 그 세트의 오답 모드 출제 대상이 비워졌다.
+describe("sanitizeHistory — wrongItems.qid", () => {
+  const base = { id: "h-qid", setId: "S", mode: "exam", answers: {}, correct: 0, total: 1 };
+
+  it("문자열 qid는 그대로 통과한다", () => {
+    const h = sanitizeHistory({
+      ...base, wrongItems: [{ number: 3, myAnswer: ["a"], correctAnswer: ["b"], qid: "ISTQB-A-003" }],
+    });
+    expect(h!.wrongItems).toEqual([{ number: 3, myAnswer: ["a"], correctAnswer: ["b"], qid: "ISTQB-A-003" }]);
+  });
+
+  it("qid가 없거나 문자열이 아니거나 비어 있으면 만들어 붙이지 않는다", () => {
+    for (const qid of [undefined, "", 7, null, ["x"], {}]) {
+      const h = sanitizeHistory({ ...base, wrongItems: [{ number: 1, myAnswer: [], correctAnswer: [], qid }] });
+      expect(h!.wrongItems![0], `qid=${JSON.stringify(qid)}`).not.toHaveProperty("qid");
+    }
+  });
+
+  it("qid와 항목별 setId(퀵)가 함께 있어도 둘 다 남는다", () => {
+    const h = sanitizeHistory({
+      ...base, setId: "QUICK", mode: "quick",
+      wrongItems: [{ number: 1, myAnswer: [], correctAnswer: [], setId: "ISTQB-A", qid: "Q1" }],
+    });
+    expect(h!.wrongItems![0]).toMatchObject({ setId: "ISTQB-A", qid: "Q1" });
+  });
+});
+
 // HISTORY_MODES에 'quick'이 빠지면 mode가 'exam'으로 보정돼, 10~20문항짜리 퀵 회차가
 // 세트 전체 실전으로 집계되면서 최고 정답률·평균을 부풀린다.
 describe('sanitizeHistory — 퀵 모드 보존', () => {

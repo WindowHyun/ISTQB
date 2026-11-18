@@ -1,5 +1,5 @@
 import { test, expect, Page } from "./fixtures";
-import { enterExam, modeBtn, openSet } from "./helpers";
+import { closeResult, enterExam, flushSaves, modeBtn, openSet, readHistoryRounds, submitGrade } from "./helpers";
 
 // 남은 시간(#timerText)을 초로 읽는다 — "59:58" 또는 "1:00:00" 양쪽 표기를 다룬다.
 async function remainingSeconds(page: Page): Promise<number> {
@@ -74,6 +74,63 @@ test.describe("시험 제한시간", () => {
     });
     expect(rounds).toHaveLength(1);
     expect(rounds[0].total).toBe(40); // 0이 아니어야 한다
+  });
+});
+
+test.describe("시험 제한시간 — 자동 제출이 기록하는 것", () => {
+  // 위 테스트는 '복원 직후' 만료만 본다 — 그때는 훅이 새로 만들어져 최신 답안을 읽는다. 응시를 시작한 채
+  // 앱이 떠 있다가 만료되는 경우가 실제 사용이고, 그때 타이머 effect는 시작 시점의 렌더가 만든 채점
+  // 함수를 붙잡고 있다. 그 함수가 클로저의 답안으로 채점하면 결과 모달은 실제 점수를 보이는데 저장된
+  // 회차는 0점·전 문항 오답이 된다(total만 확인하던 종전 검사는 이를 못 잡았다).
+  test("응시 중에 만료되면 그때까지 고른 답으로 회차가 기록된다", async ({ page }) => {
+    await page.clock.install();
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await enterExam(page);
+    for (let i = 0; i < 3; i++) {
+      await page.locator("#options .option").first().click();
+      await page.locator("#nextBtn").click();
+    }
+
+    await page.clock.fastForward("01:01:00"); // 60분 제한 초과 — 앱은 계속 떠 있다
+    await expect(page.getByTestId("result-summary")).toBeVisible({ timeout: 20_000 });
+
+    const rounds = await readHistoryRounds(page);
+    expect(rounds).toHaveLength(1);
+    expect(
+      Object.keys(rounds[0].answers),
+      "자동 제출이 시작 시점의 빈 답안으로 채점해 고른 답이 기록에 없다",
+    ).toHaveLength(3);
+    // 기록된 정답 수가 결과 모달이 보여 준 값과 같다.
+    const shown = await page.getByTestId("result-summary").innerText();
+    expect(shown).toContain(`${rounds[0].correct}`);
+  });
+
+  // graded는 비영속이다. 새로고침 뒤 답안만 남은 채 이 시험에 다시 들어가면, 채점 때 지워지지 않은
+  // 시작 시각 때문에 옛 시각으로 제한시간을 판정해 같은 답안이 한 번 더 자동 제출됐다.
+  test("채점한 시험은 새로고침 뒤 다시 들어가도 회차가 늘지 않고 새로 시작한다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await enterExam(page);
+    await page.locator("#options .option").first().click();
+    await submitGrade(page);
+    await closeResult(page);
+    await modeBtn(page, "연습").click();
+    await flushSaves(page);
+    // 채점과 함께 제한시간의 시작 시각도 끝난다 — 저장소에 남아 있으면 다음 복원이 옛 시각을 읽는다.
+    const savedStartedAt = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("istqb-fl-v4-sample-ui-state") ?? "{}").examStartedAt ?? {});
+    expect(savedStartedAt, "채점이 끝났는데 응시 시작 시각이 저장소에 남아 있다").toEqual({});
+
+    await page.goto("/");
+    await rewindExamStart(page, 61); // 남은 기준점이 있다면 제한시간을 넘긴 시각으로 만든다
+    await page.getByRole("button", { name: "ISTQB" }).click();
+    await expect(page.locator("#questionStem")).toBeVisible({ timeout: 20_000 });
+
+    await modeBtn(page, "시험").click();
+    await expect(
+      page.getByTestId("exam-start-gate"),
+      "채점이 끝난 시험이 응시 중으로 되살아나 시작 게이트 없이 열렸다",
+    ).toBeVisible({ timeout: 10_000 });
+    expect(await readHistoryRounds(page), "같은 답안이 한 번 더 기록됐다").toHaveLength(1);
   });
 });
 

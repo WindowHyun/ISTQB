@@ -277,3 +277,115 @@ describe('백업 × 퀵 랜덤', () => {
     expect(ui.quickDraw?.items).toEqual([{ id: 'Q1', setId: 'ISTQB-FL-V4-A' }]);
   });
 });
+
+/**
+ * 백업 왕복·부분 실패.
+ *
+ * 내보내기가 quickRounds를 빼고 가져오기는 UI 상태를 '교체'해서, 같은 날 내보내기→가져오기만으로
+ * 24시간 퀵 회차가 사라지고 quickGraded·quickRoundId는 없는 회차를 가리켰다. 그리고 형태가 어긋난
+ * state(예: reviewIds가 문자열)는 병합기에서 던져 적용되지 않는데도 ok:true를 돌려주었다.
+ */
+describe('백업 왕복·부분 실패', () => {
+  const SETID = 'ISTQB-FL-V4-A';
+  const fresh = (id: string, createdAt = Date.now()) => ({
+    id, setId: 'QUICK', mode: 'quick', certification: 'istqb', answers: {}, correct: 0, total: 1,
+    createdAt, wrongItems: [{ number: 1, myAnswer: [], correctAnswer: ['a'], setId: SETID, qid: 'Q1' }],
+  });
+
+  function captureDownload() {
+    const blobs: Blob[] = [];
+    URL.createObjectURL = vi.fn((b: Blob) => { blobs.push(b); return 'blob:x'; });
+    URL.revokeObjectURL = vi.fn();
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const read = (b: Blob) => new Promise<string>((res) => {
+      const r = new FileReader();
+      r.onload = () => res(String(r.result));
+      r.readAsText(b);
+    });
+    return async () => JSON.parse(await read(blobs[blobs.length - 1]));
+  }
+
+  it('내보내기에 만료되지 않은 퀵 회차가 실리고 만료된 것은 실리지 않는다', async () => {
+    const s = await freshStorage();
+    const { useQuizStore } = await import('../store/useQuizStore');
+    const lastBackup = captureDownload();
+    useQuizStore.setState({
+      activeProduct: 'istqb',
+      quickRounds: [fresh('fresh-1'), fresh('old-1', Date.now() - 25 * 60 * 60 * 1000)] as never,
+      quickGraded: { [`QUICK-quick-Q1`]: true },
+      quickRoundId: 'fresh-1',
+    });
+    await s.exportUserData();
+    const data = await lastBackup();
+    expect(data.state.quickRounds.map((r: { id: string }) => r.id)).toEqual(['fresh-1']);
+    expect(data.state.quickRoundId).toBe('fresh-1');
+  });
+
+  it('같은 날 내보내기→가져오기 왕복에서 퀵 회차가 남는다', async () => {
+    const s = await freshStorage();
+    const { useQuizStore } = await import('../store/useQuizStore');
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    const r = await s.importUserData(backupFile({
+      schemaVersion: 2, product: 'istqb',
+      state: { mode: 'practice', setId: SETID, quickGraded: { 'QUICK-quick-Q1': true }, quickRoundId: 'fresh-1', quickRounds: [fresh('fresh-1')] },
+      answers: {},
+    }));
+    expect(r.ok).toBe(true);
+    const st = useQuizStore.getState();
+    expect(st.quickRounds.map((x) => x.id), '회차만 사라지고 채점 표시만 남았다').toEqual(['fresh-1']);
+    expect(st.quickGraded).toEqual({ 'QUICK-quick-Q1': true });
+    expect(st.quickRoundId).toBe('fresh-1');
+  });
+
+  it('형태가 어긋난 state 필드는 버리고 나머지를 적용한 채 성공한다', async () => {
+    const s = await freshStorage();
+    const { useQuizStore } = await import('../store/useQuizStore');
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    // 디스크에 이미 누적 키가 있어야 병합기가 값을 훑는다(비어 있으면 문자열이어도 던지지 않는다).
+    localStorage.setItem('istqb-fl-v4-sample-ui-state', JSON.stringify({
+      mode: 'exam', setId: SETID, reviewIds: { [`${SETID}-exam`]: ['Q1'] }, reviewedOk: { [SETID]: [1] },
+    }));
+    const r = await s.importUserData(backupFile({
+      schemaVersion: 2, product: 'istqb',
+      state: { mode: 'practice', setId: SETID, index: 4, reviewIds: 'oops', reviewedOk: 7, quickRounds: 'x' },
+      answers: {},
+    }));
+    expect(r.ok, '병합에서 던져 상태가 적용되지 않았는데 성공으로 보고했다').toBe(true);
+    const st = useQuizStore.getState();
+    expect(st.index).toBe(4);
+    expect(st.reviewIds).toEqual({});
+  });
+
+  it('이력은 들어왔지만 풀이 상태 저장이 실패하면 성공이 아니라 사유를 돌려준다', async () => {
+    const s = await freshStorage();
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota', 'QuotaExceededError');
+    });
+    const r = await s.importUserData(backupFile({
+      schemaVersion: 2, product: 'istqb',
+      state: { mode: 'practice', setId: SETID },
+      answers: {},
+      histories: { 'part-1': { id: 'part-1', setId: SETID, mode: 'exam', answers: {}, correct: 1, total: 2 } },
+    }));
+    expect(r.ok, '저장이 실패했는데 성공 토스트가 뜬다').toBe(false);
+    expect(r.reason).toMatch(/풀이 상태 저장에 실패/);
+    vi.restoreAllMocks();
+    expect((await s.loadHistoriesFromDB())['part-1'], '이력은 들어와 있어야 한다').toBeTruthy();
+  });
+
+  it('브라우저 저장소를 열지 못하면 파일 탓이 아니라고 알린다', async () => {
+    const s = await freshStorage();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(indexedDB, 'open').mockImplementation(() => { throw new Error('boom'); });
+    const r = await s.importUserData(backupFile({
+      schemaVersion: 2, product: 'istqb', state: {}, answers: {},
+      histories: { 'x-9': { id: 'x-9', setId: SETID, mode: 'exam', answers: {}, correct: 1, total: 2 } },
+    }));
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/저장소/);
+    expect(r.reason).not.toMatch(/해석/);
+  });
+});

@@ -215,3 +215,25 @@ describe('storage IndexedDB', () => {
     expect(useQuizStore.getState().reviewIds['OTHER-exam']).toEqual(['Q3']);
   });
 });
+
+describe('storage IndexedDB — 죽은 연결', () => {
+  it('다른 곳이 DB를 지우려 하면 연결을 닫아 주고, 다음 호출이 새로 연다(영구 캐시 금지)', async () => {
+    // 열린 연결을 onversionchange에서 닫지 않으면 deleteDatabase가 막혀 끝나지 않는다. 이 핸들러가
+    // 없던 때는 브라우저가 끊은 연결(iOS 백그라운드 등)도 캐시에 남아 새로고침 전까지 모든 이력
+    // 저장·조회가 InvalidStateError로 실패했다.
+    const s = await freshStorage();
+    await s.saveHistoryToDB(hist('dead-1'));
+    const outcome = await Promise.race([
+      new Promise<string>((resolve) => {
+        const req = indexedDB.deleteDatabase('istqb-db');
+        req.onsuccess = () => resolve('deleted');
+        req.onerror = () => resolve('error');
+      }),
+      new Promise<string>((resolve) => setTimeout(() => resolve('hung'), 1000)),
+    ]);
+    expect(outcome, '열린 연결이 닫히지 않아 삭제가 막혔다').toBe('deleted');
+    await s.saveHistoryToDB(hist('dead-2'));
+    const loaded = await s.loadHistoriesFromDB();
+    expect(Object.keys(loaded), '죽은 연결을 재사용해 저장이 실패했다').toEqual(['dead-2']);
+  });
+});

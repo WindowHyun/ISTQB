@@ -110,9 +110,11 @@ export const QuestionWorkspace = () => {
       const prev = prevRemainingRef.current;
       prevRemainingRef.current = remaining;
       if (remaining <= 0) {
+        // 미응답은 오답 처리(수동 채점과 동일 규칙). 실린 목록이 이 세트의 것이 아니면(세트를 바꾼
+        // 직후) 채점하지 않으므로 제출한 것으로 치지 않고 다음 틱에 다시 본다.
+        if (!gradeAndShow()) return;
         autoSubmittedRef.current = true;
         showToast('제한시간이 종료되어 자동으로 제출했습니다.', 'info', 5000);
-        gradeAndShow(); // 미응답은 오답 처리(수동 채점과 동일 규칙)
         return;
       }
       if (prev == null) return; // 첫 틱은 기준선만 잡는다(재응시 직후 오발화 방지)
@@ -176,7 +178,8 @@ export const QuestionWorkspace = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
     // gradeAndShow는 렌더마다 새로 생성되지만 의존성에 넣으면 매 렌더 타이머가 재시작된다 —
-    // 항상 최신 스토어 상태를 읽어 동작하므로 effect 재실행 없이 안전하다.
+    // 안에서 가장 최근 렌더의 handleGrade를 ref로 불러 답안·문항을 최신으로 읽으므로 effect 재실행
+    // 없이 안전하다(useQuizSession의 handleGradeRef 주석 참고 — 이 주석이 한동안 사실이 아니었다).
     // currentQuestions.length: 0 → N으로 바뀌는 시점에 effect가 다시 돌아야
     // 로드 전에 건너뛴 만료 판정이 즉시 이어진다.
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -3,7 +3,7 @@ import type { Question } from '../hooks/useQuestions';
 import {
   selectGradableQuestions, tallySession, selectCorrectQuestions,
   deriveExamStage, clampIndex, deriveQuickControls, deriveCanGrade, progressPercentOf,
-  isAtProductGate,
+  isAtProductGate, listMatchesSession, mergeReviewTargets, scopeQuickRound,
 } from './sessionDerive';
 
 /**
@@ -265,5 +265,82 @@ describe('isAtProductGate — 게이트인가', () => {
   // 빈 문자열은 '고르지 않음'과 같게 다룬다 — 손상된 저장값이 그대로 실릴 수 있다.
   it('제품이 빈 문자열이면 게이트로 본다', () => {
     expect(isAtProductGate({ mode: 'practice', activeProduct: '' })).toBe(true);
+  });
+});
+
+describe('listMatchesSession — 실린 목록이 지금 세션의 것인가', () => {
+  const session = { mode: 'exam', setId: 'A', chapterFilter: null as string | null };
+
+  it('모드·세트가 같으면 맞다', () => {
+    expect(listMatchesSession({ mode: 'exam', setId: 'A', chapter: null }, session)).toBe(true);
+  });
+
+  // 세트를 바꾼 직후 새 목록이 오기 전에 자동 제출이 걸리면, 옛 세트의 문항이 새 세트 키로 기록된다.
+  it('세트가 다르면 아니다(옛 목록으로 새 세트를 채점하지 않는다)', () => {
+    expect(listMatchesSession({ mode: 'exam', setId: 'B', chapter: null }, session)).toBe(false);
+  });
+
+  it('모드가 다르거나 아직 아무것도 싣지 않았으면 아니다', () => {
+    expect(listMatchesSession({ mode: 'practice', setId: 'A', chapter: null }, session)).toBe(false);
+    expect(listMatchesSession({ mode: null, setId: null, chapter: null }, session)).toBe(false);
+  });
+
+  it('랜덤은 챕터까지 같아야 한다(미니 시험과 세트 전체 랜덤은 다른 목록이다)', () => {
+    const mini = { mode: 'random', setId: 'A', chapterFilter: '테스트 기초' };
+    expect(listMatchesSession({ mode: 'random', setId: 'A', chapter: '테스트 기초' }, mini)).toBe(true);
+    expect(listMatchesSession({ mode: 'random', setId: 'A', chapter: null }, mini)).toBe(false);
+    expect(listMatchesSession({ mode: 'random', setId: 'A', chapter: '다른 챕터' }, mini)).toBe(false);
+    expect(listMatchesSession({ mode: 'random', setId: 'A', chapter: null }, { ...mini, chapterFilter: null })).toBe(true);
+  });
+
+  it('랜덤이 아니면 챕터는 보지 않는다(연습의 챕터 필터는 채점과 무관하다)', () => {
+    expect(listMatchesSession({ mode: 'exam', setId: 'A', chapter: '무엇이든' }, { ...session, chapterFilter: null })).toBe(true);
+  });
+});
+
+describe('mergeReviewTargets — 오답 대상은 이번 회차가 다룬 문항만 갈아끼운다', () => {
+  it('이전 값이 없으면 이번 오답이 그대로 대상이다', () => {
+    expect(mergeReviewTargets(undefined, ['q1', 'q2', 'q3'], ['q2'])).toEqual(['q2']);
+  });
+
+  // 이것이 존재 이유다: 두 번째 표본이 첫 표본의 오답을 통째로 지우면 오답 모드에서 문항이 사라진다.
+  it('이번 회차가 다루지 않은 문항의 이전 오답은 그대로 둔다', () => {
+    expect(mergeReviewTargets(['q1', 'q2'], ['q8', 'q9'], ['q9'])).toEqual(['q1', 'q2', 'q9']);
+  });
+
+  it('이번 회차가 다뤄서 맞힌 문항은 대상에서 빠진다', () => {
+    expect(mergeReviewTargets(['q1', 'q2'], ['q1', 'q9'], ['q9'])).toEqual(['q2', 'q9']);
+  });
+
+  it('이번에도 틀린 문항은 한 번만 남는다', () => {
+    expect(mergeReviewTargets(['q1'], ['q1', 'q2'], ['q1'])).toEqual(['q1']);
+  });
+
+  it('회차가 세트 전체를 다루면(시험) 종전처럼 이번 결과로 교체된다', () => {
+    expect(mergeReviewTargets(['q1', 'q2', 'q3'], ['q1', 'q2', 'q3', 'q4'], ['q4'])).toEqual(['q4']);
+  });
+});
+
+describe('scopeQuickRound — 퀵 회차에 담을 문항', () => {
+  const a = q(1); const b = q(2); const c = q(3);
+
+  it('이 회차가 아직 없거나 만료됐으면 방금 채점한 문항 하나로 시작한다', () => {
+    // 며칠 전 채점 표시까지 지금 시각의 회차로 되살리지 않는다.
+    expect(scopeQuickRound(undefined, [a, b, c], c, keyOf)).toEqual([c]);
+  });
+
+  it('회차가 유효하면 거기 담긴 문항에 방금 것만 더한다', () => {
+    const prior = { answers: { k1: ['a'] } };
+    expect(scopeQuickRound(prior, [a, b, c], c, keyOf)).toEqual([a, c]);
+  });
+
+  it('채점 표시는 남았지만 회차에 없는 문항(옛 날의 것)은 따라오지 않는다', () => {
+    const prior = { answers: { k3: ['a'] } };
+    expect(scopeQuickRound(prior, [a, b, c], c, keyOf)).toEqual([c]);
+  });
+
+  it('방금 채점한 문항이 이미 회차에 있으면 한 번만 담긴다', () => {
+    const prior = { answers: { k1: ['a'], k2: ['a'] } };
+    expect(scopeQuickRound(prior, [a, b], b, keyOf)).toEqual([a, b]);
   });
 });

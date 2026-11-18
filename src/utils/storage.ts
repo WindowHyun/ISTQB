@@ -1,4 +1,4 @@
-import { useQuizStore, QuizState, QuizMode, ExamHistory, sessionScopeDefaults, PLAY_MODES } from '../store/useQuizStore';
+import { useQuizStore, QuizState, QuizMode, ExamHistory, sessionScopeDefaults, PLAY_MODES, freshQuickRounds } from '../store/useQuizStore';
 import debounce from 'lodash-es/debounce';
 import { showToast } from './toast';
 import { answerKeyPrefix, gradeKeyFor, reviewKeyFor } from './answerKey';
@@ -19,7 +19,16 @@ function getDb(): Promise<IDBDatabase> {
         db.createObjectStore(STORE_NAME, { keyPath: "id" });
       }
     };
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      const db = request.result;
+      // 연결은 죽을 수 있다 — 브라우저가 백그라운드에서 끊거나(iOS PWA) 다른 탭이 버전을 올리면
+      // 이 핸들은 이후 모든 transaction()이 InvalidStateError를 낸다. 영구 캐시한 채 두면 새로고침
+      // 전까지 이력 저장·조회·삭제가 전부 실패하고, 복원도 건너뛰어진다. 캐시를 비워 다음 호출이
+      // 새로 열게 한다.
+      db.onclose = () => { if (dbPromise === p) dbPromise = null; };
+      db.onversionchange = () => { db.close(); if (dbPromise === p) dbPromise = null; };
+      resolve(db);
+    };
     request.onerror = () => reject(request.error);
   });
   // 열기 실패(일시 오류 등) 시 캐시를 비워 다음 호출이 재시도하도록 한다(#P2-2).
@@ -95,10 +104,18 @@ export async function saveHistoryToDB(history: ExamHistory) {
   }
 }
 
-export async function loadHistoriesFromDB(): Promise<Record<string, ExamHistory>> {
+/**
+ * 이력을 읽는다. **실패와 '없음'을 구분한다** — 실패면 null, 비어 있으면 {}.
+ *
+ * 둘을 같은 {}로 돌려주면 복원이 일시 오류를 '이력 없음'으로 읽어 메모리의 정상 이력을 지우고,
+ * 그 상태로 내보내면 빈 백업이 만들어진다. 복원은 이 함수를 쓰고 실패 때 현재 메모리를 유지한다.
+ * (`return await`인 이유: await 없이 Promise를 돌려주면 db.transaction()의 동기 예외가 이 함수의
+ * try/catch를 빠져나가 호출부까지 던져진다.)
+ */
+async function readHistoriesFromDB(): Promise<Record<string, ExamHistory> | null> {
   try {
     const db = await getDb();
-    return new Promise((resolve) => {
+    return await new Promise<Record<string, ExamHistory> | null>((resolve) => {
       const tx = db.transaction(STORE_NAME, "readonly");
       const request = tx.objectStore(STORE_NAME).getAll();
       request.onsuccess = () => {
@@ -110,12 +127,16 @@ export async function loadHistoriesFromDB(): Promise<Record<string, ExamHistory>
         });
         resolve(result);
       };
-      request.onerror = () => resolve({});
+      request.onerror = () => resolve(null);
     });
   } catch (err) {
     console.warn("IndexedDB load failed", err);
-    return {};
+    return null;
   }
+}
+
+export async function loadHistoriesFromDB(): Promise<Record<string, ExamHistory>> {
+  return (await readHistoriesFromDB()) ?? {};
 }
 
 // 삭제 성공 여부를 돌려준다 — 호출부가 "DB가 실제로 지워진 뒤에만" 메모리를 지우게 한다.
@@ -330,6 +351,10 @@ export function sanitizeHistory(value: unknown): ExamHistory | null {
         // 덮어쓴다. 없는 경우(일반 회차)는 만들어 붙이지 않는다 — 호출부가
         // `it.setId ?? h.setId`로 회차 setId를 폴백하기 때문이다.
         if (typeof it.setId === "string" && it.setId) item.setId = it.setId;
+        // qid는 오답 대상(reviewIds)을 이력에서 다시 만들 때(회차 삭제) 쓰는 식별자다. allowlist에서
+        // 빠뜨리면 읽을 때마다(loadHistoriesFromDB) 사라지고 가져오기는 DB에서 영구히 지운다 —
+        // 그러면 회차 하나를 지우는 것만으로 그 세트의 오답 모드 출제 대상이 통째로 비워진다.
+        if (typeof it.qid === "string" && it.qid) item.qid = it.qid;
         return item;
       });
   }
@@ -483,6 +508,48 @@ export function findGradedExamMatch(
   return findGradedRoundMatch(histories, setId, 'exam', answers, null);
 }
 
+/**
+ * 복원 시점의 시험 상태 — 시험 답안이 남은 세트마다 '응시 중'인지 '이미 채점한 회차'인지 가른다.
+ *
+ * 답안이 있다는 것만으로 응시 개시로 되살리면(examStarted) **이미 채점해 끝난 시험까지 응시 중으로
+ * 되살아난다.** graded는 비영속이라 새로고침 뒤 미채점처럼 보이고, 채점 때 남은 제한시간 기준점
+ * (examStartedAt)이 옛 시각 그대로라 그 시험에 다시 들어가는 순간 제한시간 초과로 같은 답안이 자동
+ * 제출되거나(중복 회차) 잠기지 않은 채 재채점된다. 예전에는 복원 시점의 모드가 시험인 세트 하나만
+ * 회차와 대조해(findGradedExamMatch) 다른 모드·세트에서 들어오는 경우를 놓쳤다.
+ *
+ * 그래서 모든 세트를 같은 규칙으로 가른다 — 최신 채점 회차의 답안과 같으면 채점 완료(graded 복원,
+ * 시작 기준점 제거), 아니면 응시 중(examStarted).
+ */
+export function deriveRestoredExamState(
+  histories: Record<string, ExamHistory>,
+  answers: Record<string, string[]>,
+  examStartedAt: Record<string, number> = {},
+): {
+  examStarted: Record<string, boolean>;
+  graded: Record<string, boolean>;
+  examStartedAt: Record<string, number>;
+} {
+  // 데이터 규약: 답안 키는 `${setId}-exam-${qid}`이고 setId·qid에는 '-exam-' 부분열이 없다
+  // (현행 12세트·626문항 전수 확인). 규약이 깨지면 이 최초 일치 파싱이 오판한다.
+  const setIds = new Set<string>();
+  for (const key of Object.keys(answers)) {
+    const sep = key.indexOf('-exam-');
+    if (sep > 0) setIds.add(key.slice(0, sep));
+  }
+  const examStarted: Record<string, boolean> = {};
+  const graded: Record<string, boolean> = {};
+  const startedAt = { ...examStartedAt };
+  for (const sid of setIds) {
+    if (findGradedExamMatch(histories, sid, answers)) {
+      graded[gradeKeyFor(sid, 'exam')] = true;
+      delete startedAt[sid];
+    } else {
+      examStarted[sid] = true;
+    }
+  }
+  return { examStarted, graded, examStartedAt: startedAt };
+}
+
 export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts') {
   // 떠나는 제품의 채점 상태를 세션 캐시에 보관(제품 재방문 시 복원).
   if (lastRestoredProduct && lastRestoredProduct !== activeProduct) {
@@ -493,10 +560,14 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
   // temporarily set the product to fetch the correct keys
   useQuizStore.getState().setActiveProduct(activeProduct);
 
+  // hydrate 전에 실패하면 store는 이미 새 제품(activeProduct)인데 내용은 이전 제품의 것이다 —
+  // 그 상태로 두면 이어지는 저장이 이전 제품의 답안·위치를 새 제품 키에 기록한다. catch가 안다.
+  let hydrated = false;
   try {
     let uiState = {};
     let answers = {};
-    const histories = await loadHistoriesFromDB();
+    // 조회 실패(null)는 '이력 없음'이 아니다 — 메모리의 이력을 그대로 둔다(readHistoriesFromDB 참고).
+    const histories = (await readHistoriesFromDB()) ?? useQuizStore.getState().histories;
     
     // localStorage 파싱은 조각마다 따로 감싼다. 한 조각이 손상돼 JSON.parse가 throw해도
     // (1) 이미 읽어온 정상 이력(histories)과 (2) 멀쩡히 파싱된 다른 조각까지 폐기하지 않는다.
@@ -519,9 +590,13 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
     // store의 activeProduct를 바꿨을 수 있고, 그때 store를 읽으면 남의 답안을 이 제품
     // 스코프로 들여온다(게이트 연타 시 실측됨 — storage.gaterace.test.ts).
     const snapshotRaw = localStorage.getItem(persistenceKey(activeProduct));
-    if (snapshotRaw) {
-      // 스냅샷은 UI 상태와 답안이 한 JSON에 들어 있어 쪼갤 수 없다 — 깨지면 둘 다 간다.
-      const snapshot = parseOr<{ uiState?: unknown; answers?: unknown }>(snapshotRaw, '스냅샷', {});
+    // 스냅샷은 본 키(UI 상태·답안)를 복제한 보조 저장본이다. 읽을 수 없으면(JSON 손상·객체가 아닌
+    // 값) 없는 것으로 보고 본 키로 간다 — 종전에는 손상된 스냅샷이 멀쩡한 본 키를 가려 모드·세트·
+    // 답안이 통째로 빈 상태로 복원됐고, 그 상태가 다음 저장에서도 고쳐지지 않았다.
+    const snapshot = snapshotRaw
+      ? parseOr<{ uiState?: unknown; answers?: unknown } | null>(snapshotRaw, '스냅샷', null)
+      : null;
+    if (isPlainObject(snapshot)) {
       uiState = snapshot.uiState || {};
       answers = snapshot.answers || {};
     } else {
@@ -534,25 +609,24 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
     // 시험 답안이 남아 있는 세트는 "응시 개시됨"으로 복원한다 — examStarted는 영속화하지
     // 않지만, 진행 중 답안의 존재가 곧 응시 개시의 증거다. 이것이 없으면 새로고침 한 번으로
     // 응시 중 세트/모드 잠금이 풀리고(구 확인 모달 대비 회귀), 답안을 모두 지웠을 때
-    // 시작 게이트가 재출현해 타이머를 소거하는 부작용도 생긴다.
-    // 데이터 규약: 답안 키는 `${setId}-${mode}-${qid}`이고 setId·qid에는 '-exam-' 부분열이
-    // 없다(현행 12세트·626문항 전수 확인). 규약이 깨지면 아래 최초 일치 파싱이 오판한다.
-    const restoredExamStarted: Record<string, boolean> = {};
-    for (const key of Object.keys(sanitizedAnswers)) {
-      const sep = key.indexOf('-exam-');
-      if (sep > 0) restoredExamStarted[key.slice(0, sep)] = true;
-    }
+    // 시작 게이트가 재출현해 타이머를 소거하는 부작용도 생긴다. 단 이미 채점한 회차의 답안은
+    // 응시 중이 아니다(deriveRestoredExamState).
+    const restoredExam = deriveRestoredExamState(histories, sanitizedAnswers, restoredUi.examStartedAt);
+    const sessionGradedNow = sameProductRevisit
+      ? useQuizStore.getState().graded
+      : (sessionGraded[activeProduct] ?? {});
+    hydrated = true;
     useQuizStore.getState().hydrate({
       // 세션 스코프 기본값(목록의 단일 원천은 스토어의 sessionScopeDefaults)을 깔아
       // 이전 제품의 상태가 새 제품으로 새어들지 않게 하고, 이 제품의 값으로 덮는다.
       ...sessionScopeDefaults(),
       // 채점 상태: 같은 제품 게이트 왕복이면 세션 값 유지, 제품 재방문이면 세션 캐시 복원 —
       // 소거하면 '채점하기'가 재노출돼 동일 답안 재채점으로 회차가 중복 적재된다.
-      graded: sameProductRevisit
-        ? useQuizStore.getState().graded
-        : (sessionGraded[activeProduct] ?? {}),
-      examStarted: restoredExamStarted,
+      graded: { ...sessionGradedNow, ...restoredExam.graded },
+      examStarted: restoredExam.examStarted,
       ...restoredUi,
+      // 채점을 마친 시험의 기준점은 버린다(restoredUi의 것을 덮는다).
+      examStartedAt: restoredExam.examStartedAt,
       answers: sanitizedAnswers,
       histories,
       activeProduct, // ensure it's set
@@ -618,10 +692,13 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
       // graded는 비영속(#1)이라 새로고침 후 미채점처럼 보이고, 이어풀기→재채점하면
       // 같은 답안이 중복 회차로 적립된다. 채점 상태를 복원하고 전용 안내 모달로 분기한다.
       // (채점 후 시험 답안은 잠금돼 변할 수 없으므로 "답안 동일 = 그 회차 그대로"가 성립)
-      const gradedMatch =
-        hasExamProgress && !store.graded[gradeKeyFor(sid, "exam")]
-          ? findGradedExamMatch(histories, sid, sanitizedAnswers)
-          : null;
+      // 이미 graded로 복원된 세션(같은 제품 게이트 왕복·위에서 회차와 대조해 세운 것)이어도 안내
+      // 모달은 같은 규칙이어야 한다 — 종전에는 graded가 서 있으면 대조를 건너뛰고 '이어풀기/새로 풀기'를
+      // 물었다(채점이 끝난 시험에 이어풀기).
+      const alreadyGraded = Boolean(store.graded[gradeKeyFor(sid, "exam")]);
+      const gradedMatch = hasExamProgress
+        ? findGradedExamMatch(histories, sid, sanitizedAnswers)
+        : null;
       if (gradedMatch) {
         useQuizStore.getState().setGraded(gradeKeyFor(sid, 'exam'), true);
         useQuizStore.getState().setGradedResume({
@@ -631,13 +708,43 @@ export async function restorePersistentSnapshot(activeProduct: 'istqb' | 'csts')
         store.setResumePrompt(false);
         store.setResumeNotice(false);
       } else {
-        store.setResumePrompt(hasExamProgress);
+        const askResume = hasExamProgress && !alreadyGraded;
+        store.setResumePrompt(askResume);
         // 선택 모달이 뜨는 경우엔 위치 배너는 띄우지 않는다(중복 방지). 그 외엔 첫 문항이 아니면 배너(#A).
-        store.setResumeNotice(!hasExamProgress && (restoredUi.index ?? 0) > 0);
+        store.setResumeNotice(!askResume && (restoredUi.index ?? 0) > 0);
       }
     }
   } catch (e) {
     console.error("Failed to restore snapshot:", e);
+    if (!hydrated) {
+      // 이전 제품의 상태를 새 제품 위에 남기지 않는다 — 세션 스코프를 기본값으로 비우고 답안도
+      // 비운다. 디스크의 저장본은 건드리지 않으므로(저장은 기준선 재설정 뒤 합쳐 쓴다) 다음 복원이
+      // 성공하면 그대로 돌아온다.
+      try {
+        useQuizStore.getState().hydrate({ ...sessionScopeDefaults(), answers: {}, activeProduct });
+      } catch (resetError) {
+        console.error("Failed to reset session scope after restore failure:", resetError);
+      }
+    }
+  }
+}
+
+/**
+ * 저장된 스냅샷을 객체로 읽는다 — 없거나 손상됐으면 빈 객체(새로 만든다).
+ *
+ * 종전에는 두 쓰기 경로가 `JSON.parse(raw)`를 그대로 불러, 스냅샷이 한 번 손상되면 **저장할 때마다**
+ * SyntaxError로 스냅샷 갱신이 실패했다(본 키 저장은 그 앞에서 끝나 있다). 복원은 스냅샷을 우선해
+ * 읽었으므로 손상은 사이트 데이터를 지울 때까지 고쳐지지 않았다. 이제 손상본은 새 스냅샷으로
+ * 덮여 스스로 낫는다.
+ */
+function readSnapshotObject(product: Product): Record<string, unknown> {
+  try {
+    const raw = localStorage.getItem(persistenceKey(product));
+    if (!raw) return {};
+    const parsed: unknown = JSON.parse(raw);
+    return isPlainObject(parsed) ? { ...parsed } : {};
+  } catch {
+    return {};
   }
 }
 
@@ -678,7 +785,7 @@ export const saveUiState = debounce((state: Partial<QuizState>) => {
       reviewedOk: state.reviewedOk,
       // 퀵 회차(24시간 임시). 이력(IndexedDB)이 아니라 여기 둔다 — 퀵은 회차 기록을
       // 남기지 않는 모드라 영구 저장소에 넣으면 사양과 모순된다.
-      // 내보내기(exportUserData)에는 넣지 않는다: 복원 시점엔 이미 만료됐을 값이다.
+      // 내보내기(exportUserData)에는 만료되지 않은 것만 싣는다(같은 날 왕복에서 회차만 사라지지 않게).
       quickRounds: state.quickRounds,
     };
     // 다른 탭이 넣은 누적 기록(퀵 회차·복습 진척·시험 기준점·오답 대상)을 덮어쓰지 않는다.
@@ -698,8 +805,8 @@ export const saveUiState = debounce((state: Partial<QuizState>) => {
     }
 
     // Also build legacy snapshot
-    const snapshotRaw = localStorage.getItem(persistenceKey(product));
-    const snapshot = snapshotRaw ? JSON.parse(snapshotRaw) : { answers: state.answers };
+    const existing = readSnapshotObject(product);
+    const snapshot: Record<string, unknown> = Object.keys(existing).length ? existing : { answers: state.answers };
 
     snapshot.updatedAt = Date.now();
     snapshot.uiState = merged;
@@ -909,8 +1016,7 @@ export const saveAnswers = debounce((answers: Record<string, string[]>, product:
     // 답안이 스냅샷에 실리지 않았다. 복원은 스냅샷을 우선해 읽으므로(restorePersistentSnapshot),
     // 그 뒤 saveUiState가 답안 없는 스냅샷을 만들면 복원이 빈 답안을 집어 든다.
     // saveUiState는 이미 같은 규칙으로 없으면 만든다 — 두 쓰기 경로를 맞춘다.
-    const snapshotRaw = localStorage.getItem(persistenceKey(product));
-    const snapshot = snapshotRaw ? JSON.parse(snapshotRaw) : {};
+    const snapshot = readSnapshotObject(product);
     snapshot.answers = next;
     snapshot.updatedAt = Date.now();
     localStorage.setItem(persistenceKey(product), JSON.stringify(snapshot));
@@ -963,6 +1069,10 @@ export async function exportUserData() {
       // 오답 재풀이로 맞혀 '복습함'이 된 문항. 빠뜨리면 백업 복원과 함께 복습 진척이
       // 통째로 되돌아가, 이미 극복한 문항이 다시 재풀이 목록에 올라온다.
       reviewedOk: state.reviewedOk,
+      // 24시간 임시 보관 중인 퀵 회차. 빠뜨리면 같은 날 내보내기→가져오기 왕복에서 회차만 사라지고
+      // 위의 quickGraded·quickRoundId는 남는다 — 점수판은 '채점함'이라는데 퀵 오답 목록과 챕터
+      // 통계에는 그 결과가 없다. 만료된 것은 싣지 않는다(읽는 쪽이 어차피 거른다).
+      quickRounds: freshQuickRounds(state.quickRounds),
     },
     answers: state.answers,
     histories: state.histories,
@@ -1067,7 +1177,16 @@ export async function importUserData(file: File): Promise<ImportResult> {
         // UI 상태·답안은 이미 백업본으로 바뀐 반쪽 적용 상태가 남는다.
         let importedHistories = 0;
         if (data.histories) {
-          const db = await getDb();
+          let db: IDBDatabase;
+          try {
+            db = await getDb();
+          } catch (openError) {
+            // 파일은 읽었는데 저장소를 열지 못한 것이다 — '파일을 해석하지 못했습니다'(아래 catch)로
+            // 안내하면 사용자가 멀쩡한 파일을 고치려 든다.
+            console.error("IndexedDB open failed during import", openError);
+            resolve({ ok: false, reason: '브라우저 저장소를 열지 못해 가져오지 못했습니다. 잠시 후 다시 시도하세요.' });
+            return;
+          }
           const tx = db.transaction(STORE_NAME, "readwrite");
           const store = tx.objectStore(STORE_NAME);
           // 손상·조작된 백업 항목을 정제해 걸러낸다(#P2-3 keyPath 누락 방어 포함).
@@ -1103,7 +1222,10 @@ export async function importUserData(file: File): Promise<ImportResult> {
           // "가져왔는데 예전 기록이 섞여 있다"가 된다. 디스크 현황을 기준선으로 삼아
           // 백업에 없는 키를 '지운 것'으로 판정시킨다(mergeUiWithStored 규칙 그대로).
           adoptStoredUiAsBaseline(product);
-          saveUiState({ ...data.state, activeProduct: product });
+          // 정제한 값만 넘긴다 — 원시 state를 그대로 병합기(mergeUiWithStored)에 넣으면 형태가 어긋난
+          // 필드(예: reviewIds가 문자열)가 병합에서 던져 UI 상태가 적용되지 않는다. 복원 경로와 같은
+          // 정제기를 태우면 손상 값은 버려지고 나머지는 적용된다.
+          saveUiState({ ...sanitizeUiState(data.state), activeProduct: product });
           saveUiState.flush();
         }
         if (data.answers) {
@@ -1111,18 +1233,20 @@ export async function importUserData(file: File): Promise<ImportResult> {
           saveAnswers(data.answers as Record<string, string[]>, product);
           saveAnswers.flush();
         }
-        if (persistWriteFailed) {
-          // 이력은 커밋됐지만 UI 상태/답안 저장이 실패(쿼터 등)한 부분 성공 — 조용히
-          // "완료"로 넘기지 않고 알린다(새로고침 시 이력은 유지, 풀던 위치·답안은 미복원).
-          showToast('이력은 가져왔지만 풀이 상태 저장에 실패했습니다(저장 공간 부족 가능). 공간 확보 후 다시 시도하세요.', 'error');
-        }
+        // 이력은 커밋됐지만 UI 상태/답안 저장이 실패(쿼터 등)한 부분 성공 — 성공으로 돌려주지 않는다.
+        // 종전에는 여기서 오류 토스트를 띄우고도 ok:true를 돌려줘, 호출부가 '백업 파일을 복원했습니다'
+        // 성공 토스트를 곧바로 덮어 띄웠고 사용자는 상반된 두 안내를 함께 봤다. 이력은 남으므로 복원은
+        // 그대로 진행하고(새로고침 시 이력은 유지, 풀던 위치·답안은 미복원) 결과만 실패로 알린다.
+        const partialFailure = persistWriteFailed;
 
         console.info(`[data] 백업 가져오기 완료: ${file.name} · 이력 ${importedHistories}건`);
         // 세션 채점 캐시 무효화 — 백업에는 graded가 없으므로 보존하면 가져온 미채점
         // 답안이 '채점됨'으로 표시된다. 무효화 후 복원하면 온전한 미채점 상태로 유입.
         invalidateSessionRestoreCache(product);
         await restorePersistentSnapshot(product);
-        resolve({ ok: true });
+        resolve(partialFailure
+          ? { ok: false, reason: '이력은 가져왔지만 풀이 상태 저장에 실패했습니다(저장 공간 부족 가능). 공간 확보 후 다시 시도하세요.' }
+          : { ok: true });
       } catch (err) {
         console.error("Import failed", err);
         resolve({ ok: false, reason: '파일을 해석하지 못했습니다(형식 확인 필요).' });
