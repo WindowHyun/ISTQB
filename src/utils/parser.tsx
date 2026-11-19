@@ -13,6 +13,27 @@ type Block = {
   marker?: string;
 };
 
+/**
+ * 문자열 하나가 렌더되기 전에 줄로 나뉘는 과정 — 렌더러가 지문 문자열을 바꾸는 유일한 자리다.
+ * 전수 검사(parser.breaks.test.ts)가 **렌더러가 실제로 쓰는 같은 함수**를 부르도록 꺼내 두었다.
+ */
+export function proseLines(text: string, inline = false): string[] {
+  const cleaned = splitKnownSectionHeadings(normalizeReadableCharacters(stripPdfNoise(text)));
+  const formatted = normalizePseudoCodeBlocks(normalizeKnownTables(cleaned));
+  return formatted
+    .split("\n")
+    .flatMap((line) =>
+      inline ||
+      line.startsWith("__TABLE__:") ||
+      line.startsWith("__CODE__:") ||
+      line.startsWith("__IMAGE__:")
+        ? [line]
+        : splitStructuralMarkers(line).split("\n"),
+    )
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 // === Extracted Vanilla Parsers ===
 // inline: 보기(option) 같은 단일 값 텍스트용 — 구조 마커(리스트) 해석을 끈다.
 // "33.3%"·"10.5 M/D" 같은 소수값이 하위 번호("1.1") 마커로 오인돼
@@ -26,22 +47,7 @@ function buildRichBlocks(text: unknown, inline = false): Block[] {
         normalizeQuestionBlock(block),
       );
     }
-    const cleaned = splitKnownSectionHeadings(
-      normalizeReadableCharacters(stripPdfNoise(text as string)),
-    );
-    const formatted = normalizePseudoCodeBlocks(normalizeKnownTables(cleaned));
-    const lines = formatted
-      .split("\n")
-      .flatMap((line) =>
-        inline ||
-        line.startsWith("__TABLE__:") ||
-        line.startsWith("__CODE__:") ||
-        line.startsWith("__IMAGE__:")
-          ? [line]
-          : splitStructuralMarkers(line).split("\n"),
-      )
-      .map((line) => line.trim())
-      .filter(Boolean);
+    const lines = proseLines(text as string, inline);
     const blocks: Block[] = [];
     let pendingList: ListItem[] = [];
     let pendingTable: string[][] = [];
@@ -640,31 +646,56 @@ function normalizeReadableCharacters(text: string): string {
   );
 }
 
+/**
+ * 머리말이 시작되는 자리에서 줄을 바꾼다. 짧은 머리말이 긴 머리말의 **일부**이기도 하므로
+ * ("다음과 같은 완화 활동이 있다." ⊂ "그리고 다음과 같은 완화 활동이 있다.") 한 번에, 긴 것부터
+ * 맞춘다. 머리말마다 따로 치환하면 앞의 짧은 것이 긴 머리말 가운데를 갈라 "그리고"만 고아 줄로
+ * 남는다(ISTQB B#34 · D#4 — 실데이터에서 발동했다).
+ */
+const SECTION_HEADINGS = [
+  "당신은 다음과 같이 테스트 케이스 세트를 도출했다:",
+  "테스트 케이스로 달성한",
+  "다음과 같은 테스트 활동이 있다:",
+  "그리고 다음과 같은 테스트 활동이 있다:",
+  "다음과 같은 완화 활동이 있다.",
+  "그리고 다음과 같은 완화 활동이 있다.",
+  "다음 중 위",
+  "다음 중 이",
+  "다음 중 업무와",
+  "다음 중 테스트",
+  "어떤 테스트 케이스가",
+];
+const SECTION_HEADING_RE = new RegExp(
+  [...SECTION_HEADINGS]
+    .sort((a, b) => b.length - a.length)
+    .map((h) => h.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|"),
+  "g",
+);
+
 function splitKnownSectionHeadings(text: string): string {
-  const headings = [
-    "당신은 다음과 같이 테스트 케이스 세트를 도출했다:",
-    "테스트 케이스로 달성한",
-    "다음과 같은 테스트 활동이 있다:",
-    "그리고 다음과 같은 테스트 활동이 있다:",
-    "다음과 같은 완화 활동이 있다.",
-    "그리고 다음과 같은 완화 활동이 있다.",
-    "다음 중 위",
-    "다음 중 이",
-    "다음 중 업무와",
-    "다음 중 테스트",
-    "어떤 테스트 케이스가",
-  ];
-  return headings.reduce(
-    (value, heading) => value.split(heading).join(`\n${heading}`),
-    text,
-  );
+  return text.replace(SECTION_HEADING_RE, (heading) => `\n${heading}`);
+}
+
+/**
+ * 직전 글이 **문장·항목을 끝낸 자리**인가 — 새 문장을 여는 어구 앞에서만 줄을 바꾸기 위한 조건.
+ * 마침표류로 끝났거나, 글머리표(•) 항목 뒤에 문장이 이어 붙은 경우(PDF 추출이 항목과 다음 문장을
+ * 한 줄로 이었다)다. 둘 다 아니면 같은 문장 안이라 끊지 않는다.
+ */
+function endsProseUnit(before: string): boolean {
+  if (/[.?!:)\]”"」』…。]$/.test(before.trimEnd())) return true;
+  const line = before.slice(before.lastIndexOf("\n") + 1);
+  return /^\s*•/.test(line);
 }
 
 function splitStructuralMarkers(text: string): string {
   return String(text || "")
     .replace(
       /(^|\s)(?=(?:\d+\.|[A-E]\.|[가-차]\.|[•])\s)/g,
-      "$1\n",
+      // 쉼표 바로 뒤의 "100."은 목록 번호가 아니라 나열한 수의 끝에 문장 마침표가 붙은 것이다
+      // ("…, 90, 91, 100. 테스트 케이스는…" — 번호 마커는 쉼표 뒤에 오지 않는다).
+      (match: string, pre: string, offset: number, whole: string) =>
+        /,\s*$/.test(whole.slice(0, offset + pre.length)) ? match : `${pre}\n`,
     )
     .replace(/\s*(?=\b(?:viii|vii|vi|iv|iii|ii|ix|x|v|i)\.\s)/gi, "\n")
     .replace(/\s*(?=(?:Given:|When:|Then:|And:)\s)/g, "\n")
@@ -672,11 +703,14 @@ function splitStructuralMarkers(text: string): string {
       /\s*\|\s*(?=(?:제목:|심각도:|우선순위:|환경:|설명:|재현 절차:|첨부파일:)\s*)/g,
       "\n",
     )
-    .replace(/\s+(?=(?:다음 중\s|다음 중이\s|다음 중에서\s|다음 예시 중\s))/g, "\n")
-    .replace(/\s+(?=다음 테스트\s)/g, "\n")
-    .replace(/\s+(?=그래프는\s)/g, "\n")
-    .replace(/\s+(?=테스트 스위트에 이미\s)/g, "\n")
-    .replace(/\s+(?=3점 추정 기법을\s)/g, "\n")
+    // 새 문장을 여는 어구 — 앞 글이 문장·항목을 끝낸 자리에서만 줄을 바꾼다. 조건 없이 끊으면 같은
+    // 문장 안의 낱말 경계("당신의 팀은 / 3점 추정 기법을", "아래 / 그래프는", "…바탕으로 / 다음 테스트
+    // 케이스를")까지 끊어, 문장 한가운데서 줄이 바뀌었다(실데이터 6곳).
+    .replace(
+      /\s+(?=(?:다음 중\s|다음 중이\s|다음 중에서\s|다음 예시 중\s|다음 테스트\s|그래프는\s|테스트 스위트에 이미\s|3점 추정 기법을\s))/g,
+      (match: string, offset: number, whole: string) =>
+        endsProseUnit(whole.slice(0, offset)) ? "\n" : match,
+    )
     .replace(/\s+(?=(?:인수 조건:|AC\d+:)\s*)/g, "\n")
     .replace(
       /\s+(?=(?:결함 ID:|제목:|애플리케이션:|결함:|재현 절차:|심각도:|우선순위:|환경:|설명:|첨부파일:)\s*)/g,
@@ -714,7 +748,7 @@ function openFigureModal(src: string): void {
 // PDF 추출 과정에서 한 문장이 여러 블록으로 쪼개진 경우(예: "…테스트한"+"다.",
 // "…개발(ATD"+"D) 접근법…")를 표시 단계에서 다시 이어붙인다.
 // ※ 데이터 파일(문제 내용·정답)은 일절 수정하지 않으며, 렌더 시점에만 합친다.
-function mergeTextContinuations(blocks: Block[]): Block[] {
+export function mergeTextContinuations(blocks: Block[]): Block[] {
   const TERMINAL = /[.?!…。」』:)\]]$/;
   // 떨어져 나온 한국어 종결 어미만 매칭("~다." / "~다 " / "~다," / "~다)").
   // "다음"처럼 뒤에 다른 음절이 붙는 경우는 제외해 과병합을 막는다.

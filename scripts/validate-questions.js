@@ -248,8 +248,13 @@ function validateQuestion(q, filePath, allIds, allNumbers) {
     log('ERROR', filePath, qId, `stem이 비어 있음`);
   } else if (Array.isArray(q.stem)) {
     const stemText = q.stem.map(b => b.text || '').join('\n');
-    const optionMatches = stemText.match(/(?:^|\s)([가-라][\-\.]|[1-4]\)|[①-④]|[A-D][\.\)])\s+/g);
+    const optionMatches = stemText.match(/(?:^|\s)([가나다라][\-\.]|[1-4]\)|[①-④]|[A-D][\.\)])\s+/g);
     if (optionMatches) {
+      // '다.'·'라.'는 세지 않는다 — PDF 추출이 문장 끝 '다.'만 따로 한 블록으로 떼어 낸 조각(렌더러가
+      // 이어 붙인다, parser.mergeTextContinuations)이 stem을 '\n'으로 이으면 줄머리 '다.'로 보인다.
+      // 보기 마커는 가·나 두 개만 세어도 2개 이상이므로 목록 감지에는 지장이 없다.
+      // (마커 클래스는 가·나·다·라 네 글자다 — 예전 `[가-라]`는 U+AC00~B77C 전 음절이라 '기.'·'고.' 같은
+      // 낱말까지 마커로 읽었다.)
       const realMatches = optionMatches.filter(m => !m.includes('다.') && !m.includes('라.'));
       if (realMatches.length >= 2) {
         // CSTS-EL-2018-010: 보기(가~라)가 지문에 오는 원본 구조 — 렌더 정상(E2E 4항목 검증).
@@ -276,9 +281,9 @@ function validateQuestion(q, filePath, allIds, allNumbers) {
 
   if (Array.isArray(q.options)) {
     for (const opt of q.options) {
-      const optionMatches = opt.text ? opt.text.match(/(?:\s)([가-라][\-\.]|[1-4]\)|[①-④]|[A-D][\.\)])\s+/g) : null;
+      const optionMatches = opt.text ? opt.text.match(/(?:\s)([가나다라][\-\.]|[1-4]\)|[①-④]|[A-D][\.\)])\s+/g) : null;
       if (optionMatches && optionMatches.length > 0) {
-        // Filter out common false positives in option text like "다. ", "라. "
+        // 선택지 텍스트 안의 줄머리 '다. '·'라. '는 위와 같은 이유로 세지 않는다.
         const realMatches = optionMatches.filter(m => !m.includes('다.') && !m.includes('라.'));
         if (realMatches.length > 0) {
           if (!['CSTS-FL-2402-028'].includes(qId)) {

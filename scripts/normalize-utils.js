@@ -38,7 +38,7 @@ function normalizeQuestionData(rawQuestion) {
         text = text.replace(/\n{3,}/g, '\n\n');
 
         // General list item separation
-        text = text.replace(/([^\n])\s*(•|○|①|②|③|④|[가-라][\-\.]|[1-9]\.\s|[1-9]\)\s|[A-D][\.\)]\s)/g, '$1\n$2');
+        text = text.replace(/([^\n])\s*(•|○|①|②|③|④|(?<![가-힣])[가나다라][\-\.]|[1-9]\.\s|[1-9]\)\s|[A-D][\.\)]\s)/g, '$1\n$2');
         text = text.replace(/([^\n])\s*([1-4]사분면:)/g, '$1\n$2');
 
         // Specific broken stems from PDF extraction
@@ -66,7 +66,7 @@ function normalizeQuestionData(rawQuestion) {
   // 2. Option extraction patterns
   const optionRegexes = [
     // 가- 가. 라- 라.
-    /([가-라][\-\.])\s*(.*?)(?=(?:[가-라][\-\.])|$)/gs,
+    /((?<![가-힣])[가나다라][\-\.])\s*(.*?)(?=(?:(?<![가-힣])[가나다라][\-\.])|$)/gs,
     // 1) 4)
     /([1-4]\))\s*(.*?)(?=(?:[1-4]\))|$)/gs,
     // ① ④
@@ -95,7 +95,7 @@ function normalizeQuestionData(rawQuestion) {
     const text = lastBlock.text;
     
     // Check if options are at the end of the text
-    const match = text.match(/([가-라][\-\.]|[1-4]\)|[①-④]|[A-D][\.\)])\s*/);
+    const match = text.match(/((?<![가-힣])[가나다라][\-\.]|[1-4]\)|[①-④]|[A-D][\.\)])\s*/);
     if (match) {
       const index = match.index;
       const potentialQuestion = text.substring(0, index).trim();

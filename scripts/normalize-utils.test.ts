@@ -79,3 +79,29 @@ describe('normalizeQuestionData — 보기 키 재부여는 반드시 수동 검
     expect(JSON.stringify(q)).toBe(before);
   });
 });
+
+/**
+ * 한국어 보기 마커 — 가·나·다·라 네 글자.
+ *
+ * 마커 클래스를 `[가-라]`로 적으면 가·나·다·라가 아니라 U+AC00~U+B77C **전 음절**이라, 모든
+ * "…한다."를 '다.' 앞에서 쪼갰다("발견한" / "다. 그리고 …" — requiresManualReview는 false라 검토에도
+ * 안 올랐다). 정본 www/data에는 이미 같은 모양의 조각이 83곳 있다(렌더러가 이어 붙인다).
+ */
+describe('normalizeQuestionData — 문장 끝 "다."는 보기 마커가 아니다', () => {
+  const blocks = (text: string): Q => ({
+    type: 'multiple_choice',
+    stem: [{ type: 'paragraph', text }],
+    answer: ['a'],
+  });
+
+  it('문장 끝의 "…한다."를 쪼개지 않는다', () => {
+    const text = '테스트는 결함을 발견한다. 그리고 리스크가 줄어든다. 다음 중 옳은 것은?';
+    const { normalized } = normalizeQuestionData(blocks(text));
+    expect(normalized.stem?.map((b) => b.text), '문장 끝 다.에서 지문이 쪼개졌다').toEqual([text]);
+  });
+
+  it('줄머리·공백 뒤의 진짜 가·나·다·라 마커는 여전히 나눈다', () => {
+    const { normalized } = normalizeQuestionData(blocks('옳은 것은? 가. 하나 나. 둘 다. 셋 라. 넷'));
+    expect(normalized.stem?.map((b) => b.text)).toEqual(['옳은 것은?', '가. 하나', '나. 둘', '다. 셋', '라. 넷']);
+  });
+});
