@@ -289,18 +289,22 @@ export function openImageLightbox(src: string): void {
     apply(zoomAt(view, { x: s.w / 2, y: s.h / 2 }, view.scale * factor, s, contentSize()), true);
   };
 
+  // 키는 stopPropagation이 아니라 stopImmediatePropagation으로 삼킨다. 둘 다 document 캡처 리스너라
+  // 전파 중단은 같은 대상의 **나중에 등록된** 리스너를 막지 못한다 — 라이트박스가 열린 채 모달이 새로 뜨면
+  // (시험 제한시간 종료로 결과 모달) 그 모달의 Esc 리스너가 라이트박스 뒤에 등록돼 있고, 라이트박스가
+  // close()로 열림 표시를 지운 직후 같은 Esc를 이어서 받아 모달까지 닫았다.
   const onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') { e.stopPropagation(); close(); return; }
+    if (e.key === 'Escape') { e.stopImmediatePropagation(); close(); return; }
     // 포커스 트랩: 탭 정지점은 ✕ 하나이므로 Tab은 항상 거기에 머문다.
     if (e.key === 'Tab') { e.preventDefault(); closeBtn.focus(); return; }
     // 마우스 없이도 확대·이동할 수 있어야 한다(제스처의 키보드 대안 — WCAG 2.5.1).
     // 화살표는 확대 여부와 무관하게 여기서 삼킨다 — 놓아 두면 뒤의 문항 이동이 라이트박스 밑에서 돌아간다.
     switch (e.key) {
-      case '+': case '=': e.stopPropagation(); zoomBy(KEY_ZOOM_STEP); return;
-      case '-': case '_': e.stopPropagation(); zoomBy(1 / KEY_ZOOM_STEP); return;
-      case '0': e.stopPropagation(); apply(IDENTITY, true); return;
+      case '+': case '=': e.stopImmediatePropagation(); zoomBy(KEY_ZOOM_STEP); return;
+      case '-': case '_': e.stopImmediatePropagation(); zoomBy(1 / KEY_ZOOM_STEP); return;
+      case '0': e.stopImmediatePropagation(); apply(IDENTITY, true); return;
       case 'ArrowLeft': case 'ArrowRight': case 'ArrowUp': case 'ArrowDown': {
-        e.stopPropagation();
+        e.stopImmediatePropagation();
         if (!isZoomed(view.scale)) return;
         e.preventDefault();
         const dx = e.key === 'ArrowLeft' ? KEY_PAN_PX : e.key === 'ArrowRight' ? -KEY_PAN_PX : 0;
@@ -328,8 +332,8 @@ export function openImageLightbox(src: string): void {
     }
     close();
   });
-  closeBtn.addEventListener('click', (e) => { e.stopPropagation(); close(); });
-  closeBottom.addEventListener('click', (e) => { e.stopPropagation(); close(); });
+  closeBtn.addEventListener('click', (e) => { e.stopImmediatePropagation(); close(); });
+  closeBottom.addEventListener('click', (e) => { e.stopImmediatePropagation(); close(); });
   document.addEventListener('keydown', onKey, true);
 
   document.body.appendChild(overlay);

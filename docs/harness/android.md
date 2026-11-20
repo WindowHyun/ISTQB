@@ -28,6 +28,7 @@ npm run test:apk   # Pixel 7 + WebView UA + 안전영역 모사
 ## 확인할 것
 
 - 패키징된 `assets/public`에 React 산출물(`index.html` → `/assets/*.js`, `data/`·`images/`)이 들어갔다. CI의 "Fail if committed Android project is stale" 단계가 커밋된 `android/`가 sync 결과와 같은지 본다.
+- 안전영역 주입은 페이지 로드(`WebViewListener.onPageLoaded`)마다 다시 한다 — 문서가 reload되면 인라인 스타일이 비어 상단바가 상태바 밑에 깔린다. 인셋이 아직 없으면(null) 0px을 넣지 않고 건너뛴다.
 - 권한은 최소 범위.
 - 서명 비밀값·`*.apk`·`*.aab`·`*.jks`·`*.keystore`·`android/local.properties`·`android/**/build/`를 커밋하지 않는다.
 - 시스템 바 색·안전영역처럼 네이티브가 최종 결정하는 값은 웹 유닛이 "무엇을 넘겼나"까지만 증명한다. 나머지는 CI 컴파일과 실기기 확인이 맡는다.

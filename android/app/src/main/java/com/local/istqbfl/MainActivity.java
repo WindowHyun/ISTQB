@@ -18,6 +18,7 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.WebViewListener;
 
 import org.json.JSONObject;
 
@@ -69,7 +70,11 @@ public class MainActivity extends BridgeActivity {
   private void applySystemBars(int color, boolean lightBar) {
     Window window = getWindow();
     window.setStatusBarColor(color);
-    window.setNavigationBarColor(color);
+    // 내비게이션 바의 '어두운 아이콘' 플래그(LIGHT_NAVIGATION_BAR)는 API 26부터다. 그 미만(minSdk 23)에서
+    // 밝은 색을 칠하면 흰 바탕에 흰 아이콘이 되어 뒤로·홈 버튼이 사라진다 — 아이콘 색을 못 바꾸는 기기에서는
+    // 어두운 바로 둔다.
+    boolean canDarkenNavIcons = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O;
+    window.setNavigationBarColor(lightBar && !canDarkenNavIcons ? Color.BLACK : color);
 
     int flags = window.getDecorView().getSystemUiVisibility();
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -124,6 +129,15 @@ public class MainActivity extends BridgeActivity {
     webView.post(() -> evaluateSafeAreaJs(webView));
     webView.postDelayed(() -> evaluateSafeAreaJs(webView), 700);
     webView.postDelayed(() -> evaluateSafeAreaJs(webView), 2000);
+    // 문서가 다시 로드되면(오류 경계의 reload·서비스워커 업데이트 적용) 새 문서의 인라인 스타일은 비어 있어
+    // 위 주입이 사라진다 — 인셋이 바뀌기 전까지 상단바가 상태바 밑에, 하단 바가 제스처바 밑에 깔렸다.
+    // 페이지 로드가 끝날 때마다 다시 주입한다.
+    getBridge().addWebViewListener(new WebViewListener() {
+      @Override
+      public void onPageLoaded(WebView loaded) {
+        evaluateSafeAreaJs(loaded);
+      }
+    });
   }
 
   private void evaluateSafeAreaJs(WebView webView) {
@@ -133,10 +147,11 @@ public class MainActivity extends BridgeActivity {
     int topPx = 0;
     int bottomPx = 0;
     WindowInsets insets = getWindow().getDecorView().getRootWindowInsets();
-    if (insets != null) {
-      topPx = insets.getInsets(WindowInsets.Type.statusBars()).top;
-      bottomPx = insets.getInsets(WindowInsets.Type.navigationBars()).bottom;
-    }
+    // 아직 인셋이 확정되지 않았으면 주입하지 않는다 — 0.0px을 넣으면 CSS의 env() 기본값을 덮어 오히려
+    // 안전영역이 사라진다. 인셋 확정·페이지 로드 시점에 다시 불린다.
+    if (insets == null) return;
+    topPx = insets.getInsets(WindowInsets.Type.statusBars()).top;
+    bottomPx = insets.getInsets(WindowInsets.Type.navigationBars()).bottom;
     // WebView 내부는 CSS px 단위를 사용하므로 devicePixelRatio로 나눔
     float density = getResources().getDisplayMetrics().density;
     final String js = String.format(
@@ -162,7 +177,9 @@ public class MainActivity extends BridgeActivity {
     @JavascriptInterface
     public String saveBackup(String requestedFileName, String payload) {
       String fileName = sanitizeFileName(requestedFileName);
-      byte[] bytes = String.valueOf(payload).getBytes(StandardCharsets.UTF_8);
+      // null을 String.valueOf로 감싸면 'null'이라는 글자가 백업 파일이 되어 ok:true로 돌아간다.
+      if (payload == null) return result(false, fileName, "", "저장할 내용이 없습니다.");
+      byte[] bytes = payload.getBytes(StandardCharsets.UTF_8);
 
       try {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -188,6 +205,10 @@ public class MainActivity extends BridgeActivity {
       try (OutputStream stream = resolver.openOutputStream(uri)) {
         if (stream == null) throw new IllegalStateException("백업 파일을 쓸 수 없습니다.");
         stream.write(bytes);
+      } catch (Exception error) {
+        // IS_PENDING=1로 만든 항목은 쓰기가 실패하면 다운로드 폴더에 반쯤 쓴 채로 남는다 — 지운다.
+        resolver.delete(uri, null, null);
+        throw error;
       }
 
       values.clear();

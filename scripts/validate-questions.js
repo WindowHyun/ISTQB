@@ -15,6 +15,8 @@
  * 10. explanation block type이 허용된 값인지
  * 11. 수동 \n 사용 여부
  * 12. 문제와 보기 텍스트가 비어 있지 않은지
+ * 13. type이 알려진 값인지, 선택형 정답이 비어 있지 않은 문자열 배열인지, 보기에 key가 있는지
+ * 14. image 블록·figure가 가리키는 파일이 실제로 있는지(없으면 화면에 깨진 그림이 뜬다)
  */
 
 const fs = require('fs');
@@ -22,6 +24,20 @@ const path = require('path');
 
 const ALLOWED_BLOCK_TYPES = ['paragraph', 'note', 'prompt', 'list', 'table', 'code', 'formula', 'image'];
 const REQUIRED_FIELDS = ['id', 'number', 'type', 'stem', 'options', 'answer'];
+const QUESTION_TYPES = ['multiple_choice', 'true_false', 'short_answer'];
+
+/** image 블록의 경로 — `src` 필드이거나 마크다운 `![alt](경로)` 본문(렌더러의 extractImageSrc와 같은 두 형태). */
+function imageRefOf(block) {
+  if (typeof block.src === 'string' && block.src.trim()) return block.src.trim();
+  const m = String(block.text || '').match(/!\[[^\]]*\]\(([^)\s]+)\)/);
+  return m ? m[1] : '';
+}
+
+/** 데이터가 가리키는 그림 경로가 실제 파일인가 — 저장소 루트와 www/ 두 곳을 본다(앞의 '/'는 뗀다). */
+function assetExists(ref) {
+  const rel = String(ref).startsWith('/') ? String(ref).substring(1) : String(ref);
+  return [path.join(process.cwd(), rel), path.join(process.cwd(), 'www', rel)].some((p) => fs.existsSync(p));
+}
 
 // 분류 체계(Phase 0) — chapter 값이 자격증별 taxonomy에 등록된 이름인지 검증한다.
 // 자격증명 → 유효 챕터 이름 Set. taxonomy.json 이 없으면 chapter 검증은 건너뛴다.
@@ -58,6 +74,20 @@ function validateQuestion(q, filePath, allIds, allNumbers) {
     }
   }
 
+  // 알려진 type이 아니면 어떤 정답 검사도 타지 않고 통과한다('multiple_choise' 오타가 그랬다).
+  if (q.type !== undefined && q.type !== null && !QUESTION_TYPES.includes(q.type)) {
+    log('ERROR', filePath, qId, `type '${q.type}'은 알 수 없는 값 (${QUESTION_TYPES.join(' | ')})`);
+  }
+  // 선택형 정답은 비어 있지 않은 문자열 배열이다 — 빈 배열이면 아래 'options에 존재' 검사가 순회할 것이
+  // 없어 정답이 없는 문항이 통과하고, 문자열이면 한 글자씩 보기 키로 읽힌다.
+  if (q.type === 'multiple_choice' && q.answer !== undefined && q.answer !== null) {
+    if (!Array.isArray(q.answer)) {
+      log('ERROR', filePath, qId, `multiple_choice 정답은 배열이어야 함 (현재 ${typeof q.answer})`);
+    } else if (q.answer.length === 0 || q.answer.some((a) => typeof a !== 'string' || a.trim() === '')) {
+      log('ERROR', filePath, qId, `multiple_choice 정답이 비어 있거나 문자열 배열이 아님: ${JSON.stringify(q.answer)}`);
+    }
+  }
+
   if (q.id) {
     if (allIds.has(q.id)) {
       log('ERROR', filePath, qId, `id 중복: ${q.id}`);
@@ -83,6 +113,10 @@ function validateQuestion(q, filePath, allIds, allNumbers) {
 
     const optionKeys = new Set();
     for (const opt of q.options) {
+      // key가 없는 보기는 정답이 가리킬 수 없고 중복 검사에도 안 걸린다.
+      if (q.type === 'multiple_choice' && (typeof opt.key !== 'string' || opt.key.trim() === '')) {
+        log('ERROR', filePath, qId, `보기에 key가 없음: ${String(opt.text).substring(0, 20)}`);
+      }
       if (opt.key && optionKeys.has(opt.key)) {
         log('ERROR', filePath, qId, `option key 중복: ${opt.key}`);
       }
@@ -188,14 +222,8 @@ function validateQuestion(q, filePath, allIds, allNumbers) {
   }
 
   if (q.figure) {
-    const figPath = q.figure.startsWith('/') ? q.figure.substring(1) : q.figure;
-    const candidates = [
-      path.join(process.cwd(), figPath),
-      path.join(process.cwd(), 'www', figPath),
-    ];
-    const exists = candidates.some(p => fs.existsSync(p));
-    if (!exists) {
-      log('WARNING', filePath, qId, `figure 파일 미존재: ${q.figure}`);
+    if (!assetExists(q.figure)) {
+      log('ERROR', filePath, qId, `figure 파일 미존재: ${q.figure}`);
     }
   }
 
@@ -204,6 +232,13 @@ function validateQuestion(q, filePath, allIds, allNumbers) {
     for (const block of blocks) {
       if (block.type && !ALLOWED_BLOCK_TYPES.includes(block.type)) {
         log('WARNING', filePath, qId, `${fieldName} block type '${block.type}' 은 허용되지 않은 값`);
+      }
+      // 없는 그림은 경고가 아니라 오류다 — 지문이 가리키는 그림이 없으면 문항을 풀 수 없다.
+      if (block.type === 'image') {
+        const ref = imageRefOf(block);
+        if (!ref || !assetExists(ref)) {
+          log('ERROR', filePath, qId, `${fieldName} image 블록의 파일 미존재: ${ref || '(경로 없음)'}`);
+        }
       }
     }
   };

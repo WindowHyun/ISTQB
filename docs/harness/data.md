@@ -11,6 +11,8 @@ python3 scripts/verify-pdf-data.py   # 원본 PDF와 텍스트·정답·밑줄·
 
 `www/data`가 정본이고 `public/data`·`dist`는 `npm run sync:assets`(빌드 전 자동)로 복사된다.
 
+`npm run verify`의 문항 검사(`validate-questions.js`)는 type이 알려진 값인지, 선택형 정답이 비어 있지 않은 문자열 배열인지, 보기에 key가 있는지, image 블록·figure가 가리키는 파일이 있는지를 **오류**로 막는다(`scripts/validate-questions.test.ts`가 임시 데이터로 실행해 고정한다).
+
 ## 규칙
 
 - **문항 id는 바꾸지 않는다.** 사용자 기록(챕터 통계·오답노트·추첨)이 id에 묶여 있다. id는 스캔 전체에서 유일해야 한다(재수록 그룹표가 "세트마다 id가 다르다"를 전제로 한다). 문항 번호는 파일 안에서만 유일하면 된다.

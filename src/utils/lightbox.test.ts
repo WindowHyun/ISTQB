@@ -26,6 +26,30 @@ describe('openImageLightbox', () => {
     expect(document.querySelectorAll('.figure-lightbox').length).toBe(1);
   });
 
+  // 라이트박스가 열린 뒤 새로 마운트된 모달(제한시간 종료의 결과 모달)은 Esc 리스너를 라이트박스보다 **나중에**
+  // 등록한다. 같은 document 캡처 단계라 stopPropagation으로는 그 리스너를 못 막아, Esc 한 번에 라이트박스와
+  // 모달이 함께 닫혔다.
+  it('Esc는 나중에 등록된 다른 keydown 리스너(모달)에 전달되지 않는다', () => {
+    openImageLightbox('/a.png');
+    const later = vi.fn();
+    document.addEventListener('keydown', later, true); // 라이트박스 뒤에 등록
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    document.removeEventListener('keydown', later, true);
+    expect(later, '같은 Esc가 뒤의 모달 리스너까지 닫았다').not.toHaveBeenCalled();
+    expect(document.querySelector('.figure-lightbox')).toBeNull();
+  });
+
+  it('확대 키·화살표도 뒤에 등록된 리스너로 새지 않는다', () => {
+    openImageLightbox('/a.png');
+    const later = vi.fn();
+    document.addEventListener('keydown', later, true);
+    for (const key of ['+', '-', '0', 'ArrowLeft', 'ArrowRight']) {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key }));
+    }
+    document.removeEventListener('keydown', later, true);
+    expect(later).not.toHaveBeenCalled();
+  });
+
   it('Esc 키로 닫히고 body 스크롤이 복원된다', () => {
     openImageLightbox('/a.png');
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));

@@ -121,6 +121,10 @@ Vercel 대시보드 → **Settings → Environment Variables**:
 > 결정하는 파일이 어떤 게이트에도 안 걸려 있었습니다. 지금은 `npm run typecheck:test`가 타입을
 > 보고 `middleware.test.ts`(14건)가 통과·차단·503·비ASCII 경로를 고정합니다.
 
+### 보안 헤더(CSP)
+
+`vercel.json`이 전 경로에 CSP·`X-Frame-Options`·`nosniff` 등을 건다. **`index.vite.html`의 인라인 스크립트(프리페인트 테마)는 CSP에 해시로만 허용돼 있어, 한 글자만 고쳐도 운영에서 막힌다** — `scripts/vercel-headers.test.ts`가 해시 불일치를 잡으니 실패하면 `vercel.json`의 `sha256-…`을 갱신한다. 새 외부 호스트(분석·폰트 등)를 쓰면 CSP에 명시적으로 추가한다. 배포 후 브라우저 콘솔에 CSP 위반이 없는지 한 번 본다(`vite preview`는 이 헤더를 적용하지 않는다).
+
 ### 사용 통계(GA4)
 
 Vercel **Production** 환경변수 `VITE_GA_ID`에 GA4 측정 ID(`G-XXXXXXX`)를 등록하고 **재배포**합니다(Vite가 빌드 시점에 값을 박으므로 재배포해야 반영됩니다). Preview에는 등록하지 않아 프리뷰 방문이 섞이지 않게 합니다. 변수가 없으면 통계는 완전히 꺼집니다.

@@ -26,10 +26,18 @@ on:
     tags:
       - "v*"
 
+# 최소 권한 — 서비스계정·keystore Secret을 다루는 유일한 워크플로라 GITHUB_TOKEN은 읽기만 한다.
+# (종전에는 permissions 블록이 없어 저장소 기본 권한으로 발급됐다.)
+permissions:
+  contents: read
+
 jobs:
   build-distribute:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # 임의 브랜치에서 수동 실행해도 서명 키로 만든 APK가 테스터에게 나가지 않게 main과 v* 태그만 배포한다.
+    # (워크플로를 직접 고친 브랜치에서 Run workflow를 눌러 Secret을 쓰게 하는 길을 닫는다.)
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -44,6 +52,16 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      # 배포 전 정적 검증 — 이 워크플로는 ci.yml과 따로 돌아서, 빨간 커밋에 태그를 푸시해도 막는 것이 없었다.
+      # 느린 E2E·뮤테이션은 ci.yml 몫이고, 여기서는 몇 분 안에 끝나는 게이트만 다시 돈다.
+      - name: Verify (lint · typecheck · unit · data)
+        run: |
+          npm run lint
+          npm run typecheck
+          npm run typecheck:test
+          npm test
+          npm run verify
+
       - name: Build web (React → dist)
         run: npm run build
 
@@ -55,7 +73,7 @@ jobs:
           java-version: "21"
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
         with:
           # 액션 기본값은 `tools platform-tools`인데, 구글이 SDK 저장소에서 레거시 `tools`
           # 패키지를 내렸다. sdkmanager가 "Failed to find package 'tools'"로 죽으면서
@@ -133,7 +151,7 @@ jobs:
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
 
       - name: Upload to Firebase App Distribution
-        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        uses: wzieba/Firebase-Distribution-Github-Action@bd494989dd4bec0343f78adee87fe66e48279ad6 # v1
         with:
           appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
@@ -146,3 +164,8 @@ jobs:
         with:
           name: ${{ steps.apk.outputs.name }}
           path: ${{ steps.apk.outputs.path }}
+
+      # 복호화한 keystore를 작업 공간에 남기지 않는다 — 이후 단계의 액션이 읽을 수 있는 자리다.
+      - name: Remove decoded keystore
+        if: always()
+        run: rm -f android/app/release.jks

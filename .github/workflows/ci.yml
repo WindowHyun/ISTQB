@@ -240,7 +240,7 @@ jobs:
           distribution: "temurin"
           java-version: "21"
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
         with:
           # 액션 기본값은 `tools platform-tools`인데, 구글이 SDK 저장소에서 레거시 `tools`
           # 패키지를 내렸다. sdkmanager가 "Failed to find package 'tools'"로 죽으면서
@@ -484,7 +484,7 @@ jobs:
         with:
           fetch-depth: 0 # 전체 커밋 히스토리에서 유출 이력까지 스캔.
       - name: Gitleaks
-        uses: gitleaks/gitleaks-action@v3
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -496,15 +496,23 @@ jobs:
       contents: read
       security-events: write # 스캔 결과를 Security 탭에 업로드.
       actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        # 웹(TS)뿐 아니라 JS 브리지를 여는 MainActivity(java-kotlin)와 워크플로(actions)도 정적 분석한다 —
+        # 종전에는 JS만 봐서 파일 쓰기 브리지·시크릿을 다루는 워크플로의 결함이 Security 탭에 나타나지 않았다.
+        # 셋 다 빌드 없이 분석한다(build-mode: none).
+        language: [javascript-typescript, java-kotlin, actions]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
-          languages: javascript-typescript
+          languages: ${{ matrix.language }}
+          build-mode: none
           queries: security-and-quality # XSS·프로토타입 오염·안전하지 않은 DOM 등.
       - name: Analyze
         uses: github/codeql-action/analyze@v4
         with:
-          category: "/language:javascript-typescript"
+          category: "/language:${{ matrix.language }}"
