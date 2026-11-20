@@ -205,6 +205,46 @@ test.describe("헤더와 상태 줄", () => {
   });
 });
 
+test.describe("스크롤과 오답 보기", () => {
+  // #root가 height: 100%이면 sticky 상단바의 containing block이 한 화면 높이에서 끝나, 그보다 더 내리면 상단바가
+  // 함께 밀려 올라갔다(세트명·남은 시간·오답 노트 입구가 화면에서 사라졌다). 좌표가 아니라 '끝까지 내려도 top이 0'이라는 관계를 잰다.
+  test("상단바는 한 화면을 넘게 끝까지 내려도 화면 위에 붙어 있다", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 480 });
+    await openSet(page, "CSTS", CSTS_2018);
+    await answerCurrent(page); // 연습은 즉시 해설이 열려 문서가 길어진다
+    const overflow = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
+    expect(overflow, "문서가 한 화면보다 충분히 길지 않아 검사가 의미가 없다").toBeGreaterThan(300);
+
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const top = await page.locator(".mobile-topbar").evaluate((el) => el.getBoundingClientRect().top);
+    expect(Math.abs(top), `상단바가 화면 밖으로 밀려 올라갔다(top=${top})`).toBeLessThan(1.5);
+  });
+
+  // 오답 보기는 워크스페이스를 대신하는 화면이라 하단 액션바가 없다. 상단 액션을 CSS로 숨기면 나갈 길이
+  // 뒤로가기 제스처뿐이다 — 모르는 사용자는 화면 안에서 갇힌다.
+  test("오답 보기 화면에는 나가는 버튼이 보이고 터치 타깃을 지키며 노트로 돌아간다", async ({ page }) => {
+    await openSet(page, "CSTS", CSTS_2018);
+    await enterExamViaDrawer(page);
+    await answerCurrent(page);
+    await gradeAndClose(page);
+    await page.getByTestId("wrong-note-chip").click();
+    await page.getByTestId("wrong-note-set-btn").first().click();
+    await page.getByTestId("wrong-note-item-btn").first().click();
+    await expect(page.getByTestId("wrong-view-screen")).toBeVisible();
+
+    for (const id of ["wrong-view-back", "wrong-view-close"]) {
+      const btn = page.getByTestId(id);
+      await expect(btn, `${id}가 화면에 없다`).toBeVisible();
+      const box = await btn.boundingBox();
+      expect(box!.height, `${id} 터치 타깃 44px 미만`).toBeGreaterThanOrEqual(44);
+      const vp = page.viewportSize()!;
+      expect(box!.x + box!.width, `${id}가 화면 오른쪽 밖으로 나갔다`).toBeLessThanOrEqual(vp.width);
+    }
+    await page.getByTestId("wrong-view-back").click();
+    await expect(page.getByTestId("wrong-note-detail")).toBeVisible();
+  });
+});
+
 test.describe("하단 바와 진행 스트립", () => {
   test("문항당 한 칸이고 지금 문제는 따로 표시되며, 연습에서는 푼 문항이 정오 색을 얻는다", async ({ page }) => {
     await openSet(page, "CSTS", CSTS_2018);

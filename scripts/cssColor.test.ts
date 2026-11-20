@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isReddish, parseCssColor } from "../e2e/cssColor";
+import { contrastRatio, isReddish, parseCssColor } from "../e2e/cssColor";
 
 // E2E가 getComputedStyle로 읽는 색 문자열의 파서. 입력은 Chromium이 실제로 돌려주는 직렬화다
 // (`color-mix(in srgb, #c81e1e 80%, white)` → `color(srgb 0.827451 0.294118 0.294118)` 등을 실측했다).
@@ -65,3 +65,22 @@ describe("isReddish", () => {
     expect(() => isReddish("oklch(0.55 0.22 27)")).toThrow();
   });
 });
+
+describe("contrastRatio — WCAG 대비", () => {
+  it("검정 대 흰색은 21:1, 같은 색은 1:1", () => {
+    expect(contrastRatio("rgb(0, 0, 0)", "rgb(255, 255, 255)")).toBeCloseTo(21, 5);
+    expect(contrastRatio("rgb(120, 120, 120)", "rgb(120, 120, 120)")).toBeCloseTo(1, 5);
+  });
+
+  it("전경·배경 순서와 무관하다", () => {
+    expect(contrastRatio("rgb(200, 30, 30)", "rgb(255, 255, 255)"))
+      .toBeCloseTo(contrastRatio("rgb(255, 255, 255)", "rgb(200, 30, 30)"), 10);
+  });
+
+  // 실제로 미달이던 조합 — 다크의 밝은 빨강(#f87171) 위 흰 글자는 AA(4.5)에 못 미친다.
+  it("알려진 값: 흰 글자 대비 #f87171은 3:1 미만, #b91c1c는 AA 이상", () => {
+    expect(contrastRatio("rgb(255, 255, 255)", "rgb(248, 113, 113)")).toBeLessThan(3);
+    expect(contrastRatio("rgb(255, 255, 255)", "rgb(185, 28, 28)")).toBeGreaterThan(4.5);
+  });
+});
+

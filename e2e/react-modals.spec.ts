@@ -131,6 +131,31 @@ test.describe("엣지-모달", () => {
     await expect(page.getByTestId("settings-debug-off")).toHaveCount(0);
   });
 
+  // 2단계 확인의 '정말 삭제'가 눌러 둔 버튼 자리에 그대로 나타나 포커스까지 이어받으면, Enter 두 번이나
+  // 더블클릭만으로 확인 없이 지워졌다(이력 비우기·답안 초기화 — 되돌릴 수 없다).
+  test("2단계 확인은 Enter 두 번이나 더블클릭으로 확인 없이 실행되지 않는다", async ({ page }) => {
+    await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+    await page.locator("#options .option").first().click();
+    await page.getByRole("button", { name: /설정/ }).click();
+
+    // 키보드: 무장한 뒤 포커스가 안전한 쪽(취소)에 있어, Enter를 한 번 더 눌러도 삭제되지 않는다.
+    const arm = page.getByRole("button", { name: "현재 모드 답안 초기화" });
+    await arm.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("confirm-reset-yes")).toBeVisible();
+    await expect(page.getByRole("button", { name: "취소" }), "포커스가 확정 버튼에 남았다").toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("confirm-reset-yes")).toHaveCount(0); // 취소됐다
+    await expect(page.getByRole("button", { name: "현재 모드 답안 초기화" })).toBeVisible();
+
+    // 마우스: 더블클릭의 두 번째 클릭은 확정이 아니다.
+    await page.getByRole("button", { name: "현재 모드 답안 초기화" }).dblclick();
+    await expect(page.getByTestId("confirm-reset-yes"), "더블클릭이 확인 없이 실행됐다").toBeVisible();
+    // 의도한 한 번 누르기는 그대로 실행된다.
+    await page.getByTestId("confirm-reset-yes").click();
+    await expect(page.getByTestId("confirm-reset-yes")).toHaveCount(0);
+  });
+
   test("오답 노트에서 문항 클릭 → 팝업 안에서 문제·내 답·정답을 본다", async ({ page }) => {
     await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
     await enterExam(page);

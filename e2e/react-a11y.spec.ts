@@ -1,3 +1,4 @@
+import { contrastRatio } from "./cssColor";
 import { test, expect } from "./fixtures";
 import { openProduct, openSet } from "./helpers";
 
@@ -95,6 +96,51 @@ test.describe("접근성", () => {
     });
     expect(worst).toBeGreaterThanOrEqual(3);
   });
+
+  // 글자색을 한 테마에서만 고르면 다른 테마에서 조용히 무너진다. 토스트(배경 --text에 흰 글자 → 다크에서 1.2:1),
+  // 확인 모달의 파괴 버튼(다크의 밝은 빨강 위 흰 글자 2.8:1), 임박 타이머(라이트 전용 고정색 3.1~4.0:1)가 그랬다.
+  // 실제 클래스를 단 요소를 만들어 계산된 색의 대비를 잰다 — 값이 아니라 관계(AA 4.5:1)를 못 박는다.
+  for (const theme of ["light", "dark"] as const) {
+    test(`${theme} 테마에서 토스트·파괴 버튼·임박 타이머의 글자 대비가 AA(4.5:1) 이상이다`, async ({ page }) => {
+      await page.goto("/");
+      await page.evaluate((t) => localStorage.setItem("istqb-theme", t), theme);
+      await openSet(page, "ISTQB", "ISTQB-FL-V4-A");
+      if (theme === "dark") await expect(page.locator("body")).toHaveAttribute("data-theme", "dark");
+
+      const probes = await page.evaluate(() => {
+        const host = document.createElement("div");
+        host.className = "toast-host";
+        document.body.appendChild(host);
+        const make = (html: string) => {
+          const wrap = document.createElement("div");
+          wrap.innerHTML = html;
+          host.appendChild(wrap);
+          return wrap.firstElementChild as HTMLElement;
+        };
+        const read = (name: string, el: HTMLElement, bgEl: HTMLElement = el) =>
+          ({ name, fg: getComputedStyle(el).color, bg: getComputedStyle(bgEl).backgroundColor });
+        const out = [
+          read("토스트(안내)", make('<div class="toast show">안내</div>')),
+          read("토스트(성공)", make('<div class="toast toast-success show">성공</div>')),
+          read("토스트(오류)", make('<div class="toast toast-error show">오류</div>')),
+          read("파괴 버튼", make('<div class="confirm-actions"><button class="danger">삭제</button></div>').querySelector("button") as HTMLElement),
+        ];
+        // 타이머 글자는 표면 위에 얹힌다 — 가장 어두운·밝은 표면 토큰 셋 모두에서 잰다.
+        for (const surface of ["--surface", "--surface-2", "--surface-3"]) {
+          const box = make(`<div style="background: var(${surface})"><span class="timer-warn">4:59</span><span class="timer-danger">0:59</span></div>`);
+          const warn = box.querySelector(".timer-warn") as HTMLElement;
+          const danger = box.querySelector(".timer-danger") as HTMLElement;
+          out.push(read(`임박 타이머(경고) @${surface}`, warn, box), read(`임박 타이머(위험) @${surface}`, danger, box));
+        }
+        host.remove();
+        return out;
+      });
+
+      const rows = probes.map((p) => ({ ...p, ratio: contrastRatio(p.fg, p.bg) }));
+      const low = rows.filter((r) => r.ratio < 4.5).map((r) => `${r.name} ${r.ratio.toFixed(2)}:1 (${r.fg} on ${r.bg})`);
+      expect(low, `${theme} 테마에서 대비가 AA 미달이다`).toEqual([]);
+    });
+  }
 
   // react-features에서 옮김
   test("그림 클릭 라이트박스는 닫기 버튼에 포커스가 가고 Tab이 갇힌다", async ({ page }) => {

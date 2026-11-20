@@ -42,3 +42,20 @@ export function isReddish(css: string): boolean {
   const { r, g, b } = parseCssColor(css);
   return r > g + 40 && r > b + 40;
 }
+
+/** WCAG 2.x 상대 휘도. */
+function luminance({ r, g, b }: Rgb): number {
+  const f = (v: number) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+
+/** 두 색의 WCAG 대비(1~21). 투명도는 보지 않는다. */
+export function contrastRatio(fg: string, bg: string): number {
+  const a = luminance(parseCssColor(fg)) + 0.05;
+  const b = luminance(parseCssColor(bg)) + 0.05;
+  return Math.max(a, b) / Math.min(a, b);
+}
+
