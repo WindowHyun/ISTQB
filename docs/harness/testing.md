@@ -27,6 +27,9 @@
   - localStorage를 직접 읽을 때 → `flushSaves(page)`(앱이 화면을 숨길 때 타는 flushPersist 경로를 태운다)
   - "시간이 지나도 아무 일이 없다"는 부정 단언·시간 측정처럼 대기 자체가 검사일 때만 `// eslint-disable-next-line no-restricted-syntax -- <이유>`
 - **새로고침 전에는 기다리지 않는다.** 앱은 페이지를 내리는 순간 저장을 flush한다. 새로고침 전 고정 대기는 디바운스 저장이 먼저 끝나게 해 그 경로를 가린다 — 실제로 `flushPersist`를 빼도 NF11("즉시 reload에도 답안 보존")이 800ms 대기 덕분에 통과하고 있었다. 반대로 "상태 변경이 디바운스 저장을 스스로 촉발하는가"를 보는 검사는 새로고침 **전에** 저장소를 `expect.poll`로 확인한다(새로고침 순간의 flush는 상태 전체를 저장해 구독 누락을 가린다).
+- **화면 값이 아니라 기록을 단언한다.** 결과 모달의 점수와 저장된 회차가 갈린 결함(제한시간 자동 제출이 옛 답안으로 기록)은 화면만 봐서는 보이지 않는다. 저장 결과는 `readHistoryRounds`로 읽는다.
+- **단언 없는 수집은 검사가 아니다.** 문제를 배열에 모아 두기만 하고 끝나는 스펙(`problems`)은 `afterEach`에서 `expect(…).toEqual([])`로 끝낸다. 루프형 검사는 실제로 몇 번 검사했는지(최소 횟수)를 단언하고, 대상이 없다고 `continue`·`return`으로 조용히 넘기지 않고 실패로 알린다.
+- **E2E가 찾는 `data-testid`는 앱에 있어야 한다** — `scripts/e2e-testids.test.ts`가 막는다. 일부러 없는 것을 확인하는 부정 단언은 그 파일의 `ABSENT_BY_DESIGN`에 사유와 함께 적는다.
 - 페이지 오류 0건은 `e2e/fixtures.ts`의 `test`가 모든 테스트에 자동으로 검사한다. 스펙은 `@playwright/test` 대신 `./fixtures`에서 `test`·`expect`를 가져온다. 스펙에서 `pageerror`를 따로 모아 0건을 다시 단언하지 않는다. 앱과 무관한 알려진 잡음은 `test.use({ ignorePageErrors: [/…/] })`로 좁게 빼고, 예외를 일부러 일으키는 테스트만 `allowPageErrors: true`를 쓴다.
 - 긴 루프를 도는 스펙은 첫머리에 `page.setDefaultTimeout(...)`을 둔다(Playwright의 `actionTimeout` 기본값은 무제한). 진단 흔적은 루프 첫머리에서 주기적으로 출력한다.
 

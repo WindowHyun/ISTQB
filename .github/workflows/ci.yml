@@ -9,7 +9,10 @@ on:
 # 같은 ref에서 진행 중인 이전 실행을 취소해 중복 실행/분 낭비를 막는다.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # PR은 새 푸시가 이전 실행을 대체해도 된다. main 푸시는 취소하지 않는다 — 경로 필터(changed-areas)가
+  # `github.event.before`와 비교하므로, 취소된 푸시의 변경은 다음 실행의 비교 범위에서 빠져 저장 계층
+  # 뮤테이션·전수 스윕이 main에서 영영 돌지 않을 수 있다.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # 최소 권한 원칙(읽기 전용).
 permissions:

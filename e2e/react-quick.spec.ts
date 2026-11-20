@@ -277,7 +277,7 @@ test.describe("퀵 — 복원력", () => {
     if (wrongCount > 0) {
       await openProduct(page, "ISTQB");
       const noteBtn = page.getByRole("button", { name: "오답 노트" });
-      if (!(await noteBtn.isVisible())) await page.getByTestId("drawer-toggle").click();
+      if (!(await noteBtn.isVisible())) await page.getByTestId("drawer-open").click();
       await noteBtn.click();
       await expect(
         page.getByTestId("quick-wrong-note"),
@@ -289,7 +289,7 @@ test.describe("퀵 — 복원력", () => {
   test("퀵에서는 '오답 다시 풀기'를 내리고 갈 곳을 안내한다", async ({ page }) => {
     await enterQuick(page, "ISTQB");
 
-    const drawer = page.getByTestId("drawer-toggle");
+    const drawer = page.getByTestId("drawer-open");
     if (await drawer.isVisible()) await drawer.click();
 
     // 퀵 오답은 세트 오답 버킷에 담기지 않는 사양이라, 이 버튼은 눌러도 될 수 없다.

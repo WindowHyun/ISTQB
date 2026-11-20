@@ -51,7 +51,8 @@ const GLOBAL = [
 const MUTATION_TOOLING = [/^package(-lock)?\.json$/, /^vitest[^/]*\.config\.ts$/];
 
 // 영향이 없는 파일 — 문서·이미지 자료.
-const INERT = [/\.md$/, /^docs\//, /^LICENSE$/, /^\.github\/ISSUE_TEMPLATE\//, /^DATA\//];
+// DATA/(원본 PDF)는 여기 없다 — verify-pdf-data.py의 입력이라 바뀌면 문항과의 대조가 달라진다.
+const INERT = [/\.md$/, /^docs\//, /^LICENSE$/, /^\.github\/ISSUE_TEMPLATE\//];
 
 // 전 세트 순회 스펙(fullsweep·fullgrade)이 유일하게 잡는 변경 — 문항 데이터와 그것을
 // 화면·채점으로 옮기는 경로.
@@ -183,6 +184,9 @@ function classify(files, { scopes = mutationScopes(), exists = (f) => fs.existsS
     if (f === "vitest.stryker.config.ts" || MUTATION_TOOLING.some((r) => r.test(f))) {
       mutationAreas.forEach((a) => (on[a] = true));
     }
+    // 이 파일이 뮤테이션 범위(MUTATION_CONFIGS·mutationScope)를 정한다 — 잘못 고치면 게이트가 비어도
+    // 초록색 '생략'으로 끝나므로 이 파일만큼은 뮤테이션도 켠다(워크플로 변경과 같은 이유).
+    if (f === "scripts/changed-areas.js") mutationAreas.forEach((a) => (on[a] = true));
     if (GLOBAL.some((r) => r.test(f))) { broad(); continue; }
     if (INERT.some((r) => r.test(f))) continue;
     // 테스트 파일은 스윕 대상이 아니다 — 화면·채점 경로를 바꾸지 않는다(scoring.test.ts 등).
@@ -192,7 +196,7 @@ function classify(files, { scopes = mutationScopes(), exists = (f) => fs.existsS
     if (/^stryker[^/]*\.json$/.test(f)) { on.unit = true; continue; }
     // 린트 규칙만 바꾼다 — 정적 게이트(lint·typecheck·유닛)로 충분하다.
     if (/^eslint\.config\.[cm]?js$/.test(f)) { on.unit = true; continue; }
-    if (/^www\/(data|images)\//.test(f) || /^scripts\//.test(f)) { on.data = true; continue; }
+    if (/^(www\/(data|images)|DATA)\//.test(f) || /^scripts\//.test(f)) { on.data = true; continue; }
     if (/^e2e\//.test(f)) {
       if (/^e2e\/react-[^/]*\.spec\.ts$/.test(f)) on.e2e = true;
       else if (/^e2e\/explore-[^/]*\.spec\.ts$/.test(f)) on.explore = true;

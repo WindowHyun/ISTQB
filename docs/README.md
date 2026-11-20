@@ -35,6 +35,9 @@
 | [`decisions/mutation-gates.md`](./decisions/mutation-gates.md) | 뮤테이션 게이트 분리, 저장 계층 래칫 라운드별 실측 |
 | [`decisions/e2e-test-budget.md`](./decisions/e2e-test-budget.md) | 스펙 예산과 잡 타임아웃 부등식이 생긴 사건 |
 | [`decisions/webkit-render-cost.md`](./decisions/webkit-render-cost.md) | WebKit 렌더 비용 측정, Safari 게이트 제거 |
+| [`decisions/pdf-verification.md`](./decisions/pdf-verification.md) | PDF 대조가 지우는 것과 별도 검사, 허용 목록 규칙 상세 |
+| [`decisions/mobile-layout-contract.md`](./decisions/mobile-layout-contract.md) | 모바일 풀이 화면 레이아웃 규칙의 경위·실측 |
+| [`decisions/renderer-text-rules.md`](./decisions/renderer-text-rules.md) | 렌더러가 지문 줄바꿈을 정하는 규칙의 경위 |
 
 ## 설계 자료 — [`ui-mockups/`](./ui-mockups/)
 
@@ -49,7 +52,6 @@
 
 | 문서 | 시점 | 내용 |
 | --- | --- | --- |
-| [`slimming-report-2026-09-29.md`](./slimming-report-2026-09-29.md) | 2026-09-29 | 문서·E2E·CI 축소안과 AGENTS.md·하네스 재설계안 |
 
 ## 아카이브 — [`archive/`](./archive/)
 
@@ -57,6 +59,7 @@
 
 | 문서 | 시점 | 내용 |
 | --- | --- | --- |
+| `archive/slimming-report-2026-09-29.md` | 2026-09-29 | 문서·E2E·CI 축소안과 AGENTS.md·하네스 재설계안(Opus 5.5 기준). 적용 결과는 7절 |
 | `archive/code-audit-report.html` · `archive/code-audit-2026-08-18.md` | 2026-08-18~20 | 코드 점검 6회차(발견 16건·조치 15건). 결론은 하네스 문서와 테스트에 반영됨 |
 | `archive/project-history.html` | ~2026-08-20 | 진행 기록(테스트·기획·커밋) |
 | `archive/commit-dashboard.html` | 2026-07-30 | 커밋·이슈 대시보드(README 포트폴리오에서 링크) |

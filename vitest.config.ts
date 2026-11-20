@@ -9,7 +9,7 @@ export default defineConfig({
     // scripts/도 포함한다 — 데이터 보정 도구(normalize-utils)가 정답 매핑을 조용히
     // 어긋내는 자리를 품고 있어, 그 계약만은 검사로 고정해 둔다. 커버리지 include는
     // 그대로라 임계값에는 영향이 없다(middleware.ts와 같은 취급).
-    include: ["src/**/*.test.ts", "*.test.ts", "scripts/**/*.test.ts"],
+    include: ["src/**/*.test.{ts,tsx}", "*.test.ts", "scripts/**/*.test.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],

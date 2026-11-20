@@ -30,7 +30,7 @@
 
 ### 알아야 할 것
 
-- **경로 필터:** `mutation-storage`와 `e2e-sweep`은 늘 실행돼 초록으로 끝나지만, 무거운 단계는 `scripts/changed-areas.js`가 해당 영역(`mutationStorage` · `sweep` · `explore`) 변경을 감지했을 때만 돈다. 뮤테이션 영역은 고정 목록이 아니라 Stryker 설정의 `mutate`에서 import 그래프로 계산한다 — 대상이 import하는 모듈, 대상에 닿는 테스트와 그 길목 모듈(`import type`은 제외). 전수 스윕 스펙 목록의 정본은 같은 파일의 `SWEEP_SPECS`다. 필터 밖의 변경이 만드는 드리프트는 `daily-e2e.yml`이 main에서 잡는다. 분류 규칙을 바꾸면 `scripts/changed-areas.test.ts`도 함께 고친다.
+- **경로 필터:** `mutation-storage`·`e2e-sweep` 잡은 늘 실행돼 초록으로 끝나지만 무거운 단계는 `scripts/changed-areas.js`가 해당 영역(`mutationStorage`·`sweep`·`explore`) 변경을 감지했을 때만 돈다. 뮤테이션 영역은 Stryker 설정의 `mutate`에서 import 그래프로 계산한다(고정 목록 없음). 스윕 스펙의 정본은 같은 파일의 `SWEEP_SPECS`. 분류 규칙을 바꾸면 `changed-areas.test.ts`도 고친다. main 푸시는 `cancel-in-progress`를 끈다 — 비교 기준이 `github.event.before`라 취소된 푸시의 변경이 다음 실행의 범위에서 빠진다. 필터 밖의 드리프트는 `daily-e2e.yml`이 잡는다.
 - **`audit`가 `--omit=dev`인 이유:** 사용자에게 나가는 것은 프로덕션 의존성뿐이다. 이 게이트가 의미를 가지려면 `package.json` 분류가 정확해야 한다 — 빌드·테스트 전용 패키지가 `dependencies`에 들어가면 배포되지도 않는 패키지의 권고로 CI가 막힌다(실제로 `vite → postcss → nanoid`로 막힌 적이 있다).
 - **`codeql`:** 이 잡만 `security-events: write` 권한을 받는다. 저장소 설정에서 CodeQL default setup을 켜면 이 워크플로와 충돌하므로 둘 중 하나만 쓴다.
 - **잡 timeout과 스펙 예산:** `스펙 최대 test.setTimeout × 2(CI 재시도) + 정상 스위트 시간 < 잡 timeout`. 깨지면 멈춘 스펙이 예산을 태우는 동안 잡이 먼저 잘려 로그에 원인이 남지 않는다. 자세한 것은 [`../harness/testing.md`](../harness/testing.md).

@@ -5,14 +5,16 @@ const note = (s: string) => console.log("· " + s);
 const problems: string[] = [];
 const bad = (s: string) => { problems.push(s); console.log("  ✗ " + s); };
 
-// 상태 전이 매트릭스 — 모드 4개 × 시험 단계 3개의 모든 전이를 기계적으로 밟는다.
+// 상태 전이 매트릭스 — 모드 3개(탭) × 시험 단계 3개의 모든 전이를 기계적으로 밟는다.
 //
 // 기존 테스트는 "정상 사용자가 밟을 법한" 전이만 확인했다. 결함은 아무도 안 밟는
 // 칸에 숨는다: 응시 중에 오답 모드로 갔다 돌아오면 시험이 계속 잠겨 있는가?
 // 채점 후 랜덤에서 세트를 바꾸면 채점 상태가 새 세트로 새어 나가는가?
 // 모든 칸을 밟아야 정의되지 않은 상태가 드러난다.
 
-const MODES = ["practice", "exam", "random", "review"] as const;
+// 모드 세그먼트의 탭 — 랜덤은 뺐다(탭이 없다. 통계의 챕터 미니 시험으로만 들어온다).
+// 종전에는 목록에 남아 있어, 없는 탭을 눌러 조용히 실패하는 칸이 매트릭스의 절반을 헛돌게 했다.
+const MODES = ["practice", "exam", "review"] as const;
 type Mode = typeof MODES[number];
 
 async function state(page: Page) {
@@ -36,7 +38,11 @@ async function state(page: Page) {
 
 // 모드 전환 — 응시 중이면 확인 모달이 뜰 수 있으므로 나오는 대로 처리한다.
 async function goMode(page: Page, mode: Mode, accept: boolean) {
-  await page.locator(`.segmented button[data-mode="${mode}"]`).click({ timeout: 3000 }).catch(() => {});
+  const tab = page.locator(`.segmented button[data-mode="${mode}"]`);
+  // 탭이 없으면 매트릭스가 아무것도 밟지 못한 것이다 — 조용히 넘기지 않고 문제로 적는다.
+  if (!(await tab.count())) bad(`모드 탭이 없다: ${mode}`);
+  // 응시 중에는 세그먼트가 잠겨 있다(전환 시도 자체가 시나리오) — 잠긴 탭은 누르지 않고 넘어간다.
+  else if (!(await tab.isDisabled())) await tab.click({ timeout: 3000 });
   for (const id of ["confirm-exit-exam-modal", "pending-set-change-modal", "confirm-grade-modal"]) {
     const m = page.getByTestId(id);
     if (await m.count()) {
@@ -135,7 +141,7 @@ test("상태 전이: 채점 완료 후 전 모드 왕복과 세트 변경", asyn
     if (await m.count()) await m.locator("button").last().click().catch(() => {});
   }
   // 새 세트의 목록이 실릴 때까지. 실리지 않으면 아래 상태 판독이 그 결함을 문제로 적는다.
-  await expect(page.locator(".workspace")).toHaveAttribute("data-list-set", "ISTQB-FL-V4-B").catch(() => {});
+  await expect(page.locator(".workspace")).toHaveAttribute("data-list-set", "ISTQB-FL-V4-B");
   await settleMode(page);
   const newSet = await state(page);
   note(`세트 변경 후: ${JSON.stringify(newSet)}`);
@@ -170,7 +176,9 @@ test("상태 전이: 전 모드에서 진행률 표기가 모드별로 독립인
   }
 });
 
-test.afterAll(() => {
-  console.log(`\n=== 상태 전이 이상 ${problems.length}건 ===`);
-  for (const p of problems) console.log("  " + p);
+// 모은 문제를 **단언한다.** 종전에는 afterAll이 출력만 해서, 잠금이 풀리거나 시작 게이트가 사라지는
+// 결함이 들어와도 네 테스트가 전부 초록색이었다(단언은 #questionStem이 보인다는 것뿐이었다).
+test.afterEach(() => {
+  const found = problems.splice(0);
+  expect(found, `상태 전이 이상 ${found.length}건:\n${found.join("\n")}`).toEqual([]);
 });

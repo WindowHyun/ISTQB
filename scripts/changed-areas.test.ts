@@ -186,3 +186,19 @@ describe('changedFiles — git 이름 바꾸기', () => {
     expect(classify(files ?? []).data).toBe(true);
   });
 });
+
+describe('changed-areas — 하네스 자체의 빈틈', () => {
+  // 원본 PDF가 바뀌면 문항과의 대조(verify-pdf-data.py)가 달라진다 — 문서처럼 무시하면 안 된다.
+  it('원본 PDF(DATA/)가 바뀌면 data 영역이 켜진다', () => {
+    expect(onOf(['DATA/ISTQB_FL_v4.0_샘플문제_A.pdf'])).toEqual(['data']);
+  });
+
+  // 이 스크립트가 뮤테이션 범위를 정한다. 고쳐서 범위가 비어도 그 PR의 뮤테이션 잡이 '생략'으로
+  // 초록색이 되면 게이트가 사라진 것을 아무도 모른다. 다른 도구 체인 파일(check-changed 등)은 그대로
+  // 넓게만 켠다(뮤테이션 점수를 바꾸지 않는다).
+  it('범위를 정하는 changed-areas.js를 고치면 뮤테이션 게이트도 켜진다', () => {
+    const on = onOf(['scripts/changed-areas.js']);
+    expect(on).toEqual(expect.arrayContaining(['mutationCore', 'mutationStorage', ...broad]));
+    expect(onOf(['scripts/check-changed.js']), '실행기만 고쳤는데 12분짜리 뮤테이션이 켜졌다').toEqual(broad);
+  });
+});
